@@ -408,6 +408,14 @@ Changelog:
   - Enhanced error messaging specifically for "unauthorized domain" errors with setup instructions
   - Mobile users now get proper Google authentication flow that works with Firebase domain restrictions
   - Auth context automatically handles redirect results on app initialization for mobile sign-in completion
+
+- June 26, 2025. Integrated custom logo as app icon for PWA installation across all devices
+  - Replaced all placeholder icons with user's custom logo for professional branding
+  - Added comprehensive Apple-specific icon sizes (57x57 through 180x180) for iPhone compatibility
+  - Updated PWA manifest with proper icon references for "Add to Home Screen" functionality
+  - Enhanced HTML meta tags with apple-touch-icon links for iOS home screen installation
+  - Logo now displays correctly when users install the app on iPhone, Android, and desktop devices
+  - Removed all placeholder imagery to ensure complete live production app experience
 ```
 
 ## User Preferences
