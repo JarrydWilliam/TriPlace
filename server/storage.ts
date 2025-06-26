@@ -53,6 +53,14 @@ export interface IStorage {
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
+  // Community Messages
+  getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]>;
+  sendCommunityMessage(message: InsertMessage & { communityId: number }): Promise<Message>;
+  resonateMessage(messageId: number, userId: number): Promise<boolean>;
+  
+  // Community Events
+  getCommunityEvents(communityId: number): Promise<Event[]>;
+  
   // Kudos
   getKudos(id: number): Promise<Kudos | undefined>;
   getUserKudosReceived(userId: number): Promise<Kudos[]>;
@@ -73,6 +81,7 @@ export class MemStorage implements IStorage {
   private communityMembers: Map<number, CommunityMember> = new Map();
   private eventAttendees: Map<number, EventAttendee> = new Map();
   private activityFeed: Map<number, ActivityFeedItem> = new Map();
+  private messageResonates: Map<number, Set<number>> = new Map(); // messageId -> Set of userIds who resonated
   
   private currentUserId = 1;
   private currentCommunityId = 1;
@@ -983,6 +992,70 @@ export class MemStorage implements IStorage {
     };
     this.activityFeed.set(activity.id, activity);
     return activity;
+  }
+
+  // Community Messages Implementation
+  async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
+    const communityMessages = Array.from(this.messages.values())
+      .filter(message => message.receiverId === 0) // Community messages use receiverId 0
+      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+
+    const result = [];
+    for (const message of communityMessages) {
+      const sender = this.users.get(message.senderId);
+      const resonateCount = this.messageResonates.get(message.id)?.size || 0;
+      
+      if (sender) {
+        result.push({
+          ...message,
+          sender,
+          resonateCount
+        });
+      }
+    }
+
+    return result;
+  }
+
+  async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
+    const message: Message = {
+      id: this.currentMessageId++,
+      senderId: messageData.senderId,
+      receiverId: 0, // Community messages use 0
+      content: messageData.content,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    
+    this.messages.set(message.id, message);
+    this.messageResonates.set(message.id, new Set());
+    return message;
+  }
+
+  async resonateMessage(messageId: number, userId: number): Promise<boolean> {
+    let resonates = this.messageResonates.get(messageId);
+    if (!resonates) {
+      resonates = new Set();
+      this.messageResonates.set(messageId, resonates);
+    }
+    
+    if (resonates.has(userId)) {
+      resonates.delete(userId); // Unlike/unreact
+    } else {
+      resonates.add(userId); // Like/react
+    }
+    
+    return true;
+  }
+
+  async getCommunityEvents(communityId: number): Promise<Event[]> {
+    const community = this.communities.get(communityId);
+    if (!community) return [];
+
+    // Return events that match the community category
+    return Array.from(this.events.values())
+      .filter(event => event.category === community.category)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
 }
 

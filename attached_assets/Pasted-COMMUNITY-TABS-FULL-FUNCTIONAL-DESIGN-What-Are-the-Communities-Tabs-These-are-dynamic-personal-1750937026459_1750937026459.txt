@@ -1,0 +1,114 @@
+COMMUNITY TABS: FULL FUNCTIONAL DESIGN
+💡 What Are the Communities Tabs?
+These are dynamic, personalized spaces that reflect the user’s interests, behaviors, and location-based social circles.
+
+Each community is:
+
+Themed (e.g. “Outdoor Explorers”, “Runners & Hikers”, “Swifties”, “Foodie Adventures”)
+
+Automatically populated based on:
+
+Quiz results (past, present, future interests)
+
+Current location (within 50 miles)
+
+70%+ interest match with other users
+
+🧭 JOINING A COMMUNITY
+✅ How Users Get Communities
+Automatically joined to 3–5 communities post-quiz.
+
+Can discover and join additional communities via:
+
+Suggested cards on the user dashboard “Explore Communities” tab, will be populated by:
+
+Lower matched communities
+
+Events attended that will now be configured into your quiz alorithim giving new an fresh communities based on AI driven algorithm 
+
+📍 Location-Aware Membership
+Members inside each community change dynamically based on geolocation.
+
+If no high-matching members within 50 miles, system expands to 100 miles.
+
+Communities retain their title/identity, but the people inside shift.
+
+🧩 COMMUNITY TAB CONTENTS
+When a user enters a Community Tab, they see:
+
+🧵 1. Live Messaging Feed
+Real-time group chat (MS Teams-style).
+
+Posts show:
+
+Author profile + Profile picture 
+
+Time sent
+
+"Resonate" (like) button
+
+New messages appear live via WebSocket.
+
+📅 2. Community Event Panel
+Calendar view inside communities (inline or tabbed).
+
+Shows upcoming events specific to this community utilize webscrapping and a filter that will only show pertinent events
+Events are:
+
+Local (50–100 mile radius)
+
+Tagged by theme (hiking, biking, pop concert)
+
+Can be user-created
+
+Option to RSVP / mark join.
+
+🧍 3. Member Highlights
+“People You Match With” — displays nearby users with shared interests.
+
+Match percentage visible.
+
+Clicking reveals mini-profile with option to send emoji/kudos.
+
+💬 4. Pinned Announcements (Optional)
+Community leaders can pin a top message:
+
+“Meetup Friday @7PM at Liberty Park”
+
+“Yoga host needed for next week!”
+
+🔧 5. Post Creation
+Simple post bar at bottom:
+
+Text + emoji + image support (v2)
+
+Posts instantly added to chat
+
+Can be liked ("resonate")
+
+🔄 COMMUNITY UPDATING LOGIC
+✅ Adaptive Membership System
+Back-end reevaluates memberships based on:
+
+Location change
+
+Event attendance
+
+Quiz update
+
+Communities feel stable in purpose, fresh in people.
+
+❗No Manual Exiting Needed
+Users don’t have to leave communities.
+
+If interest or location changes, membership updates passively.
+
+⚙️ EXTRA TECH NOTES FOR IMPLEMENTATION
+
+Match algorithm runs:
+
+On signup (after quiz)
+
+On location update
+
+Daily background job (adaptive community refresh)
