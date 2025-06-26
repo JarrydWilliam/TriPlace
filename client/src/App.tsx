@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Onboarding from "@/pages/onboarding";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
+import Community from "@/pages/community";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/messaging" component={Messaging} />
       <Route path="/messages" component={Messaging} />
+      <Route path="/community/:communityId" component={Community} />
       <Route path="/discover" component={Dashboard} />
       <Route path="/communities" component={Dashboard} />
       <Route path="/kudos" component={Dashboard} />

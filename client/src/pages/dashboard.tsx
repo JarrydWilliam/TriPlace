@@ -162,7 +162,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {upcomingEvents?.slice(0, 5).map((event: Event) => {
+                    {Array.isArray(upcomingEvents) && upcomingEvents.slice(0, 5).map((event: Event) => {
                       const communityColor = communityColors[event.category as keyof typeof communityColors] || "bg-gray-500";
                       return (
                         <div 
@@ -196,7 +196,7 @@ export default function Dashboard() {
                       );
                     })}
                     
-                    {(!upcomingEvents || upcomingEvents.length === 0) && (
+                    {(!Array.isArray(upcomingEvents) || upcomingEvents.length === 0) && (
                       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                         <CalendarDays className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <p>No upcoming events in your communities</p>
@@ -276,7 +276,7 @@ export default function Dashboard() {
                 {/* New Communities */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 New Communities</h4>
-                  {recommendations?.slice(0, 2).map((community: Community) => (
+                  {Array.isArray(recommendations) && recommendations.slice(0, 2).map((community: Community) => (
                     <div key={community.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-center space-x-2 mb-1">
                         <span className="text-sm">🌟</span>
@@ -287,9 +287,18 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                         {community.memberCount} members • {community.category}
                       </p>
-                      <Button size="sm" variant="outline" className="w-full">
-                        Join Community
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button size="sm" variant="outline" className="flex-1">
+                          Join Community
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => window.location.href = `/community/${community.id}`}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
