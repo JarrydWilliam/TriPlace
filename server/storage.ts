@@ -5,6 +5,7 @@ import {
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
+import { aiMatcher } from "./ai-matching";
 
 export interface IStorage {
   // Users
@@ -280,12 +281,30 @@ export class MemStorage implements IStorage {
     return Array.from(this.communities.values()).filter(community => community.category === category);
   }
 
-  async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }): Promise<Community[]> {
+  async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     const communities = Array.from(this.communities.values());
     console.log('Total communities available:', communities.length);
     console.log('User interests:', interests);
     
-    // Calculate scores for each community
+    // Try AI-powered matching if user ID is provided
+    if (userId) {
+      const user = await this.getUser(userId);
+      if (user && user.onboardingCompleted && user.quizAnswers) {
+        try {
+          console.log('Using AI-powered community matching...');
+          const aiRecommendations = await aiMatcher.generateCommunityRecommendations(user, communities);
+          
+          if (aiRecommendations.length > 0) {
+            console.log(`AI found ${aiRecommendations.length} intelligent matches`);
+            return aiRecommendations.map(rec => rec.community);
+          }
+        } catch (error) {
+          console.log('AI matching failed, falling back to basic algorithm:', error);
+        }
+      }
+    }
+    
+    // Fallback to basic algorithm
     const scoredCommunities = communities.map(community => {
       const interestScore = this.calculateInterestScore(community, interests);
       const engagementScore = this.calculateEngagementScore(community);

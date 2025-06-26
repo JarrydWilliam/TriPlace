@@ -29,16 +29,34 @@ export default function Dashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
   });
 
-  // Fetch recommended communities with geolocation
+  // Fetch recommended communities with AI-powered matching
   const { data: recommendedCommunities = [], isLoading: communitiesLoading } = useQuery<Community[]>({
     queryKey: [
       '/api/communities/recommended', 
       user?.interests?.join(','),
+      user?.id,
       latitude,
       longitude
     ],
-    enabled: !!user?.interests?.length,
-    refetchInterval: 60000, // Refresh every minute for location-based updates
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (user?.interests?.length) {
+        params.append('interests', user.interests.join(','));
+      }
+      if (user?.id) {
+        params.append('userId', user.id.toString());
+      }
+      if (latitude) {
+        params.append('latitude', latitude.toString());
+      }
+      if (longitude) {
+        params.append('longitude', longitude.toString());
+      }
+      
+      return fetch(`/api/communities/recommended?${params.toString()}`).then(res => res.json());
+    },
+    enabled: !!user,
+    refetchInterval: 60000, // Refresh every minute for real-time updates
   });
 
   // Auto-refresh communities when user location changes

@@ -74,10 +74,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/communities/recommended", async (req, res) => {
     try {
       const interests = req.query.interests as string;
-      const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
-      console.log('Recommended communities request - interests:', interestsArray);
+      const userId = req.query.userId as string;
+      const latitude = req.query.latitude as string;
+      const longitude = req.query.longitude as string;
       
-      const communities = await storage.getRecommendedCommunities(interestsArray);
+      const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
+      const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
+      const userIdNum = userId ? parseInt(userId) : undefined;
+      
+      console.log('Recommended communities request - interests:', interestsArray, 'userId:', userIdNum, 'location:', userLocation);
+      
+      const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
       console.log('Recommended communities found:', communities.length);
       
       res.json(communities);
