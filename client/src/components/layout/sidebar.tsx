@@ -12,7 +12,7 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
-  const { latitude, longitude, source, loading: locationLoading } = useGeolocation();
+  const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation();
 
   const navigationItems = [
     { 
@@ -88,7 +88,7 @@ export function Sidebar() {
                       <MapPin className="w-3 h-3 text-yellow-500" />
                     )}
                     <span className="truncate">
-                      {source === 'gps' ? 'Precise location' : 'Approximate location'}
+                      {locationName || (source === 'gps' ? 'Precise location' : 'Approximate location')}
                     </span>
                   </>
                 ) : (

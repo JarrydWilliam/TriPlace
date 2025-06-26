@@ -130,6 +130,8 @@ Changelog:
   - Enhanced user experience with location permission prompts
   - Real-time location integration with community recommendations
   - Following industry standards for mobile app geolocation implementation
+  - Reverse geocoding displays actual city, state, zip code in sidebar
+  - Communities filtered by location while hiding location details from interface
 ```
 
 ## User Preferences

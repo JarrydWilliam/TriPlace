@@ -31,14 +31,31 @@ export function useGeolocation() {
 
       hasGPSAttempted = true;
       
-      const handleSuccess = (position: GeolocationPosition) => {
+      const handleSuccess = async (position: GeolocationPosition) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        // Try to get human-readable address
+        let locationName = 'GPS Location';
+        try {
+          const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+          const data = await response.json();
+          if (data.city && data.principalSubdivision && data.postcode) {
+            locationName = `${data.city}, ${data.principalSubdivision}, ${data.postcode}`;
+          } else if (data.locality && data.principalSubdivision) {
+            locationName = `${data.locality}, ${data.principalSubdivision}`;
+          }
+        } catch (error) {
+          console.log('Reverse geocoding failed, using coordinates');
+        }
+        
         setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude: lat,
+          longitude: lon,
           error: null,
           loading: false,
           source: 'gps',
-          locationName: 'GPS Location',
+          locationName,
         });
       };
 
