@@ -344,11 +344,11 @@ export default function Dashboard() {
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           Alex Johnson
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
                           <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                             🎯 92% Match
                           </Badge>
-                        </p>
+                        </div>
                       </div>
                       <Button size="sm" variant="ghost">
                         👏
