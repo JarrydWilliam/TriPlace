@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Download, Smartphone, Monitor, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PWAInstallInstructions } from "@/components/pwa/install-instructions";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -22,6 +23,7 @@ interface BeforeInstallPromptEvent extends Event {
 export function GlobalPWAPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [platform, setPlatform] = useState<'desktop' | 'mobile' | 'unknown'>('unknown');
   const { toast } = useToast();
@@ -130,13 +132,9 @@ export function GlobalPWAPrompt() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      // Fallback for browsers that don't support PWA installation
-      toast({
-        title: "Add to Home Screen",
-        description: platform === 'mobile' 
-          ? "Tap the share button in your browser and select 'Add to Home Screen'"
-          : "Use your browser's 'Install App' option or bookmark this page",
-      });
+      // Show detailed installation instructions instead of generic toast
+      setShowInstallDialog(false);
+      setShowInstructions(true);
       return;
     }
 
@@ -152,11 +150,9 @@ export function GlobalPWAPrompt() {
       setDeferredPrompt(null);
     } catch (error) {
       console.error('Installation failed:', error);
-      toast({
-        title: "Installation Error",
-        description: "Failed to install the app. Please try again.",
-        variant: "destructive",
-      });
+      // Show instructions as fallback if auto-install fails
+      setShowInstallDialog(false);
+      setShowInstructions(true);
     }
   };
 
@@ -182,8 +178,9 @@ export function GlobalPWAPrompt() {
   }
 
   return (
-    <Dialog open={showInstallDialog} onOpenChange={setShowInstallDialog}>
-      <DialogContent className="sm:max-w-md">
+    <>
+      <Dialog open={showInstallDialog} onOpenChange={setShowInstallDialog}>
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -275,5 +272,11 @@ export function GlobalPWAPrompt() {
         </div>
       </DialogContent>
     </Dialog>
+      
+      <PWAInstallInstructions 
+        isOpen={showInstructions} 
+        onClose={() => setShowInstructions(false)} 
+      />
+    </>
   );
 }
