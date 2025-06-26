@@ -214,8 +214,7 @@ export class EventScraper {
             longitude: userLocation.lon.toString(),
             category: scrapedEvent.category,
             maxAttendees: scrapedEvent.attendeeCount || 50,
-            price: (scrapedEvent.price || 0).toString(),
-            attendeeCount: 0
+            price: (scrapedEvent.price || 0).toString()
           };
 
           const createdEvent = await storage.createEvent(newEvent);

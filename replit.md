@@ -243,6 +243,17 @@ Changelog:
   - Fixed dashboard recommendations to exclude already-joined communities from "Today's Discoveries"
   - Enhanced recommendation filtering for both AI-powered and fallback algorithms
   - Community chat now displays actual user information instead of "Anonymous"
+
+- June 26, 2025. Implemented comprehensive web scraping system for community events
+  - Built EventScraper class with Eventbrite and Meetup API integration for real event data
+  - Created intelligent filtering system that matches scraped events to community topics and categories
+  - Added deduplication logic to prevent duplicate events and relevance scoring algorithms
+  - Implemented API routes for event scraping with location-based filtering (25-mile radius)
+  - Enhanced Events tab with "Find Events" button to trigger real-time event discovery
+  - Separated scraped external events from community-created events with distinct visual styling
+  - Events are filtered and matched exactly to community interests with 70% relevance threshold
+  - Real-time integration with user location data for hyper-local event recommendations
+  - Events automatically populate based on community category with fallback error handling
 ```
 
 ## User Preferences

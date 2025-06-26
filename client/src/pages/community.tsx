@@ -99,6 +99,17 @@ export default function CommunityPage() {
     }
   });
 
+  // Fetch scraped events for this community
+  const { data: scrapedEvents, isLoading: scrapedEventsLoading } = useQuery({
+    queryKey: ["/api/communities", communityId, "scraped-events"],
+    enabled: !!communityId,
+    queryFn: async () => {
+      const response = await fetch(`/api/communities/${communityId}/scraped-events`);
+      if (!response.ok) throw new Error('Failed to fetch scraped events');
+      return response.json();
+    }
+  });
+
   // Fetch community members with high match scores
   const { data: members, isLoading: membersMatchLoading } = useQuery({
     queryKey: ["/api/communities", communityId, "members", latitude, longitude],
@@ -111,6 +122,32 @@ export default function CommunityPage() {
       const response = await fetch(`/api/communities/${communityId}/members?${params}`);
       if (!response.ok) throw new Error('Failed to fetch members');
       return response.json();
+    }
+  });
+
+  // Event scraping mutation
+  const scrapeEventsMutation = useMutation({
+    mutationFn: async () => {
+      if (!latitude || !longitude) throw new Error('Location required for event scraping');
+      return apiRequest("POST", `/api/communities/${communityId}/scrape-events`, {
+        latitude,
+        longitude
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Events Updated",
+        description: data.message || "Successfully found new events for this community"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "scraped-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] });
+    },
+    onError: () => {
+      toast({
+        title: "Event Scraping Failed",
+        description: "Unable to find new events at this time. Please try again later.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -556,59 +593,129 @@ export default function CommunityPage() {
           <TabsContent value="events" className="space-y-4">
             <Card className="bg-white dark:bg-gray-800">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="w-5 h-5" />
-                  <span>Community Events</span>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5" />
+                    <span>Community Events</span>
+                  </CardTitle>
+                  <Button
+                    onClick={() => scrapeEventsMutation.mutate()}
+                    disabled={scrapeEventsMutation.isPending || !latitude || !longitude}
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+                  >
+                    {scrapeEventsMutation.isPending ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <Calendar className="w-4 h-4 mr-2" />
+                    )}
+                    Find Events
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {eventsLoading ? (
+                {(eventsLoading || scrapedEventsLoading) ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded" />
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {communityEvents?.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No upcoming events</p>
-                        <p className="text-sm">Check back later for community activities!</p>
-                      </div>
-                    ) : (
-                      communityEvents?.map((event: Event) => (
-                        <div key={event.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              {event.title}
-                            </h3>
-                            {event.price && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                ${event.price}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            {event.description}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{new Date(event.date).toLocaleDateString()}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="w-4 h-4" />
-                                <span>{event.location}</span>
+                  <div className="space-y-4">
+                    {/* Scraped Events Section */}
+                    {scrapedEvents && scrapedEvents.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 border-b pb-2">
+                          Local {community?.category} Events
+                        </h3>
+                        {scrapedEvents.map((event: Event) => (
+                          <div key={`scraped-${event.id}`} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {event.title}
+                              </h4>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                                  External Event
+                                </Badge>
+                                {event.price && event.price !== "0" && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                    ${event.price}
+                                  </Badge>
+                                )}
                               </div>
                             </div>
-                            <Button size="sm" variant="outline">
-                              RSVP
-                            </Button>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              {event.description}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{new Date(event.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{event.location}</span>
+                                </div>
+                              </div>
+                              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50">
+                                View Details
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Community Created Events Section */}
+                    {communityEvents && communityEvents.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 border-b pb-2">
+                          Community Events
+                        </h3>
+                        {communityEvents.map((event: Event) => (
+                          <div key={`community-${event.id}`} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {event.title}
+                              </h4>
+                              {event.price && event.price !== "0" && (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                  ${event.price}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                              {event.description}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{new Date(event.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{event.location}</span>
+                                </div>
+                              </div>
+                              <Button size="sm" variant="outline">
+                                RSVP
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* No Events State */}
+                    {(!scrapedEvents || scrapedEvents.length === 0) && (!communityEvents || communityEvents.length === 0) && (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No events found</p>
+                        <p className="text-sm">Click "Find Events" to discover local {community?.category.toLowerCase()} events!</p>
+                      </div>
                     )}
                   </div>
                 )}
