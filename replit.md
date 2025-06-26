@@ -287,6 +287,18 @@ Changelog:
   - Event joining includes success toasts and real-time cache invalidation for immediate updates
   - Complete workflow: discover events in communities → join events → view in dashboard calendar
   - Enhanced user agency by requiring intentional event selection rather than passive event display
+
+- June 26, 2025. Implemented global revenue-generating event creation system
+  - Created dedicated event creation page for community-coordinated events and ethical brand partnerships
+  - Dashboard "Create Event" button now routes to comprehensive global event creation form
+  - Built revenue sharing model with 7% platform fee and transparent cost breakdown display
+  - Added event type selection: Community-Coordinated vs Ethical Brand Partnership options
+  - Implemented POST /api/events/create-global backend endpoint with review workflow
+  - Extended database schema with global event fields: isGlobal, eventType, brandPartnerName, revenueSharePercentage, status
+  - Global events require review approval before distribution to matching communities
+  - Revenue breakdown shows ticket price, platform fee, and creator earnings per ticket
+  - Event creation includes activity feed integration and automatic community distribution
+  - Complete workflow: create global event → review approval → distribute to communities → revenue sharing
 ```
 
 ## User Preferences

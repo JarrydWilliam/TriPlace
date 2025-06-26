@@ -346,6 +346,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create global revenue-generating event
+  app.post("/api/events/create-global", async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        date,
+        time,
+        location,
+        category,
+        price,
+        maxAttendees,
+        eventType,
+        brandPartnerName,
+        revenueSharePercentage,
+        creatorId,
+        isGlobal,
+        isPaid
+      } = req.body;
+
+      if (!title || !description || !date || !time || !location || !category || !creatorId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Combine date and time into full datetime
+      const eventDateTime = new Date(`${date}T${time}`);
+      
+      const eventData = {
+        title,
+        description,
+        organizer: eventType === "brand-partnership" ? brandPartnerName || "Brand Partner" : "Community Coordinator",
+        date: eventDateTime,
+        location,
+        address: location, // Use location as address for global events
+        category,
+        price: price ? price.toString() : "0",
+        maxAttendees: maxAttendees || 50,
+        creatorId,
+        isGlobal: true,
+        eventType,
+        brandPartnerName: eventType === "brand-partnership" ? brandPartnerName : null,
+        revenueSharePercentage: revenueSharePercentage || 7,
+        status: "pending_review" // Global events require review
+      };
+
+      const event = await storage.createEvent(eventData);
+      
+      // Add activity feed item for event creation
+      await storage.addActivityItem(creatorId, "event_created", {
+        eventId: event.id,
+        eventTitle: title,
+        eventType,
+        isGlobal: true
+      });
+
+      res.status(201).json({
+        ...event,
+        message: "Global event created successfully and submitted for review"
+      });
+    } catch (error: any) {
+      console.error('Global event creation error:', error);
+      res.status(500).json({ message: "Failed to create global event: " + error.message });
+    }
+  });
+
   app.get("/api/users/:id/events", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);

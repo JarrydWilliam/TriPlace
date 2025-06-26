@@ -56,6 +56,12 @@ export const events = pgTable("events", {
   maxAttendees: integer("max_attendees"),
   latitude: text("latitude"),
   longitude: text("longitude"),
+  creatorId: integer("creator_id"),
+  isGlobal: boolean("is_global").default(false),
+  eventType: text("event_type"),
+  brandPartnerName: text("brand_partner_name"),
+  revenueSharePercentage: integer("revenue_share_percentage").default(7),
+  status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
