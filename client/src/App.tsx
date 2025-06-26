@@ -9,7 +9,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard-mobile";
 import Onboarding from "@/pages/onboarding";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
