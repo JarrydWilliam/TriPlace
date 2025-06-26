@@ -442,7 +442,7 @@ export default function Dashboard() {
                           <Link href={`/community/${community.id}`}>
                             <Button 
                               size="sm" 
-                              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold px-3 py-1 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-lg group"
+                              className="bg-gradient-to-r from-emerald-400 to-yellow-400 hover:from-emerald-500 hover:to-yellow-500 text-white font-semibold px-3 py-1 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-lg group"
                             >
                               <span className="text-xs">Enter</span>
                               <div className="ml-1 transition-transform group-hover:translate-x-1">
