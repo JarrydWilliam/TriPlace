@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Users, Globe, Handshake, AlertTriangle } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 interface EventCreationData {
   title: string;
@@ -118,15 +119,18 @@ export default function CreateEventPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => setLocation("/dashboard")}
-            className="flex items-center space-x-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Dashboard</span>
-          </Button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Logo size="md" />
+            <Button 
+              variant="ghost" 
+              onClick={() => setLocation("/dashboard")}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </Button>
+          </div>
         </div>
 
         <div className="text-center space-y-2">

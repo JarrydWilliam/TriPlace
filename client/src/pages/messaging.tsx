@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { Logo } from "@/components/ui/logo";
 
 export default function Messaging() {
   const { user, loading: authLoading } = useAuth();

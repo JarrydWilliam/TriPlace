@@ -16,6 +16,7 @@ import { MapPin, Calendar, Edit, Save, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useParams } from "wouter";
+import { Logo } from "@/components/ui/logo";
 
 const interestColors = [
   "bg-primary/20 text-primary",

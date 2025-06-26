@@ -16,7 +16,7 @@ export function Logo({ size = "md", className = "" }: LogoProps) {
     <img 
       src={logoPath} 
       alt="TriPlace Logo" 
-      className={`${sizeClasses[size]} ${className}`}
+      className={`${sizeClasses[size]} rounded-lg ${className}`}
     />
   );
 }

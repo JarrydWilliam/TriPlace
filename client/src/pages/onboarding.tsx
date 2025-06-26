@@ -2,6 +2,7 @@ import { OnboardingQuiz } from "@/components/auth/onboarding-quiz";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { Logo } from "@/components/ui/logo";
 
 export default function Onboarding() {
   const { user, loading } = useAuth();

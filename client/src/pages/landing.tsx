@@ -49,10 +49,8 @@ export default function Landing() {
       <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
         {/* Header */}
         <header className="flex justify-between items-center mb-16">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <MapPin className="text-white h-5 w-5" />
-            </div>
+          <div className="flex items-center space-x-3">
+            <Logo size="md" />
             <span className="text-2xl font-bold text-white">TriPlace</span>
           </div>
           <nav className="hidden md:flex space-x-8">
