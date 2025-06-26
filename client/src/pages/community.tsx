@@ -598,19 +598,29 @@ export default function CommunityPage() {
                     <Calendar className="w-5 h-5" />
                     <span>Community Events</span>
                   </CardTitle>
-                  <Button
-                    onClick={() => scrapeEventsMutation.mutate()}
-                    disabled={scrapeEventsMutation.isPending || !latitude || !longitude}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
-                  >
-                    {scrapeEventsMutation.isPending ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    ) : (
-                      <Calendar className="w-4 h-4 mr-2" />
-                    )}
-                    Find Events
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => setShowCreateEvent(true)}
+                      size="sm"
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Event
+                    </Button>
+                    <Button
+                      onClick={() => scrapeEventsMutation.mutate()}
+                      disabled={scrapeEventsMutation.isPending || !latitude || !longitude}
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+                    >
+                      {scrapeEventsMutation.isPending ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      ) : (
+                        <Calendar className="w-4 h-4 mr-2" />
+                      )}
+                      Find Events
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

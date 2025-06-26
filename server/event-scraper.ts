@@ -16,16 +16,49 @@ interface ScrapedEvent {
 export class EventScraper {
   private readonly eventbriteApiKey = process.env.EVENTBRITE_API_KEY;
   private readonly meetupApiKey = process.env.MEETUP_API_KEY;
+  private readonly ticketmasterApiKey = process.env.TICKETMASTER_API_KEY;
+  private readonly facebookApiKey = process.env.FACEBOOK_API_KEY;
+  private readonly stubhubApiKey = process.env.STUBHUB_API_KEY;
+  private readonly eventfulApiKey = process.env.EVENTFUL_API_KEY;
+  private readonly universeApiKey = process.env.UNIVERSE_API_KEY;
+  private readonly seatgeekApiKey = process.env.SEATGEEK_API_KEY;
 
   async scrapeEventsForCommunity(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     
     try {
-      // Try multiple sources for better coverage
-      const eventbriteEvents = await this.scrapeEventbrite(community, userLocation);
-      const meetupEvents = await this.scrapeMeetup(community, userLocation);
+      // Try multiple sources for comprehensive coverage
+      const [
+        eventbriteEvents,
+        meetupEvents,
+        ticketmasterEvents,
+        facebookEvents,
+        stubhubEvents,
+        eventfulEvents,
+        universeEvents,
+        seatgeekEvents
+      ] = await Promise.allSettled([
+        this.scrapeEventbrite(community, userLocation),
+        this.scrapeMeetup(community, userLocation),
+        this.scrapeTicketmaster(community, userLocation),
+        this.scrapeFacebook(community, userLocation),
+        this.scrapeStubHub(community, userLocation),
+        this.scrapeEventful(community, userLocation),
+        this.scrapeUniverse(community, userLocation),
+        this.scrapeSeatGeek(community, userLocation)
+      ]);
+
+      // Add successful results
+      if (eventbriteEvents.status === 'fulfilled') events.push(...eventbriteEvents.value);
+      if (meetupEvents.status === 'fulfilled') events.push(...meetupEvents.value);
+      if (ticketmasterEvents.status === 'fulfilled') events.push(...ticketmasterEvents.value);
+      if (facebookEvents.status === 'fulfilled') events.push(...facebookEvents.value);
+      if (stubhubEvents.status === 'fulfilled') events.push(...stubhubEvents.value);
+      if (eventfulEvents.status === 'fulfilled') events.push(...eventfulEvents.value);
+      if (universeEvents.status === 'fulfilled') events.push(...universeEvents.value);
+      if (seatgeekEvents.status === 'fulfilled') events.push(...seatgeekEvents.value);
       
-      events.push(...eventbriteEvents, ...meetupEvents);
+      console.log(`Scraped ${events.length} total events from all sources for ${community.name}`);
       
       // Filter and deduplicate events
       return this.filterAndDeduplicateEvents(events, community);
@@ -117,6 +150,145 @@ export class EventScraper {
       console.error('Meetup scraping failed:', error);
       return [];
     }
+  }
+
+  private async scrapeTicketmaster(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.ticketmasterApiKey) {
+      console.log('No Ticketmaster API key found, skipping Ticketmaster scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      const radius = '25'; // 25 miles
+      
+      const url = `https://app.ticketmaster.com/discovery/v2/events.json` +
+        `?apikey=${this.ticketmasterApiKey}` +
+        `&keyword=${encodeURIComponent(searchQuery)}` +
+        `&latlong=${userLocation.lat},${userLocation.lon}` +
+        `&radius=${radius}` +
+        `&unit=miles` +
+        `&size=50`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Ticketmaster API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data._embedded?.events || [];
+      
+      return events.map((event: any) => ({
+        title: event.name || 'Untitled Event',
+        description: event.info || event.pleaseNote || '',
+        date: new Date(event.dates?.start?.dateTime || event.dates?.start?.localDate),
+        location: event._embedded?.venues?.[0]?.name || event._embedded?.venues?.[0]?.address?.line1 || 'Location TBD',
+        category: community.category,
+        sourceUrl: event.url,
+        organizerName: event.promoter?.name || event._embedded?.attractions?.[0]?.name,
+        price: event.priceRanges?.[0]?.min || 0,
+        attendeeCount: 0
+      }));
+    } catch (error) {
+      console.error('Ticketmaster scraping failed:', error);
+      return [];
+    }
+  }
+
+  private async scrapeFacebook(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.facebookApiKey) {
+      console.log('No Facebook API key found, skipping Facebook scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      
+      // Facebook Graph API for events
+      const url = `https://graph.facebook.com/v18.0/search` +
+        `?type=event` +
+        `&q=${encodeURIComponent(searchQuery)}` +
+        `&center=${userLocation.lat},${userLocation.lon}` +
+        `&distance=25000` + // 25 miles in meters
+        `&access_token=${this.facebookApiKey}` +
+        `&fields=id,name,description,start_time,place,cover`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Facebook API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data.data || [];
+      
+      return events.map((event: any) => ({
+        title: event.name || 'Untitled Event',
+        description: event.description || '',
+        date: new Date(event.start_time),
+        location: event.place?.name || event.place?.location?.street || 'Location TBD',
+        category: community.category,
+        sourceUrl: `https://facebook.com/events/${event.id}`,
+        organizerName: event.place?.name,
+        price: 0, // Facebook events typically don't have price info via API
+        attendeeCount: 0
+      }));
+    } catch (error) {
+      console.error('Facebook scraping failed:', error);
+      return [];
+    }
+  }
+
+  private async scrapeStubHub(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.stubhubApiKey) {
+      console.log('No StubHub API key found, skipping StubHub scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      
+      // StubHub API for events
+      const url = `https://api.stubhub.com/search/catalog/events/v3` +
+        `?q=${encodeURIComponent(searchQuery)}` +
+        `&geoHash=${this.getGeoHash(userLocation.lat, userLocation.lon)}` +
+        `&radius=25mi` +
+        `&rows=50`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.stubhubApiKey}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`StubHub API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data.events || [];
+      
+      return events.map((event: any) => ({
+        title: event.name || 'Untitled Event',
+        description: event.description || '',
+        date: new Date(event.eventDateLocal),
+        location: event.venue?.name || event.venue?.address1 || 'Location TBD',
+        category: community.category,
+        sourceUrl: `https://stubhub.com/event/${event.id}`,
+        organizerName: event.performers?.[0]?.name,
+        price: event.ticketInfo?.minPrice || 0,
+        attendeeCount: 0
+      }));
+    } catch (error) {
+      console.error('StubHub scraping failed:', error);
+      return [];
+    }
+  }
+
+  private getGeoHash(lat: number, lon: number): string {
+    // Simple geohash implementation for StubHub API
+    // In production, you'd use a proper geohash library
+    return `${Math.round(lat * 100)}_${Math.round(lon * 100)}`;
   }
 
   private buildSearchQuery(community: Community): string {
