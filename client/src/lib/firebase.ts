@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
 // Mobile-optimized Firebase configuration
 let auth: Auth | any;
@@ -75,6 +75,32 @@ initializeFirebase();
 
 export { auth, googleProvider, isFirebaseInitialized };
 
+// Check for redirect result on page load
+export const handleRedirectResult = async () => {
+  if (!isFirebaseInitialized || !auth) return null;
+  
+  try {
+    const result = await getRedirectResult(auth);
+    if (result) {
+      console.log('Google redirect sign-in successful:', {
+        uid: result.user?.uid,
+        email: result.user?.email,
+        displayName: result.user?.displayName
+      });
+    }
+    return result;
+  } catch (error: any) {
+    console.error('Redirect result error:', error);
+    return null;
+  }
+};
+
+// Detect if device is mobile
+const isMobileDevice = () => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod|android|mobile|tablet/.test(userAgent);
+};
+
 export const signInWithGoogle = async () => {
   console.log('Starting Google sign-in process...');
   
@@ -99,21 +125,32 @@ export const signInWithGoogle = async () => {
       prompt: 'select_account'
     });
 
-    console.log('Attempting Google sign-in with popup...');
-    const result = await signInWithPopup(auth, provider);
-    
-    console.log('Google sign-in successful:', {
-      uid: result.user?.uid,
-      email: result.user?.email,
-      displayName: result.user?.displayName
-    });
-    
-    // Validate the result
-    if (!result || !result.user) {
-      throw new Error('Authentication failed - no user returned. Please try again.');
-    }
+    // Use redirect for mobile devices, popup for desktop
+    const isMobile = isMobileDevice();
+    console.log('Device type:', isMobile ? 'mobile' : 'desktop');
 
-    return result;
+    if (isMobile) {
+      console.log('Using redirect sign-in for mobile device...');
+      await signInWithRedirect(auth, provider);
+      // The redirect will happen, no result to return here
+      return null;
+    } else {
+      console.log('Using popup sign-in for desktop...');
+      const result = await signInWithPopup(auth, provider);
+      
+      console.log('Google sign-in successful:', {
+        uid: result.user?.uid,
+        email: result.user?.email,
+        displayName: result.user?.displayName
+      });
+      
+      // Validate the result
+      if (!result || !result.user) {
+        throw new Error('Authentication failed - no user returned. Please try again.');
+      }
+
+      return result;
+    }
   } catch (error: any) {
     console.error('Google sign-in error details:', {
       code: error.code,
@@ -137,7 +174,7 @@ export const signInWithGoogle = async () => {
       case 'auth/invalid-api-key':
         throw new Error('Authentication configuration error. Please contact support.');
       case 'auth/unauthorized-domain':
-        throw new Error('This domain is not authorized for sign-in. Please contact support.');
+        throw new Error('This domain is not authorized for Google sign-in. You need to add your current domain to Firebase Console → Authentication → Settings → Authorized domains.');
       case 'auth/operation-not-allowed':
         throw new Error('Google sign-in is not enabled in Firebase Console. Please contact support.');
       case 'auth/cancelled-popup-request':

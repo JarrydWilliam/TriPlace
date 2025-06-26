@@ -400,6 +400,14 @@ Changelog:
   - Fixed authentication initialization checks and environment variable validation
   - Google sign-in now provides clear error messages and fallback guidance for users
   - PWA installation instructions automatically detect device type and browser for optimal guidance
+
+- June 26, 2025. Implemented mobile-optimized Google authentication with redirect flow
+  - Added mobile device detection to use redirect authentication instead of popup for iPhone/Android
+  - Implemented getRedirectResult handling for seamless mobile Google sign-in experience
+  - Desktop devices continue using popup method while mobile devices use redirect for domain authorization
+  - Enhanced error messaging specifically for "unauthorized domain" errors with setup instructions
+  - Mobile users now get proper Google authentication flow that works with Firebase domain restrictions
+  - Auth context automatically handles redirect results on app initialization for mobile sign-in completion
 ```
 
 ## User Preferences

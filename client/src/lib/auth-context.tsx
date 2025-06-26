@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User as FirebaseUser, onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, handleRedirectResult } from "./firebase";
 import { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
@@ -32,6 +32,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for redirect result on app load (for mobile Google sign-in)
+    const checkRedirectResult = async () => {
+      try {
+        const result = await handleRedirectResult();
+        if (result) {
+          console.log('Mobile redirect authentication successful');
+        }
+      } catch (error) {
+        console.error('Error handling redirect result:', error);
+      }
+    };
+
+    checkRedirectResult();
+
     // Set a maximum loading time to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       console.warn('Auth initialization timeout, proceeding with app');
