@@ -26,15 +26,21 @@ export default function CommunityPage() {
   const [selectedTab, setSelectedTab] = useState("feed");
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
 
-  // Fetch community details
+  // Fetch community details with dynamic member count
   const { data: community, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/communities", communityId],
-    enabled: !!communityId,
+    queryKey: ["/api/communities", communityId, "dynamic-info", latitude, longitude, user?.id],
+    enabled: !!communityId && !!latitude && !!longitude && !!user?.id,
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}`);
+      const params = new URLSearchParams({
+        latitude: latitude?.toString() || '',
+        longitude: longitude?.toString() || '',
+        userId: user?.id?.toString() || ''
+      });
+      const response = await fetch(`/api/communities/${communityId}/dynamic-info?${params}`);
       if (!response.ok) throw new Error('Community not found');
       return response.json();
-    }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds for dynamic updates
   });
 
   // Fetch community messages/feed

@@ -422,6 +422,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community messaging routes
+  app.post("/api/communities/:id/messages", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { content, senderId } = req.body;
+      
+      if (!content || !senderId) {
+        return res.status(400).json({ message: "Content and senderId are required" });
+      }
+      
+      const messageData = {
+        content: content.trim(),
+        senderId: parseInt(senderId),
+        communityId: communityId,
+        receiverId: 0, // Community messages use 0 for community-wide messages
+        isRead: false,
+        createdAt: new Date()
+      };
+      
+      const message = await storage.sendCommunityMessage(messageData);
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error sending community message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Get community with dynamic member count based on user location and interests
+  app.get("/api/communities/:id/dynamic-info", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { latitude, longitude, userId } = req.query;
+      
+      if (!latitude || !longitude || !userId) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+
+      const user = await storage.getUser(parseInt(userId as string));
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userLocation = { 
+        lat: parseFloat(latitude as string), 
+        lon: parseFloat(longitude as string) 
+      };
+      
+      const userInterests = user.interests || [];
+      const dynamicMembers = await storage.getDynamicCommunityMembers(communityId, userLocation, userInterests);
+      
+      res.json({
+        ...community,
+        onlineMembers: dynamicMembers.length,
+        dynamicMembers: dynamicMembers
+      });
+    } catch (error) {
+      console.error("Error fetching dynamic community info:", error);
+      res.status(500).json({ message: "Failed to fetch dynamic community info" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
