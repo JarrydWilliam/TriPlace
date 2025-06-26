@@ -20,18 +20,44 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { latitude, longitude, error: locationError, loading: locationLoading } = useGeolocation();
 
   // Fetch user's communities
   const { data: userCommunities = [], isLoading: userCommunitiesLoading } = useQuery<Community[]>({
     queryKey: ['/api/users', user?.id, 'communities'],
     enabled: !!user,
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
   });
 
-  // Fetch recommended communities
+  // Fetch recommended communities with geolocation
   const { data: recommendedCommunities = [], isLoading: communitiesLoading } = useQuery<Community[]>({
-    queryKey: ['/api/communities/recommended', user?.interests?.join(',')],
+    queryKey: [
+      '/api/communities/recommended', 
+      user?.interests?.join(','),
+      latitude,
+      longitude
+    ],
     enabled: !!user?.interests?.length,
+    refetchInterval: 60000, // Refresh every minute for location-based updates
   });
+
+  // Auto-refresh communities when user location changes
+  useEffect(() => {
+    if (latitude && longitude && user) {
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/communities/recommended'] 
+      });
+    }
+  }, [latitude, longitude, user, queryClient]);
+
+  // Auto-refresh when user completes onboarding
+  useEffect(() => {
+    if (user?.onboardingCompleted) {
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/communities/recommended'] 
+      });
+    }
+  }, [user?.onboardingCompleted, queryClient]);
 
   // Fetch upcoming events
   const { data: upcomingEvents = [], isLoading: eventsLoading } = useQuery<Event[]>({
@@ -147,30 +173,19 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(userCommunities as Community[]).map((community: Community) => (
-                      <div
+                    {(userCommunities as Community[]).map((community: Community, index) => (
+                      <CommunityCard
                         key={community.id}
-                        className="relative group cursor-pointer"
-                        onClick={() => console.log('Enter community chat', community.id)}
-                      >
-                        <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border border-gray-600 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-lg animate-pulse-soft">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="text-2xl">{community.category === 'wellness' ? '🧘' : community.category === 'tech' ? '💻' : '🎨'}</div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                              <span className="text-xs text-green-400">3 active now</span>
-                            </div>
-                          </div>
-                          <h3 className="text-white font-semibold text-sm mb-1">{community.name}</h3>
-                          <p className="text-gray-400 text-xs mb-3 line-clamp-2">{community.description}</p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-500 text-xs">{community.memberCount || 0} members</span>
-                            <div className="flex items-center gap-1 text-xs text-yellow-400">
-                              🔔 New post!
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        community={community}
+                        onView={() => console.log('Enter community chat', community.id)}
+                        isMember={true}
+                        hasNewActivity={index % 2 === 0}
+                        nearbyUserCount={Math.floor(Math.random() * 8) + 2}
+                        onFavorite={() => console.log('Favorited', community.name)}
+                        onPin={() => console.log('Pinned', community.name)}
+                        isPinned={index === 0}
+                        isFavorited={index === 1}
+                      />
                     ))}
                   </div>
                 )}

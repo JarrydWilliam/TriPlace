@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Community } from "@shared/schema";
-import { Users, MapPin, MessageCircle, Calendar } from "lucide-react";
+import { Users, MapPin, MessageCircle, Calendar, Heart, Pin } from "lucide-react";
+import { useState } from "react";
 
 interface CommunityCardProps {
   community: Community;
@@ -13,6 +14,10 @@ interface CommunityCardProps {
   loading?: boolean;
   hasNewActivity?: boolean;
   nearbyUserCount?: number;
+  onFavorite?: () => void;
+  onPin?: () => void;
+  isPinned?: boolean;
+  isFavorited?: boolean;
 }
 
 export function CommunityCard({ 
@@ -22,8 +27,15 @@ export function CommunityCard({
   isMember = false, 
   loading = false,
   hasNewActivity = false,
-  nearbyUserCount = 0
+  nearbyUserCount = 0,
+  onFavorite,
+  onPin,
+  isPinned = false,
+  isFavorited = false
 }: CommunityCardProps) {
+  const [isSwipeMode, setIsSwipeMode] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(0);
+
   // Get emoji based on community category
   const getCommunityEmoji = (category: string) => {
     const emojiMap: { [key: string]: string } = {
@@ -45,11 +57,48 @@ export function CommunityCard({
 
   const communityEmoji = getCommunityEmoji(community.category);
 
+  // Touch handlers for mobile swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const swipeDistance = touchStartX - touchEndX;
+    
+    // Swipe left to favorite (50px threshold)
+    if (swipeDistance > 50 && onFavorite) {
+      onFavorite();
+      setIsSwipeMode(false);
+    }
+    // Swipe right to pin (50px threshold)
+    else if (swipeDistance < -50 && onPin) {
+      onPin();
+      setIsSwipeMode(false);
+    }
+  };
+
   return (
     <Card 
-      className="relative bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all duration-300 cursor-pointer group hover:scale-[1.02] hover:shadow-lg"
+      className="relative bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all duration-300 cursor-pointer group hover:scale-[1.02] hover:shadow-lg touch-manipulation"
       onClick={onView}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
+      {/* Pin/Favorite Indicators */}
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
+        {isPinned && (
+          <div className="bg-yellow-500 text-white rounded-full p-1">
+            <Pin className="h-3 w-3" />
+          </div>
+        )}
+        {isFavorited && (
+          <div className="bg-red-500 text-white rounded-full p-1">
+            <Heart className="h-3 w-3 fill-current" />
+          </div>
+        )}
+      </div>
+
       {/* Activity Badge */}
       {hasNewActivity && (
         <div className="absolute -top-1 -right-1 z-10">
