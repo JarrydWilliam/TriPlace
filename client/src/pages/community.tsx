@@ -52,7 +52,9 @@ export default function CommunityPage() {
       if (!response.ok) throw new Error('Failed to fetch messages');
       return response.json();
     },
-    refetchInterval: 3000, // Refresh every 3 seconds for real-time feel
+    refetchInterval: 500, // Refresh every 500ms for instant feel
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always consider data stale for fresh updates
   });
 
   // Fetch community members with match scores
@@ -97,7 +99,7 @@ export default function CommunityPage() {
     }
   });
 
-  // Send message mutation
+  // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       const response = await apiRequest("POST", `/api/communities/${communityId}/messages`, {
@@ -107,15 +109,52 @@ export default function CommunityPage() {
       if (!response.ok) throw new Error("Failed to send message");
       return response.json();
     },
-    onSuccess: () => {
-      setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
-      toast({
-        title: "Message sent!",
-        description: "Your message has been posted to the community",
-      });
+    onMutate: async (content: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/communities", communityId, "messages"] });
+      
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData(["/api/communities", communityId, "messages"]);
+      
+      // Optimistically update to the new value
+      const optimisticMessage = {
+        id: Date.now(), // Temporary ID
+        content,
+        senderId: user?.id,
+        receiverId: user?.id,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        sender: {
+          id: user?.id,
+          name: user?.name,
+          avatar: user?.avatar,
+          email: user?.email
+        },
+        resonateCount: 0
+      };
+      
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], (old: any) => 
+        old ? [optimisticMessage, ...old] : [optimisticMessage]
+      );
+      
+      // Return a context object with the snapshotted value
+      return { previousMessages };
     },
-    onError: () => {
+    onSuccess: (data) => {
+      setNewMessage("");
+      // Immediately update with real data from server
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], (old: any) => {
+        if (!old) return [data];
+        // Replace the optimistic message with the real one
+        const filtered = old.filter((msg: any) => msg.id !== Date.now() && msg.id < 1000000000000);
+        return [data, ...filtered];
+      });
+      // Also invalidate to ensure we have latest data
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
+    },
+    onError: (err, content, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], context?.previousMessages);
       toast({
         title: "Error",
         description: "Failed to send message",
@@ -209,7 +248,17 @@ export default function CommunityPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
+                <div className="text-center">
+                  <Button 
+                    size="lg" 
+                    className="bg-green-500 hover:bg-green-600 text-white border-2 border-green-400 hover:border-green-300 font-bold px-8 py-4 text-lg shadow-xl transition-all duration-200 hover:shadow-2xl hover:scale-105 rounded-xl"
+                  >
+                    <Users className="w-6 h-6 mr-2" />
+                    Join Community Chat
+                  </Button>
+                  <p className="text-white/80 text-sm mt-1">Start connecting with members</p>
+                </div>
                 <Badge variant="secondary" className="bg-white/20 text-white">
                   Active Community
                 </Badge>
