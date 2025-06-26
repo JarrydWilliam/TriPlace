@@ -15,15 +15,47 @@ logDeploymentStatus();
 initializeProductionFeatures();
 setupPerformanceMonitoring();
 
-// Register service worker for PWA functionality
+// Register production-ready service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    const swPath = import.meta.env.PROD ? '/update-worker.js' : '/sw.js';
+    
+    navigator.serviceWorker.register(swPath)
       .then((registration) => {
-        console.log('SW registered: ', registration);
+        console.log('Service Worker registered:', registration);
+        
+        // Listen for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content available, prompt user to update
+                if (confirm('New version available! Refresh to update?')) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload();
+                }
+              }
+            });
+          }
+        });
+        
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'UPDATE_AVAILABLE') {
+            console.log('Update available:', event.data.message);
+          }
+        });
+        
+        // Check for updates periodically in production
+        if (import.meta.env.PROD) {
+          setInterval(() => {
+            registration.update();
+          }, 60000); // Check every minute
+        }
       })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
+      .catch((error) => {
+        console.log('Service Worker registration failed:', error);
       });
   });
 }
