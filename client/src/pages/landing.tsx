@@ -5,6 +5,7 @@ import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
+import { PWAInstall } from "@/components/ui/pwa-install";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -105,6 +106,9 @@ export default function Landing() {
           </div>
         </div>
       </div>
+      
+      {/* PWA Installation Prompt */}
+      <PWAInstall />
     </section>
   );
 }
