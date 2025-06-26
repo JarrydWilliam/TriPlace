@@ -579,13 +579,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
-    return [];
+    // Get all messages where sender and receiver are the same (community messages)
+    // and sender is a member of this community
+    const result = await db
+      .select({
+        id: messages.id,
+        senderId: messages.senderId,
+        receiverId: messages.receiverId,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        isRead: messages.isRead,
+        sender: {
+          id: users.id,
+          name: users.name,
+          avatar: users.avatar,
+          email: users.email
+        }
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.senderId, users.id))
+      .innerJoin(communityMembers, and(
+        eq(communityMembers.userId, users.id),
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.isActive, true)
+      ))
+      .where(eq(messages.senderId, messages.receiverId)) // Community messages have sender = receiver
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
+
+    return result.map(row => ({
+      id: row.id,
+      senderId: row.senderId,
+      receiverId: row.receiverId,
+      content: row.content,
+      createdAt: row.createdAt,
+      isRead: row.isRead,
+      sender: row.sender as User,
+      resonateCount: 0 // TODO: Implement actual resonate counting
+    }));
   }
 
   async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
+    // For community messages, use the senderId as receiverId to satisfy foreign key constraint
+    // This represents a message sent to the community (self-directed)
     const [message] = await db.insert(messages).values({
       senderId: messageData.senderId,
-      receiverId: messageData.receiverId,
+      receiverId: messageData.senderId, // Use sender as receiver for community messages
       content: messageData.content,
       createdAt: new Date(),
       isRead: false

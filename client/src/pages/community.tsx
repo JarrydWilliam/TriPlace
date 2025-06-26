@@ -216,34 +216,43 @@ export default function CommunityPage() {
               </div>
             </div>
             
-            {/* Collapsible Pinned Announcement */}
-            <Collapsible open={isPinnedOpen} onOpenChange={setIsPinnedOpen} className="mt-4">
+            {/* Compact Pinned Announcement */}
+            <Collapsible open={isPinnedOpen} onOpenChange={setIsPinnedOpen} className="mt-3">
               <CollapsibleTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-between p-3 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm text-white"
+                  className="w-full justify-between p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm text-white h-auto"
                 >
-                  <div className="flex items-center space-x-2">
-                    <Pin className="w-4 h-4" />
-                    <span className="font-medium">Pinned Announcement</span>
-                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 text-xs">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <Pin className="w-3 h-3 text-purple-300 flex-shrink-0" />
+                    <span className="text-sm font-medium truncate">Friday 7PM - Liberty Park</span>
+                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 text-xs px-1.5 py-0.5 flex-shrink-0">
                       New
                     </Badge>
                   </div>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isPinnedOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3 h-3 transition-transform flex-shrink-0 ml-2 ${isPinnedOpen ? 'rotate-180' : ''}`} />
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <div className="p-3 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10">
-                  <p className="text-white/90 text-sm leading-relaxed">
-                    Weekly meetup this Friday @7PM at Liberty Park! Join us for group activities and networking. 🎉
+                  <h4 className="text-white font-medium text-sm mb-2">Weekly Community Meetup</h4>
+                  <p className="text-white/90 text-sm leading-relaxed mb-3">
+                    Join us this Friday at 7PM at Liberty Park for group activities, networking, and community building. All skill levels welcome! 🎉
                   </p>
-                  <div className="mt-3 flex items-center space-x-2">
-                    <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <div className="space-y-2 text-xs text-white/70 mb-3">
+                    <div>📍 Liberty Park - Main Pavilion</div>
+                    <div>🕰️ Friday, 7:00 PM - 9:00 PM</div>
+                    <div>👥 Expected: 15-20 members</div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-xs h-7">
                       Add to Calendar
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-white/70 hover:text-white">
+                    <Button size="sm" variant="ghost" className="text-white/70 hover:text-white text-xs h-7">
                       Share
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-white/70 hover:text-white text-xs h-7">
+                      Get Directions
                     </Button>
                   </div>
                 </div>
@@ -297,7 +306,7 @@ export default function CommunityPage() {
                       <div className="flex items-center space-x-1 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span className="text-xs text-green-700 dark:text-green-400 font-medium">
-                          {community?.memberCount || 0} online
+                          {community?.onlineMembers || 0} online
                         </span>
                       </div>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0 flex flex-col space-y-1">

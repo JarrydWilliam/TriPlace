@@ -436,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: content.trim(),
         senderId: parseInt(senderId),
         communityId: communityId,
-        receiverId: 0, // Community messages use 0 for community-wide messages
+        receiverId: parseInt(senderId), // Use sender as receiver for community messages
         isRead: false,
         createdAt: new Date()
       };
