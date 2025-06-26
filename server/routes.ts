@@ -493,6 +493,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create community event
+  app.post("/api/communities/:id/events", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { title, description, date, location, price, organizerId } = req.body;
+      
+      if (isNaN(communityId) || !title || !date || !organizerId) {
+        return res.status(400).json({ message: "Missing required fields: title, date, and organizerId" });
+      }
+      
+      // Verify the community exists
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      // Create the event
+      const eventData = {
+        title: title.trim(),
+        description: description?.trim() || "",
+        date: new Date(date).toISOString(),
+        location: location?.trim() || "Location TBD",
+        category: community.category,
+        organizerId: parseInt(organizerId),
+        price: price ? parseFloat(price) : null,
+        communityId: communityId
+      };
+      
+      const newEvent = await storage.createEvent(eventData);
+      
+      // Add activity to organizer's feed
+      await storage.addActivityItem(organizerId, 'event_created', {
+        eventId: newEvent.id,
+        eventTitle: newEvent.title,
+        communityName: community.name
+      });
+      
+      res.status(201).json(newEvent);
+    } catch (error) {
+      console.error("Error creating community event:", error);
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
   // Community messaging routes
   app.get("/api/communities/:id/messages", async (req, res) => {
     try {

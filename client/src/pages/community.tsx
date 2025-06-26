@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal } from "lucide-react";
+import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal, Plus } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -40,6 +43,15 @@ export default function CommunityPage() {
   const [newMessage, setNewMessage] = useState("");
   const [selectedTab, setSelectedTab] = useState("feed");
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    description: "",
+    date: "",
+    time: "",
+    location: "",
+    price: ""
+  });
 
   // Fetch community details with dynamic member count
   const { data: community, isLoading: communityLoading } = useQuery({
@@ -248,6 +260,48 @@ export default function CommunityPage() {
       });
     }
   });
+
+  // Create event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      const response = await apiRequest("POST", `/api/communities/${communityId}/events`, {
+        ...eventData,
+        organizerId: user?.id,
+        communityId: parseInt(communityId!),
+        date: new Date(`${eventData.date}T${eventData.time}`).toISOString()
+      });
+      if (!response.ok) throw new Error("Failed to create event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Created",
+        description: "Your event has been added to the community"
+      });
+      setShowCreateEvent(false);
+      setEventForm({ title: "", description: "", date: "", time: "", location: "", price: "" });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Create Event",
+        description: "Unable to create event. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleCreateEvent = () => {
+    if (!eventForm.title.trim() || !eventForm.date || !eventForm.time) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    createEventMutation.mutate(eventForm);
+  };
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -860,6 +914,103 @@ export default function CommunityPage() {
 
         </Tabs>
       </div>
+
+      {/* Create Event Dialog */}
+      <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Community Event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Event Title *</Label>
+              <Input
+                id="title"
+                value={eventForm.title}
+                onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter event title"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={eventForm.description}
+                onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe your event..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="date">Date *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={eventForm.date}
+                  onChange={(e) => setEventForm(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="time">Time *</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={eventForm.time}
+                  onChange={(e) => setEventForm(prev => ({ ...prev, time: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={eventForm.location}
+                onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Event location"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="price">Price (optional)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={eventForm.price}
+                onChange={(e) => setEventForm(prev => ({ ...prev, price: e.target.value }))}
+                placeholder="0"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCreateEvent(false)}
+                disabled={createEventMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateEvent}
+                disabled={createEventMutation.isPending}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+              >
+                {createEventMutation.isPending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <Calendar className="w-4 h-4 mr-2" />
+                )}
+                Create Event
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
