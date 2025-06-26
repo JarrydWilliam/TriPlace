@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { TopBar } from "@/components/layout/top-bar";
@@ -10,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Settings } from "lucide-react";
+import { MapPin, Settings, RefreshCw } from "lucide-react";
 import { Community, Event, ActivityFeedItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useEffect } from "react";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -203,21 +205,16 @@ export default function Dashboard() {
                   <div className="border-t border-gray-600 pt-4">
                     <h4 className="text-white font-medium mb-2">Explore new communities like these...</h4>
                     <div className="grid md:grid-cols-2 gap-3">
-                      {(recommendedCommunities as Community[]).slice(0, 2).map((community: Community) => (
-                        <div
+                      {(recommendedCommunities as Community[]).slice(0, 2).map((community: Community, index) => (
+                        <CommunityCard
                           key={community.id}
-                          className="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:bg-gray-700 transition-colors cursor-pointer"
-                          onClick={() => joinCommunityMutation.mutate(community.id)}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="text-lg">{community.category === 'wellness' ? '🧘' : community.category === 'tech' ? '💻' : '🎨'}</div>
-                            <div>
-                              <h5 className="text-white text-sm font-medium">{community.name}</h5>
-                              <p className="text-gray-400 text-xs mt-1 line-clamp-1">{community.description}</p>
-                              <span className="text-gray-500 text-xs">{community.memberCount || 0} members</span>
-                            </div>
-                          </div>
-                        </div>
+                          community={community}
+                          onJoin={() => joinCommunityMutation.mutate(community.id)}
+                          onView={() => console.log('View community', community.id)}
+                          loading={joinCommunityMutation.isPending}
+                          hasNewActivity={Math.random() > 0.5}
+                          nearbyUserCount={Math.floor(Math.random() * 15) + 3}
+                        />
                       ))}
                     </div>
                   </div>
@@ -254,13 +251,15 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-4">
-                    {(recommendedCommunities as Community[]).slice(2, 6).map((community: Community) => (
+                    {(recommendedCommunities as Community[]).slice(2, 6).map((community: Community, index) => (
                       <CommunityCard
                         key={community.id}
                         community={community}
                         onJoin={() => joinCommunityMutation.mutate(community.id)}
                         onView={() => console.log('View community', community.id)}
                         loading={joinCommunityMutation.isPending}
+                        hasNewActivity={index % 3 === 0} // Show activity for every 3rd community
+                        nearbyUserCount={Math.floor(Math.random() * 20) + 5}
                       />
                     ))}
                   </div>

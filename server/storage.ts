@@ -209,14 +209,82 @@ export class MemStorage implements IStorage {
     return Array.from(this.communities.values()).filter(community => community.category === category);
   }
 
-  async getRecommendedCommunities(interests: string[]): Promise<Community[]> {
-    return Array.from(this.communities.values()).filter(community => 
-      interests.some(interest => 
-        community.category.toLowerCase().includes(interest.toLowerCase()) ||
-        community.name.toLowerCase().includes(interest.toLowerCase()) ||
-        community.description.toLowerCase().includes(interest.toLowerCase())
-      )
-    ).slice(0, 10);
+  async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }): Promise<Community[]> {
+    const communities = Array.from(this.communities.values());
+    
+    // Calculate scores for each community
+    const scoredCommunities = communities.map(community => {
+      const interestScore = this.calculateInterestScore(community, interests);
+      const engagementScore = this.calculateEngagementScore(community);
+      const distanceScore = userLocation ? this.calculateDistanceScore(community, userLocation) : 0.5;
+      
+      return {
+        community,
+        interestScore,
+        engagementScore,
+        distanceScore,
+        finalScore: (interestScore * 0.5) + (engagementScore * 0.3) + (distanceScore * 0.2)
+      };
+    })
+    // Only show communities with >= 70% interest match
+    .filter(item => item.interestScore >= 0.7)
+    // Sort by final score (prioritize engagement and new events)
+    .sort((a, b) => b.finalScore - a.finalScore);
+
+    return scoredCommunities.map(item => item.community).slice(0, 10);
+  }
+
+  private calculateInterestScore(community: Community, userInterests: string[]): number {
+    if (!userInterests.length) return 0;
+    
+    const communityText = `${community.name} ${community.description} ${community.category}`.toLowerCase();
+    const matches = userInterests.filter(interest => 
+      communityText.includes(interest.toLowerCase())
+    );
+    
+    return matches.length / userInterests.length;
+  }
+
+  private calculateEngagementScore(community: Community): number {
+    const memberCount = community.memberCount || 0;
+    
+    // Simulate engagement metrics
+    const hasNewPosts = Math.random() > 0.4; // 60% chance of recent posts
+    const hasUpcomingEvents = Math.random() > 0.5; // 50% chance of events
+    const hasRecentActivity = Math.random() > 0.3; // 70% chance of activity
+    
+    let score = 0;
+    
+    // Member count contribution (normalized to 0-0.4)
+    score += Math.min(memberCount / 1000, 0.4);
+    
+    // High engagement bonuses
+    if (hasNewPosts) score += 0.25; // Posts today
+    if (hasUpcomingEvents) score += 0.25; // Events with RSVPs
+    if (hasRecentActivity) score += 0.1; // General activity
+    
+    return Math.min(score, 1.0);
+  }
+
+  private calculateDistanceScore(community: Community, userLocation: { lat: number, lon: number }): number {
+    if (!community.location) return 0; // No location = no proximity bonus
+    
+    // Mock distance calculation - in real app, use actual coordinates
+    const locationDistances: { [key: string]: number } = {
+      'San Francisco': 5,
+      'Oakland': 15,
+      'Berkeley': 20,
+      'San Jose': 45,
+      'Sacramento': 80
+    };
+    
+    const distance = locationDistances[community.location] || 60;
+    
+    // Only communities within 50 miles get points
+    if (distance > 50) return 0;
+    
+    // Closer = higher score
+    return Math.max(0, (50 - distance) / 50);
   }
 
   async createCommunity(insertCommunity: InsertCommunity): Promise<Community> {

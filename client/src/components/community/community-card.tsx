@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Community } from "@shared/schema";
-import { Users, MapPin } from "lucide-react";
+import { Users, MapPin, MessageCircle, Calendar } from "lucide-react";
 
 interface CommunityCardProps {
   community: Community;
@@ -11,6 +11,8 @@ interface CommunityCardProps {
   onView?: () => void;
   isMember?: boolean;
   loading?: boolean;
+  hasNewActivity?: boolean;
+  nearbyUserCount?: number;
 }
 
 export function CommunityCard({ 
@@ -18,78 +20,132 @@ export function CommunityCard({
   onJoin, 
   onView, 
   isMember = false, 
-  loading = false 
+  loading = false,
+  hasNewActivity = false,
+  nearbyUserCount = 0
 }: CommunityCardProps) {
-  const getActivityBadge = (memberCount: number) => {
-    if (memberCount > 1000) return { label: "Very Active", variant: "default" as const, color: "bg-accent/20 text-accent" };
-    if (memberCount > 100) return { label: "Active", variant: "secondary" as const, color: "bg-green-500/20 text-green-400" };
-    return { label: "Growing", variant: "outline" as const, color: "bg-blue-500/20 text-blue-400" };
+  // Get emoji based on community category
+  const getCommunityEmoji = (category: string) => {
+    const emojiMap: { [key: string]: string } = {
+      'wellness': '🧘',
+      'tech': '💻',
+      'fitness': '🏃',
+      'arts': '🎨',
+      'music': '🎵',
+      'food': '🍕',
+      'outdoor': '🏔️',
+      'gaming': '🎮',
+      'business': '💼',
+      'social': '🎉',
+      'education': '📚',
+      'sports': '⚽'
+    };
+    return emojiMap[category] || '🌟';
   };
 
-  const activityBadge = getActivityBadge(community.memberCount || 0);
+  const communityEmoji = getCommunityEmoji(community.category);
 
   return (
     <Card 
-      className="bg-gray-700 border-gray-600 hover:bg-gray-650 transition-colors cursor-pointer dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-650"
+      className="relative bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all duration-300 cursor-pointer group hover:scale-[1.02] hover:shadow-lg"
       onClick={onView}
     >
+      {/* Activity Badge */}
+      {hasNewActivity && (
+        <div className="absolute -top-1 -right-1 z-10">
+          <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 flex items-center gap-1 animate-pulse">
+            <MessageCircle className="h-3 w-3" />
+            New!
+          </div>
+        </div>
+      )}
+
       <CardContent className="p-4">
-        <div className="flex items-start space-x-3">
-          <Avatar className="w-12 h-12 rounded-xl">
-            <AvatarImage src={community.image || undefined} alt={community.name} />
-            <AvatarFallback className="bg-primary text-white rounded-xl">
-              {community.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-white dark:text-white mb-1 truncate">
-              {community.name}
-            </h4>
-            <p className="text-gray-400 dark:text-gray-400 text-sm mb-2 line-clamp-2">
-              {community.description}
-            </p>
-            
-            <div className="flex items-center justify-between text-sm mb-3">
-              <div className="flex items-center text-gray-500 dark:text-gray-500">
-                <Users className="h-4 w-4 mr-1" />
-                <span>{community.memberCount || 0} members</span>
+        <div className="space-y-3">
+          {/* Header with Emoji and Title */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{communityEmoji}</div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-white text-sm mb-1 truncate">
+                  {community.name}
+                </h4>
+                <p className="text-gray-400 text-xs line-clamp-1">
+                  {community.description}
+                </p>
               </div>
-              
+            </div>
+          </div>
+
+          {/* Nearby Users Avatars */}
+          {nearbyUserCount > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {[...Array(Math.min(3, nearbyUserCount))].map((_, i) => (
+                  <Avatar key={i} className="w-6 h-6 border-2 border-gray-800">
+                    <AvatarFallback className="bg-primary text-white text-xs">
+                      {String.fromCharCode(65 + i)}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <span className="text-xs text-gray-500">
+                {nearbyUserCount} nearby
+              </span>
+            </div>
+          )}
+
+          {/* Metadata Row */}
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span>{community.memberCount || 0}</span>
+              </div>
               {community.location && (
-                <div className="flex items-center text-gray-500 dark:text-gray-500">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <span className="truncate">{community.location}</span>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span className="truncate max-w-20">{community.location}</span>
                 </div>
               )}
             </div>
             
-            <div className="flex items-center justify-between">
-              <Badge 
-                variant={activityBadge.variant}
-                className={activityBadge.color}
-              >
-                {activityBadge.label}
-              </Badge>
-              
-              {onJoin && (
-                <Button
-                  size="sm"
-                  variant={isMember ? "outline" : "default"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onJoin();
-                  }}
-                  disabled={loading}
-                  className={isMember 
-                    ? "border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white" 
-                    : "bg-primary hover:bg-primary/90"
-                  }
-                >
-                  {loading ? "..." : (isMember ? "Joined" : "Join")}
-                </Button>
-              )}
+            {/* Activity Status */}
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-400">Active</span>
             </div>
+          </div>
+
+          {/* Action Button */}
+          <div className="pt-1">
+            {onJoin ? (
+              <Button
+                size="sm"
+                variant={isMember ? "outline" : "default"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onJoin();
+                }}
+                disabled={loading}
+                className={`w-full text-xs ${
+                  isMember 
+                    ? "border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white" 
+                    : "bg-primary hover:bg-primary/90"
+                }`}
+              >
+                {loading ? "..." : (isMember ? "Joined" : "Join")}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full text-xs text-gray-400 hover:text-white hover:bg-gray-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
