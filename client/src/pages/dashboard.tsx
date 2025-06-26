@@ -160,9 +160,9 @@ export default function Dashboard() {
   // Sample data for demo purposes
   const monthlyKudos = 32;
   const currentChallenges = [
-    { id: 1, title: "🎯 Attend 2 events this week", progress: 50, target: 2, current: 1 },
-    { id: 2, title: "📢 Post in 3 communities", progress: 33, target: 3, current: 1 },
-    { id: 3, title: "🤝 Meet 1 new 90% match member", progress: 0, target: 1, current: 0 }
+    { id: "challenge-1", title: "🎯 Attend 2 events this week", progress: 50, target: 2, current: 1 },
+    { id: "challenge-2", title: "📢 Post in 3 communities", progress: 33, target: 3, current: 1 },
+    { id: "challenge-3", title: "🤝 Meet 1 new 90% match member", progress: 0, target: 1, current: 0 }
   ];
 
   // Color coding for communities
