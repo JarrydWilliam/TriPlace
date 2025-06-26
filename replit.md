@@ -290,7 +290,7 @@ Changelog:
 
 - June 26, 2025. Implemented global revenue-generating event creation system
   - Created dedicated event creation page for community-coordinated events and ethical brand partnerships
-  - Dashboard "Create Event" button now routes to comprehensive global event creation form
+  - Dashboard "Partner Event Creation" button routes to comprehensive global event creation form
   - Built revenue sharing model with 7% platform fee and transparent cost breakdown display
   - Added event type selection: Community-Coordinated vs Ethical Brand Partnership options
   - Implemented POST /api/events/create-global backend endpoint with review workflow
@@ -299,6 +299,15 @@ Changelog:
   - Revenue breakdown shows ticket price, platform fee, and creator earnings per ticket
   - Event creation includes activity feed integration and automatic community distribution
   - Complete workflow: create global event → review approval → distribute to communities → revenue sharing
+
+- June 26, 2025. Redesigned complete color scheme separation between light and dark modes
+  - Light mode: Warm, welcoming palette with cream backgrounds (no white), amber/orange accents, and energetic colors
+  - Dark mode: Cool-toned palette with deep blue/teal backgrounds, cyan accents, and completely different color families
+  - Zero color bleed-over between modes - each uses entirely distinct HSL color ranges
+  - Light mode uses 25-50° hues (warm oranges, yellows, creams) with high saturation and brightness
+  - Dark mode uses 180-220° hues (cool blues, teals, cyans) with moderate saturation and lower brightness
+  - Updated all CSS variables including backgrounds, cards, borders, accents, and chart colors
+  - Each mode now has completely unique visual identity with no shared color values
 ```
 
 ## User Preferences
