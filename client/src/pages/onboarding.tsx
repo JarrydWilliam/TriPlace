@@ -14,7 +14,8 @@ export default function Onboarding() {
   }, [user, loading, navigate]);
 
   const handleComplete = () => {
-    navigate("/dashboard");
+    // Force navigation to dashboard
+    window.location.href = "/dashboard";
   };
 
   const handleBack = () => {

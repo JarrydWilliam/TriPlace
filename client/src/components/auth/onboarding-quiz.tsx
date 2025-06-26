@@ -108,11 +108,15 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/firebase/${user?.firebaseUid}`] });
       toast({
         title: "Welcome to TriPlace!",
         description: "Your profile is complete. Let's find your community!",
       });
-      onComplete();
+      // Small delay to ensure user data is updated before navigation
+      setTimeout(() => {
+        onComplete();
+      }, 100);
     },
     onError: (error) => {
       toast({
