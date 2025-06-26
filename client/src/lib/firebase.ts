@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, Auth } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
 // Mobile-optimized Firebase configuration
 let auth: Auth | any;
@@ -95,6 +95,87 @@ export const signInWithGoogle = async () => {
           throw new Error('Authentication service error. Please try again or contact support.');
         }
         throw new Error('Unable to sign in with Google. Please try again.');
+    }
+  }
+};
+
+export const signUpWithEmail = async (email: string, password: string) => {
+  if (!isFirebaseInitialized) {
+    throw new Error('Authentication is not available. Please contact support for assistance.');
+  }
+
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result;
+  } catch (error: any) {
+    console.error('Email sign-up error:', error);
+    
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      case 'auth/invalid-email':
+        throw new Error('Please enter a valid email address.');
+      case 'auth/weak-password':
+        throw new Error('Password should be at least 6 characters long.');
+      case 'auth/network-request-failed':
+        throw new Error('Network error. Please check your connection and try again.');
+      case 'auth/too-many-requests':
+        throw new Error('Too many attempts. Please try again later.');
+      default:
+        throw new Error('Unable to create account. Please try again.');
+    }
+  }
+};
+
+export const signInWithEmail = async (email: string, password: string) => {
+  if (!isFirebaseInitialized) {
+    throw new Error('Authentication is not available. Please contact support for assistance.');
+  }
+
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result;
+  } catch (error: any) {
+    console.error('Email sign-in error:', error);
+    
+    switch (error.code) {
+      case 'auth/user-not-found':
+        throw new Error('No account found with this email. Please sign up first.');
+      case 'auth/wrong-password':
+        throw new Error('Incorrect password. Please try again.');
+      case 'auth/invalid-email':
+        throw new Error('Please enter a valid email address.');
+      case 'auth/user-disabled':
+        throw new Error('This account has been disabled. Please contact support.');
+      case 'auth/network-request-failed':
+        throw new Error('Network error. Please check your connection and try again.');
+      case 'auth/too-many-requests':
+        throw new Error('Too many failed attempts. Please try again later.');
+      default:
+        throw new Error('Unable to sign in. Please check your credentials and try again.');
+    }
+  }
+};
+
+export const resetPassword = async (email: string) => {
+  if (!isFirebaseInitialized) {
+    throw new Error('Authentication is not available. Please contact support for assistance.');
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    console.error('Password reset error:', error);
+    
+    switch (error.code) {
+      case 'auth/user-not-found':
+        throw new Error('No account found with this email address.');
+      case 'auth/invalid-email':
+        throw new Error('Please enter a valid email address.');
+      case 'auth/network-request-failed':
+        throw new Error('Network error. Please check your connection and try again.');
+      default:
+        throw new Error('Unable to send reset email. Please try again.');
     }
   }
 };

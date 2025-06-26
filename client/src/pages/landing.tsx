@@ -1,14 +1,16 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { EmailSignupForm } from "@/components/auth/email-signup-form";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
 
 export default function Landing() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -17,12 +19,15 @@ export default function Landing() {
   }, [user, loading, navigate]);
 
   const handleEmailSignup = () => {
-    navigate("/onboarding");
+    setShowEmailForm(true);
   };
 
   const handleShowLogin = () => {
-    // For now, just show the same form - in a real app you'd have separate login/signup forms
-    console.log("Show login form");
+    setShowEmailForm(true);
+  };
+
+  const handleBackToMain = () => {
+    setShowEmailForm(false);
   };
 
   if (loading) {
@@ -72,10 +77,14 @@ export default function Landing() {
             
             {/* Authentication Form */}
             <div className="max-w-md mx-auto">
-              <LoginForm 
-                onEmailSignup={handleEmailSignup}
-                onShowLogin={handleShowLogin}
-              />
+              {showEmailForm ? (
+                <EmailSignupForm onBack={handleBackToMain} />
+              ) : (
+                <LoginForm 
+                  onEmailSignup={handleEmailSignup}
+                  onShowLogin={handleShowLogin}
+                />
+              )}
             </div>
           </div>
         </div>
