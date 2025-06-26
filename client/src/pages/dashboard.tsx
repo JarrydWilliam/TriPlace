@@ -193,6 +193,7 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
+                <Logo size="md" className="mr-2" />
                 <Avatar className="w-16 h-16 border-4 border-white/20">
                   <AvatarImage src={user.avatar || undefined} />
                   <AvatarFallback className="bg-white/20 text-white text-lg">

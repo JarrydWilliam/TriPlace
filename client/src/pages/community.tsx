@@ -19,6 +19,7 @@ import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
+import { Logo } from "@/components/ui/logo";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -364,6 +365,7 @@ export default function CommunityPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
+                <Logo size="md" className="mr-2" />
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">
                   🌟
                 </div>

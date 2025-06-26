@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { Logo } from "@/components/ui/logo";
 
 export default function Landing() {
   const { user, loading } = useAuth();
