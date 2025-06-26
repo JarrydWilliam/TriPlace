@@ -18,6 +18,7 @@ import { ChevronDown } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
+import { Logo } from "@/components/ui/logo";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -343,7 +344,7 @@ export default function Dashboard() {
                 {eventsLoading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                      <div key={`loading-event-${i}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
                     ))}
                   </div>
                 ) : (
@@ -504,7 +505,7 @@ export default function Dashboard() {
                 {userCommunitiesLoading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                      <div key={`loading-community-${i}`} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
                     ))}
                   </div>
                 ) : Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
@@ -574,7 +575,7 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🎯 High Match Members</h4>
                   {[1, 2].map((i) => (
-                    <div key={i} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div key={`high-match-${i}`} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={`https://images.unsplash.com/photo-${1500000000000 + i}?w=40&h=40&fit=crop&crop=face`} />
                         <AvatarFallback>U{i}</AvatarFallback>
