@@ -418,7 +418,7 @@ export default function CommunityPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {membersLoading ? (
+                {communityMembersLoading ? (
                   <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="flex space-x-3 p-3">

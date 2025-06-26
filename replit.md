@@ -198,6 +198,18 @@ Changelog:
   - Fixed DOM nesting errors and JSX syntax issues for clean production builds
   - All core features tested and working: authentication, communities, settings, onboarding
   - Application ready for Replit deployment with all discussed features integrated
+
+- June 26, 2025. Implemented 5-community maximum limit with activity-based rotation system
+  - Enhanced database schema with activity tracking fields for community members
+  - Built intelligent rotation logic that drops least active community when joining new ones
+  - Dashboard displays "User's Name's Communities" with activity scores and last activity dates
+  - Join Community button in Today's Discoveries triggers rotation with user feedback toasts
+  - Four-tab community interface: Live Feed, Events, Members, and Highlights
+  - Real-time messaging with resonate functionality and typing indicators
+  - Dynamic member discovery with match percentages and geographic proximity
+  - Community activity automatically updates when users interact (messages, events, kudos)
+  - Smart fallback system ensures users always have meaningful community recommendations
+  - Complete implementation of all attached requirements for community tabs and rotation
 ```
 
 ## User Preferences
