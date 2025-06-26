@@ -580,36 +580,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Kudos Leaderboard */}
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center space-x-2">
-                  <Award className="w-5 h-5" />
-                  <span>Local Kudos Leaders</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[1, 2, 3].map((rank) => (
-                  <div key={rank} className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold">
-                      {rank}
-                    </div>
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={`https://images.unsplash.com/photo-${1500000000000 + rank}?w=32&h=32&fit=crop&crop=face`} />
-                      <AvatarFallback>U{rank}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        User {rank}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        💜 {50 - rank * 10} kudos
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+
 
           </div>
         </div>
