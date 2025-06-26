@@ -29,7 +29,8 @@ const interestColors = [
 ];
 
 export default function Profile() {
-  const { user, loading: authLoading } = useAuth();
+  const { userId } = useParams<{ userId?: string }>();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
@@ -39,29 +40,42 @@ export default function Profile() {
     location: "",
   });
 
+  // Determine if viewing own profile or another user's profile
+  const isOwnProfile = !userId || userId === currentUser?.id?.toString();
+  const targetUserId = isOwnProfile ? currentUser?.id : parseInt(userId!);
+
+  // Fetch profile user data (for viewing other users)
+  const { data: profileUser, isLoading: profileUserLoading } = useQuery({
+    queryKey: ['/api/users', targetUserId],
+    enabled: !!targetUserId && !isOwnProfile,
+  });
+
+  // Use current user for own profile, profile user for others
+  const user = isOwnProfile ? currentUser : profileUser;
+
   // Fetch user communities
   const { data: userCommunities = [], isLoading: communitiesLoading } = useQuery({
-    queryKey: ['/api/users', user?.id, 'communities'],
-    enabled: !!user,
+    queryKey: ['/api/users', targetUserId, 'communities'],
+    enabled: !!targetUserId,
   });
 
   // Fetch user events
   const { data: userEvents = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ['/api/users', user?.id, 'events'],
-    enabled: !!user,
+    queryKey: ['/api/users', targetUserId, 'events'],
+    enabled: !!targetUserId,
   });
 
   // Fetch user kudos
   const { data: userKudos = [], isLoading: kudosLoading } = useQuery({
-    queryKey: ['/api/users', user?.id, 'kudos', 'received'],
-    enabled: !!user,
+    queryKey: ['/api/users', targetUserId, 'kudos', 'received'],
+    enabled: !!targetUserId,
   });
 
   // Update user profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (updates: typeof editForm) => {
-      if (!user) throw new Error("No user found");
-      const response = await apiRequest('PATCH', `/api/users/${user.id}`, updates);
+      if (!currentUser) throw new Error("No user found");
+      const response = await apiRequest('PATCH', `/api/users/${currentUser.id}`, updates);
       return response.json();
     },
     onSuccess: () => {
