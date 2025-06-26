@@ -19,20 +19,26 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch user's communities
+  const { data: userCommunities = [], isLoading: userCommunitiesLoading } = useQuery<Community[]>({
+    queryKey: ['/api/users', user?.id, 'communities'],
+    enabled: !!user,
+  });
+
   // Fetch recommended communities
-  const { data: recommendedCommunities = [], isLoading: communitiesLoading } = useQuery({
+  const { data: recommendedCommunities = [], isLoading: communitiesLoading } = useQuery<Community[]>({
     queryKey: ['/api/communities/recommended', user?.interests?.join(',')],
     enabled: !!user?.interests?.length,
   });
 
   // Fetch upcoming events
-  const { data: upcomingEvents = [], isLoading: eventsLoading } = useQuery({
+  const { data: upcomingEvents = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ['/api/events/upcoming'],
     enabled: !!user,
   });
 
   // Fetch user activity feed
-  const { data: activities = [], isLoading: activitiesLoading } = useQuery({
+  const { data: activities = [], isLoading: activitiesLoading } = useQuery<ActivityFeedItem[]>({
     queryKey: ['/api/users', user?.id, 'activity'],
     enabled: !!user,
   });
@@ -107,39 +113,124 @@ export default function Dashboard() {
           <TopBar />
           
           <div className="p-4 md:p-6 space-y-6">
-            {/* Location Status */}
-            <Card className="bg-gradient-to-r from-primary to-secondary border-0">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between text-white">
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="h-5 w-5" />
-                    <div>
-                      <p className="font-semibold">
-                        You're in {user.location || "San Francisco"}
-                      </p>
-                      <p className="text-sm opacity-90">
-                        Showing events within 50 miles
-                      </p>
+            {/* Your Communities Block */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-white flex items-center gap-2">
+                      🧠 Your Communities
+                    </CardTitle>
+                    <p className="text-gray-400 text-sm mt-1">These are the spaces you helped create.</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">
+                    Create New
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {userCommunitiesLoading ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="bg-gray-700 rounded-xl p-4 h-32"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : userCommunities.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">
+                      You haven't joined any communities yet. Explore recommendations below!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(userCommunities as Community[]).map((community: Community) => (
+                      <div
+                        key={community.id}
+                        className="relative group cursor-pointer"
+                        onClick={() => console.log('Enter community chat', community.id)}
+                      >
+                        <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30 border border-gray-600 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:shadow-lg animate-pulse-soft">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="text-2xl">{community.category === 'wellness' ? '🧘' : community.category === 'tech' ? '💻' : '🎨'}</div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-green-400">3 active now</span>
+                            </div>
+                          </div>
+                          <h3 className="text-white font-semibold text-sm mb-1">{community.name}</h3>
+                          <p className="text-gray-400 text-xs mb-3 line-clamp-2">{community.description}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 text-xs">{community.memberCount || 0} members</span>
+                            <div className="flex items-center gap-1 text-xs text-yellow-400">
+                              🔔 New post!
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Your Vibe - Adaptive Tracker */}
+            <Card className="bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-white flex items-center gap-2">
+                      📈 Your Vibe
+                    </CardTitle>
+                    <p className="text-gray-400 text-sm mt-1">🔄 Tracks how your community vibe has changed</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-white font-medium mb-2">Your top 3 interests this month:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {user.interests?.slice(0, 3).map((interest, index) => (
+                        <Badge key={interest} variant="secondary" className="bg-primary/20 text-primary border-primary/30">
+                          #{index + 1} {interest}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 border-0 text-white"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Change
-                  </Button>
+                  
+                  <div className="border-t border-gray-600 pt-4">
+                    <h4 className="text-white font-medium mb-2">Explore new communities like these...</h4>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {(recommendedCommunities as Community[]).slice(0, 2).map((community: Community) => (
+                        <div
+                          key={community.id}
+                          className="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:bg-gray-700 transition-colors cursor-pointer"
+                          onClick={() => joinCommunityMutation.mutate(community.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-lg">{community.category === 'wellness' ? '🧘' : community.category === 'tech' ? '💻' : '🎨'}</div>
+                            <div>
+                              <h5 className="text-white text-sm font-medium">{community.name}</h5>
+                              <p className="text-gray-400 text-xs mt-1 line-clamp-1">{community.description}</p>
+                              <span className="text-gray-500 text-xs">{community.memberCount || 0} members</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Recommended Communities */}
-            <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl text-white dark:text-white">
-                    Recommended Communities
+                  <CardTitle className="text-xl text-white">
+                    Discover New Communities
                   </CardTitle>
                   <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">
                     See All
@@ -151,19 +242,19 @@ export default function Dashboard() {
                   <div className="grid md:grid-cols-2 gap-4">
                     {[1, 2].map((i) => (
                       <div key={i} className="animate-pulse">
-                        <div className="bg-gray-700 dark:bg-gray-700 rounded-xl p-4 h-32"></div>
+                        <div className="bg-gray-700 rounded-xl p-4 h-32"></div>
                       </div>
                     ))}
                   </div>
                 ) : recommendedCommunities.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-400 dark:text-gray-400">
+                    <p className="text-gray-400">
                       No communities found. Try updating your interests in your profile.
                     </p>
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-4">
-                    {recommendedCommunities.slice(0, 4).map((community: Community) => (
+                    {(recommendedCommunities as Community[]).slice(2, 6).map((community: Community) => (
                       <CommunityCard
                         key={community.id}
                         community={community}
