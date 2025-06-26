@@ -2,20 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-optimized scrolling */
-html, body {
+/* Mobile-optimized scrolling - Safari iPhone fix */
+html {
   height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  position: relative;
 }
 
 #root {
   min-height: 100vh;
+  height: auto;
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Safari iOS specific scrolling fixes */
+@supports (-webkit-touch-callout: none) {
+  body {
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  #root {
+    height: 100vh !important;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
 }
 
 /* Enhanced responsive design for all devices */
