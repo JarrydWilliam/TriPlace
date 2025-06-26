@@ -41,21 +41,52 @@ function Router() {
     }
   }, [user, firebaseUser, loading, location, setLocation]);
 
-  // Show loading state with timeout fallback
+  // Mobile-optimized loading state with shorter timeout
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-cream-50 dark:bg-slate-900 overflow-hidden">
-        <div className="text-amber-800 dark:text-cyan-300 font-medium">
-          Loading TriPlace...
+        <div className="text-center">
+          <div className="text-amber-800 dark:text-cyan-300 font-medium mb-2">
+            TriPlace
+          </div>
+          <div className="text-sm text-amber-600 dark:text-cyan-400">
+            Loading your digital third place...
+          </div>
         </div>
       </div>
     );
   }
 
+  // If not authenticated, show public routes only
+  if (!firebaseUser) {
+    return (
+      <div className="h-screen overflow-hidden">
+        <Switch>
+          <Route path="/" component={Landing} />
+          <Route component={() => <Landing />} />
+        </Switch>
+      </div>
+    );
+  }
+
+  // If authenticated but no user data, show loading
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-cream-50 dark:bg-slate-900 overflow-hidden">
+        <div className="text-center">
+          <div className="text-amber-800 dark:text-cyan-300 font-medium mb-2">
+            Setting up your account...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated user routes
   return (
     <div className="h-screen overflow-hidden">
       <Switch>
-        <Route path="/" component={Landing} />
+        <Route path="/" component={Dashboard} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/profile" component={Profile} />
@@ -73,7 +104,6 @@ function Router() {
         <Route path="/discover" component={Dashboard} />
         <Route path="/communities" component={Dashboard} />
         <Route path="/kudos" component={Dashboard} />
-        {/* Fallback to 404 */}
         <Route component={NotFound} />
       </Switch>
     </div>

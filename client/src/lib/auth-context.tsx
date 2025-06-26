@@ -32,13 +32,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Add timeout to prevent infinite loading
+    // Set a maximum loading time to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Auth initialization taking too long, proceeding without auth');
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
+      console.warn('Auth initialization timeout, proceeding with app');
+      setLoading(false);
+    }, 5000); // Reduced to 5 seconds for mobile
+
+    // Check if Firebase is properly initialized
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+      console.warn('Firebase auth not available, proceeding without authentication');
+      clearTimeout(loadingTimeout);
+      setLoading(false);
+      return;
+    }
 
     try {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -80,7 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return () => {
         clearTimeout(loadingTimeout);
-        unsubscribe();
+        if (unsubscribe) unsubscribe();
       };
     } catch (error) {
       console.error('Failed to initialize Firebase auth:', error);
