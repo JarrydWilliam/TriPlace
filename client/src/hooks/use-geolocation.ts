@@ -6,6 +6,7 @@ interface GeolocationState {
   error: string | null;
   loading: boolean;
   source: 'gps' | 'ip' | null;
+  locationName: string | null;
 }
 
 export function useGeolocation() {
@@ -15,6 +16,7 @@ export function useGeolocation() {
     error: null,
     loading: true,
     source: null,
+    locationName: null,
   });
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export function useGeolocation() {
           error: null,
           loading: false,
           source: 'gps',
+          locationName: 'GPS Location',
         });
       };
 

@@ -1,16 +1,18 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/lib/theme-context";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun } from "lucide-react";
+import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
+  const { latitude, longitude, source, loading: locationLoading } = useGeolocation();
 
   const navigationItems = [
     { 
@@ -72,9 +74,30 @@ export function Sidebar() {
               <p className="font-semibold text-sm text-white dark:text-white truncate">
                 {user.name}
               </p>
-              <p className="text-gray-400 dark:text-gray-400 text-xs truncate">
-                {user.location || "Location not set"}
-              </p>
+              <div className="flex items-center gap-1 text-gray-400 dark:text-gray-400 text-xs">
+                {locationLoading ? (
+                  <>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span>Getting location...</span>
+                  </>
+                ) : latitude && longitude ? (
+                  <>
+                    {source === 'gps' ? (
+                      <Navigation className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <MapPin className="w-3 h-3 text-yellow-500" />
+                    )}
+                    <span className="truncate">
+                      {source === 'gps' ? 'Precise location' : 'Approximate location'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-3 h-3 text-gray-500" />
+                    <span>Location not available</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
