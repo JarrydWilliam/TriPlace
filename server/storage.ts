@@ -221,11 +221,11 @@ export class DatabaseStorage implements IStorage {
             
             // Extract new interests from attended event categories
             const eventCategories = userEvents.map(event => event.category).filter(Boolean);
-            const uniqueEventCategories = [...new Set(eventCategories)];
+            const uniqueEventCategories = Array.from(new Set(eventCategories));
             
             // Update user interests in database to include event-derived interests
             if (uniqueEventCategories.length > 0) {
-              const updatedInterests = [...new Set([...interests, ...uniqueEventCategories])];
+              const updatedInterests = Array.from(new Set([...interests, ...uniqueEventCategories]));
               await this.updateUser(userId, { interests: updatedInterests });
             }
             
