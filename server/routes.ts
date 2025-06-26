@@ -439,6 +439,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Community messaging routes
+  app.get("/api/communities/:id/messages", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      const messages = await storage.getCommunityMessages(communityId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching community messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
   app.post("/api/communities/:id/messages", async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);

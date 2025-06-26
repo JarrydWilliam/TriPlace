@@ -580,27 +580,27 @@ export class DatabaseStorage implements IStorage {
 
   async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
     // Get all messages where sender and receiver are the same (community messages)
-    // and sender is a member of this community
     const result = await db
       .select({
-        id: messages.id,
+        // Message fields
+        messageId: messages.id,
         senderId: messages.senderId,
         receiverId: messages.receiverId,
         content: messages.content,
         createdAt: messages.createdAt,
         isRead: messages.isRead,
-        senderInfo: {
-          id: users.id,
-          firebaseUid: users.firebaseUid,
-          name: users.name,
-          avatar: users.avatar,
-          email: users.email,
-          interests: users.interests,
-          bio: users.bio,
-          location: users.location,
-          latitude: users.latitude,
-          longitude: users.longitude
-        }
+        // User fields
+        userId: users.id,
+        firebaseUid: users.firebaseUid,
+        userName: users.name,
+        userAvatar: users.avatar,
+        userEmail: users.email,
+        userInterests: users.interests,
+        userBio: users.bio,
+        userLocation: users.location,
+        userLatitude: users.latitude,
+        userLongitude: users.longitude,
+        onboardingCompleted: users.onboardingCompleted
       })
       .from(messages)
       .innerJoin(users, eq(messages.senderId, users.id))
@@ -609,14 +609,27 @@ export class DatabaseStorage implements IStorage {
       .limit(50);
 
     return result.map(row => ({
-      id: row.id,
+      id: row.messageId,
       senderId: row.senderId,
       receiverId: row.receiverId,
       content: row.content,
       createdAt: row.createdAt,
       isRead: row.isRead,
-      sender: row.senderInfo as User,
-      resonateCount: 0 // TODO: Implement actual resonate counting
+      sender: {
+        id: row.userId,
+        firebaseUid: row.firebaseUid,
+        name: row.userName,
+        avatar: row.userAvatar,
+        email: row.userEmail,
+        interests: row.userInterests,
+        bio: row.userBio,
+        location: row.userLocation,
+        latitude: row.userLatitude,
+        longitude: row.userLongitude,
+        onboardingCompleted: row.onboardingCompleted,
+        createdAt: new Date()
+      } as User,
+      resonateCount: 0
     }));
   }
 
