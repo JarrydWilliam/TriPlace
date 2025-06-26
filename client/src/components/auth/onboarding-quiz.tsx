@@ -494,7 +494,7 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
                   "🤝 Collaborators / Project partners",
                   "👨‍👩‍👧 Community / Belonging",
                   "🧠 Learning buddies",
-                  "💘 Romantic connection",
+                  "🎯 Mentorship opportunities",
                   "Just want a place to lurk quietly"
                 ].map((option) => (
                   <div key={option} className="flex items-center space-x-2">
