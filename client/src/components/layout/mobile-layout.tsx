@@ -112,28 +112,33 @@ interface MobileCardProps {
   className?: string;
   clickable?: boolean;
   padding?: boolean;
+  onClick?: () => void;
 }
 
 export function MobileCard({ 
   children, 
   className, 
   clickable = false, 
-  padding = true 
+  padding = true,
+  onClick
 }: MobileCardProps) {
   return (
-    <div className={cn(
-      "bg-card border border-border rounded-lg",
-      "shadow-sm",
-      padding && "p-4",
-      clickable && [
-        "cursor-pointer",
-        "transition-all duration-200",
-        "hover:shadow-md",
-        "active:scale-[0.98]",
-        "touch-target"
-      ],
-      className
-    )}>
+    <div 
+      className={cn(
+        "bg-card border border-border rounded-lg",
+        "shadow-sm",
+        padding && "p-4",
+        clickable && [
+          "cursor-pointer",
+          "transition-all duration-200",
+          "hover:shadow-md",
+          "active:scale-[0.98]",
+          "touch-target"
+        ],
+        className
+      )}
+      onClick={onClick}
+    >
       {children}
     </div>
   );
