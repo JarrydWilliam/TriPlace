@@ -42,7 +42,7 @@ export default function Landing() {
 
   return (
     <ScrollablePageWrapper>
-    <section className="h-screen relative overflow-hidden bg-gray-900">
+      <section className="h-screen relative overflow-hidden bg-gray-900">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
@@ -118,7 +118,7 @@ export default function Landing() {
         </div>
 
       </div>
-    </section>
+      </section>
     </ScrollablePageWrapper>
   );
 }
