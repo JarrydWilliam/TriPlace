@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { eventScraper } from "./event-scraper";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -435,6 +436,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Event scraping routes
+  app.post("/api/communities/:id/scrape-events", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { latitude, longitude } = req.body;
+      
+      if (isNaN(communityId) || !latitude || !longitude) {
+        return res.status(400).json({ message: "Invalid community ID or location data" });
+      }
+      
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
+      const scrapedEvents = await eventScraper.populateCommunityEvents(community, userLocation);
+      
+      res.json({ 
+        message: `Successfully scraped ${scrapedEvents.length} events for ${community.name}`,
+        events: scrapedEvents 
+      });
+    } catch (error) {
+      console.error('Event scraping error:', error);
+      res.status(500).json({ message: "Failed to scrape events" });
+    }
+  });
+
+  app.get("/api/communities/:id/scraped-events", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      // Get events that match this community's category and are recent
+      const events = await storage.getEventsByCategory(community.category);
+      const recentEvents = events.filter(event => 
+        new Date(event.date) >= new Date() && // Future events only
+        new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
+      );
+      
+      res.json(recentEvents);
+    } catch (error) {
+      console.error('Error fetching scraped events:', error);
+      res.status(500).json({ message: "Failed to fetch events" });
     }
   });
 
