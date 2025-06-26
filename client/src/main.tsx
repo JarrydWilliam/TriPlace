@@ -3,6 +3,10 @@ import App from "./App";
 import "./index.css";
 import { logDeploymentStatus } from "./lib/deployment-checks";
 import { initializeProductionFeatures, setupPerformanceMonitoring } from "./lib/production-deployment";
+import { initializeProduction } from "./lib/production-config";
+
+// Initialize production configuration
+initializeProduction();
 
 // Log deployment status on app start
 logDeploymentStatus();

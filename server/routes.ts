@@ -4,11 +4,16 @@ import { storage } from "./storage";
 import { eventScraper } from "./event-scraper";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
+import { healthCheckHandler } from "./health-check";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for production monitoring
+  app.get("/health", healthCheckHandler);
+  app.get("/api/health", healthCheckHandler);
+  
   // Version endpoint for deployment updates
   app.get("/api/version", (req, res) => {
-    res.text(Date.now().toString());
+    res.send(Date.now().toString());
   });
   // User routes
   app.get("/api/users/:id", async (req, res) => {
