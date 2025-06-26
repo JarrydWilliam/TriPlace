@@ -35,7 +35,7 @@ export default function Landing() {
   }
 
   return (
-    <section className="min-h-screen relative overflow-hidden bg-gray-900">
+    <section className="h-screen relative overflow-hidden bg-gray-900">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
@@ -47,7 +47,7 @@ export default function Landing() {
         }}
       ></div>
       
-      <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
+      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col overflow-y-auto">
         {/* Header */}
         <header className="flex justify-between items-center mb-16">
           <div className="flex items-center space-x-3">

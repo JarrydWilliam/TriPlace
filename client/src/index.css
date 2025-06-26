@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent scroll overflow above/below screen boundaries */
+html, body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+  height: 100%;
+  overflow-x: hidden;
+  position: fixed;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile-specific scroll fixes */
+@supports (-webkit-touch-callout: none) {
+  body {
+    position: fixed;
+    overflow: hidden;
+  }
+  
+  #root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent bounce scrolling on iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  html, body {
+    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
+    height: 100%;
+    position: fixed;
+  }
+}
+
 /* Enhanced responsive design for all devices */
 @supports (viewport-fit: cover) {
   .safe-area-top { padding-top: env(safe-area-inset-top); }
