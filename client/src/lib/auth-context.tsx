@@ -29,43 +29,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setFirebaseUser(firebaseUser);
-      
-      if (firebaseUser) {
-        try {
-          // Try to get existing user
-          const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`);
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-          } else if (response.status === 404) {
-            // Create new user
-            const newUserData = {
-              firebaseUid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
-              avatar: firebaseUser.photoURL,
-              interests: [],
-            };
-            
-            const createResponse = await apiRequest('POST', '/api/users', newUserData);
-            const createdUser = await createResponse.json();
-            setUser(createdUser);
-          }
-        } catch (error) {
-          console.error('Error handling user authentication:', error);
-        }
-      } else {
-        setUser(null);
+    // Add timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth initialization taking too long, proceeding without auth');
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    }, 10000); // 10 second timeout
 
-    return () => unsubscribe();
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        clearTimeout(loadingTimeout);
+        setFirebaseUser(firebaseUser);
+        setAuthError(null);
+        
+        if (firebaseUser) {
+          try {
+            // Try to get existing user
+            const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`);
+            if (response.ok) {
+              const userData = await response.json();
+              setUser(userData);
+            } else if (response.status === 404) {
+              // Create new user
+              const newUserData = {
+                firebaseUid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+                avatar: firebaseUser.photoURL,
+                interests: [],
+              };
+              
+              const createResponse = await apiRequest('POST', '/api/users', newUserData);
+              const createdUser = await createResponse.json();
+              setUser(createdUser);
+            }
+          } catch (error) {
+            console.error('Error handling user authentication:', error);
+            setAuthError('Authentication service temporarily unavailable');
+          }
+        } else {
+          setUser(null);
+        }
+        
+        setLoading(false);
+      });
+
+      return () => {
+        clearTimeout(loadingTimeout);
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('Failed to initialize Firebase auth:', error);
+      setAuthError('Authentication service unavailable');
+      setLoading(false);
+      clearTimeout(loadingTimeout);
+    }
   }, []);
 
   const signOut = async () => {

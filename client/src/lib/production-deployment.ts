@@ -70,28 +70,24 @@ export async function checkForUpdates() {
 
 // Initialize production deployment features
 export function initializeProductionFeatures() {
-  if (!import.meta.env.PROD) return;
+  // Skip aggressive production features in development/local
+  if (!import.meta.env.PROD || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('Skipping production features in development mode');
+    return;
+  }
   
-  // Disable right-click context menu in production
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  
-  // Disable developer tools shortcuts
-  document.addEventListener('keydown', e => {
-    if (e.key === 'F12' || 
-        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
-        (e.ctrlKey && e.key === 'U')) {
-      e.preventDefault();
-    }
-  });
-  
-  // Set up automatic update checking
-  setInterval(async () => {
-    const hasUpdate = await checkForUpdates();
-    if (hasUpdate) {
-      forceAppUpdate();
-    }
-  }, DEPLOYMENT_CONFIG.pwa.updateInterval);
+  // Only apply in deployed production environment
+  try {
+    // Set up automatic update checking
+    setInterval(async () => {
+      const hasUpdate = await checkForUpdates();
+      if (hasUpdate) {
+        forceAppUpdate();
+      }
+    }, DEPLOYMENT_CONFIG.pwa.updateInterval);
+  } catch (error) {
+    console.error('Failed to initialize production features:', error);
+  }
 }
 
 // Performance monitoring for production

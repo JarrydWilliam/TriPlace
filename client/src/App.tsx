@@ -41,10 +41,13 @@ function Router() {
     }
   }, [user, firebaseUser, loading, location, setLocation]);
 
+  // Show loading state with timeout fallback
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-900 overflow-hidden">
-        <div className="text-white">Loading...</div>
+      <div className="h-screen flex items-center justify-center bg-cream-50 dark:bg-slate-900 overflow-hidden">
+        <div className="text-amber-800 dark:text-cyan-300 font-medium">
+          Loading TriPlace...
+        </div>
       </div>
     );
   }

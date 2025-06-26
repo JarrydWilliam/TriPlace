@@ -101,26 +101,27 @@ export const ERROR_MESSAGES = {
 export function applyProductionOptimizations() {
   if (!import.meta.env.PROD) return;
 
-  // Disable console logs in production
-  console.log = () => {};
-  console.debug = () => {};
-  console.info = () => {};
-  
-  // Keep error and warn for debugging
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  
-  console.error = (...args) => {
-    if (PRODUCTION_CONFIG.monitoring.errorReporting) {
-      originalError(...args);
-    }
-  };
-  
-  console.warn = (...args) => {
-    if (PRODUCTION_CONFIG.monitoring.errorReporting) {
-      originalWarn(...args);
-    }
-  };
+  // Keep all console methods in development mode for debugging
+  // Only disable in actual production environment
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // Disable non-essential console logs only in deployed production
+    const originalLog = console.log;
+    const originalDebug = console.debug;
+    const originalInfo = console.info;
+    
+    console.log = (...args) => {
+      if (PRODUCTION_CONFIG.monitoring.errorReporting) {
+        originalLog(...args);
+      }
+    };
+    
+    console.debug = () => {};
+    console.info = (...args) => {
+      if (PRODUCTION_CONFIG.monitoring.errorReporting) {
+        originalInfo(...args);
+      }
+    };
+  }
 }
 
 // Initialize production configuration
