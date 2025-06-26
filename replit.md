@@ -149,6 +149,14 @@ Changelog:
   - AI analyzes deep personality patterns from quiz responses for meaningful matches
   - Fallback algorithm ensures reliable service when AI quota exceeded
   - Each user receives unique, selective community portfolio tailored to their growth trajectory
+
+- June 26, 2025. Implemented dynamic radius expansion logic for member matching
+  - Primary matching within 50-mile radius with 70% interest overlap requirement
+  - Automatic expansion to 100-mile radius when no qualifying members found within 50 miles
+  - Real-time evaluation and re-matching against same 70% compatibility criteria
+  - Background processing ensures seamless user experience during radius expansion
+  - System logs provide transparency about which radius was used for each community
+  - Enhanced member discovery for users in less populated areas while maintaining quality standards
 ```
 
 ## User Preferences

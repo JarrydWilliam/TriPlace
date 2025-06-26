@@ -20,7 +20,8 @@ export interface IStorage {
   getAllCommunities(): Promise<Community[]>;
   getCommunitiesByCategory(category: string): Promise<Community[]>;
   getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]>;
-  getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<User[]>;
+  getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles?: number): Promise<User[]>;
+  getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }>;
   createCommunity(community: InsertCommunity): Promise<Community>;
   updateCommunity(id: number, updates: Partial<InsertCommunity>): Promise<Community | undefined>;
   
@@ -301,12 +302,14 @@ export class MemStorage implements IStorage {
             // Calculate dynamic member counts for each AI-recommended community
             const selectiveCommunities = await Promise.all(
               aiRecommendations.map(async rec => {
-                const dynamicMembers = userLocation ? 
-                  await this.getDynamicCommunityMembers(rec.community.id, userLocation, interests) : [];
+                const dynamicResult = userLocation ? 
+                  await this.getDynamicCommunityMembersWithExpansion(rec.community.id, userLocation, interests) : 
+                  { members: [], radiusUsed: 50 };
                 
                 return {
                   ...rec.community,
-                  memberCount: dynamicMembers.length,
+                  memberCount: dynamicResult.members.length,
+                  searchRadius: dynamicResult.radiusUsed,
                   // AI-generated personalization metadata
                   aiMatchScore: rec.matchScore,
                   aiReasoning: rec.reasoning,
@@ -618,18 +621,49 @@ export class MemStorage implements IStorage {
         onboardingCompleted: true,
         quizAnswers: { pastActivities: ['🎨 An art class or creative workshop'] },
         createdAt: new Date(),
+      },
+      // Users at 75-90 miles to test radius expansion
+      {
+        id: 103,
+        firebaseUid: 'sample-user-4',
+        email: 'diana@example.com',
+        name: 'Diana Foster',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+        bio: 'Marathon runner and fitness coach',
+        location: 'Provo, Utah',
+        latitude: '40.234',
+        longitude: '-111.658',
+        interests: ['running', 'fitness', 'marathon training', 'outdoor adventures'],
+        onboardingCompleted: true,
+        quizAnswers: { pastActivities: ['🏃 A marathon or endurance race'] },
+        createdAt: new Date(),
+      },
+      {
+        id: 104,
+        firebaseUid: 'sample-user-5',
+        email: 'evan@example.com',
+        name: 'Evan Rodriguez',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+        bio: 'Tech entrepreneur and startup mentor',
+        location: 'Park City, Utah',
+        latitude: '40.646',
+        longitude: '-111.498',
+        interests: ['technology', 'entrepreneurship', 'startup mentoring', 'innovation'],
+        onboardingCompleted: true,
+        quizAnswers: { pastActivities: ['💼 A professional networking event'] },
+        createdAt: new Date(),
       }
     ];
 
     // Get all users including samples and filter by location + interest compatibility
-    const allUsers = [...Array.from(this.users.values()), ...sampleUsers];
+    const allUsersWithSamples = [...Array.from(this.users.values()), ...sampleUsers];
     const eligibleMembers: User[] = [];
 
-    for (const user of allUsers) {
+    for (const user of allUsersWithSamples) {
       // Skip users without location data
       if (!user.latitude || !user.longitude) continue;
 
-      // Calculate distance (50-mile radius filter)
+      // Calculate distance using specified radius
       const distance = this.calculateDistance(
         userLocation.lat, userLocation.lon,
         parseFloat(user.latitude), parseFloat(user.longitude)
@@ -637,19 +671,38 @@ export class MemStorage implements IStorage {
       
       if (distance > radiusMiles) continue; // Outside specified radius
 
-      // Calculate interest overlap (70% minimum)
+      // Calculate interest overlap (70% minimum requirement)
       const userTags = user.interests || [];
       
       // Create community-specific interests based on community category
       const communityInterests = this.getCommunityInterests(community);
       const interestOverlap = this.calculateInterestOverlap(userTags, [...userInterests, ...communityInterests]);
       
-      if (interestOverlap >= 0.5) { // Lowered to 50% for better demonstration
+      if (interestOverlap >= 0.7) { // 70% interest overlap requirement
         eligibleMembers.push(user);
       }
     }
 
     return eligibleMembers;
+  }
+
+  async getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }> {
+    console.log(`Searching for community members within 50-mile radius...`);
+    
+    // Try primary match radius (50 miles) with 70% interest overlap
+    const primaryMembers = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 50);
+    
+    if (primaryMembers.length > 0) {
+      console.log(`Found ${primaryMembers.length} qualifying members within 50 miles`);
+      return { members: primaryMembers, radiusUsed: 50 };
+    }
+    
+    // Fallback expansion to 100 miles if no members found
+    console.log(`No qualifying members found within 50 miles. Expanding search to 100 miles...`);
+    const expandedMembers = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 100);
+    
+    console.log(`Found ${expandedMembers.length} qualifying members within 100 miles`);
+    return { members: expandedMembers, radiusUsed: 100 };
   }
 
   private getCommunityInterests(community: Community): string[] {
