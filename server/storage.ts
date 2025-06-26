@@ -589,20 +589,21 @@ export class DatabaseStorage implements IStorage {
         content: messages.content,
         createdAt: messages.createdAt,
         isRead: messages.isRead,
-        sender: {
+        senderInfo: {
           id: users.id,
+          firebaseUid: users.firebaseUid,
           name: users.name,
           avatar: users.avatar,
-          email: users.email
+          email: users.email,
+          interests: users.interests,
+          bio: users.bio,
+          location: users.location,
+          latitude: users.latitude,
+          longitude: users.longitude
         }
       })
       .from(messages)
       .innerJoin(users, eq(messages.senderId, users.id))
-      .innerJoin(communityMembers, and(
-        eq(communityMembers.userId, users.id),
-        eq(communityMembers.communityId, communityId),
-        eq(communityMembers.isActive, true)
-      ))
       .where(eq(messages.senderId, messages.receiverId)) // Community messages have sender = receiver
       .orderBy(desc(messages.createdAt))
       .limit(50);
@@ -614,7 +615,7 @@ export class DatabaseStorage implements IStorage {
       content: row.content,
       createdAt: row.createdAt,
       isRead: row.isRead,
-      sender: row.sender as User,
+      sender: row.senderInfo as User,
       resonateCount: 0 // TODO: Implement actual resonate counting
     }));
   }

@@ -15,6 +15,21 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { Link } from "wouter";
+
+// Helper function to format name as "First Name + Last Initial"
+const formatDisplayName = (fullName: string | null | undefined): string => {
+  if (!fullName || fullName.trim() === '') return 'Anonymous';
+  
+  const nameParts = fullName.trim().split(' ');
+  if (nameParts.length === 1) {
+    return nameParts[0];
+  }
+  
+  const firstName = nameParts[0];
+  const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+  return `${firstName} ${lastInitial}.`;
+};
 
 export default function CommunityPage() {
   const { communityId } = useParams<{ communityId: string }>();
@@ -404,17 +419,21 @@ export default function CommunityPage() {
                       ) : (
                         messages?.map((message: Message & { sender: User, resonateCount: number }) => (
                           <div key={message.id} className="flex space-x-3 group hover:bg-white/50 dark:hover:bg-gray-800/50 p-2 rounded-lg transition-colors">
-                            <Avatar className="w-8 h-8 flex-shrink-0">
-                              <AvatarImage src={message.sender?.avatar || undefined} />
-                              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
-                                {message.sender?.name?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
+                            <Link href={`/profile/${message.sender?.id}`} className="flex-shrink-0">
+                              <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all">
+                                <AvatarImage src={message.sender?.avatar || undefined} />
+                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
+                                  {message.sender?.name?.charAt(0) || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                            </Link>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-baseline space-x-2 mb-1">
-                                <span className="font-medium text-gray-900 dark:text-white text-sm">
-                                  {message.sender?.name || 'Anonymous'}
-                                </span>
+                                <Link href={`/profile/${message.sender?.id}`} className="hover:underline">
+                                  <span className="font-medium text-gray-900 dark:text-white text-sm cursor-pointer">
+                                    {formatDisplayName(message.sender?.name)}
+                                  </span>
+                                </Link>
                                 <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                                   {new Date(message.createdAt!).toLocaleTimeString([], { 
                                     hour: '2-digit', 

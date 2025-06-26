@@ -53,6 +53,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/profile" component={Profile} />
+      <Route path="/profile/:userId" component={Profile} />
       <Route path="/messaging" component={Messaging} />
       <Route path="/messages" component={Messaging} />
       <Route path="/community/:communityId" component={Community} />
