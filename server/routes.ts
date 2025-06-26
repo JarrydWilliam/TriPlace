@@ -439,6 +439,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Automatic event population for all user communities
+  app.post("/api/auto-populate-events", async (req, res) => {
+    try {
+      const { userId, latitude, longitude } = req.body;
+      
+      if (!userId || !latitude || !longitude) {
+        return res.status(400).json({ message: "User ID and location required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userCommunities = await storage.getUserCommunities(userId);
+      const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
+      
+      let totalEventsAdded = 0;
+      
+      // Automatically populate events for all user's communities
+      for (const community of userCommunities) {
+        try {
+          const events = await eventScraper.populateCommunityEvents(community, userLocation);
+          totalEventsAdded += events.length;
+        } catch (error) {
+          console.error(`Error populating events for community ${community.name}:`, error);
+        }
+      }
+      
+      res.json({ 
+        message: `Auto-populated ${totalEventsAdded} events across ${userCommunities.length} communities`,
+        eventsAdded: totalEventsAdded,
+        communitiesProcessed: userCommunities.length
+      });
+    } catch (error) {
+      console.error('Error auto-populating events:', error);
+      res.status(500).json({ message: "Failed to auto-populate events" });
+    }
+  });
+
   // Event scraping routes
   app.post("/api/communities/:id/scrape-events", async (req, res) => {
     try {
@@ -542,6 +582,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating community event:", error);
       res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  // Event attendance tracking
+  app.post("/api/events/:id/mark-attended", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const { userId } = req.body;
+      
+      if (isNaN(eventId) || !userId) {
+        return res.status(400).json({ message: "Event ID and user ID required" });
+      }
+      
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      // Check if event date has passed
+      const eventDate = new Date(event.date);
+      const now = new Date();
+      if (eventDate > now) {
+        return res.status(400).json({ message: "Cannot mark attendance for future events" });
+      }
+      
+      // Register/update attendance status
+      const attendance = await storage.registerForEvent(parseInt(userId), eventId, "attended");
+      
+      // Add to activity feed for algorithm learning
+      await storage.addActivityItem(parseInt(userId), 'event_attended', {
+        eventId: eventId,
+        eventTitle: event.title,
+        eventCategory: event.category,
+        eventDate: event.date,
+        attendanceConfirmed: new Date().toISOString()
+      });
+      
+      res.json({ 
+        message: "Attendance marked successfully",
+        attendance: attendance
+      });
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      res.status(500).json({ message: "Failed to mark attendance" });
+    }
+  });
+
+  // Get user's attended events for algorithm
+  app.get("/api/users/:id/attended-events", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get all events where user has "attended" status
+      const attendedEvents = await storage.getUserEvents(userId);
+      const confirmedAttended = attendedEvents.filter(event => {
+        // This would need to be implemented in storage to check attendance status
+        return true; // Placeholder - would check actual attendance records
+      });
+      
+      res.json(confirmedAttended);
+    } catch (error) {
+      console.error("Error fetching attended events:", error);
+      res.status(500).json({ message: "Failed to fetch attended events" });
     }
   });
 

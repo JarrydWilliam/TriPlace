@@ -44,6 +44,60 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Auto-populate events when user has location
+  const autoPopulateEvents = useMutation({
+    mutationFn: async (data: { userId: number, latitude: number, longitude: number }) => {
+      const response = await apiRequest("POST", "/api/auto-populate-events", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.eventsAdded > 0) {
+        toast({
+          title: "Events Updated",
+          description: `Found ${data.eventsAdded} new events in your communities`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
+      }
+    },
+    onError: (error) => {
+      console.error("Error auto-populating events:", error);
+    }
+  });
+
+  // Mark event attendance
+  const markAttendanceMutation = useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: number, userId: number }) => {
+      const response = await apiRequest("POST", `/api/events/${eventId}/mark-attended`, { userId });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Attendance Confirmed",
+        description: "Thank you for confirming your attendance! This helps us recommend better events.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to mark attendance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Auto-populate events when location is available
+  useEffect(() => {
+    if (user?.id && latitude && longitude && !autoPopulateEvents.isPending) {
+      autoPopulateEvents.mutate({
+        userId: user.id,
+        latitude,
+        longitude
+      });
+    }
+  }, [user?.id, latitude, longitude]);
+
   // Fetch recommended communities and users
   const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery({
     queryKey: ["/api/communities/recommended", latitude, longitude, user?.id],
@@ -284,11 +338,11 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {Array.isArray(upcomingEvents) && upcomingEvents.slice(0, 5).map((event: Event) => {
+                    {Array.isArray(upcomingEvents) && upcomingEvents.slice(0, 5).map((event: Event, index: number) => {
                       const communityColor = communityColors[event.category as keyof typeof communityColors] || "bg-gray-500";
                       return (
                         <div 
-                          key={event.id} 
+                          key={`event-${event.id}-${index}`} 
                           className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
                           onClick={() => setSelectedEventId(event.id)}
                         >
@@ -310,9 +364,27 @@ export default function Dashboard() {
                                 ${event.price}
                               </Badge>
                             )}
-                            <Button size="sm" variant="ghost">
-                              👏 Kudos
-                            </Button>
+                            {/* Show attendance button for past events */}
+                            {new Date(event.date) < new Date() ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (user?.id) {
+                                    markAttendanceMutation.mutate({ eventId: event.id, userId: user.id });
+                                  }
+                                }}
+                                disabled={markAttendanceMutation.isPending}
+                                className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                              >
+                                ✓ Attended
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="ghost">
+                                👏 Kudos
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
