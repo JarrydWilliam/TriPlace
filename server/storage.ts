@@ -289,17 +289,40 @@ export class MemStorage implements IStorage {
     console.log('Total communities available:', communities.length);
     console.log('User interests:', interests);
     
-    // Try AI-powered matching if user ID is provided
+    // AI-driven selective matching is now the primary system
     if (userId) {
       const user = await this.getUser(userId);
-      if (user && user.onboardingCompleted && user.quizAnswers) {
+      if (user) {
         try {
-          console.log('Using AI-powered community matching...');
-          const aiRecommendations = await aiMatcher.generateCommunityRecommendations(user, communities);
+          console.log('Using AI-powered selective community matching...');
+          const aiRecommendations = await aiMatcher.generateCommunityRecommendations(user, communities, userLocation);
           
           if (aiRecommendations.length > 0) {
-            console.log(`AI found ${aiRecommendations.length} intelligent matches`);
-            return aiRecommendations.map(rec => rec.community);
+            // Calculate dynamic member counts for each AI-recommended community
+            const selectiveCommunities = await Promise.all(
+              aiRecommendations.map(async rec => {
+                const dynamicMembers = userLocation ? 
+                  await this.getDynamicCommunityMembers(rec.community.id, userLocation, interests) : [];
+                
+                return {
+                  ...rec.community,
+                  memberCount: dynamicMembers.length,
+                  // AI-generated personalization metadata
+                  aiMatchScore: rec.matchScore,
+                  aiReasoning: rec.reasoning,
+                  personalizedDescription: rec.personalizedDescription,
+                  suggestedRole: rec.suggestedRole,
+                  connectionType: rec.connectionType || 'Meaningful connections',
+                  growthPotential: rec.growthPotential || 'Personal growth opportunities',
+                  // Mark as AI-curated for selective experience
+                  isAICurated: true,
+                  selectivityLevel: 'high'
+                };
+              })
+            );
+            
+            console.log(`AI curated ${selectiveCommunities.length} highly selective matches`);
+            return selectiveCommunities;
           }
         } catch (error) {
           console.log('AI matching failed, falling back to basic algorithm:', error);

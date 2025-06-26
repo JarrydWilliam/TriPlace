@@ -17,6 +17,8 @@ interface CommunityRecommendation {
   reasoning: string;
   personalizedDescription: string;
   suggestedRole?: string;
+  connectionType?: string;
+  growthPotential?: string;
 }
 
 interface GeneratedCommunity {
@@ -32,67 +34,90 @@ export class AIMatchingEngine {
   
   async generateCommunityRecommendations(
     user: User, 
-    availableCommunities: Community[]
+    availableCommunities: Community[],
+    userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
     try {
       const userProfile = this.buildUserProfile(user);
+      const locationContext = userLocation ? 
+        `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles)` : 
+        'Location not available - focus on virtual/remote compatibility';
       
       const prompt = `
-You are an expert community matching specialist. Analyze this user's profile and match them with relevant communities.
+You are an elite AI community curator for TriPlace. Create highly selective, dynamic community matches that feel personally crafted for each user.
+
+DYNAMIC MATCHING PHILOSOPHY:
+- Only recommend communities with 85%+ compatibility
+- Create selective experiences focused on quality connections
+- Analyze deep personality patterns from quiz responses
+- Consider growth trajectory and life goals alignment
+- Factor geographic proximity for meaningful in-person connections
+- Ensure diverse but complementary community portfolio
 
 USER PROFILE:
 ${userProfile}
 
+LOCATION CONTEXT:
+${locationContext}
+
 AVAILABLE COMMUNITIES:
 ${availableCommunities.map(c => `
-- ${c.name} (${c.category})
-  Description: ${c.description}
-  Members: ${c.memberCount}
-  Location: ${c.location}
+ID: ${c.id} | ${c.name} (${c.category})
+Description: ${c.description}
+Current Members: ${c.memberCount || 0}
+Location: ${c.location || 'Virtual'}
 `).join('\n')}
 
-For each community, provide a match analysis. Consider:
-- Personality fit based on quiz responses
-- Interest alignment with past/present/future goals
-- Community dynamics and culture fit
-- Growth opportunities and mentorship potential
-- Social preferences (group size, interaction style)
+SELECTIVE CRITERIA:
+1. Deep personality analysis from quiz responses
+2. Interest evolution and growth potential alignment
+3. Geographic relevance (50-mile preference for local communities)
+4. Complementary skill exchange opportunities
+5. Social chemistry and community dynamics fit
+6. Life stage and goal synchronization
+7. Unique value contribution potential
 
-Respond with JSON in this format:
+Create 3-5 highly selective recommendations that would create meaningful, lasting connections. Each should feel uniquely tailored to this specific user's journey.
+
+Respond with JSON:
 {
-  "matches": [
+  "selectiveMatches": [
     {
       "communityId": number,
-      "score": number (0-1),
-      "reasoning": "detailed explanation of why this matches",
-      "personalizedDescription": "personalized description of what they'd get from this community",
-      "suggestedRole": "how they could contribute or what role they might take"
+      "compatibilityScore": number (85-100 range only),
+      "deepReasoning": "Comprehensive analysis of why this user would thrive in this specific community",
+      "personalizedValue": "Unique value proposition tailored to their interests, goals, and growth trajectory",
+      "contributionRole": "Specific ways they could contribute based on their skills and experience",
+      "connectionType": "Type of meaningful relationships they'll likely form",
+      "growthPotential": "How this community supports their personal/professional development"
     }
   ]
 }
 
-Only include communities with score >= 0.4. Focus on meaningful connections, not just keyword matching.
+Only include matches scoring 85+ for maximum selectivity and quality.
 `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
-        temperature: 0.3
+        temperature: 0.4
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"matches": []}');
+      const result = JSON.parse(response.choices[0].message.content || '{"selectiveMatches": []}');
       
-      return result.matches.map((match: any) => {
+      return result.selectiveMatches.map((match: any) => {
         const community = availableCommunities.find(c => c.id === match.communityId);
         if (!community) return null;
         
         return {
           community,
-          matchScore: match.score,
-          reasoning: match.reasoning,
-          personalizedDescription: match.personalizedDescription,
-          suggestedRole: match.suggestedRole
+          matchScore: match.compatibilityScore / 100, // Convert to 0-1 scale
+          reasoning: match.deepReasoning,
+          personalizedDescription: match.personalizedValue,
+          suggestedRole: match.contributionRole,
+          connectionType: match.connectionType,
+          growthPotential: match.growthPotential
         };
       }).filter(Boolean);
       

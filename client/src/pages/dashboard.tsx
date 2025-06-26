@@ -292,7 +292,7 @@ export default function Dashboard() {
                         onView={() => console.log('View community', community.id)}
                         loading={joinCommunityMutation.isPending}
                         hasNewActivity={index % 3 === 0} // Show activity for every 3rd community
-                        nearbyUserCount={Math.floor(Math.random() * 20) + 5}
+                        nearbyUserCount={community.memberCount || Math.floor(Math.random() * 20) + 5}
                       />
                     ))}
                   </div>
