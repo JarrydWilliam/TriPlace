@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   bio: text("bio"),
   location: text("location"),
   interests: text("interests").array().default([]),
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  quizAnswers: jsonb("quiz_answers"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -1,0 +1,176 @@
+Here's a comprehensive 15-question quiz for your TriPlace app that captures the past, present, and future of a user's interests, so you can create organic, adaptive, and truly unique communities. The goal is to extract interest signals while also allowing for free-form input so the system can generate tailored community spaces that evolve over time.
+
+🌱 TriPlace Community Matching Quiz
+🧠 Purpose: Build communities from users’ actual lives, not just static preferences.
+
+🕰️ Section 1: Past Experiences (What have you done?)
+1. In the past 12 months, which of these have you participated in? (Select all that apply)
+
+🏃‍♂️ A race or athletic competition
+
+🎵 A concert or music festival
+
+📚 A book club or reading challenge
+
+🧘 A mindfulness or wellness retreat
+
+💼 A networking or professional event
+
+✈️ A trip to a new city or country
+
+🎮 An online or in-person gaming event
+
+🎨 An art show or creative workshop
+
+Other: (Open text box)
+
+2. Have you volunteered or joined any cause-related groups in the past year?
+
+Yes
+
+No
+
+If yes, describe briefly: (Open text field)
+
+3. What is a hobby or activity you used to love but haven’t done recently? (Open text field)
+
+🧭 Section 2: Present Interests (What do you care about now?)
+4. Which of these best describe your current hobbies/interests? (Select up to 5)
+
+🧘 Wellness & Mental Health
+
+🧠 Personal Growth
+
+🎸 Live Music & Concerts
+
+🍳 Cooking & Food
+
+🐶 Animals & Pets
+
+🏞️ Nature & Outdoors
+
+🎨 Arts & DIY
+
+🕹️ Gaming
+
+📚 Reading
+
+🏋️ Fitness
+
+🎭 Comedy & Entertainment
+
+💻 Tech & Startups
+
+💡 Other: (Open text input)
+
+5. How do you usually spend your weekends? (Choose up to 3)
+
+🎉 Hanging out with friends
+
+😌 Recharging alone
+
+🌳 Exploring outdoors
+
+📺 Watching content
+
+🧪 Trying something new
+
+🧑‍🤝‍🧑 Going to events or meetups
+
+🖥️ Working on personal projects
+
+✍️ Journaling or learning
+
+Other: (Open text input)
+
+6. Which of these would you consider “core parts” of your lifestyle right now? (Pick 3 max)
+
+🏃 Active / On-the-go
+
+🧘 Balanced / Mindful
+
+🎨 Creative / Artistic
+
+🧑‍💻 Driven / Techy
+
+🎉 Social / Outgoing
+
+🧑‍🌾 Grounded / Nature-loving
+
+💬 Curious / Always learning
+
+🎮 Introverted / Online-centric
+
+✈️ Adventurous / Spontaneous
+
+🚀 Section 3: Future Goals & Aspirations
+7. What’s something you want to try in the next year? (Open text field)
+
+8. Which of these goals best describe what you’re working toward? (Select up to 3)
+
+🎓 Learn something new
+
+🧠 Improve my mental health
+
+🧑‍🤝‍🧑 Meet new people
+
+🧳 Travel more
+
+🎯 Build a passion project
+
+🏃 Get fit or healthier
+
+💡 Start a side hustle
+
+🎤 Perform or showcase my talent
+
+Other: (Open text field)
+
+9. If you could magically join a community of like-minded people today, what would that community be about? (Open text)
+
+🔍 Section 4: Personality, Preferences, and Social Dynamics
+10. Which do you prefer when engaging with a group?
+
+Small, close-knit conversations
+
+Large events with energy and variety
+
+Online-only communities
+
+A mix of all depending on the day
+
+11. How far are you willing to travel to attend an event or meet up with community members?
+
+🚶 Within walking distance
+
+🚗 Up to 10 miles
+
+🛣️ Up to 50 miles
+
+✈️ I’d travel for special experiences
+
+🌐 Prefer virtual meetups only
+
+12. What kind of connections are you looking for? (Pick all that apply)
+
+👯‍♀️ Friends
+
+🤝 Collaborators / Project partners
+
+👨‍👩‍👧 Community / Belonging
+
+🧠 Learning buddies
+
+💘 Romantic connection
+
+Just want a place to lurk quietly
+
+✍️ Section 5: Free Input for Community Generation
+13. Name a dream community you wish existed. (Free text – system uses this to seed a unique group)
+
+14. What would the vibe of your ideal community be? (e.g. calm, funny, action-driven, safe space)
+
+15. Is there anything you’d want to share with your future community to find the right people? (Free intro-style text)
+
+e.g., “I’m into hiking, weird films, and 3am convos about philosophy”
+
