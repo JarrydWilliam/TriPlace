@@ -37,9 +37,11 @@ export default function Onboarding() {
   }
 
   return (
-    <OnboardingQuiz
-      onComplete={handleComplete}
-      onBack={handleBack}
-    />
+    <ScrollablePageWrapper>
+      <OnboardingQuiz
+        onComplete={handleComplete}
+        onBack={handleBack}
+      />
+    </ScrollablePageWrapper>
   );
 }

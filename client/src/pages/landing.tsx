@@ -7,6 +7,7 @@ import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
+import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -40,6 +41,7 @@ export default function Landing() {
   }
 
   return (
+    <ScrollablePageWrapper>
     <section className="h-screen relative overflow-hidden bg-gray-900">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
@@ -117,5 +119,6 @@ export default function Landing() {
 
       </div>
     </section>
+    </ScrollablePageWrapper>
   );
 }
