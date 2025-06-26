@@ -74,10 +74,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/communities/recommended", async (req, res) => {
     try {
       const interests = req.query.interests as string;
-      const interestsArray = interests ? interests.split(',') : [];
+      const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
+      console.log('Recommended communities request - interests:', interestsArray);
+      
       const communities = await storage.getRecommendedCommunities(interestsArray);
+      console.log('Recommended communities found:', communities.length);
+      
       res.json(communities);
     } catch (error) {
+      console.error('Error getting recommended communities:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

@@ -85,33 +85,104 @@ export class MemStorage implements IStorage {
   }
 
   private initializeData() {
-    // Initialize with some sample communities
-    const yogaCommunity: Community = {
-      id: this.currentCommunityId++,
-      name: "Mindful Yoga SF",
-      description: "Weekly yoga sessions in Golden Gate Park",
-      category: "fitness",
-      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-      memberCount: 248,
-      isActive: true,
-      location: "San Francisco, CA",
-      createdAt: new Date(),
-    };
+    // Initialize with diverse communities that match quiz interests
+    const communities = [
+      {
+        name: "Mindful Yoga SF",
+        description: "Weekly yoga sessions in Golden Gate Park. Focus on mindfulness, meditation, and inner peace.",
+        category: "wellness",
+        image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 248,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "Bay Area Tech Innovators",
+        description: "Connect with developers, entrepreneurs, and tech enthusiasts. Weekly meetups on programming and startups.",
+        category: "tech",
+        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 1200,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "SF Artists Collective",
+        description: "Creative community for visual arts, painting, and creative expression. Monthly gallery walks and workshops.",
+        category: "arts",
+        image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 340,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "Golden Gate Runners",
+        description: "Running group for fitness enthusiasts. Weekly runs through Golden Gate Park and marathon training.",
+        category: "fitness",
+        image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 580,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "Bay Area Musicians Network",
+        description: "Local musicians connecting for jam sessions, performances, and music collaboration.",
+        category: "music",
+        image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 420,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "SF Food Lovers Unite",
+        description: "Explore restaurants, cooking classes, and food events. Monthly potlucks and culinary adventures.",
+        category: "food",
+        image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 760,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "Bay Area Hiking Adventures",
+        description: "Weekly hikes exploring Mount Tam, Muir Woods, and Bay Area trails. Nature and outdoor adventures.",
+        category: "outdoor",
+        image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 890,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "SF Volunteer Network",
+        description: "Community service and volunteering opportunities. Make a difference while meeting like-minded people.",
+        category: "social",
+        image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 520,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "Young Professionals Network",
+        description: "Career networking, professional development, and business mentorship for ambitious professionals.",
+        category: "business",
+        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 650,
+        location: "San Francisco, CA",
+      },
+      {
+        name: "SF Social Butterflies",
+        description: "Meet new friends through social events, happy hours, and group activities. Perfect for expanding your social circle.",
+        category: "social",
+        image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+        memberCount: 920,
+        location: "San Francisco, CA",
+      }
+    ];
 
-    const techCommunity: Community = {
-      id: this.currentCommunityId++,
-      name: "SF Tech Meetup",
-      description: "Connect with fellow developers and entrepreneurs",
-      category: "technology",
-      image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-      memberCount: 1200,
-      isActive: true,
-      location: "San Francisco, CA",
-      createdAt: new Date(),
-    };
-
-    this.communities.set(yogaCommunity.id, yogaCommunity);
-    this.communities.set(techCommunity.id, techCommunity);
+    communities.forEach(communityData => {
+      const community: Community = {
+        id: this.currentCommunityId++,
+        name: communityData.name,
+        description: communityData.description,
+        category: communityData.category,
+        image: communityData.image,
+        memberCount: communityData.memberCount,
+        isActive: true,
+        location: communityData.location,
+        createdAt: new Date(),
+      };
+      this.communities.set(community.id, community);
+    });
 
     // Initialize with some sample events
     const musicEvent: Event = {
@@ -211,6 +282,8 @@ export class MemStorage implements IStorage {
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }): Promise<Community[]> {
     const communities = Array.from(this.communities.values());
+    console.log('Total communities available:', communities.length);
+    console.log('User interests:', interests);
     
     // Calculate scores for each community
     const scoredCommunities = communities.map(community => {
@@ -218,31 +291,80 @@ export class MemStorage implements IStorage {
       const engagementScore = this.calculateEngagementScore(community);
       const distanceScore = userLocation ? this.calculateDistanceScore(community, userLocation) : 0.5;
       
-      return {
+      const result = {
         community,
         interestScore,
         engagementScore,
         distanceScore,
         finalScore: (interestScore * 0.5) + (engagementScore * 0.3) + (distanceScore * 0.2)
       };
+      
+      console.log(`Community: ${community.name}, Interest Score: ${interestScore}, Final Score: ${result.finalScore}`);
+      return result;
     })
-    // Only show communities with >= 70% interest match
-    .filter(item => item.interestScore >= 0.7)
+    // Show communities with >= 40% interest match (more inclusive)
+    .filter(item => {
+      const passes = item.interestScore >= 0.4;
+      if (!passes) {
+        console.log(`Filtered out: ${item.community.name} (score: ${item.interestScore})`);
+      }
+      return passes;
+    })
     // Sort by final score (prioritize engagement and new events)
     .sort((a, b) => b.finalScore - a.finalScore);
 
+    console.log('Communities after filtering:', scoredCommunities.length);
     return scoredCommunities.map(item => item.community).slice(0, 10);
   }
 
   private calculateInterestScore(community: Community, userInterests: string[]): number {
-    if (!userInterests.length) return 0;
+    if (!userInterests.length) return 0.8; // Default high score if no interests specified
     
     const communityText = `${community.name} ${community.description} ${community.category}`.toLowerCase();
-    const matches = userInterests.filter(interest => 
-      communityText.includes(interest.toLowerCase())
-    );
     
-    return matches.length / userInterests.length;
+    // Create keyword mappings for better matching
+    const keywordMap: { [key: string]: string[] } = {
+      'fitness': ['yoga', 'running', 'exercise', 'gym', 'workout', 'health', 'training', 'sport'],
+      'wellness': ['yoga', 'meditation', 'mindfulness', 'spiritual', 'healing', 'therapy', 'self-care'],
+      'tech': ['technology', 'programming', 'coding', 'software', 'developer', 'startup', 'innovation', 'ai'],
+      'arts': ['art', 'creative', 'painting', 'drawing', 'design', 'gallery', 'artist', 'craft'],
+      'music': ['music', 'band', 'singing', 'instrument', 'concert', 'performance', 'guitar', 'piano'],
+      'food': ['cooking', 'food', 'restaurant', 'culinary', 'chef', 'recipe', 'dining', 'cuisine'],
+      'outdoor': ['hiking', 'nature', 'adventure', 'camping', 'trail', 'mountain', 'outdoor', 'park'],
+      'social': ['social', 'networking', 'friends', 'community', 'volunteer', 'service', 'people'],
+      'business': ['business', 'professional', 'career', 'networking', 'entrepreneur', 'leadership', 'work']
+    };
+    
+    let matchCount = 0;
+    let totalInterests = userInterests.length;
+    
+    // Check direct matches first
+    for (const interest of userInterests) {
+      if (communityText.includes(interest.toLowerCase())) {
+        matchCount++;
+        continue;
+      }
+      
+      // Check keyword mapping matches
+      for (const [category, keywords] of Object.entries(keywordMap)) {
+        if (community.category === category || communityText.includes(category)) {
+          if (keywords.some(keyword => interest.toLowerCase().includes(keyword) || keyword.includes(interest.toLowerCase()))) {
+            matchCount++;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Also check if community category matches any interest keywords
+    for (const interest of userInterests) {
+      const relatedKeywords = keywordMap[community.category] || [];
+      if (relatedKeywords.some(keyword => interest.toLowerCase().includes(keyword))) {
+        matchCount += 0.5; // Partial match bonus
+      }
+    }
+    
+    return Math.min(matchCount / totalInterests, 1.0);
   }
 
   private calculateEngagementScore(community: Community): number {
