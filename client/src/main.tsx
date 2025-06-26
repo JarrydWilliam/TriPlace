@@ -1,6 +1,15 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { logDeploymentStatus } from "./lib/deployment-checks";
+import { initializeProductionFeatures, setupPerformanceMonitoring } from "./lib/production-deployment";
+
+// Log deployment status on app start
+logDeploymentStatus();
+
+// Initialize production features
+initializeProductionFeatures();
+setupPerformanceMonitoring();
 
 // Register service worker for PWA functionality
 if ('serviceWorker' in navigator) {

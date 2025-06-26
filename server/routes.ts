@@ -6,6 +6,10 @@ import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessa
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Version endpoint for deployment updates
+  app.get("/api/version", (req, res) => {
+    res.text(Date.now().toString());
+  });
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     try {

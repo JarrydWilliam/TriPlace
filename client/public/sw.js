@@ -1,8 +1,6 @@
-const CACHE_NAME = 'triplace-v1';
+const CACHE_NAME = `triplace-v${Date.now()}`;
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.webmanifest'
 ];
 
