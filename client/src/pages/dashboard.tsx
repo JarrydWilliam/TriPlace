@@ -344,8 +344,8 @@ export default function Dashboard() {
               <CardContent>
                 {eventsLoading ? (
                   <div className="animate-pulse space-y-3">
-                    {[1, 2, 3].map(i => (
-                      <div key={`loading-event-${i}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                    {['event-1', 'event-2', 'event-3'].map(loadingId => (
+                      <div key={`loading-${loadingId}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
                     ))}
                   </div>
                 ) : (
@@ -505,8 +505,8 @@ export default function Dashboard() {
 
                 {userCommunitiesLoading ? (
                   <div className="animate-pulse space-y-3">
-                    {[1, 2, 3].map(i => (
-                      <div key={`loading-community-${i}`} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    {['community-1', 'community-2', 'community-3'].map(loadingId => (
+                      <div key={`loading-${loadingId}`} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
                     ))}
                   </div>
                 ) : Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
@@ -575,11 +575,11 @@ export default function Dashboard() {
                 {/* High Match Members */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🎯 High Match Members</h4>
-                  {[1, 2].map((i) => (
-                    <div key={`high-match-${i}`} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  {['member-a', 'member-b'].map((memberId) => (
+                    <div key={`high-match-${memberId}`} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={`https://images.unsplash.com/photo-${1500000000000 + i}?w=40&h=40&fit=crop&crop=face`} />
-                        <AvatarFallback>U{i}</AvatarFallback>
+                        <AvatarImage src={`https://images.unsplash.com/photo-${memberId === 'member-a' ? '1500000000001' : '1500000000002'}?w=40&h=40&fit=crop&crop=face`} />
+                        <AvatarFallback>{memberId === 'member-a' ? 'A' : 'B'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">

@@ -64,10 +64,10 @@ export default function Landing() {
         <div className="flex-1 flex items-center">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
-              Connect Through<br />Shared Experiences
+              Your Digital<br />Third Place
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
-              Discover communities, join events, and build meaningful connections with people who share your interests and passions.
+              Where genuine connection, shared passions, and meaningful community are always just around the corner.
             </p>
             
             {/* Authentication Form */}
