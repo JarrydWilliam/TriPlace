@@ -201,7 +201,7 @@ export default function Dashboard() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h1 className="text-2xl font-bold">Welcome back, {user.name}!</h1>
+                  <h1 className="text-2xl font-bold">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
                   <div className="flex items-center space-x-4 mt-1 text-white/80">
                     <div className="flex items-center space-x-1">
                       <MapPin className="w-4 h-4" />
@@ -555,7 +555,7 @@ export default function Dashboard() {
                       No communities yet
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500">
-                      Join communities from Today's Discoveries below
+                      Discover communities that evolve with your journey below
                     </p>
                   </div>
                 )}
@@ -567,7 +567,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Today's Discoveries</span>
+                  <span>Communities That Grow With You</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

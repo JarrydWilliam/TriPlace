@@ -43,11 +43,11 @@ interface QuizAnswers {
 }
 
 const sections = [
-  { title: "Past Experiences", subtitle: "What have you done?", icon: "🕰️" },
-  { title: "Present Interests", subtitle: "What do you care about now?", icon: "🧭" },
-  { title: "Future Goals", subtitle: "What are you working toward?", icon: "🚀" },
-  { title: "Personality & Preferences", subtitle: "How do you like to connect?", icon: "🔍" },
-  { title: "Your Community Vision", subtitle: "Help us create your perfect space", icon: "✍️" }
+  { title: "Past Experiences", subtitle: "What shaped your journey?", icon: "🕰️" },
+  { title: "Present Passions", subtitle: "What drives you today?", icon: "🧭" },
+  { title: "Future Aspirations", subtitle: "Where are you growing?", icon: "🚀" },
+  { title: "Connection Style", subtitle: "How do you thrive in community?", icon: "🔍" },
+  { title: "Your Third Place Vision", subtitle: "Design your ideal community space", icon: "✍️" }
 ];
 
 interface OnboardingQuizProps {
