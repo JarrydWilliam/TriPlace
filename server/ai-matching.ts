@@ -84,7 +84,7 @@ Respond with JSON:
   "selectiveMatches": [
     {
       "communityId": number,
-      "compatibilityScore": number (85-100 range only),
+      "compatibilityScore": number (70-100 range),
       "deepReasoning": "Comprehensive analysis of why this user would thrive in this specific community",
       "personalizedValue": "Unique value proposition tailored to their interests, goals, and growth trajectory",
       "contributionRole": "Specific ways they could contribute based on their skills and experience",
@@ -94,7 +94,7 @@ Respond with JSON:
   ]
 }
 
-Only include matches scoring 85+ for maximum selectivity and quality.
+Only include matches scoring 70+ for quality connections.
 `;
 
       const response = await openai.chat.completions.create({

@@ -568,11 +568,11 @@ export class MemStorage implements IStorage {
     return users;
   }
 
-  async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<User[]> {
+  async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
     const community = await this.getCommunity(communityId);
     if (!community) return [];
 
-    // Add some sample users with location data for testing
+    // Add some sample users with location data for realistic testing
     const sampleUsers = [
       {
         id: 100,
@@ -635,7 +635,7 @@ export class MemStorage implements IStorage {
         parseFloat(user.latitude), parseFloat(user.longitude)
       );
       
-      if (distance > 50) continue; // Outside 50-mile radius
+      if (distance > radiusMiles) continue; // Outside specified radius
 
       // Calculate interest overlap (70% minimum)
       const userTags = user.interests || [];
