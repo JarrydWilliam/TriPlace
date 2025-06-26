@@ -390,6 +390,16 @@ Changelog:
   - Added proper form validation, password visibility toggles, and user feedback
   - Authentication now supports both Google OAuth and email/password for all users
   - Requires Firebase console configuration to enable email/password authentication method
+
+- June 26, 2025. Fixed Google sign-in errors and enhanced PWA installation system
+  - Completely overhauled Google authentication with better error handling and debugging
+  - Created fresh Google provider instances to avoid stale authentication state
+  - Added comprehensive error messages for all Firebase authentication error codes
+  - Built device-specific PWA installation instructions component for iOS, Android, and desktop
+  - Enhanced PWA prompt to show detailed step-by-step installation guides instead of generic messages
+  - Fixed authentication initialization checks and environment variable validation
+  - Google sign-in now provides clear error messages and fallback guidance for users
+  - PWA installation instructions automatically detect device type and browser for optimal guidance
 ```
 
 ## User Preferences

@@ -21,39 +21,34 @@ function initializeFirebase() {
       projectId: projectId || 'missing'
     });
 
-    if (apiKey && projectId && appId) {
-      const firebaseConfig = {
-        apiKey,
-        authDomain: `${projectId}.firebaseapp.com`,
-        projectId,
-        storageBucket: `${projectId}.firebasestorage.app`,
-        appId,
-      };
-      
-      console.log('Initializing Firebase with config:', {
-        authDomain: firebaseConfig.authDomain,
-        projectId: firebaseConfig.projectId
-      });
-      
-      const app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      googleProvider = new GoogleAuthProvider();
-      
-      // Configure Google provider with proper settings
-      googleProvider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
-      isFirebaseInitialized = true;
-      console.log('Firebase initialized successfully');
-    } else {
-      console.error('Firebase environment variables missing:', {
-        VITE_FIREBASE_API_KEY: !!apiKey,
-        VITE_FIREBASE_PROJECT_ID: !!projectId,
-        VITE_FIREBASE_APP_ID: !!appId
-      });
+    if (!apiKey || !projectId || !appId) {
+      console.error('Missing Firebase environment variables. Please check your secrets configuration.');
       createAuthFallback();
+      return;
     }
+
+    const firebaseConfig = {
+      apiKey,
+      authDomain: `${projectId}.firebaseapp.com`,
+      projectId,
+      storageBucket: `${projectId}.firebasestorage.app`,
+      appId,
+    };
+    
+    console.log('Initializing Firebase with config:', {
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId
+    });
+    
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    
+    // Test if auth is working by getting current user
+    console.log('Auth initialized, current user:', auth.currentUser);
+    
+    isFirebaseInitialized = true;
+    console.log('Firebase initialized successfully');
   } catch (error) {
     console.error('Firebase initialization failed:', error);
     createAuthFallback();
@@ -85,26 +80,27 @@ export const signInWithGoogle = async () => {
   
   // Check if Firebase is properly configured
   if (!isFirebaseInitialized) {
-    console.error('Firebase not initialized');
+    console.error('Firebase not initialized - check environment variables');
     throw new Error('Authentication is not available. Please contact support for assistance.');
   }
 
-  // Validate Google provider is properly initialized
-  if (!googleProvider) {
-    console.error('Google provider not available');
-    throw new Error('Google authentication is not properly configured. Please try again.');
+  // Validate auth and provider are available
+  if (!auth || typeof auth.currentUser === 'undefined') {
+    console.error('Firebase auth not properly initialized');
+    throw new Error('Authentication service not ready. Please refresh the page and try again.');
   }
 
   try {
-    console.log('Attempting Google sign-in with popup...');
+    console.log('Creating fresh Google provider...');
     
-    // Clear any existing custom parameters and set fresh ones
-    googleProvider = new GoogleAuthProvider();
-    googleProvider.setCustomParameters({
+    // Always create a fresh provider to avoid stale state
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
       prompt: 'select_account'
     });
 
-    const result = await signInWithPopup(auth, googleProvider);
+    console.log('Attempting Google sign-in with popup...');
+    const result = await signInWithPopup(auth, provider);
     
     console.log('Google sign-in successful:', {
       uid: result.user?.uid,
@@ -114,7 +110,7 @@ export const signInWithGoogle = async () => {
     
     // Validate the result
     if (!result || !result.user) {
-      throw new Error('Authentication failed. Please try again.');
+      throw new Error('Authentication failed - no user returned. Please try again.');
     }
 
     return result;
@@ -122,8 +118,8 @@ export const signInWithGoogle = async () => {
     console.error('Google sign-in error details:', {
       code: error.code,
       message: error.message,
-      stack: error.stack,
-      customData: error.customData
+      name: error.name,
+      stack: error.stack?.substring(0, 200)
     });
     
     // Handle specific Firebase auth errors
@@ -143,24 +139,24 @@ export const signInWithGoogle = async () => {
       case 'auth/unauthorized-domain':
         throw new Error('This domain is not authorized for sign-in. Please contact support.');
       case 'auth/operation-not-allowed':
-        throw new Error('Google sign-in is not enabled. Please contact support.');
+        throw new Error('Google sign-in is not enabled in Firebase Console. Please contact support.');
       case 'auth/cancelled-popup-request':
         throw new Error('Another sign-in popup is already open. Please close it and try again.');
       case 'auth/web-storage-unsupported':
         throw new Error('Your browser does not support authentication. Please try a different browser.');
       case 'auth/admin-restricted-operation':
         throw new Error('This action is restricted. Please contact support.');
+      case 'auth/invalid-credential':
+        throw new Error('Invalid credentials. Please try again.');
       default:
         // For debugging - show the actual error in development
         const isDev = import.meta.env.DEV;
-        if (isDev) {
+        if (isDev && error.code) {
           throw new Error(`Google sign-in failed: ${error.code} - ${error.message}`);
         }
         
-        if (error.message?.includes('Firebase') || error.message?.includes('auth/')) {
-          throw new Error('Authentication service error. Please try again or contact support.');
-        }
-        throw new Error('Unable to sign in with Google. Please try again.');
+        // Generic fallback for production
+        throw new Error('Unable to sign in with Google. Please try again or use email sign-in.');
     }
   }
 };
