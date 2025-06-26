@@ -336,7 +336,7 @@ export default function Dashboard() {
                   onClick={() => setLocation("/create-event")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Create Event
+                  Partner Event Creation
                 </Button>
               </CardHeader>
               <CardContent>
