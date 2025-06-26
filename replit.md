@@ -276,6 +276,17 @@ Changelog:
   - Event attendance acknowledgments stored in activity feed for machine learning insights
   - System automatically invalidates event and community caches after attendance confirmation
   - Enhanced user experience with real-time event calendar population and algorithm feedback loop
+
+- June 26, 2025. Redesigned dashboard calendar with intentional event joining workflow
+  - Dashboard now only displays events users have actively joined from community event tabs
+  - Replaced automatic event population in calendar with user-driven event registration system
+  - Added "Join Event" buttons to both scraped external events and community-created events
+  - Implemented comprehensive event registration flow with POST /api/events/:id/register endpoint
+  - Dashboard calendar becomes personalized based on user's event participation decisions
+  - Empty state messaging guides users to join events from communities to populate calendar
+  - Event joining includes success toasts and real-time cache invalidation for immediate updates
+  - Complete workflow: discover events in communities → join events → view in dashboard calendar
+  - Enhanced user agency by requiring intentional event selection rather than passive event display
 ```
 
 ## User Preferences

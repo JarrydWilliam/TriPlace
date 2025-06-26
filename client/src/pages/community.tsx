@@ -802,8 +802,17 @@ export default function CommunityPage() {
                                   <span>{event.location}</span>
                                 </div>
                               </div>
-                              <Button size="sm" variant="outline">
-                                RSVP
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  if (user?.id) {
+                                    joinEventMutation.mutate({ eventId: event.id, userId: user.id });
+                                  }
+                                }}
+                                disabled={joinEventMutation.isPending}
+                              >
+                                {joinEventMutation.isPending ? "Joining..." : "Join Event"}
                               </Button>
                             </div>
                           </div>
