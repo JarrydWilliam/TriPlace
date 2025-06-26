@@ -20,7 +20,7 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { latitude, longitude, error: locationError, loading: locationLoading } = useGeolocation();
+  const { latitude, longitude, error: locationError, loading: locationLoading, source } = useGeolocation();
 
   // Fetch user's communities
   const { data: userCommunities = [], isLoading: userCommunitiesLoading } = useQuery<Community[]>({
