@@ -69,6 +69,7 @@ export function useGeolocation() {
             error: hasGPSAttempted ? 'Using approximate location based on IP address' : null,
             loading: false,
             source: 'ip',
+            locationName: `${data.city}, ${data.region}` || 'IP Location',
           });
         } else {
           throw new Error('IP location service unavailable');
@@ -78,6 +79,7 @@ export function useGeolocation() {
           ...prev,
           error: 'Location services unavailable. Please enable location access for better recommendations.',
           loading: false,
+          locationName: null,
         }));
       }
     };

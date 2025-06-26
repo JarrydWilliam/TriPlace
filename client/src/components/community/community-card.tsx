@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Community } from "@shared/schema";
-import { Users, MapPin, MessageCircle, Calendar, Heart, Pin } from "lucide-react";
+import { Users, MessageCircle, Calendar, Heart, Pin } from "lucide-react";
 import { useState } from "react";
 
 interface CommunityCardProps {
@@ -149,14 +149,8 @@ export function CommunityCard({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                <span>{community.memberCount || 0}</span>
+                <span>{community.memberCount || 0} members</span>
               </div>
-              {community.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span className="truncate max-w-20">{community.location}</span>
-                </div>
-              )}
             </div>
             
             {/* Activity Status */}
