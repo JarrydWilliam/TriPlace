@@ -13,6 +13,8 @@ import { Community, Event, User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
@@ -332,6 +334,53 @@ export default function Dashboard() {
           {/* Today's Suggestions / Discoveries Panel */}
           <div className="space-y-6">
             
+            {/* Local Kudos Leaders */}
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Star className="w-5 h-5 text-yellow-500" />
+                        <span>Local Kudos Leaders</span>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white">Sarah Chen</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">127 kudos this month</p>
+                        </div>
+                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Gold</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white">Mike Torres</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">89 kudos this month</p>
+                        </div>
+                        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">Silver</Badge>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-white">Emma Wilson</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">76 kudos this month</p>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Bronze</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+
             {/* Weekly Challenges */}
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
