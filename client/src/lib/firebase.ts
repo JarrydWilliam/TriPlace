@@ -3,18 +3,21 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/
 import { ENV } from "./env";
 import { ERROR_MESSAGES } from "./production-config";
 
-// Validate Firebase configuration
-if (!ENV.FIREBASE_API_KEY || !ENV.FIREBASE_PROJECT_ID || !ENV.FIREBASE_APP_ID) {
-  throw new Error("Missing required Firebase configuration. Please check your environment variables.");
-}
+// Use fallback configuration for development if env vars are missing
+const usesFallback = !ENV.FIREBASE_API_KEY || !ENV.FIREBASE_PROJECT_ID || !ENV.FIREBASE_APP_ID;
 
 const firebaseConfig = {
-  apiKey: ENV.FIREBASE_API_KEY,
-  authDomain: `${ENV.FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: ENV.FIREBASE_PROJECT_ID,
-  storageBucket: `${ENV.FIREBASE_PROJECT_ID}.firebasestorage.app`,
-  appId: ENV.FIREBASE_APP_ID,
+  apiKey: ENV.FIREBASE_API_KEY || "demo-key",
+  authDomain: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebaseapp.com`,
+  projectId: ENV.FIREBASE_PROJECT_ID || "demo-project",
+  storageBucket: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebasestorage.app`,
+  appId: ENV.FIREBASE_APP_ID || "demo-app-id",
 };
+
+// Log warning if using fallback configuration
+if (usesFallback && ENV.PROD) {
+  console.error("Production deployment detected with missing Firebase configuration!");
+}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
