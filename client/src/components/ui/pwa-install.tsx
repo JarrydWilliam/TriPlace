@@ -31,7 +31,17 @@ export function PWAInstall() {
     const checkInstalled = () => {
       if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
         setIsInstalled(true);
+        return true;
       }
+      // Check if installed via navigator
+      if ('getInstalledRelatedApps' in navigator) {
+        (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
+          if (apps.length > 0) {
+            setIsInstalled(true);
+          }
+        });
+      }
+      return false;
     };
 
     // Detect platform
@@ -46,6 +56,7 @@ export function PWAInstall() {
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('Before install prompt triggered');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
@@ -67,8 +78,32 @@ export function PWAInstall() {
       });
     };
 
-    checkInstalled();
+    const alreadyInstalled = checkInstalled();
     detectPlatform();
+    
+    // If not already installed, show dialog after delay even without beforeinstallprompt
+    if (!alreadyInstalled) {
+      // Check if user has previously dismissed the prompt
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      const lastDismissed = dismissed ? parseInt(dismissed) : 0;
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      
+      if (!dismissed || lastDismissed < oneDayAgo) {
+        const timer = setTimeout(() => {
+          console.log('Showing install dialog fallback');
+          setShowInstallDialog(true);
+        }, 3000);
+        
+        // Clear timer if beforeinstallprompt fires
+        const clearTimer = () => clearTimeout(timer);
+        window.addEventListener('beforeinstallprompt', clearTimer);
+        
+        return () => {
+          clearTimeout(timer);
+          window.removeEventListener('beforeinstallprompt', clearTimer);
+        };
+      }
+    }
     
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -207,7 +242,10 @@ export function PWAInstall() {
             
             <Button
               variant="ghost"
-              onClick={() => setShowInstallDialog(false)}
+              onClick={() => {
+                setShowInstallDialog(false);
+                localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+              }}
               className="w-full text-sm"
             >
               Maybe later
