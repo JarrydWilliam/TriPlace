@@ -129,8 +129,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User ID is required" });
       }
       
-      const membership = await storage.joinCommunity(userId, communityId);
-      res.status(201).json(membership);
+      const result = await storage.joinCommunityWithRotation(userId, communityId);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get user's active communities with activity scores
+  app.get("/api/users/:id/active-communities", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const activeCommunities = await storage.getUserActiveCommunities(userId);
+      res.json(activeCommunities);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update community activity when user interacts
+  app.post("/api/communities/:id/activity", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      await storage.updateCommunityActivity(userId, communityId);
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

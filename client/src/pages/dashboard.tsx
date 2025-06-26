@@ -25,9 +25,9 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
-  // Fetch user's communities for events
-  const { data: userCommunities, isLoading: userCommunitiesLoading } = useQuery({
-    queryKey: ["/api/communities/user", user?.id],
+  // Fetch user's active communities with activity scores
+  const { data: userActiveCommunities, isLoading: userCommunitiesLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "active-communities"],
     enabled: !!user?.id,
   });
 
@@ -53,6 +53,39 @@ export default function Dashboard() {
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
+  });
+
+  // Join community with rotation mutation
+  const joinCommunityMutation = useMutation({
+    mutationFn: async (communityId: number) => {
+      const response = await apiRequest("POST", `/api/communities/${communityId}/join`, {
+        userId: user?.id,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
+      
+      if (data.dropped) {
+        toast({
+          title: "Community Rotated",
+          description: `Joined new community! ${data.dropped.name} was moved to discoveries to make room.`,
+        });
+      } else {
+        toast({
+          title: "Joined Community",
+          description: "You've successfully joined this community!",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to join community. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Sample data for demo purposes
@@ -319,6 +352,69 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            {/* User's Active Communities */}
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center space-x-2">
+                  <Users className="w-5 h-5" />
+                  <span>{user.name?.split(' ')[0] || 'Your'}'s Communities</span>
+                </CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  {userActiveCommunities?.length || 0}/5
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {userCommunitiesLoading ? (
+                  <div className="animate-pulse space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    ))}
+                  </div>
+                ) : userActiveCommunities && userActiveCommunities.length > 0 ? (
+                  userActiveCommunities.map((community: any) => (
+                    <div key={community.id} className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-3 h-3 rounded-full ${communityColors[community.category as keyof typeof communityColors] || 'bg-gray-500'}`} />
+                          <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                            {community.name}
+                          </h4>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">
+                            Activity: {community.activityScore || 0}
+                          </Badge>
+                          <Link href={`/community/${community.id}`}>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                              →
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        {community.memberCount} members • {community.category}
+                      </p>
+                      <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span>Last active: {new Date(community.lastActivityAt).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span className="text-green-600 dark:text-green-400">Active</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <Users className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      No communities yet
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Join communities from Today's Discoveries below
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Discovery Suggestions */}
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
@@ -381,8 +477,14 @@ export default function Dashboard() {
                           {community.memberCount} members • {community.category}
                         </p>
                         <div className="flex space-x-2">
-                          <Button size="sm" variant="outline" className="flex-1">
-                            Join Community
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={() => joinCommunityMutation.mutate(community.id)}
+                            disabled={joinCommunityMutation.isPending}
+                          >
+                            {joinCommunityMutation.isPending ? "Joining..." : "Join Community"}
                           </Button>
                           <Button 
                             size="sm" 
