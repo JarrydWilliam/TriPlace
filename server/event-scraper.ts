@@ -285,6 +285,139 @@ export class EventScraper {
     }
   }
 
+  private async scrapeEventful(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.eventfulApiKey) {
+      console.log('No Eventful API key found, skipping Eventful scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      
+      // Eventful API for events
+      const url = `https://api.eventful.com/json/events/search` +
+        `?app_key=${this.eventfulApiKey}` +
+        `&keywords=${encodeURIComponent(searchQuery)}` +
+        `&location=${userLocation.lat},${userLocation.lon}` +
+        `&within=25` +
+        `&units=mi` +
+        `&page_size=50`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Eventful API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data.events?.event || [];
+      
+      return events.map((event: any) => ({
+        title: event.title || 'Untitled Event',
+        description: event.description || '',
+        date: new Date(event.start_time),
+        location: event.venue_name || event.city_name || 'Location TBD',
+        category: community.category,
+        sourceUrl: event.url || '',
+        organizerName: event.owner || 'Unknown',
+        price: 0,
+        attendeeCount: parseInt(event.going_count) || 0
+      }));
+    } catch (error) {
+      console.error('Eventful scraping failed:', error);
+      return [];
+    }
+  }
+
+  private async scrapeUniverse(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.universeApiKey) {
+      console.log('No Universe API key found, skipping Universe scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      
+      // Universe API for events
+      const url = `https://www.universe.com/api/v2/events` +
+        `?q=${encodeURIComponent(searchQuery)}` +
+        `&lat=${userLocation.lat}` +
+        `&lng=${userLocation.lon}` +
+        `&radius=25`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.universeApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Universe API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data.events || [];
+      
+      return events.map((event: any) => ({
+        title: event.title || 'Untitled Event',
+        description: event.description || '',
+        date: new Date(event.start_at),
+        location: event.venue?.name || event.venue?.address || 'Location TBD',
+        category: community.category,
+        sourceUrl: event.url || '',
+        organizerName: event.organizer?.name || 'Unknown',
+        price: event.min_price || 0,
+        attendeeCount: event.attendee_count || 0
+      }));
+    } catch (error) {
+      console.error('Universe scraping failed:', error);
+      return [];
+    }
+  }
+
+  private async scrapeSeatGeek(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+    if (!this.seatgeekApiKey) {
+      console.log('No SeatGeek API key found, skipping SeatGeek scraping');
+      return [];
+    }
+
+    try {
+      const searchQuery = this.buildSearchQuery(community);
+      
+      // SeatGeek API for events
+      const url = `https://api.seatgeek.com/2/events` +
+        `?client_id=${this.seatgeekApiKey}` +
+        `&q=${encodeURIComponent(searchQuery)}` +
+        `&lat=${userLocation.lat}` +
+        `&lon=${userLocation.lon}` +
+        `&range=25mi` +
+        `&per_page=50`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`SeatGeek API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const events = data.events || [];
+      
+      return events.map((event: any) => ({
+        title: event.title || 'Untitled Event',
+        description: event.short_title || '',
+        date: new Date(event.datetime_local),
+        location: event.venue?.name || event.venue?.address || 'Location TBD',
+        category: community.category,
+        sourceUrl: event.url || '',
+        organizerName: event.performers?.[0]?.name || 'Unknown',
+        price: event.stats?.lowest_price || 0,
+        attendeeCount: 0
+      }));
+    } catch (error) {
+      console.error('SeatGeek scraping failed:', error);
+      return [];
+    }
+  }
+
   private getGeoHash(lat: number, lon: number): string {
     // Simple geohash implementation for StubHub API
     // In production, you'd use a proper geohash library

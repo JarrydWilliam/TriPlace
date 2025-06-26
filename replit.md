@@ -264,6 +264,18 @@ Changelog:
   - Events tab now displays both external scraped events and community-created events in separate sections
   - Event creation includes automatic activity feed updates and proper error handling
   - Enhanced user engagement by allowing communities to organize their own meetups and activities
+
+- June 26, 2025. Implemented automatic event population and attendance tracking system
+  - Removed manual "Find Events" button - events now auto-populate when user location is available
+  - Built automatic event scraping across all 8 platforms for user's active communities
+  - Added attendance confirmation buttons for past events with "✓ Attended" interface
+  - Implemented POST /api/auto-populate-events endpoint for seamless background event discovery
+  - Created attendance tracking system with POST /api/events/:id/mark-attended endpoint
+  - Attendance data feeds directly into community discovery algorithm for improved recommendations
+  - Auto-population triggers on dashboard load when user has location and active communities
+  - Event attendance acknowledgments stored in activity feed for machine learning insights
+  - System automatically invalidates event and community caches after attendance confirmation
+  - Enhanced user experience with real-time event calendar population and algorithm feedback loop
 ```
 
 ## User Preferences
