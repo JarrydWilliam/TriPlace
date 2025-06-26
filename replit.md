@@ -102,6 +102,8 @@ Changelog:
   - Returning users skip quiz and go directly to dashboard
   - Quiz data stored in user profile for intelligent community matching
   - Authentication switched from redirect to popup for better reliability
+  - Removed romantic/dating references to focus on platonic community building
+  - Final quiz section properly navigates to dashboard upon completion
 ```
 
 ## User Preferences
