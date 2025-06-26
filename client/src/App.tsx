@@ -13,6 +13,7 @@ import Onboarding from "@/pages/onboarding";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
 import Community from "@/pages/community";
+import CreateEvent from "@/pages/create-event";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";
 import NotificationSettings from "@/pages/settings/notifications";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/messaging" component={Messaging} />
       <Route path="/messages" component={Messaging} />
       <Route path="/community/:communityId" component={Community} />
+      <Route path="/create-event" component={CreateEvent} />
       <Route path="/settings/profile" component={ProfileSettings} />
       <Route path="/settings/account" component={AccountSettings} />
       <Route path="/settings/notifications" component={NotificationSettings} />

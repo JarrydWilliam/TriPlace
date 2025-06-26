@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 
@@ -25,6 +25,7 @@ export default function Dashboard() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
   // Fetch user's active communities with activity scores
@@ -329,7 +330,11 @@ export default function Dashboard() {
                   <CalendarDays className="w-5 h-5" />
                   <span>Event Calendar</span>
                 </CardTitle>
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                <Button 
+                  size="sm" 
+                  className="bg-purple-600 hover:bg-purple-700"
+                  onClick={() => setLocation("/create-event")}
+                >
                   <Plus className="w-4 h-4 mr-1" />
                   Create Event
                 </Button>
