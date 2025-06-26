@@ -371,28 +371,28 @@ export default function Dashboard() {
                   ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
                     recommendations.slice(0, 2).map((community: Community) => (
                       <div key={community.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-sm">🌟</span>
-                        <h5 className="text-sm font-medium text-gray-900 dark:text-white">
-                          {community.name}
-                        </h5>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="text-sm">🌟</span>
+                          <h5 className="text-sm font-medium text-gray-900 dark:text-white">
+                            {community.name}
+                          </h5>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          {community.memberCount} members • {community.category}
+                        </p>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline" className="flex-1">
+                            Join Community
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => window.location.href = `/community/${community.id}`}
+                          >
+                            View
+                          </Button>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                        {community.memberCount} members • {community.category}
-                      </p>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" className="flex-1">
-                          Join Community
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => window.location.href = `/community/${community.id}`}
-                        >
-                          View
-                        </Button>
-                      </div>
-                    </div>
                     ))
                   ) : (
                     <div className="p-4 text-center text-gray-500 dark:text-gray-400">
