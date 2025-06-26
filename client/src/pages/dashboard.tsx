@@ -440,8 +440,16 @@ export default function Dashboard() {
                             Activity: {community.activityScore || 0}
                           </Badge>
                           <Link href={`/community/${community.id}`}>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                              →
+                            <Button 
+                              size="sm" 
+                              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold px-3 py-1 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-lg group"
+                            >
+                              <span className="text-xs">Enter</span>
+                              <div className="ml-1 transition-transform group-hover:translate-x-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
+                                </svg>
+                              </div>
                             </Button>
                           </Link>
                         </div>
