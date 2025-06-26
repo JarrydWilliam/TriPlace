@@ -15,8 +15,11 @@ const firebaseConfig = {
 };
 
 // Log warning if using fallback configuration
-if (usesFallback && ENV.PROD) {
-  console.error("Production deployment detected with missing Firebase configuration!");
+if (usesFallback) {
+  console.warn("Firebase using fallback configuration. Google login may not work properly.");
+  if (ENV.PROD) {
+    console.error("Production deployment detected with missing Firebase configuration!");
+  }
 }
 
 const app = initializeApp(firebaseConfig);

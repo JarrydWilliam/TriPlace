@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { GlobalPWAPrompt } from "@/components/ui/global-pwa-prompt";
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -84,6 +85,7 @@ function App() {
           <AuthProvider>
             <TooltipProvider>
               <Toaster />
+              <GlobalPWAPrompt />
               <Router />
             </TooltipProvider>
           </AuthProvider>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { signInWithGoogle } from "@/lib/firebase";
 import { FaGoogle } from "react-icons/fa";
 import { Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
   onEmailSignup?: () => void;
@@ -11,11 +12,18 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onEmailSignup, onShowLogin, showEmailButton = true }: LoginFormProps) {
+  const { toast } = useToast();
+
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      toast({
+        title: "Sign-in Failed",
+        description: error.message || "Unable to sign in with Google. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
