@@ -19,7 +19,8 @@ export interface IStorage {
   getCommunity(id: number): Promise<Community | undefined>;
   getAllCommunities(): Promise<Community[]>;
   getCommunitiesByCategory(category: string): Promise<Community[]>;
-  getRecommendedCommunities(interests: string[]): Promise<Community[]>;
+  getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]>;
+  getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<User[]>;
   createCommunity(community: InsertCommunity): Promise<Community>;
   updateCommunity(id: number, updates: Partial<InsertCommunity>): Promise<Community | undefined>;
   
@@ -540,6 +541,62 @@ export class MemStorage implements IStorage {
     }
     
     return users;
+  }
+
+  async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<User[]> {
+    const community = await this.getCommunity(communityId);
+    if (!community) return [];
+
+    // Get all users and filter by location + interest compatibility
+    const allUsers = Array.from(this.users.values());
+    const eligibleMembers: User[] = [];
+
+    for (const user of allUsers) {
+      // Skip users without location data
+      if (!user.latitude || !user.longitude) continue;
+
+      // Calculate distance (50-mile radius filter)
+      const distance = this.calculateDistance(
+        userLocation.lat, userLocation.lon,
+        parseFloat(user.latitude), parseFloat(user.longitude)
+      );
+      
+      if (distance > 50) continue; // Outside 50-mile radius
+
+      // Calculate interest overlap (70% minimum)
+      const userTags = user.interests || [];
+      const interestOverlap = this.calculateInterestOverlap(userTags, userInterests);
+      
+      if (interestOverlap >= 0.7) { // 70% minimum match
+        eligibleMembers.push(user);
+      }
+    }
+
+    return eligibleMembers;
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private calculateInterestOverlap(userInterests: string[], targetInterests: string[]): number {
+    if (userInterests.length === 0 || targetInterests.length === 0) return 0;
+    
+    const intersection = userInterests.filter(interest => 
+      targetInterests.some(target => 
+        target.toLowerCase().includes(interest.toLowerCase()) ||
+        interest.toLowerCase().includes(target.toLowerCase())
+      )
+    );
+    
+    return intersection.length / Math.max(userInterests.length, targetInterests.length);
   }
 
   // Events

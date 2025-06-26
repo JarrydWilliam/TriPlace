@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   avatar: text("avatar"),
   bio: text("bio"),
   location: text("location"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   interests: text("interests").array().default([]),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   quizAnswers: jsonb("quiz_answers"),

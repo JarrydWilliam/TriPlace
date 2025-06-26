@@ -136,6 +136,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dynamic community members based on location and interests
+  app.get("/api/communities/:id/dynamic-members", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { latitude, longitude, userId } = req.query;
+      
+      if (isNaN(id) || !latitude || !longitude || !userId) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+
+      const user = await storage.getUser(parseInt(userId as string));
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userLocation = { 
+        lat: parseFloat(latitude as string), 
+        lon: parseFloat(longitude as string) 
+      };
+      
+      const userInterests = user.interests || [];
+      const members = await storage.getDynamicCommunityMembers(id, userLocation, userInterests);
+      
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching dynamic community members:", error);
+      res.status(500).json({ message: "Failed to fetch dynamic community members" });
+    }
+  });
+
   app.post("/api/communities/:id/leave", async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
