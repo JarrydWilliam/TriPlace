@@ -137,6 +137,34 @@ export default function CommunityPage() {
     }
   });
 
+  // Event registration mutation
+  const joinEventMutation = useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: number, userId: number }) => {
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status: "attending" }),
+      });
+      if (!response.ok) throw new Error("Failed to join event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Joined",
+        description: "You've successfully joined this event! It will appear in your dashboard calendar.",
+      });
+      // Invalidate user events query to update dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to join event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Event scraping mutation
   const scrapeEventsMutation = useMutation({
     mutationFn: async () => {
@@ -723,8 +751,18 @@ export default function CommunityPage() {
                                   <span>{event.location}</span>
                                 </div>
                               </div>
-                              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50">
-                                View Details
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                                onClick={() => {
+                                  if (user?.id) {
+                                    joinEventMutation.mutate({ eventId: event.id, userId: user.id });
+                                  }
+                                }}
+                                disabled={joinEventMutation.isPending}
+                              >
+                                {joinEventMutation.isPending ? "Joining..." : "Join Event"}
                               </Button>
                             </div>
                           </div>

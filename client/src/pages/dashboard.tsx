@@ -38,10 +38,15 @@ export default function Dashboard() {
     }
   });
 
-  // Fetch upcoming events in user's communities
-  const { data: upcomingEvents, isLoading: eventsLoading } = useQuery({
-    queryKey: ["/api/events/upcoming"],
-    enabled: !!user,
+  // Fetch events user has joined from communities
+  const { data: userJoinedEvents, isLoading: eventsLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "events"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/events`);
+      if (!response.ok) throw new Error('Failed to fetch user events');
+      return response.json();
+    }
   });
 
   // Auto-populate events when user has location
@@ -56,7 +61,7 @@ export default function Dashboard() {
           title: "Events Updated",
           description: `Found ${data.eventsAdded} new events in your communities`,
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
       }
     },
     onError: (error) => {
@@ -338,7 +343,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {Array.isArray(upcomingEvents) && upcomingEvents.slice(0, 5).map((event: Event, index: number) => {
+                    {Array.isArray(userJoinedEvents) && userJoinedEvents.slice(0, 5).map((event: Event, index: number) => {
                       const communityColor = communityColors[event.category as keyof typeof communityColors] || "bg-gray-500";
                       return (
                         <div 
@@ -390,11 +395,11 @@ export default function Dashboard() {
                       );
                     })}
                     
-                    {(!Array.isArray(upcomingEvents) || upcomingEvents.length === 0) && (
+                    {(!Array.isArray(userJoinedEvents) || userJoinedEvents.length === 0) && (
                       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                         <CalendarDays className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No upcoming events in your communities</p>
-                        <p className="text-sm">Join more communities to see events!</p>
+                        <p>No joined events</p>
+                        <p className="text-sm">Join events from your communities to see them here!</p>
                       </div>
                     )}
                   </div>
