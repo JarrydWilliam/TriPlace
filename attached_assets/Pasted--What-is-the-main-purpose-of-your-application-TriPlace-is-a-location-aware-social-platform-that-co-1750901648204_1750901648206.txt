@@ -1,0 +1,98 @@
+. What is the main purpose of your application?
+TriPlace is a location-aware social platform that connects people based on:
+
+Shared interests (e.g., yoga, running, concerts)
+
+Places they’ve been or plan to attend
+
+Real-time event participation and community interaction
+
+Its main purpose is to foster meaningful connections through shared experiences, by recommending communities and events that feel personally relevant — blending aspects of Meetup, Strava, and Tinder into one.
+
+✅ 2. Who are your target users?
+Everyday consumers, especially:
+
+Young adults and professionals (18–40s)
+
+People looking to make local connections
+
+Users exploring new hobbies or activities
+
+Those who attend events, concerts, fitness classes, etc.
+
+The app emphasizes authentic community and social belonging.
+
+✅ 3. What are the core features you want to include?
+🎯 Core Features:
+Personalized onboarding quiz
+
+Determines top interests & nearby communities
+
+User authentication
+
+Google login
+
+Email/password login
+
+User profiles
+
+Display events attended, interests, and location
+
+Community system
+
+Join interest-based groups (e.g., “Mindful Yoga”)
+
+Filter by most/least active
+
+Event discovery
+
+Web scraped or API-pulled local events (within 50 miles)
+
+Community-specific event feeds
+
+Messaging / Live Chat
+
+In-app real-time communication
+
+Kudos system
+
+Like or appreciate others’ posts/activity
+
+Dark mode
+
+With soft, modern styling
+
+AI assistant
+
+Detect app errors and optimize runtime/connectivity
+
+Mobile PWA support
+
+Offline-ready and installable
+
+✅ 4. Do you have any specific technology preferences beyond the general structure?
+Yes. Based on current setup:
+
+⚙️ Technologies:
+Frontend: React (TypeScript), TailwindCSS, ShadCN, Vite
+
+Routing: Wouter (lightweight SPA router)
+
+State Management: React Context, React Query
+
+Backend: Firebase (Authentication, Firestore optional)
+
+Events: Web scraping or APIs like:
+
+Eventbrite
+
+Ticketmaster
+
+Meetup
+
+PredictHQ (for premium)
+
+AI Agent (Future): To handle reliability/error recovery
+
+Hosting Target: Replit, Vercel, or Firebase Hosting (TBD)
+
