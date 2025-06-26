@@ -17,7 +17,6 @@ html, body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
-}
 
 /* Enhanced responsive design for all devices */
 @supports (viewport-fit: cover) {
