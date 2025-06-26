@@ -19,6 +19,7 @@ import { Link, useLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
+import { ShareQR } from "@/components/ui/share-qr";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -215,6 +216,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
+                <ShareQR />
                 <Button 
                   variant="ghost" 
                   size="icon"
