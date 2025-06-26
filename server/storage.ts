@@ -322,49 +322,75 @@ export class MemStorage implements IStorage {
     
     const communityText = `${community.name} ${community.description} ${community.category}`.toLowerCase();
     
-    // Create keyword mappings for better matching
-    const keywordMap: { [key: string]: string[] } = {
-      'fitness': ['yoga', 'running', 'exercise', 'gym', 'workout', 'health', 'training', 'sport'],
-      'wellness': ['yoga', 'meditation', 'mindfulness', 'spiritual', 'healing', 'therapy', 'self-care'],
-      'tech': ['technology', 'programming', 'coding', 'software', 'developer', 'startup', 'innovation', 'ai'],
-      'arts': ['art', 'creative', 'painting', 'drawing', 'design', 'gallery', 'artist', 'craft'],
-      'music': ['music', 'band', 'singing', 'instrument', 'concert', 'performance', 'guitar', 'piano'],
-      'food': ['cooking', 'food', 'restaurant', 'culinary', 'chef', 'recipe', 'dining', 'cuisine'],
-      'outdoor': ['hiking', 'nature', 'adventure', 'camping', 'trail', 'mountain', 'outdoor', 'park'],
-      'social': ['social', 'networking', 'friends', 'community', 'volunteer', 'service', 'people'],
-      'business': ['business', 'professional', 'career', 'networking', 'entrepreneur', 'leadership', 'work']
+    // Enhanced keyword mappings that match quiz responses
+    const categoryKeywords: { [key: string]: string[] } = {
+      'wellness': ['fitness', 'yoga', 'meditation', 'mindfulness', 'spiritual', 'healing', 'therapy', 'health', 'wellbeing'],
+      'fitness': ['fitness', 'yoga', 'running', 'exercise', 'gym', 'workout', 'health', 'training', 'sport', 'wellness'],
+      'tech': ['technology', 'programming', 'coding', 'software', 'developer', 'startup', 'innovation', 'ai', 'computer'],
+      'arts': ['art', 'creative', 'painting', 'drawing', 'design', 'gallery', 'artist', 'craft', 'visual'],
+      'music': ['music', 'band', 'singing', 'instrument', 'concert', 'performance', 'guitar', 'piano', 'audio'],
+      'food': ['cooking', 'food', 'restaurant', 'culinary', 'chef', 'recipe', 'dining', 'cuisine', 'baking'],
+      'outdoor': ['hiking', 'nature', 'adventure', 'camping', 'trail', 'mountain', 'outdoor', 'park', 'environment'],
+      'social': ['social', 'networking', 'friends', 'community', 'volunteer', 'service', 'people', 'connection'],
+      'business': ['business', 'professional', 'career', 'networking', 'entrepreneur', 'leadership', 'work', 'corporate']
     };
     
-    let matchCount = 0;
-    let totalInterests = userInterests.length;
+    let totalScore = 0;
     
-    // Check direct matches first
-    for (const interest of userInterests) {
-      if (communityText.includes(interest.toLowerCase())) {
-        matchCount++;
+    for (const userInterest of userInterests) {
+      const interest = userInterest.toLowerCase().trim();
+      let interestMatched = false;
+      
+      // Direct text match in community info
+      if (communityText.includes(interest)) {
+        totalScore += 1.0;
+        interestMatched = true;
         continue;
       }
       
-      // Check keyword mapping matches
-      for (const [category, keywords] of Object.entries(keywordMap)) {
-        if (community.category === category || communityText.includes(category)) {
-          if (keywords.some(keyword => interest.toLowerCase().includes(keyword) || keyword.includes(interest.toLowerCase()))) {
-            matchCount++;
+      // Category-based matching
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (community.category === category) {
+          // Check if user interest matches any keywords for this category
+          if (keywords.some(keyword => 
+            interest.includes(keyword) || 
+            keyword.includes(interest) ||
+            interest === keyword
+          )) {
+            totalScore += 0.8; // Strong category match
+            interestMatched = true;
+            break;
+          }
+        }
+      }
+      
+      // Cross-category keyword matching (for overlapping interests)
+      if (!interestMatched) {
+        for (const keywords of Object.values(categoryKeywords)) {
+          if (keywords.some(keyword => 
+            (interest.includes(keyword) || keyword.includes(interest)) &&
+            communityText.includes(keyword)
+          )) {
+            totalScore += 0.6; // Partial cross-category match
+            interestMatched = true;
+            break;
+          }
+        }
+      }
+      
+      // Fallback: partial string matching
+      if (!interestMatched) {
+        const words = interest.split(' ');
+        for (const word of words) {
+          if (word.length > 3 && communityText.includes(word)) {
+            totalScore += 0.3; // Weak word match
             break;
           }
         }
       }
     }
     
-    // Also check if community category matches any interest keywords
-    for (const interest of userInterests) {
-      const relatedKeywords = keywordMap[community.category] || [];
-      if (relatedKeywords.some(keyword => interest.toLowerCase().includes(keyword))) {
-        matchCount += 0.5; // Partial match bonus
-      }
-    }
-    
-    return Math.min(matchCount / totalInterests, 1.0);
+    return Math.min(totalScore / userInterests.length, 1.0);
   }
 
   private calculateEngagementScore(community: Community): number {
