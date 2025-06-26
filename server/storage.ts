@@ -205,6 +205,18 @@ export class DatabaseStorage implements IStorage {
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     const allCommunities = await this.getAllCommunities();
     
+    // Get user's current communities to exclude them from recommendations
+    let userCommunityIds: number[] = [];
+    if (userId) {
+      const userCommunities = await this.getUserCommunities(userId);
+      userCommunityIds = userCommunities.map(c => c.id);
+    }
+    
+    // Filter out communities user has already joined
+    const availableCommunities = allCommunities.filter(community => 
+      !userCommunityIds.includes(community.id)
+    );
+    
     if (userId && interests.length > 0) {
       try {
         const user = await this.getUser(userId);
@@ -213,7 +225,7 @@ export class DatabaseStorage implements IStorage {
           const userEvents = await this.getUserEvents(userId);
           
           // AI generates recommendations based on quiz data + event patterns
-          const recommendations = await aiMatcher.generateCommunityRecommendations(user, allCommunities, userLocation);
+          const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
           
           // If user has attended events, evolve community recommendations
           if (userEvents.length > 0) {
@@ -251,7 +263,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Fallback algorithm for when AI is unavailable
-    return allCommunities
+    return availableCommunities
       .map(community => ({
         community,
         score: this.calculateInterestScore(community, interests) + 
