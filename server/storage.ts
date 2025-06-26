@@ -209,11 +209,38 @@ export class DatabaseStorage implements IStorage {
       try {
         const user = await this.getUser(userId);
         if (user) {
+          // Get user's event attendance history for evolving recommendations
           const userEvents = await this.getUserEvents(userId);
+          
+          // AI generates recommendations based on quiz data + event patterns
           const recommendations = await aiMatcher.generateCommunityRecommendations(user, allCommunities, userLocation);
           
+          // If user has attended events, evolve community recommendations
           if (userEvents.length > 0) {
-            const newCommunities = await aiMatcher.generateMissingCommunities(user);
+            console.log(`User has attended ${userEvents.length} events - evolving community recommendations`);
+            
+            // Extract new interests from attended event categories
+            const eventCategories = userEvents.map(event => event.category).filter(Boolean);
+            const uniqueEventCategories = [...new Set(eventCategories)];
+            
+            // Update user interests in database to include event-derived interests
+            if (uniqueEventCategories.length > 0) {
+              const updatedInterests = [...new Set([...interests, ...uniqueEventCategories])];
+              await this.updateUser(userId, { interests: updatedInterests });
+            }
+            
+            // Generate new community types based on evolving profile
+            try {
+              const newCommunities = await aiMatcher.generateMissingCommunities(user);
+              console.log(`AI suggested ${newCommunities.length} new community types based on user evolution`);
+              
+              // In a real implementation, create these communities dynamically
+              for (const newCommunity of newCommunities) {
+                console.log(`Potential new community: ${newCommunity.name} - ${newCommunity.reasoning}`);
+              }
+            } catch (aiError) {
+              console.error('AI community generation failed:', aiError);
+            }
           }
           
           return recommendations.map(r => r.community);
@@ -223,6 +250,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Fallback algorithm for when AI is unavailable
     return allCommunities
       .map(community => ({
         community,
@@ -376,12 +404,14 @@ export class DatabaseStorage implements IStorage {
   private calculateInterestOverlap(userInterests: string[], targetInterests: string[]): number {
     if (userInterests.length === 0 || targetInterests.length === 0) return 0;
     
-    const userSet = new Set(userInterests.map(i => i.toLowerCase()));
-    const targetSet = new Set(targetInterests.map(i => i.toLowerCase()));
+    const userInterestsLower = userInterests.map(i => i.toLowerCase());
+    const targetInterestsLower = targetInterests.map(i => i.toLowerCase());
     
     let matches = 0;
-    for (const interest of userSet) {
-      if (targetSet.has(interest)) matches++;
+    for (let i = 0; i < userInterestsLower.length; i++) {
+      if (targetInterestsLower.includes(userInterestsLower[i])) {
+        matches++;
+      }
     }
     
     return matches / Math.max(userInterests.length, targetInterests.length);
