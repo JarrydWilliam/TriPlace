@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User as FirebaseUser, onAuthStateChanged } from "firebase/auth";
-import { auth, handleRedirectResult } from "./firebase";
+import { auth } from "./firebase";
 import { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
@@ -63,16 +63,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       setLoading(false);
-    });
-
-    // Handle redirect result
-    handleRedirectResult().then((result) => {
-      if (result) {
-        // User signed in successfully
-        console.log('User signed in via redirect');
-      }
-    }).catch((error) => {
-      console.error('Error handling redirect result:', error);
     });
 
     return () => unsubscribe();
