@@ -346,6 +346,16 @@ Changelog:
   - Safe area insets support for modern devices with notches and rounded corners
   - Fixed duplicate key console warnings for production-ready deployment
   - App now ready for unlimited user deployment across all device platforms
+
+- June 26, 2025. Fixed scroll overflow issues and enhanced global PWA installation system
+  - Implemented overscroll-behavior: none to prevent scrolling above/below screen boundaries
+  - Added proper height constraints with overflow controls across all pages
+  - Created global PWA installation prompt that appears on all pages when running in web browser
+  - Enhanced Firebase authentication with better error handling and configuration validation
+  - PWA prompt intelligently detects standalone mode vs browser and only shows in browser
+  - Added smart dismissal system with 6-hour cooldown period for user convenience
+  - Fixed Google login with improved error messages and popup configuration
+  - Global PWA system ensures installation prompt works universally across the entire app
 ```
 
 ## User Preferences
