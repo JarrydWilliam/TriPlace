@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star } from "lucide-react";
+import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -268,8 +268,10 @@ export default function CommunityPage() {
                           {community?.memberCount || 0} online
                         </span>
                       </div>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="w-4 h-4" />
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 flex flex-col space-y-1">
+                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                       </Button>
                     </div>
                   </div>

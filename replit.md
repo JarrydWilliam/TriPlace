@@ -210,6 +210,18 @@ Changelog:
   - Community activity automatically updates when users interact (messages, events, kudos)
   - Smart fallback system ensures users always have meaningful community recommendations
   - Complete implementation of all attached requirements for community tabs and rotation
+
+- June 26, 2025. Redesigned community messaging with Instagram Direct Message experience
+  - Instagram-style chat header with live status indicators and online member counts
+  - Message bubbles with rounded corners, shadows, and hover interactions
+  - Gradient avatar fallbacks and reaction previews on message bubbles
+  - Enhanced message input with emoji picker, character counter, and send button
+  - Smooth scrolling message feed with proper loading states and empty state design
+  - Interactive message actions: Resonate, Reply, Share with hover animations
+  - Real-time typing indicators and message delivery status
+  - Professional visual hierarchy matching high-end social messaging apps
+  - Enter to send, Shift+Enter for new line keyboard shortcuts
+  - Community-focused messaging that encourages meaningful connections and engagement
 ```
 
 ## User Preferences
