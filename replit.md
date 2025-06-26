@@ -234,6 +234,15 @@ Changelog:
   - Implemented real-time messaging with optimistic UI updates for instant message visibility
   - Enhanced community entry buttons with gradient design, animated arrows, and clear "Enter" text
   - Reduced message polling to 500ms for near real-time chat experience matching modern messaging apps
+
+- June 26, 2025. Fixed community messaging and dashboard recommendations
+  - Added missing GET /api/communities/:id/messages route for proper message retrieval
+  - Fixed database query to correctly map user data (names, avatars) to community messages
+  - Implemented "First Name + Last Initial" formatting for user display names
+  - Made profile pictures clickable with hover animations for profile navigation
+  - Fixed dashboard recommendations to exclude already-joined communities from "Today's Discoveries"
+  - Enhanced recommendation filtering for both AI-powered and fallback algorithms
+  - Community chat now displays actual user information instead of "Anonymous"
 ```
 
 ## User Preferences
