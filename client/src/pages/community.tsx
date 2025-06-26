@@ -46,6 +46,22 @@ export default function CommunityPage() {
     refetchInterval: 3000, // Refresh every 3 seconds for real-time feel
   });
 
+  // Fetch community members with match scores
+  const { data: communityMembers, isLoading: communityMembersLoading } = useQuery({
+    queryKey: ["/api/communities", communityId, "members"],
+    enabled: !!communityId && !!latitude && !!longitude,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        latitude: latitude?.toString() || '',
+        longitude: longitude?.toString() || '',
+        userInterests: user?.interests?.join(',') || ''
+      });
+      const response = await fetch(`/api/communities/${communityId}/members?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch members');
+      return response.json();
+    }
+  });
+
   // Fetch community events
   const { data: communityEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/communities", communityId, "events"],
@@ -57,8 +73,8 @@ export default function CommunityPage() {
     }
   });
 
-  // Fetch community members with high match
-  const { data: members, isLoading: membersLoading } = useQuery({
+  // Fetch community members with high match scores
+  const { data: members, isLoading: membersMatchLoading } = useQuery({
     queryKey: ["/api/communities", communityId, "members", latitude, longitude],
     enabled: !!communityId && !!latitude && !!longitude,
     queryFn: async () => {

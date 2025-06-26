@@ -360,7 +360,7 @@ export default function Dashboard() {
                   <span>{user.name?.split(' ')[0] || 'Your'}'s Communities</span>
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">
-                  {userActiveCommunities?.length || 0}/5
+                  {Array.isArray(userActiveCommunities) ? userActiveCommunities.length : 0}/5
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -370,7 +370,7 @@ export default function Dashboard() {
                       <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
                     ))}
                   </div>
-                ) : userActiveCommunities && userActiveCommunities.length > 0 ? (
+                ) : Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
                   userActiveCommunities.map((community: any) => (
                     <div key={community.id} className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center justify-between mb-2">
