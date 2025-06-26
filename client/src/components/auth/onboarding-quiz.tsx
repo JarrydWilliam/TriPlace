@@ -564,8 +564,8 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-y-auto">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 text-white">
             🌱 TriPlace Community Matching Quiz
@@ -581,7 +581,7 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
           </div>
         </div>
 
-        <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+        <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm mb-8">
           <CardHeader>
             <CardTitle className="text-2xl text-white flex items-center gap-2">
               <span className="text-2xl">{sections[currentSection].icon}</span>
@@ -591,10 +591,15 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
               {sections[currentSection].subtitle}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            {renderSection()}
-
-            <div className="flex justify-between pt-6">
+          <CardContent className="space-y-8 max-h-[60vh] overflow-y-auto">
+            <div className="pb-4">
+              {renderSection()}
+            </div>
+          </CardContent>
+          
+          {/* Fixed navigation buttons at bottom */}
+          <div className="bg-gray-800/50 border-t border-gray-700 p-6">
+            <div className="flex justify-between">
               <Button
                 onClick={handlePrevious}
                 variant="outline"
@@ -613,7 +618,7 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
     </div>
