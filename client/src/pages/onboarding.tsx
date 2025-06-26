@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
+import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 export default function Onboarding() {
   const { user, loading } = useAuth();

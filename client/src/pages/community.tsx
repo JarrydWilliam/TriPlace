@@ -20,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
+import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {

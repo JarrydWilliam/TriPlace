@@ -73,6 +73,38 @@ body {
   overflow-y: visible;
 }
 
+/* Scrolling enabled state */
+.scrolling-enabled {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Platform-specific scrolling optimizations */
+@media (max-width: 768px) {
+  .adaptive-page-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* High-DPI display optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .adaptive-page-container::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+/* Touch device optimization */
+@media (pointer: coarse) {
+  .adaptive-page-container {
+    scrollbar-width: auto;
+  }
+  
+  .adaptive-page-container::-webkit-scrollbar {
+    width: 8px;
+  }
+}
+
 /* Safari iOS specific scrolling fixes */
 @supports (-webkit-touch-callout: none) {
   body {
