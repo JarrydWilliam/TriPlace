@@ -354,7 +354,7 @@ export default function Dashboard() {
                       const communityColor = communityColors[event.category as keyof typeof communityColors] || "bg-gray-500";
                       return (
                         <div 
-                          key={`event-${event.id}-${index}`} 
+                          key={`dashboard-event-${event.id}-${event.title?.slice(0, 10)}-${index}`} 
                           className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
                           onClick={() => setSelectedEventId(event.id)}
                         >

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Logo } from "@/components/ui/logo";
 import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -55,9 +56,7 @@ export function Sidebar() {
     <aside className="hidden md:flex md:w-64 bg-gray-800 border-r border-gray-700 flex-col dark:bg-gray-800 dark:border-gray-700">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-            <MapPin className="text-white h-5 w-5" />
-          </div>
+          <Logo size="md" />
           <span className="text-xl font-bold text-white dark:text-white">TriPlace</span>
         </div>
 
