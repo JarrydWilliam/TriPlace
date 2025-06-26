@@ -13,6 +13,8 @@ import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 export default function CommunityPage() {
   const { communityId } = useParams<{ communityId: string }>();
@@ -22,6 +24,7 @@ export default function CommunityPage() {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
   const [selectedTab, setSelectedTab] = useState("feed");
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
 
   // Fetch community details
   const { data: community, isLoading: communityLoading } = useQuery({
@@ -207,16 +210,39 @@ export default function CommunityPage() {
               </div>
             </div>
             
-            {/* Pinned Announcement */}
-            <div className="mt-4 p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <div className="flex items-center space-x-2 mb-2">
-                <Pin className="w-4 h-4" />
-                <span className="font-medium">Pinned Announcement</span>
-              </div>
-              <p className="text-white/90 text-sm">
-                Weekly meetup this Friday @7PM at Liberty Park! Join us for group activities and networking. 🎉
-              </p>
-            </div>
+            {/* Collapsible Pinned Announcement */}
+            <Collapsible open={isPinnedOpen} onOpenChange={setIsPinnedOpen} className="mt-4">
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between p-3 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm text-white"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Pin className="w-4 h-4" />
+                    <span className="font-medium">Pinned Announcement</span>
+                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 text-xs">
+                      New
+                    </Badge>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isPinnedOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="p-3 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10">
+                  <p className="text-white/90 text-sm leading-relaxed">
+                    Weekly meetup this Friday @7PM at Liberty Park! Join us for group activities and networking. 🎉
+                  </p>
+                  <div className="mt-3 flex items-center space-x-2">
+                    <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      Add to Calendar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-white/70 hover:text-white">
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 
@@ -243,11 +269,11 @@ export default function CommunityPage() {
 
           {/* Live Messaging Feed */}
           <TabsContent value="feed" className="space-y-4">
-            <Card className="bg-white dark:bg-gray-900 border-none shadow-lg overflow-hidden">
-              <CardContent className="p-0">
+            <Card className="bg-white dark:bg-gray-900 border-none shadow-lg overflow-hidden h-[calc(100vh-20rem)]">
+              <CardContent className="p-0 h-full flex flex-col">
                 
                 {/* Instagram-style Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="relative">
@@ -278,7 +304,7 @@ export default function CommunityPage() {
                 </div>
 
                 {/* Instagram-style Message Feed */}
-                <div className="h-96 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth" style={{ 
+                <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth" style={{ 
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'rgb(156 163 175) transparent'
                 }}>
@@ -382,7 +408,7 @@ export default function CommunityPage() {
                 </div>
 
                 {/* Instagram-style Message Input */}
-                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex-shrink-0">
                   <div className="flex items-end space-x-3">
                     <Avatar className="w-8 h-8 flex-shrink-0">
                       <AvatarImage src={user?.avatar || undefined} />
