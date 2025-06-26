@@ -96,6 +96,12 @@ Core entities include:
 ```
 Changelog:
 - June 26, 2025. Initial setup
+- June 26, 2025. Implemented comprehensive 15-question onboarding quiz
+  - Quiz captures past experiences, present interests, future goals, and personality preferences
+  - New users automatically redirected to quiz after authentication
+  - Returning users skip quiz and go directly to dashboard
+  - Quiz data stored in user profile for intelligent community matching
+  - Authentication switched from redirect to popup for better reliability
 ```
 
 ## User Preferences
