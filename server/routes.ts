@@ -136,6 +136,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update current user's location
+  app.patch("/api/users/current/location", async (req, res) => {
+    try {
+      const { latitude, longitude, location } = req.body;
+      
+      // In a real app, get user ID from session/auth
+      // For now, assume user ID 1 (the logged-in user)
+      const userId = 1;
+      
+      const updatedUser = await storage.updateUser(userId, { 
+        location,
+        latitude: latitude?.toString(),
+        longitude: longitude?.toString(),
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user location:", error);
+      res.status(500).json({ message: "Failed to update location" });
+    }
+  });
+
   // Get dynamic community members based on location and interests
   app.get("/api/communities/:id/dynamic-members", async (req, res) => {
     try {

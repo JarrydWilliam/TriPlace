@@ -57,6 +57,24 @@ export function useGeolocation() {
           source: 'gps',
           locationName,
         });
+
+        // Update user location in backend for dynamic community matching
+        try {
+          const response = await fetch('/api/users/current/location', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: lat,
+              longitude: lon,
+              location: locationName
+            })
+          });
+          if (!response.ok) {
+            console.log('Failed to update user location');
+          }
+        } catch (error) {
+          console.log('Error updating user location:', error);
+        }
       };
 
       const handleError = (error: GeolocationPositionError) => {

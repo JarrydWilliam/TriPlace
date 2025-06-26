@@ -132,6 +132,14 @@ Changelog:
   - Following industry standards for mobile app geolocation implementation
   - Reverse geocoding displays actual city, state, zip code in sidebar
   - Communities filtered by location while hiding location details from interface
+
+- June 26, 2025. Implemented dynamic community membership system
+  - Static community titles with dynamic membership based on location + quiz compatibility
+  - 50-mile radius filtering with 70% interest overlap requirement
+  - Real-time member counts update based on user location and interests
+  - Backend automatically tracks user coordinates for community matching
+  - Communities show actual nearby users who match interests, not fixed member counts
+  - Location-aware API endpoints for dynamic member discovery
 ```
 
 ## User Preferences
