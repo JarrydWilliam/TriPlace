@@ -1,0 +1,331 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
+import { z } from "zod";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // User routes
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/firebase/:uid", async (req, res) => {
+    try {
+      const user = await storage.getUserByFirebaseUid(req.params.uid);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = insertUserSchema.partial().parse(req.body);
+      const user = await storage.updateUser(id, updates);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Community routes
+  app.get("/api/communities", async (req, res) => {
+    try {
+      const communities = await storage.getAllCommunities();
+      res.json(communities);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/communities/recommended", async (req, res) => {
+    try {
+      const interests = req.query.interests as string;
+      const interestsArray = interests ? interests.split(',') : [];
+      const communities = await storage.getRecommendedCommunities(interestsArray);
+      res.json(communities);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/communities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const community = await storage.getCommunity(id);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      res.json(community);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/communities", async (req, res) => {
+    try {
+      const communityData = insertCommunitySchema.parse(req.body);
+      const community = await storage.createCommunity(communityData);
+      res.status(201).json(community);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid community data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/communities/:id/join", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      const membership = await storage.joinCommunity(userId, communityId);
+      res.status(201).json(membership);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/communities/:id/leave", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      const success = await storage.leaveCommunity(userId, communityId);
+      if (!success) {
+        return res.status(404).json({ message: "Membership not found" });
+      }
+      res.json({ message: "Successfully left community" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/:id/communities", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const communities = await storage.getUserCommunities(userId);
+      res.json(communities);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Event routes
+  app.get("/api/events", async (req, res) => {
+    try {
+      const events = await storage.getAllEvents();
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/events/upcoming", async (req, res) => {
+    try {
+      const events = await storage.getUpcomingEvents();
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/events/nearby", async (req, res) => {
+    try {
+      const { latitude, longitude, radius = 50 } = req.query;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude are required" });
+      }
+      
+      const events = await storage.getEventsByLocation(
+        latitude as string, 
+        longitude as string, 
+        parseInt(radius as string)
+      );
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const event = await storage.getEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/events", async (req, res) => {
+    try {
+      const eventData = insertEventSchema.parse(req.body);
+      const event = await storage.createEvent(eventData);
+      res.status(201).json(event);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid event data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/events/:id/register", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const { userId, status = "interested" } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      const registration = await storage.registerForEvent(userId, eventId, status);
+      res.status(201).json(registration);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/:id/events", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const events = await storage.getUserEvents(userId);
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Message routes
+  app.get("/api/conversations/:userId1/:userId2", async (req, res) => {
+    try {
+      const userId1 = parseInt(req.params.userId1);
+      const userId2 = parseInt(req.params.userId2);
+      const messages = await storage.getConversation(userId1, userId2);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/:id/conversations", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const conversations = await storage.getUserConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const messageData = insertMessageSchema.parse(req.body);
+      const message = await storage.sendMessage(messageData);
+      res.status(201).json(message);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid message data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/messages/:id/read", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.markMessageAsRead(id);
+      if (!success) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      res.json({ message: "Message marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Kudos routes
+  app.get("/api/users/:id/kudos/received", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const kudos = await storage.getUserKudosReceived(userId);
+      res.json(kudos);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/kudos", async (req, res) => {
+    try {
+      const kudosData = insertKudosSchema.parse(req.body);
+      const kudos = await storage.giveKudos(kudosData);
+      res.status(201).json(kudos);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid kudos data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Activity feed routes
+  app.get("/api/users/:id/activity", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const activities = await storage.getUserActivityFeed(userId);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
