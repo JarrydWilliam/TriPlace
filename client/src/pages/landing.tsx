@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { EmailSignupForm } from "@/components/auth/email-signup-form";
+import { DomainHelper } from "@/components/auth/domain-helper";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
@@ -112,6 +113,11 @@ export default function Landing() {
             <h3 className="font-semibold mb-2 text-white">Give Kudos</h3>
             <p className="text-gray-400 text-sm">Appreciate community members</p>
           </div>
+        </div>
+        
+        {/* Firebase Setup Helper - Temporary */}
+        <div className="max-w-4xl mx-auto px-4 mt-8">
+          <DomainHelper />
         </div>
       </div>
     </section>
