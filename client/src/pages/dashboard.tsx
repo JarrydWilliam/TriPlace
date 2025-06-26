@@ -29,6 +29,11 @@ export default function Dashboard() {
   const { data: userActiveCommunities, isLoading: userCommunitiesLoading } = useQuery({
     queryKey: ["/api/users", user?.id, "active-communities"],
     enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/active-communities`);
+      if (!response.ok) throw new Error('Failed to fetch active communities');
+      return response.json();
+    }
   });
 
   // Fetch upcoming events in user's communities
@@ -364,6 +369,9 @@ export default function Dashboard() {
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="mb-2 text-xs text-gray-500">
+                  Debug: Loading={userCommunitiesLoading.toString()}, Data={JSON.stringify(userActiveCommunities?.length || 0)}
+                </div>
                 {userCommunitiesLoading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map(i => (
