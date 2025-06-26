@@ -509,22 +509,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Community not found" });
       }
       
+      // Get organizer details
+      const organizer = await storage.getUser(parseInt(organizerId));
+      if (!organizer) {
+        return res.status(404).json({ message: "Organizer not found" });
+      }
+
       // Create the event
       const eventData = {
         title: title.trim(),
         description: description?.trim() || "",
-        date: new Date(date).toISOString(),
+        organizer: organizer.name || "Unknown Organizer",
+        date: new Date(date),
         location: location?.trim() || "Location TBD",
+        address: location?.trim() || "Location TBD", // Using location as address for now
         category: community.category,
-        organizerId: parseInt(organizerId),
-        price: price ? parseFloat(price) : null,
-        communityId: communityId
+        price: price ? price.toString() : null,
+        tags: [community.category.toLowerCase()],
+        attendeeCount: 0
       };
       
       const newEvent = await storage.createEvent(eventData);
       
       // Add activity to organizer's feed
-      await storage.addActivityItem(organizerId, 'event_created', {
+      await storage.addActivityItem(parseInt(organizerId), 'event_created', {
         eventId: newEvent.id,
         eventTitle: newEvent.title,
         communityName: community.name

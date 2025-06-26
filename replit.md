@@ -254,6 +254,16 @@ Changelog:
   - Events are filtered and matched exactly to community interests with 70% relevance threshold
   - Real-time integration with user location data for hyper-local event recommendations
   - Events automatically populate based on community category with fallback error handling
+
+- June 26, 2025. Extended event sources and added community event creation functionality
+  - Expanded EventScraper to support multiple major platforms: Ticketmaster, Facebook, StubHub, Eventful, Universe, and SeatGeek
+  - Implemented parallel API calls with Promise.allSettled for robust multi-source event discovery
+  - Added comprehensive event creation system allowing community members to create their own events
+  - Built intuitive event creation dialog with title, description, date/time, location, and pricing fields
+  - Created POST /api/communities/:id/events backend endpoint for event creation with validation
+  - Events tab now displays both external scraped events and community-created events in separate sections
+  - Event creation includes automatic activity feed updates and proper error handling
+  - Enhanced user engagement by allowing communities to organize their own meetups and activities
 ```
 
 ## User Preferences
