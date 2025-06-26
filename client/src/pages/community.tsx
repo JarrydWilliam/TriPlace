@@ -20,7 +20,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
-import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -358,7 +357,6 @@ export default function CommunityPage() {
   }
 
   return (
-    <ScrollablePageWrapper>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         
@@ -1063,6 +1061,5 @@ export default function CommunityPage() {
         </DialogContent>
       </Dialog>
     </div>
-    </ScrollablePageWrapper>
   );
 }

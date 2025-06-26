@@ -20,7 +20,6 @@ import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
-import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 
 export default function Dashboard() {
@@ -188,7 +187,7 @@ export default function Dashboard() {
   }
 
   return (
-    <ScrollablePageWrapper className="bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl min-h-full">
         
         {/* User Banner */}
@@ -681,6 +680,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </ScrollablePageWrapper>
+    </div>
   );
 }

@@ -11,7 +11,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Users, Globe, Handshake, AlertTriangle } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
-import { ScrollablePageWrapper } from "@/components/ui/scrollable-page-wrapper";
 
 interface EventCreationData {
   title: string;
@@ -116,8 +115,7 @@ export default function CreateEventPage() {
   };
 
   return (
-    <ScrollablePageWrapper>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Header */}
@@ -421,7 +419,6 @@ export default function CreateEventPage() {
           </CardContent>
         </Card>
       </div>
-      </div>
-    </ScrollablePageWrapper>
+    </div>
   );
 }

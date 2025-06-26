@@ -2,126 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Universal adaptive scrolling system */
-html {
+/* Mobile-optimized scrolling */
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  -webkit-text-size-adjust: 100%;
-  touch-action: manipulation;
-}
-
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: none;
-  position: relative;
+  overscroll-behavior-x: none;
 }
 
 #root {
   min-height: 100vh;
-  height: auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  position: relative;
-}
-
-/* Universal page container for adaptive scrolling */
-.adaptive-page-container {
-  min-height: 100vh;
-  max-height: 100vh;
-  overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-gutter: stable;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Custom scrollbar styling */
-.adaptive-page-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.adaptive-page-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.adaptive-page-container::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-
-.adaptive-page-container::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--accent));
-}
-
-/* Content area that grows to fit content */
-.adaptive-content {
-  flex: 1;
-  min-height: 0;
-  padding: 1rem;
-  overflow-y: visible;
-}
-
-/* Scrolling enabled state */
-.scrolling-enabled {
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Platform-specific scrolling optimizations */
-@media (max-width: 768px) {
-  .adaptive-page-container {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-}
-
-/* High-DPI display optimization */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .adaptive-page-container::-webkit-scrollbar {
-    width: 4px;
-  }
-}
-
-/* Touch device optimization */
-@media (pointer: coarse) {
-  .adaptive-page-container {
-    scrollbar-width: auto;
-  }
-  
-  .adaptive-page-container::-webkit-scrollbar {
-    width: 8px;
-  }
-}
-
-/* Safari iOS specific scrolling fixes */
-@supports (-webkit-touch-callout: none) {
-  body {
-    overflow-y: scroll !important;
-    -webkit-overflow-scrolling: touch !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-  
-  #root {
-    height: 100vh !important;
-    overflow-y: scroll !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
 }
 
 /* Enhanced responsive design for all devices */

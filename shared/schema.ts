@@ -116,8 +116,6 @@ export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
   attendeeCount: true,
   createdAt: true,
-}).extend({
-  date: z.string().transform((str) => new Date(str)),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({

@@ -564,8 +564,8 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', height: '100vh' }}>
-      <div className="container mx-auto px-4 py-8 max-w-4xl h-full overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-y-auto">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 text-white">
             🌱 TriPlace Community Matching Quiz
