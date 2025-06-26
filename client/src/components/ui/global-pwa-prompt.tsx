@@ -39,13 +39,19 @@ export function GlobalPWAPrompt() {
         return true;
       }
       
-      // Check if installed via navigator
-      if ('getInstalledRelatedApps' in navigator) {
-        (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
-          if (apps.length > 0) {
-            setIsInstalled(true);
-          }
-        });
+      // Check if installed via navigator (only in top-level browsing context)
+      if (window.self === window.top && 'getInstalledRelatedApps' in navigator) {
+        try {
+          (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
+            if (apps.length > 0) {
+              setIsInstalled(true);
+            }
+          }).catch(() => {
+            // Silently fail if API not supported
+          });
+        } catch (error) {
+          // Silently fail if API not available in iframe/embedded context
+        }
       }
       return false;
     };
