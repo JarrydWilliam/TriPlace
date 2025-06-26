@@ -29,7 +29,10 @@ export interface IStorage {
   joinCommunity(userId: number, communityId: number): Promise<CommunityMember>;
   leaveCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserCommunities(userId: number): Promise<Community[]>;
+  getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]>;
   getCommunityMembers(communityId: number): Promise<User[]>;
+  updateCommunityActivity(userId: number, communityId: number): Promise<void>;
+  joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
   
   // Events
   getEvent(id: number): Promise<Event | undefined>;
@@ -519,6 +522,9 @@ export class MemStorage implements IStorage {
       userId,
       communityId,
       joinedAt: new Date(),
+      lastActivityAt: new Date(),
+      activityScore: 1,
+      isActive: true,
     };
     this.communityMembers.set(member.id, member);
     
@@ -554,7 +560,7 @@ export class MemStorage implements IStorage {
 
   async getUserCommunities(userId: number): Promise<Community[]> {
     const userMemberships = Array.from(this.communityMembers.values()).filter(
-      member => member.userId === userId
+      member => member.userId === userId && member.isActive
     );
     
     const communities: Community[] = [];
@@ -568,7 +574,7 @@ export class MemStorage implements IStorage {
 
   async getCommunityMembers(communityId: number): Promise<User[]> {
     const memberships = Array.from(this.communityMembers.values()).filter(
-      member => member.communityId === communityId
+      member => member.communityId === communityId && member.isActive
     );
     
     const users: User[] = [];
@@ -578,6 +584,71 @@ export class MemStorage implements IStorage {
     }
     
     return users;
+  }
+
+  async getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]> {
+    const userMemberships = Array.from(this.communityMembers.values()).filter(
+      member => member.userId === userId && member.isActive
+    );
+    
+    const activeCommunities: (Community & { activityScore: number, lastActivityAt: Date })[] = [];
+    
+    for (const membership of userMemberships) {
+      const community = this.communities.get(membership.communityId);
+      if (community) {
+        activeCommunities.push({
+          ...community,
+          activityScore: membership.activityScore || 0,
+          lastActivityAt: membership.lastActivityAt || new Date(),
+        });
+      }
+    }
+    
+    // Sort by activity score (descending) and last activity (descending)
+    return activeCommunities.sort((a, b) => {
+      if (a.activityScore !== b.activityScore) {
+        return b.activityScore - a.activityScore;
+      }
+      return b.lastActivityAt.getTime() - a.lastActivityAt.getTime();
+    });
+  }
+
+  async updateCommunityActivity(userId: number, communityId: number): Promise<void> {
+    const membership = Array.from(this.communityMembers.values()).find(
+      member => member.userId === userId && member.communityId === communityId && member.isActive
+    );
+    
+    if (membership) {
+      membership.lastActivityAt = new Date();
+      membership.activityScore = (membership.activityScore || 0) + 1;
+      this.communityMembers.set(membership.id, membership);
+    }
+  }
+
+  async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
+    // Check if user already has this community
+    const existingMember = Array.from(this.communityMembers.values()).find(
+      member => member.userId === userId && member.communityId === communityId && member.isActive
+    );
+    
+    if (existingMember) {
+      return { joined: existingMember };
+    }
+    
+    const activeCommunities = await this.getUserActiveCommunities(userId);
+    let droppedCommunity: Community | undefined;
+    
+    // If user has 5 communities, drop the least active one
+    if (activeCommunities.length >= 5) {
+      const leastActive = activeCommunities[activeCommunities.length - 1];
+      await this.leaveCommunity(userId, leastActive.id);
+      droppedCommunity = leastActive;
+    }
+    
+    // Join the new community
+    const newMember = await this.joinCommunity(userId, communityId);
+    
+    return { joined: newMember, dropped: droppedCommunity };
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {

@@ -35,6 +35,9 @@ export const communityMembers = pgTable("community_members", {
   userId: integer("user_id").references(() => users.id).notNull(),
   communityId: integer("community_id").references(() => communities.id).notNull(),
   joinedAt: timestamp("joined_at").defaultNow(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  activityScore: integer("activity_score").default(0),
+  isActive: boolean("is_active").default(true),
 });
 
 export const events = pgTable("events", {
