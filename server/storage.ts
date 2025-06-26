@@ -5,17 +5,17 @@ import {
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, sql, or, asc } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching";
 
 export interface IStorage {
-  // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined>;
   
-  // Communities
   getCommunity(id: number): Promise<Community | undefined>;
   getAllCommunities(): Promise<Community[]>;
   getCommunitiesByCategory(category: string): Promise<Community[]>;
@@ -25,7 +25,6 @@ export interface IStorage {
   createCommunity(community: InsertCommunity): Promise<Community>;
   updateCommunity(id: number, updates: Partial<InsertCommunity>): Promise<Community | undefined>;
   
-  // Community Members
   joinCommunity(userId: number, communityId: number): Promise<CommunityMember>;
   leaveCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserCommunities(userId: number): Promise<Community[]>;
@@ -34,7 +33,6 @@ export interface IStorage {
   updateCommunityActivity(userId: number, communityId: number): Promise<void>;
   joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
   
-  // Events
   getEvent(id: number): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
   getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]>;
@@ -43,1091 +41,538 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
-  // Event Attendees
   registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee>;
   unregisterFromEvent(userId: number, eventId: number): Promise<boolean>;
   getUserEvents(userId: number): Promise<Event[]>;
   getEventAttendees(eventId: number): Promise<User[]>;
   
-  // Messages
   getMessage(id: number): Promise<Message | undefined>;
   getConversation(userId1: number, userId2: number): Promise<Message[]>;
   getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]>;
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
-  // Community Messages
   getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]>;
   sendCommunityMessage(message: InsertMessage & { communityId: number }): Promise<Message>;
   resonateMessage(messageId: number, userId: number): Promise<boolean>;
   
-  // Community Events
   getCommunityEvents(communityId: number): Promise<Event[]>;
   
-  // Kudos
   getKudos(id: number): Promise<Kudos | undefined>;
   getUserKudosReceived(userId: number): Promise<Kudos[]>;
   getUserKudosGiven(userId: number): Promise<Kudos[]>;
   giveKudos(kudos: InsertKudos): Promise<Kudos>;
   
-  // Activity Feed
   getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]>;
   addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private communities: Map<number, Community> = new Map();
-  private events: Map<number, Event> = new Map();
-  private messages: Map<number, Message> = new Map();
-  private kudos: Map<number, Kudos> = new Map();
-  private communityMembers: Map<number, CommunityMember> = new Map();
-  private eventAttendees: Map<number, EventAttendee> = new Map();
-  private activityFeed: Map<number, ActivityFeedItem> = new Map();
-  private messageResonates: Map<number, Set<number>> = new Map(); // messageId -> Set of userIds who resonated
+export class DatabaseStorage implements IStorage {
   
-  private currentUserId = 1;
-  private currentCommunityId = 1;
-  private currentEventId = 1;
-  private currentMessageId = 1;
-  private currentKudosId = 1;
-  private currentCommunityMemberId = 1;
-  private currentEventAttendeeId = 1;
-  private currentActivityId = 1;
-
-  constructor() {
-    this.initializeData();
-  }
-
-  private initializeData() {
-    // Initialize with diverse communities that match quiz interests
-    const communities = [
-      {
-        name: "Mindful Yoga SF",
-        description: "Weekly yoga sessions in Golden Gate Park. Focus on mindfulness, meditation, and inner peace.",
-        category: "wellness",
-        image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 248,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "Bay Area Tech Innovators",
-        description: "Connect with developers, entrepreneurs, and tech enthusiasts. Weekly meetups on programming and startups.",
-        category: "tech",
-        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 1200,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "SF Artists Collective",
-        description: "Creative community for visual arts, painting, and creative expression. Monthly gallery walks and workshops.",
-        category: "arts",
-        image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 340,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "Golden Gate Runners",
-        description: "Running group for fitness enthusiasts. Weekly runs through Golden Gate Park and marathon training.",
-        category: "fitness",
-        image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 580,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "Bay Area Musicians Network",
-        description: "Local musicians connecting for jam sessions, performances, and music collaboration.",
-        category: "music",
-        image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 420,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "SF Food Lovers Unite",
-        description: "Explore restaurants, cooking classes, and food events. Monthly potlucks and culinary adventures.",
-        category: "food",
-        image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 760,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "Bay Area Hiking Adventures",
-        description: "Weekly hikes exploring Mount Tam, Muir Woods, and Bay Area trails. Nature and outdoor adventures.",
-        category: "outdoor",
-        image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 890,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "SF Volunteer Network",
-        description: "Community service and volunteering opportunities. Make a difference while meeting like-minded people.",
-        category: "social",
-        image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 520,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "Young Professionals Network",
-        description: "Career networking, professional development, and business mentorship for ambitious professionals.",
-        category: "business",
-        image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 650,
-        location: "San Francisco, CA",
-      },
-      {
-        name: "SF Social Butterflies",
-        description: "Meet new friends through social events, happy hours, and group activities. Perfect for expanding your social circle.",
-        category: "social",
-        image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-        memberCount: 920,
-        location: "San Francisco, CA",
+  async initializeData() {
+    try {
+      const existingCommunities = await db.select().from(communities).limit(1);
+      if (existingCommunities.length > 0) {
+        return;
       }
-    ];
 
-    communities.forEach(communityData => {
-      const community: Community = {
-        id: this.currentCommunityId++,
-        name: communityData.name,
-        description: communityData.description,
-        category: communityData.category,
-        image: communityData.image,
-        memberCount: communityData.memberCount,
-        isActive: true,
-        location: communityData.location,
-        createdAt: new Date(),
-      };
-      this.communities.set(community.id, community);
-    });
+      const communityData = [
+        {
+          name: "Mindful Yoga SF",
+          description: "Weekly yoga sessions in Golden Gate Park. Focus on mindfulness, meditation, and inner peace.",
+          category: "wellness",
+          image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 248,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Bay Area Tech Innovators",
+          description: "Connect with developers, entrepreneurs, and tech enthusiasts. Weekly meetups on programming and startups.",
+          category: "tech",
+          image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 156,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Urban Sketchers Collective",
+          description: "Explore the city with fellow artists. Weekly drawing sessions at iconic locations across the Bay Area.",
+          category: "creative",
+          image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 89,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Weekend Warriors Hiking Club",
+          description: "Adventure seekers unite! Explore trails, peaks, and hidden gems in Northern California.",
+          category: "outdoor",
+          image: "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 312,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Culinary Explorers Society",
+          description: "Discover new flavors and cooking techniques. Monthly potlucks and restaurant adventures.",
+          category: "food",
+          image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 203,
+          location: "San Francisco, CA",
+          isActive: true
+        }
+      ];
 
-    // Initialize with some sample events
-    const musicEvent: Event = {
-      id: this.currentEventId++,
-      title: "Summer Music Festival",
-      description: "Join us for an amazing evening of live music in the park",
-      organizer: "Golden Gate Park Events",
-      date: new Date("2024-08-12T18:00:00"),
-      location: "Golden Gate Park",
-      address: "Golden Gate Park, San Francisco, CA",
-      price: "$25",
-      image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-      category: "music",
-      tags: ["music", "outdoor", "festival"],
-      attendeeCount: 127,
-      maxAttendees: 500,
-      latitude: "37.7694",
-      longitude: "-122.4862",
-      createdAt: new Date(),
-    };
+      await db.insert(communities).values(communityData);
 
-    const hikingEvent: Event = {
-      id: this.currentEventId++,
-      title: "Weekly Hiking Group",
-      description: "Explore the beautiful trails of Mount Tamalpais",
-      organizer: "Bay Area Hikers",
-      date: new Date("2024-08-13T08:00:00"),
-      location: "Mount Tamalpais",
-      address: "Mount Tamalpais State Park, Mill Valley, CA",
-      price: "Free",
-      image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-      category: "outdoor",
-      tags: ["hiking", "nature", "outdoor"],
-      attendeeCount: 23,
-      maxAttendees: 30,
-      latitude: "37.9235",
-      longitude: "-122.5965",
-      createdAt: new Date(),
-    };
+      const eventData = [
+        {
+          title: "Morning Yoga in the Park",
+          description: "Start your day with peaceful yoga in Golden Gate Park",
+          date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          location: "Golden Gate Park",
+          address: "Golden Gate Park, San Francisco, CA",
+          organizer: "Sarah Chen",
+          category: "wellness",
+          latitude: "37.7694",
+          longitude: "-122.4862",
+          attendeeCount: 12,
+          maxAttendees: 20,
+          image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
+        },
+        {
+          title: "Tech Talk: AI in Web Development",
+          description: "Join us for an insightful discussion on AI tools for developers",
+          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          location: "SF Tech Hub",
+          address: "123 Market St, San Francisco, CA",
+          organizer: "Alex Rodriguez",
+          category: "tech",
+          latitude: "37.7749",
+          longitude: "-122.4194",
+          attendeeCount: 25,
+          maxAttendees: 50,
+          image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
+        }
+      ];
 
-    this.events.set(musicEvent.id, musicEvent);
-    this.events.set(hikingEvent.id, hikingEvent);
+      await db.insert(events).values(eventData);
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+    }
   }
 
-  // Users
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.firebaseUid === firebaseUid);
+    const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const user: User = {
-      id: this.currentUserId++,
-      firebaseUid: insertUser.firebaseUid,
-      email: insertUser.email,
-      name: insertUser.name,
-      avatar: insertUser.avatar ?? null,
-      bio: insertUser.bio ?? null,
-      location: insertUser.location ?? null,
-      latitude: insertUser.latitude ?? null,
-      longitude: insertUser.longitude ?? null,
-      interests: insertUser.interests ?? null,
-      onboardingCompleted: insertUser.onboardingCompleted ?? null,
-      quizAnswers: insertUser.quizAnswers ?? null,
-      createdAt: new Date(),
-    };
-    this.users.set(user.id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user || undefined;
   }
 
-  // Communities
   async getCommunity(id: number): Promise<Community | undefined> {
-    return this.communities.get(id);
+    const [community] = await db.select().from(communities).where(eq(communities.id, id));
+    return community || undefined;
   }
 
   async getAllCommunities(): Promise<Community[]> {
-    return Array.from(this.communities.values());
+    return await db.select().from(communities).where(eq(communities.isActive, true));
   }
 
   async getCommunitiesByCategory(category: string): Promise<Community[]> {
-    return Array.from(this.communities.values()).filter(community => community.category === category);
+    return await db.select().from(communities)
+      .where(and(eq(communities.category, category), eq(communities.isActive, true)));
   }
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
-    const communities = Array.from(this.communities.values());
-    console.log('Total communities available:', communities.length);
-    console.log('User interests:', interests);
+    const allCommunities = await this.getAllCommunities();
     
-    // AI-driven selective matching is now the primary system
-    if (userId) {
-      const user = await this.getUser(userId);
-      if (user) {
-        try {
-          console.log('Using AI-powered selective community matching...');
-          const aiRecommendations = await aiMatcher.generateCommunityRecommendations(user, communities, userLocation);
+    if (userId && interests.length > 0) {
+      try {
+        const user = await this.getUser(userId);
+        if (user) {
+          const userEvents = await this.getUserEvents(userId);
+          const recommendations = await aiMatcher.generateCommunityRecommendations(user, allCommunities, userLocation);
           
-          if (aiRecommendations.length > 0) {
-            // Calculate dynamic member counts for each AI-recommended community
-            const selectiveCommunities = await Promise.all(
-              aiRecommendations.map(async rec => {
-                const dynamicResult = userLocation ? 
-                  await this.getDynamicCommunityMembersWithExpansion(rec.community.id, userLocation, interests) : 
-                  { members: [], radiusUsed: 50 };
-                
-                return {
-                  ...rec.community,
-                  memberCount: dynamicResult.members.length,
-                  searchRadius: dynamicResult.radiusUsed,
-                  // AI-generated personalization metadata
-                  aiMatchScore: rec.matchScore,
-                  aiReasoning: rec.reasoning,
-                  personalizedDescription: rec.personalizedDescription,
-                  suggestedRole: rec.suggestedRole,
-                  connectionType: rec.connectionType || 'Meaningful connections',
-                  growthPotential: rec.growthPotential || 'Personal growth opportunities',
-                  // Mark as AI-curated for selective experience
-                  isAICurated: true,
-                  selectivityLevel: 'high'
-                };
-              })
-            );
-            
-            console.log(`AI curated ${selectiveCommunities.length} highly selective matches`);
-            return selectiveCommunities;
+          if (userEvents.length > 0) {
+            const newCommunities = await aiMatcher.generateMissingCommunities(user);
           }
-        } catch (error) {
-          console.log('AI matching failed, falling back to basic algorithm:', error);
+          
+          return recommendations.map(r => r.community);
         }
+      } catch (error) {
+        console.error('AI matching failed, using fallback:', error);
       }
     }
-    
-    // Fallback to basic algorithm
-    const scoredCommunities = communities.map(community => {
-      const interestScore = this.calculateInterestScore(community, interests);
-      const engagementScore = this.calculateEngagementScore(community);
-      const distanceScore = userLocation ? this.calculateDistanceScore(community, userLocation) : 0.5;
-      
-      const result = {
-        community,
-        interestScore,
-        engagementScore,
-        distanceScore,
-        finalScore: (interestScore * 0.5) + (engagementScore * 0.3) + (distanceScore * 0.2)
-      };
-      
-      console.log(`Community: ${community.name}, Interest Score: ${interestScore}, Final Score: ${result.finalScore}`);
-      return result;
-    })
-    // Show communities with >= 40% interest match (more inclusive)
-    .filter(item => {
-      const passes = item.interestScore >= 0.4;
-      if (!passes) {
-        console.log(`Filtered out: ${item.community.name} (score: ${item.interestScore})`);
-      }
-      return passes;
-    })
-    // Sort by final score (prioritize engagement and new events)
-    .sort((a, b) => b.finalScore - a.finalScore);
 
-    console.log('Communities after filtering:', scoredCommunities.length);
-    return scoredCommunities.map(item => item.community).slice(0, 10);
+    return allCommunities
+      .map(community => ({
+        community,
+        score: this.calculateInterestScore(community, interests) + 
+               this.calculateEngagementScore(community) +
+               (userLocation ? 20 : 0)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map(item => item.community);
   }
 
   private calculateInterestScore(community: Community, userInterests: string[]): number {
-    if (!userInterests.length) return 0.8; // Default high score if no interests specified
-    
-    const communityText = `${community.name} ${community.description} ${community.category}`.toLowerCase();
-    
-    // Enhanced keyword mappings that match quiz responses
-    const categoryKeywords: { [key: string]: string[] } = {
-      'wellness': ['fitness', 'yoga', 'meditation', 'mindfulness', 'spiritual', 'healing', 'therapy', 'health', 'wellbeing'],
-      'fitness': ['fitness', 'yoga', 'running', 'exercise', 'gym', 'workout', 'health', 'training', 'sport', 'wellness'],
-      'tech': ['technology', 'programming', 'coding', 'software', 'developer', 'startup', 'innovation', 'ai', 'computer'],
-      'arts': ['art', 'creative', 'painting', 'drawing', 'design', 'gallery', 'artist', 'craft', 'visual'],
-      'music': ['music', 'band', 'singing', 'instrument', 'concert', 'performance', 'guitar', 'piano', 'audio'],
-      'food': ['cooking', 'food', 'restaurant', 'culinary', 'chef', 'recipe', 'dining', 'cuisine', 'baking'],
-      'outdoor': ['hiking', 'nature', 'adventure', 'camping', 'trail', 'mountain', 'outdoor', 'park', 'environment'],
-      'social': ['social', 'networking', 'friends', 'community', 'volunteer', 'service', 'people', 'connection'],
-      'business': ['business', 'professional', 'career', 'networking', 'entrepreneur', 'leadership', 'work', 'corporate']
-    };
-    
-    let totalScore = 0;
-    
-    for (const userInterest of userInterests) {
-      const interest = userInterest.toLowerCase().trim();
-      let interestMatched = false;
-      
-      // Direct text match in community info
-      if (communityText.includes(interest)) {
-        totalScore += 1.0;
-        interestMatched = true;
-        continue;
-      }
-      
-      // Category-based matching
-      for (const [category, keywords] of Object.entries(categoryKeywords)) {
-        if (community.category === category) {
-          // Check if user interest matches any keywords for this category
-          if (keywords.some(keyword => 
-            interest.includes(keyword) || 
-            keyword.includes(interest) ||
-            interest === keyword
-          )) {
-            totalScore += 0.8; // Strong category match
-            interestMatched = true;
-            break;
-          }
-        }
-      }
-      
-      // Cross-category keyword matching (for overlapping interests)
-      if (!interestMatched) {
-        for (const keywords of Object.values(categoryKeywords)) {
-          if (keywords.some(keyword => 
-            (interest.includes(keyword) || keyword.includes(interest)) &&
-            communityText.includes(keyword)
-          )) {
-            totalScore += 0.6; // Partial cross-category match
-            interestMatched = true;
-            break;
-          }
-        }
-      }
-      
-      // Fallback: partial string matching
-      if (!interestMatched) {
-        const words = interest.split(' ');
-        for (const word of words) {
-          if (word.length > 3 && communityText.includes(word)) {
-            totalScore += 0.3; // Weak word match
-            break;
-          }
-        }
-      }
-    }
-    
-    return Math.min(totalScore / userInterests.length, 1.0);
+    const communityInterests = this.getCommunityInterests(community);
+    const overlap = this.calculateInterestOverlap(userInterests, communityInterests);
+    return overlap * 40;
   }
 
   private calculateEngagementScore(community: Community): number {
     const memberCount = community.memberCount || 0;
-    
-    // Simulate engagement metrics
-    const hasNewPosts = Math.random() > 0.4; // 60% chance of recent posts
-    const hasUpcomingEvents = Math.random() > 0.5; // 50% chance of events
-    const hasRecentActivity = Math.random() > 0.3; // 70% chance of activity
-    
-    let score = 0;
-    
-    // Member count contribution (normalized to 0-0.4)
-    score += Math.min(memberCount / 1000, 0.4);
-    
-    // High engagement bonuses
-    if (hasNewPosts) score += 0.25; // Posts today
-    if (hasUpcomingEvents) score += 0.25; // Events with RSVPs
-    if (hasRecentActivity) score += 0.1; // General activity
-    
-    return Math.min(score, 1.0);
-  }
-
-  private calculateDistanceScore(community: Community, userLocation: { lat: number, lon: number }): number {
-    if (!community.location) return 0; // No location = no proximity bonus
-    
-    // Mock distance calculation - in real app, use actual coordinates
-    const locationDistances: { [key: string]: number } = {
-      'San Francisco': 5,
-      'Oakland': 15,
-      'Berkeley': 20,
-      'San Jose': 45,
-      'Sacramento': 80
-    };
-    
-    const distance = locationDistances[community.location] || 60;
-    
-    // Only communities within 50 miles get points
-    if (distance > 50) return 0;
-    
-    // Closer = higher score
-    return Math.max(0, (50 - distance) / 50);
+    if (memberCount < 10) return 5;
+    if (memberCount < 50) return 15;
+    if (memberCount < 100) return 25;
+    if (memberCount < 200) return 30;
+    return 35;
   }
 
   async createCommunity(insertCommunity: InsertCommunity): Promise<Community> {
-    const community: Community = {
-      ...insertCommunity,
-      id: this.currentCommunityId++,
-      memberCount: 0,
-      createdAt: new Date(),
-    };
-    this.communities.set(community.id, community);
+    const [community] = await db.insert(communities).values(insertCommunity).returning();
     return community;
   }
 
   async updateCommunity(id: number, updates: Partial<InsertCommunity>): Promise<Community | undefined> {
-    const community = this.communities.get(id);
-    if (!community) return undefined;
-    
-    const updatedCommunity = { ...community, ...updates };
-    this.communities.set(id, updatedCommunity);
-    return updatedCommunity;
+    const [community] = await db.update(communities).set(updates).where(eq(communities.id, id)).returning();
+    return community || undefined;
   }
 
-  // Community Members
   async joinCommunity(userId: number, communityId: number): Promise<CommunityMember> {
-    const member: CommunityMember = {
-      id: this.currentCommunityMemberId++,
+    const [member] = await db.insert(communityMembers).values({
       userId,
       communityId,
       joinedAt: new Date(),
       lastActivityAt: new Date(),
       activityScore: 1,
-      isActive: true,
-    };
-    this.communityMembers.set(member.id, member);
-    
-    // Update member count
-    const community = this.communities.get(communityId);
-    if (community) {
-      community.memberCount = (community.memberCount || 0) + 1;
-      this.communities.set(communityId, community);
-    }
-    
+      isActive: true
+    }).returning();
     return member;
   }
 
   async leaveCommunity(userId: number, communityId: number): Promise<boolean> {
-    const memberToRemove = Array.from(this.communityMembers.values()).find(
-      member => member.userId === userId && member.communityId === communityId
-    );
-    
-    if (memberToRemove) {
-      this.communityMembers.delete(memberToRemove.id);
-      
-      // Update member count
-      const community = this.communities.get(communityId);
-      if (community && community.memberCount > 0) {
-        community.memberCount = community.memberCount - 1;
-        this.communities.set(communityId, community);
-      }
-      
-      return true;
-    }
-    return false;
+    const result = await db.delete(communityMembers)
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
+    return (result.rowCount || 0) > 0;
   }
 
   async getUserCommunities(userId: number): Promise<Community[]> {
-    const userMemberships = Array.from(this.communityMembers.values()).filter(
-      member => member.userId === userId && member.isActive
-    );
+    const result = await db.select({
+      community: communities
+    })
+    .from(communityMembers)
+    .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+    .where(eq(communityMembers.userId, userId));
     
-    const communities: Community[] = [];
-    for (const membership of userMemberships) {
-      const community = this.communities.get(membership.communityId);
-      if (community) communities.push(community);
-    }
-    
-    return communities;
-  }
-
-  async getCommunityMembers(communityId: number): Promise<User[]> {
-    const memberships = Array.from(this.communityMembers.values()).filter(
-      member => member.communityId === communityId && member.isActive
-    );
-    
-    const users: User[] = [];
-    for (const membership of memberships) {
-      const user = this.users.get(membership.userId);
-      if (user) users.push(user);
-    }
-    
-    return users;
+    return result.map(r => r.community);
   }
 
   async getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]> {
-    const userMemberships = Array.from(this.communityMembers.values()).filter(
-      member => member.userId === userId && member.isActive
-    );
+    const result = await db.select({
+      community: communities,
+      activityScore: communityMembers.activityScore,
+      lastActivityAt: communityMembers.lastActivityAt
+    })
+    .from(communityMembers)
+    .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+    .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+    .orderBy(desc(communityMembers.lastActivityAt));
     
-    const activeCommunities: (Community & { activityScore: number, lastActivityAt: Date })[] = [];
+    return result.map(r => ({
+      ...r.community,
+      activityScore: r.activityScore || 0,
+      lastActivityAt: r.lastActivityAt || new Date()
+    }));
+  }
+
+  async getCommunityMembers(communityId: number): Promise<User[]> {
+    const result = await db.select({
+      user: users
+    })
+    .from(communityMembers)
+    .innerJoin(users, eq(communityMembers.userId, users.id))
+    .where(eq(communityMembers.communityId, communityId));
     
-    for (const membership of userMemberships) {
-      const community = this.communities.get(membership.communityId);
-      if (community) {
-        activeCommunities.push({
-          ...community,
-          activityScore: membership.activityScore || 0,
-          lastActivityAt: membership.lastActivityAt || new Date(),
-        });
-      }
-    }
-    
-    // Sort by activity score (descending) and last activity (descending)
-    return activeCommunities.sort((a, b) => {
-      if (a.activityScore !== b.activityScore) {
-        return b.activityScore - a.activityScore;
-      }
-      return b.lastActivityAt.getTime() - a.lastActivityAt.getTime();
-    });
+    return result.map(r => r.user);
   }
 
   async updateCommunityActivity(userId: number, communityId: number): Promise<void> {
-    const membership = Array.from(this.communityMembers.values()).find(
-      member => member.userId === userId && member.communityId === communityId && member.isActive
-    );
-    
-    if (membership) {
-      membership.lastActivityAt = new Date();
-      membership.activityScore = (membership.activityScore || 0) + 1;
-      this.communityMembers.set(membership.id, membership);
-    }
+    await db.update(communityMembers)
+      .set({
+        lastActivityAt: new Date(),
+        activityScore: sql`${communityMembers.activityScore} + 1`
+      })
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
   }
 
   async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    // Check if user already has this community
-    const existingMember = Array.from(this.communityMembers.values()).find(
-      member => member.userId === userId && member.communityId === communityId && member.isActive
-    );
+    const userCommunities = await this.getUserActiveCommunities(userId);
     
-    if (existingMember) {
-      return { joined: existingMember };
-    }
+    let dropped: Community | undefined;
     
-    const activeCommunities = await this.getUserActiveCommunities(userId);
-    let droppedCommunity: Community | undefined;
-    
-    // If user has 5 communities, drop the least active one
-    if (activeCommunities.length >= 5) {
-      const leastActive = activeCommunities[activeCommunities.length - 1];
+    if (userCommunities.length >= 5) {
+      const leastActive = userCommunities.reduce((least, current) => 
+        current.activityScore < least.activityScore ? current : least
+      );
+      
       await this.leaveCommunity(userId, leastActive.id);
-      droppedCommunity = leastActive;
+      dropped = leastActive;
     }
     
-    // Join the new community
-    const newMember = await this.joinCommunity(userId, communityId);
-    
-    return { joined: newMember, dropped: droppedCommunity };
+    const joined = await this.joinCommunity(userId, communityId);
+    return { joined, dropped };
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
-    const community = await this.getCommunity(communityId);
-    if (!community) return [];
-
-    // Add some sample users with location data for realistic testing
-    const sampleUsers = [
-      {
-        id: 100,
-        firebaseUid: 'sample-user-1',
-        email: 'alice@example.com',
-        name: 'Alice Johnson',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b62555c6?w=100&h=100&fit=crop&crop=face',
-        bio: 'Outdoor enthusiast and tech professional',
-        location: 'Pleasant View, Utah',
-        latitude: '41.315',
-        longitude: '-111.992',
-        interests: ['hiking', 'technology', 'outdoor adventures', 'fitness'],
-        onboardingCompleted: true,
-        quizAnswers: { pastActivities: ['🥾 A hiking or camping trip'] },
-        createdAt: new Date(),
-      },
-      {
-        id: 101,
-        firebaseUid: 'sample-user-2',
-        email: 'bob@example.com',
-        name: 'Bob Chen',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        bio: 'Yoga instructor and mindfulness coach',
-        location: 'Ogden, Utah',
-        latitude: '41.340',
-        longitude: '-111.985',
-        interests: ['yoga', 'meditation', 'wellness', 'mindfulness'],
-        onboardingCompleted: true,
-        quizAnswers: { pastActivities: ['🧘 A yoga or meditation retreat'] },
-        createdAt: new Date(),
-      },
-      {
-        id: 102,
-        firebaseUid: 'sample-user-3',
-        email: 'carol@example.com',
-        name: 'Carol Martinez',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-        bio: 'Artist and creative professional',
-        location: 'Salt Lake City, Utah',
-        latitude: '40.760',
-        longitude: '-111.891',
-        interests: ['art', 'painting', 'creative expression', 'gallery walks'],
-        onboardingCompleted: true,
-        quizAnswers: { pastActivities: ['🎨 An art class or creative workshop'] },
-        createdAt: new Date(),
-      },
-      // Users at 75-90 miles to test radius expansion
-      {
-        id: 103,
-        firebaseUid: 'sample-user-4',
-        email: 'diana@example.com',
-        name: 'Diana Foster',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
-        bio: 'Marathon runner and fitness coach',
-        location: 'Provo, Utah',
-        latitude: '40.234',
-        longitude: '-111.658',
-        interests: ['running', 'fitness', 'marathon training', 'outdoor adventures'],
-        onboardingCompleted: true,
-        quizAnswers: { pastActivities: ['🏃 A marathon or endurance race'] },
-        createdAt: new Date(),
-      },
-      {
-        id: 104,
-        firebaseUid: 'sample-user-5',
-        email: 'evan@example.com',
-        name: 'Evan Rodriguez',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-        bio: 'Tech entrepreneur and startup mentor',
-        location: 'Park City, Utah',
-        latitude: '40.646',
-        longitude: '-111.498',
-        interests: ['technology', 'entrepreneurship', 'startup mentoring', 'innovation'],
-        onboardingCompleted: true,
-        quizAnswers: { pastActivities: ['💼 A professional networking event'] },
-        createdAt: new Date(),
-      }
-    ];
-
-    // Get all users including samples and filter by location + interest compatibility
-    const allUsersWithSamples = [...Array.from(this.users.values()), ...sampleUsers];
-    const eligibleMembers: User[] = [];
-
-    for (const user of allUsersWithSamples) {
-      // Skip users without location data
-      if (!user.latitude || !user.longitude) continue;
-
-      // Calculate distance using specified radius
-      const distance = this.calculateDistance(
-        userLocation.lat, userLocation.lon,
-        parseFloat(user.latitude), parseFloat(user.longitude)
-      );
-      
-      if (distance > radiusMiles) continue; // Outside specified radius
-
-      // Calculate interest overlap (70% minimum requirement)
-      const userTags = user.interests || [];
-      
-      // Create community-specific interests based on community category
-      const communityInterests = this.getCommunityInterests(community);
-      const interestOverlap = this.calculateInterestOverlap(userTags, [...userInterests, ...communityInterests]);
-      
-      if (interestOverlap >= 0.7) { // 70% interest overlap requirement
-        eligibleMembers.push(user);
-      }
-    }
-
-    return eligibleMembers;
+    return await this.getCommunityMembers(communityId);
   }
 
   async getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }> {
-    console.log(`Searching for community members within 50-mile radius...`);
+    let members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 50);
+    let radiusUsed = 50;
     
-    // Try primary match radius (50 miles) with 70% interest overlap
-    const primaryMembers = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 50);
-    
-    if (primaryMembers.length > 0) {
-      console.log(`Found ${primaryMembers.length} qualifying members within 50 miles`);
-      return { members: primaryMembers, radiusUsed: 50 };
+    if (members.length === 0) {
+      members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 100);
+      radiusUsed = 100;
     }
     
-    // Fallback expansion to 100 miles if no members found
-    console.log(`No qualifying members found within 50 miles. Expanding search to 100 miles...`);
-    const expandedMembers = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 100);
-    
-    console.log(`Found ${expandedMembers.length} qualifying members within 100 miles`);
-    return { members: expandedMembers, radiusUsed: 100 };
+    return { members, radiusUsed };
   }
 
   private getCommunityInterests(community: Community): string[] {
-    const categoryMapping: { [key: string]: string[] } = {
-      'wellness': ['yoga', 'meditation', 'mindfulness', 'fitness', 'health'],
-      'tech': ['technology', 'programming', 'innovation', 'startup'],
-      'arts': ['art', 'painting', 'creative', 'design', 'gallery'],
-      'fitness': ['running', 'exercise', 'marathon', 'training'],
-      'music': ['music', 'band', 'instrument', 'concert'],
-      'food': ['cooking', 'restaurant', 'culinary', 'dining'],
-      'outdoor': ['hiking', 'nature', 'adventure', 'camping'],
-      'social': ['networking', 'friends', 'community', 'volunteer'],
-      'business': ['professional', 'career', 'entrepreneur', 'networking']
+    const categoryInterests: { [key: string]: string[] } = {
+      wellness: ['yoga', 'meditation', 'mindfulness', 'health', 'fitness'],
+      tech: ['programming', 'technology', 'innovation', 'startups', 'ai'],
+      creative: ['art', 'drawing', 'design', 'creativity', 'sketching'],
+      outdoor: ['hiking', 'adventure', 'nature', 'outdoors', 'trails'],
+      food: ['cooking', 'culinary', 'restaurants', 'food', 'recipes']
     };
     
-    return categoryMapping[community.category] || [];
-  }
-
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 3959; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return categoryInterests[community.category] || [];
   }
 
   private calculateInterestOverlap(userInterests: string[], targetInterests: string[]): number {
     if (userInterests.length === 0 || targetInterests.length === 0) return 0;
     
-    const intersection = userInterests.filter(interest => 
-      targetInterests.some(target => 
-        target.toLowerCase().includes(interest.toLowerCase()) ||
-        interest.toLowerCase().includes(target.toLowerCase())
-      )
-    );
+    const userSet = new Set(userInterests.map(i => i.toLowerCase()));
+    const targetSet = new Set(targetInterests.map(i => i.toLowerCase()));
     
-    return intersection.length / Math.max(userInterests.length, targetInterests.length);
+    let matches = 0;
+    for (const interest of userSet) {
+      if (targetSet.has(interest)) matches++;
+    }
+    
+    return matches / Math.max(userInterests.length, targetInterests.length);
   }
 
-  // Events
   async getEvent(id: number): Promise<Event | undefined> {
-    return this.events.get(id);
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event || undefined;
   }
 
   async getAllEvents(): Promise<Event[]> {
-    return Array.from(this.events.values());
+    return await db.select().from(events).orderBy(asc(events.date));
   }
 
   async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]> {
-    // Simple implementation - in production, use proper geo-distance calculation
-    return Array.from(this.events.values()).filter(event => {
-      if (!event.latitude || !event.longitude) return false;
-      
-      const lat1 = parseFloat(latitude);
-      const lon1 = parseFloat(longitude);
-      const lat2 = parseFloat(event.latitude);
-      const lon2 = parseFloat(event.longitude);
-      
-      // Simplified distance calculation
-      const distance = Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2)) * 69; // rough miles conversion
-      return distance <= radiusMiles;
-    });
+    return await this.getAllEvents();
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
-    return Array.from(this.events.values()).filter(event => event.category === category);
+    return await db.select().from(events).where(eq(events.category, category));
   }
 
   async getUpcomingEvents(): Promise<Event[]> {
-    const now = new Date();
-    return Array.from(this.events.values())
-      .filter(event => new Date(event.date) > now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return await db.select().from(events)
+      .where(sql`${events.date} >= NOW()`)
+      .orderBy(asc(events.date));
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
-    const event: Event = {
-      ...insertEvent,
-      id: this.currentEventId++,
-      attendeeCount: 0,
-      createdAt: new Date(),
-    };
-    this.events.set(event.id, event);
+    const [event] = await db.insert(events).values(insertEvent).returning();
     return event;
   }
 
   async updateEvent(id: number, updates: Partial<InsertEvent>): Promise<Event | undefined> {
-    const event = this.events.get(id);
-    if (!event) return undefined;
-    
-    const updatedEvent = { ...event, ...updates };
-    this.events.set(id, updatedEvent);
-    return updatedEvent;
+    const [event] = await db.update(events).set(updates).where(eq(events.id, id)).returning();
+    return event || undefined;
   }
 
-  // Event Attendees
   async registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee> {
-    const attendee: EventAttendee = {
-      id: this.currentEventAttendeeId++,
+    const [attendee] = await db.insert(eventAttendees).values({
       userId,
       eventId,
       status,
-      registeredAt: new Date(),
-    };
-    this.eventAttendees.set(attendee.id, attendee);
-    
-    // Update attendee count
-    const event = this.events.get(eventId);
-    if (event) {
-      event.attendeeCount = (event.attendeeCount || 0) + 1;
-      this.events.set(eventId, event);
-    }
-    
+      registeredAt: new Date()
+    }).returning();
     return attendee;
   }
 
   async unregisterFromEvent(userId: number, eventId: number): Promise<boolean> {
-    const attendeeToRemove = Array.from(this.eventAttendees.values()).find(
-      attendee => attendee.userId === userId && attendee.eventId === eventId
-    );
-    
-    if (attendeeToRemove) {
-      this.eventAttendees.delete(attendeeToRemove.id);
-      
-      // Update attendee count
-      const event = this.events.get(eventId);
-      if (event && event.attendeeCount > 0) {
-        event.attendeeCount = event.attendeeCount - 1;
-        this.events.set(eventId, event);
-      }
-      
-      return true;
-    }
-    return false;
+    const result = await db.delete(eventAttendees)
+      .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.eventId, eventId)));
+    return (result.rowCount || 0) > 0;
   }
 
   async getUserEvents(userId: number): Promise<Event[]> {
-    const userAttendances = Array.from(this.eventAttendees.values()).filter(
-      attendee => attendee.userId === userId
-    );
+    const result = await db.select({
+      event: events
+    })
+    .from(eventAttendees)
+    .innerJoin(events, eq(eventAttendees.eventId, events.id))
+    .where(eq(eventAttendees.userId, userId));
     
-    const events: Event[] = [];
-    for (const attendance of userAttendances) {
-      const event = this.events.get(attendance.eventId);
-      if (event) events.push(event);
-    }
-    
-    return events;
+    return result.map(r => r.event);
   }
 
   async getEventAttendees(eventId: number): Promise<User[]> {
-    const attendances = Array.from(this.eventAttendees.values()).filter(
-      attendee => attendee.eventId === eventId
-    );
+    const result = await db.select({
+      user: users
+    })
+    .from(eventAttendees)
+    .innerJoin(users, eq(eventAttendees.userId, users.id))
+    .where(eq(eventAttendees.eventId, eventId));
     
-    const users: User[] = [];
-    for (const attendance of attendances) {
-      const user = this.users.get(attendance.userId);
-      if (user) users.push(user);
-    }
-    
-    return users;
+    return result.map(r => r.user);
   }
 
-  // Messages
   async getMessage(id: number): Promise<Message | undefined> {
-    return this.messages.get(id);
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message || undefined;
   }
 
   async getConversation(userId1: number, userId2: number): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(message => 
-        (message.senderId === userId1 && message.receiverId === userId2) ||
-        (message.senderId === userId2 && message.receiverId === userId1)
+    return await db.select().from(messages)
+      .where(
+        or(
+          and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
+          and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1))
+        )
       )
-      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+      .orderBy(asc(messages.createdAt));
   }
 
   async getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]> {
-    const userMessages = Array.from(this.messages.values()).filter(
-      message => message.senderId === userId || message.receiverId === userId
-    );
+    const userMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
     
-    const conversations = new Map<number, Message>();
+    const conversations: { user: User, lastMessage: Message }[] = [];
+    const seenUsers = new Set<number>();
     
-    userMessages.forEach(message => {
+    for (const message of userMessages) {
       const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
-      const existing = conversations.get(otherUserId);
       
-      if (!existing || new Date(message.createdAt!) > new Date(existing.createdAt!)) {
-        conversations.set(otherUserId, message);
-      }
-    });
-    
-    const result: { user: User, lastMessage: Message }[] = [];
-    for (const [otherUserId, lastMessage] of conversations) {
-      const user = this.users.get(otherUserId);
-      if (user) {
-        result.push({ user, lastMessage });
+      if (!seenUsers.has(otherUserId)) {
+        const otherUser = await this.getUser(otherUserId);
+        if (otherUser) {
+          conversations.push({ user: otherUser, lastMessage: message });
+          seenUsers.add(otherUserId);
+        }
       }
     }
     
-    return result.sort((a, b) => 
-      new Date(b.lastMessage.createdAt!).getTime() - new Date(a.lastMessage.createdAt!).getTime()
-    );
+    return conversations;
   }
 
   async sendMessage(insertMessage: InsertMessage): Promise<Message> {
-    const message: Message = {
+    const [message] = await db.insert(messages).values({
       ...insertMessage,
-      id: this.currentMessageId++,
-      isRead: false,
       createdAt: new Date(),
-    };
-    this.messages.set(message.id, message);
+      isRead: false
+    }).returning();
     return message;
   }
 
   async markMessageAsRead(id: number): Promise<boolean> {
-    const message = this.messages.get(id);
-    if (message) {
-      message.isRead = true;
-      this.messages.set(id, message);
-      return true;
-    }
-    return false;
+    const result = await db.update(messages).set({ isRead: true }).where(eq(messages.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
-  // Kudos
   async getKudos(id: number): Promise<Kudos | undefined> {
-    return this.kudos.get(id);
+    const [kudosRecord] = await db.select().from(kudos).where(eq(kudos.id, id));
+    return kudosRecord || undefined;
   }
 
   async getUserKudosReceived(userId: number): Promise<Kudos[]> {
-    return Array.from(this.kudos.values()).filter(kudos => kudos.receiverId === userId);
+    return await db.select().from(kudos).where(eq(kudos.receiverId, userId));
   }
 
   async getUserKudosGiven(userId: number): Promise<Kudos[]> {
-    return Array.from(this.kudos.values()).filter(kudos => kudos.giverId === userId);
+    return await db.select().from(kudos).where(eq(kudos.giverId, userId));
   }
 
   async giveKudos(insertKudos: InsertKudos): Promise<Kudos> {
-    const kudos: Kudos = {
+    const [kudosRecord] = await db.insert(kudos).values({
       ...insertKudos,
-      id: this.currentKudosId++,
-      createdAt: new Date(),
-    };
-    this.kudos.set(kudos.id, kudos);
-    
-    // Add to activity feed
-    await this.addActivityItem(kudos.receiverId, 'kudos_received', {
-      giverId: kudos.giverId,
-      message: kudos.message,
-      type: kudos.type,
-    });
-    
-    return kudos;
+      createdAt: new Date()
+    }).returning();
+    return kudosRecord;
   }
 
-  // Activity Feed
   async getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]> {
-    return Array.from(this.activityFeed.values())
-      .filter(activity => activity.userId === userId)
-      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
-      .slice(0, 50);
+    return await db.select().from(activityFeed)
+      .where(eq(activityFeed.userId, userId))
+      .orderBy(desc(activityFeed.createdAt));
   }
 
   async addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem> {
-    const activity: ActivityFeedItem = {
-      id: this.currentActivityId++,
+    const [activity] = await db.insert(activityFeed).values({
       userId,
       type,
-      content,
-      createdAt: new Date(),
-    };
-    this.activityFeed.set(activity.id, activity);
+      content: JSON.stringify(content),
+      createdAt: new Date()
+    }).returning();
     return activity;
   }
 
-  // Community Messages Implementation
   async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
-    const communityMessages = Array.from(this.messages.values())
-      .filter(message => message.receiverId === 0) // Community messages use receiverId 0
-      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
-
-    const result = [];
-    for (const message of communityMessages) {
-      const sender = this.users.get(message.senderId);
-      const resonateCount = this.messageResonates.get(message.id)?.size || 0;
-      
-      if (sender) {
-        result.push({
-          ...message,
-          sender,
-          resonateCount
-        });
-      }
-    }
-
-    return result;
+    return [];
   }
 
   async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
-    const message: Message = {
-      id: this.currentMessageId++,
+    const [message] = await db.insert(messages).values({
       senderId: messageData.senderId,
-      receiverId: 0, // Community messages use 0
+      receiverId: messageData.receiverId,
       content: messageData.content,
-      isRead: false,
       createdAt: new Date(),
-    };
-    
-    this.messages.set(message.id, message);
-    this.messageResonates.set(message.id, new Set());
+      isRead: false
+    }).returning();
     return message;
   }
 
   async resonateMessage(messageId: number, userId: number): Promise<boolean> {
-    let resonates = this.messageResonates.get(messageId);
-    if (!resonates) {
-      resonates = new Set();
-      this.messageResonates.set(messageId, resonates);
-    }
-    
-    if (resonates.has(userId)) {
-      resonates.delete(userId); // Unlike/unreact
-    } else {
-      resonates.add(userId); // Like/react
-    }
-    
     return true;
   }
 
   async getCommunityEvents(communityId: number): Promise<Event[]> {
-    const community = this.communities.get(communityId);
-    if (!community) return [];
-
-    // Return events that match the community category
-    return Array.from(this.events.values())
-      .filter(event => event.category === community.category)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return await this.getAllEvents();
   }
 }
 
-export const storage = new MemStorage();
+const databaseStorage = new DatabaseStorage();
+databaseStorage.initializeData();
+
+export const storage = databaseStorage;
