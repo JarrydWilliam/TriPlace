@@ -162,107 +162,54 @@ export default function Dashboard() {
                     <DropdownMenuSeparator />
                     
                     {/* Profile Settings */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
+                    <Link href="/settings/profile">
+                      <DropdownMenuItem>
                         <UserIcon className="mr-2 h-4 w-4" />
                         Profile
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setProfileDialogOpen(true)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Camera className="mr-2 h-4 w-4" />
-                          Change Photo
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <MapPin className="mr-2 h-4 w-4" />
-                          Update Location
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                      </DropdownMenuItem>
+                    </Link>
 
                     {/* Account Settings */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
+                    <Link href="/settings/account">
+                      <DropdownMenuItem>
                         <Mail className="mr-2 h-4 w-4" />
                         Account
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setAccountDialogOpen(true)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Change Email/Password
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Smartphone className="mr-2 h-4 w-4" />
-                          Connect Google/Apple
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Account
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                      </DropdownMenuItem>
+                    </Link>
 
                     {/* Notifications */}
-                    <DropdownMenuItem onClick={() => setNotificationsDialogOpen(true)}>
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                    </DropdownMenuItem>
+                    <Link href="/settings/notifications">
+                      <DropdownMenuItem>
+                        <Bell className="mr-2 h-4 w-4" />
+                        Notifications
+                      </DropdownMenuItem>
+                    </Link>
 
                     {/* Community Preferences */}
-                    <DropdownMenuItem onClick={() => setCommunityPrefsDialogOpen(true)}>
-                      <Users className="mr-2 h-4 w-4" />
-                      Community Preferences
-                    </DropdownMenuItem>
+                    <Link href="/settings/community">
+                      <DropdownMenuItem>
+                        <Users className="mr-2 h-4 w-4" />
+                        Community Preferences
+                      </DropdownMenuItem>
+                    </Link>
 
                     {/* Security */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
+                    <Link href="/settings/security">
+                      <DropdownMenuItem>
                         <Shield className="mr-2 h-4 w-4" />
                         Security
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setSecurityDialogOpen(true)}>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Two-Factor Auth
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Smartphone className="mr-2 h-4 w-4" />
-                          Logged-in Devices
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <LogOut className="mr-2 h-4 w-4" />
-                          Logout Everywhere
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                      </DropdownMenuItem>
+                    </Link>
 
                     <DropdownMenuSeparator />
 
                     {/* Support */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
+                    <Link href="/settings/support">
+                      <DropdownMenuItem>
                         <HelpCircle className="mr-2 h-4 w-4" />
                         Support
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem>
-                          <HelpCircle className="mr-2 h-4 w-4" />
-                          Help Center
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <AlertTriangle className="mr-2 h-4 w-4" />
-                          Report a Bug
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Send Feedback
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                      </DropdownMenuItem>
+                    </Link>
 
                     {/* About / Legal */}
                     <DropdownMenuSub>

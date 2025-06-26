@@ -12,6 +12,12 @@ import Onboarding from "@/pages/onboarding";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
 import Community from "@/pages/community";
+import ProfileSettings from "@/pages/settings/profile";
+import AccountSettings from "@/pages/settings/account";
+import NotificationSettings from "@/pages/settings/notifications";
+import CommunitySettings from "@/pages/settings/community";
+import SecuritySettings from "@/pages/settings/security";
+import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -49,6 +55,12 @@ function Router() {
       <Route path="/messaging" component={Messaging} />
       <Route path="/messages" component={Messaging} />
       <Route path="/community/:communityId" component={Community} />
+      <Route path="/settings/profile" component={ProfileSettings} />
+      <Route path="/settings/account" component={AccountSettings} />
+      <Route path="/settings/notifications" component={NotificationSettings} />
+      <Route path="/settings/community" component={CommunitySettings} />
+      <Route path="/settings/security" component={SecuritySettings} />
+      <Route path="/settings/support" component={SupportSettings} />
       <Route path="/discover" component={Dashboard} />
       <Route path="/communities" component={Dashboard} />
       <Route path="/kudos" component={Dashboard} />
