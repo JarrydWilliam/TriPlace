@@ -14,6 +14,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
+import { ComponentLoadingSpinner } from "@/components/loading-spinner";
+import { InlineErrorMessage } from "@/components/ui/error-message";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -36,7 +38,7 @@ export default function Dashboard() {
   });
 
   // Fetch recommended communities and users
-  const { data: recommendations, isLoading: recommendationsLoading } = useQuery({
+  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery({
     queryKey: ["/api/communities/recommended", latitude, longitude, user?.id],
     enabled: !!user && !!latitude && !!longitude,
     queryFn: async () => {
@@ -74,11 +76,7 @@ export default function Dashboard() {
   };
 
   if (authLoading || locationLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    return <ComponentLoadingSpinner text="Loading your dashboard..." />;
   }
 
   if (!user) {
@@ -360,8 +358,19 @@ export default function Dashboard() {
                 {/* New Communities */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 New Communities</h4>
-                  {Array.isArray(recommendations) && recommendations.slice(0, 2).map((community: Community) => (
-                    <div key={community.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  {recommendationsLoading ? (
+                    <div className="p-4 text-center">
+                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Finding your perfect communities...</p>
+                    </div>
+                  ) : recommendationsError ? (
+                    <InlineErrorMessage 
+                      message="Unable to load community recommendations" 
+                      onRetry={() => window.location.reload()}
+                    />
+                  ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
+                    recommendations.slice(0, 2).map((community: Community) => (
+                      <div key={community.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-center space-x-2 mb-1">
                         <span className="text-sm">🌟</span>
                         <h5 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -384,7 +393,12 @@ export default function Dashboard() {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      <p className="text-sm">No communities found yet. Complete your quiz to get personalized recommendations!</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Trending Events */}
