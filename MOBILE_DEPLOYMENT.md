@@ -24,7 +24,7 @@ npm install -g @expo/eas-cli
 ### 2. Configure Your Replit URL
 Update `mobile/App.js` line 11:
 ```javascript
-const replitUrl = 'https://YOUR-ACTUAL-REPLIT-URL.repl.co';
+const replitUrl = 'https://TriPlaceApp.replit.app';
 ```
 Replace with your live Replit deployment URL.
 

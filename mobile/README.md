@@ -12,7 +12,7 @@ npm install
 
 2. Update the Replit URL in `App.js`:
 ```javascript
-const replitUrl = 'https://your-actual-replit-url.repl.co';
+const replitUrl = 'https://TriPlaceApp.replit.app';
 ```
 
 3. Run the mobile app:
