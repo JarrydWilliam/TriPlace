@@ -127,7 +127,14 @@ export default function DashboardMobile() {
   });
 
   if (authLoading || locationLoading) {
-    return <ComponentLoadingSpinner text="Loading your dashboard..." />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <ComponentLoadingSpinner />
+          <p className="mt-2 text-sm text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
