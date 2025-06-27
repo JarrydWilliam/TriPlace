@@ -241,6 +241,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's monthly kudos count
+  app.get("/api/users/:id/kudos/monthly", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentMonth = new Date();
+      currentMonth.setDate(1);
+      currentMonth.setHours(0, 0, 0, 0);
+      
+      const kudos = await storage.getUserKudosReceived(userId);
+      const monthlyKudos = kudos.filter(k => k.createdAt && new Date(k.createdAt) >= currentMonth);
+      
+      res.json({ count: monthlyKudos.length });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get user's active challenges
+  app.get("/api/users/:id/challenges", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Generate dynamic challenges based on user activity
+      const userCommunities = await storage.getUserCommunities(userId);
+      const userEvents = await storage.getUserEvents(userId);
+      const userKudos = await storage.getUserKudosReceived(userId);
+      
+      const challenges = [];
+      
+      // Challenge 1: Community engagement
+      if (userCommunities.length > 0) {
+        challenges.push({
+          id: "community-engagement",
+          title: "🎯 Join 3 community discussions this week",
+          progress: Math.min((userCommunities.length / 3) * 100, 100),
+          target: 3,
+          current: userCommunities.length
+        });
+      }
+      
+      // Challenge 2: Event participation
+      challenges.push({
+        id: "event-participation", 
+        title: "📅 Attend 2 events this week",
+        progress: Math.min((userEvents.length / 2) * 100, 100),
+        target: 2,
+        current: userEvents.length
+      });
+      
+      // Challenge 3: Community building
+      challenges.push({
+        id: "community-building",
+        title: "🤝 Earn 5 kudos from community members", 
+        progress: Math.min((userKudos.length / 5) * 100, 100),
+        target: 5,
+        current: userKudos.length
+      });
+      
+      res.json(challenges);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Update current user's location
   app.patch("/api/users/current/location", async (req, res) => {
     try {

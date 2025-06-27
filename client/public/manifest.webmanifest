@@ -4,102 +4,51 @@
   "description": "Where genuine connection, shared passions, and meaningful community are always just around the corner.",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
   "theme_color": "#f59e0b",
-  "background_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "scope": "/",
   "categories": ["social", "lifestyle", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/apple-touch-icon.png",
-      "sizes": "57x57",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "60x60",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "76x76",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "114x114",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "120x120",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "167x167",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/apple-touch-icon.png?v=2025",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512", 
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Dashboard",
       "short_name": "Home",
-      "description": "Go to your dashboard",
-      "url": "/dashboard"
+      "description": "View your personalized dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/apple-touch-icon.png", "sizes": "96x96" }]
     },
     {
       "name": "Communities",
-      "short_name": "Communities", 
-      "description": "Browse your communities",
-      "url": "/communities"
+      "short_name": "Communities",
+      "description": "Explore your communities",
+      "url": "/communities",
+      "icons": [{ "src": "/apple-touch-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Create Event",
+      "short_name": "Create",
+      "description": "Create a new community event",
+      "url": "/create-event",
+      "icons": [{ "src": "/apple-touch-icon.png", "sizes": "96x96" }]
     }
   ],
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "prefer_related_applications": false,
-  "scope": "/",
-  "launch_handler": {
-    "client_mode": ["navigate-existing", "auto"]
-  }
+  "related_applications": [],
+  "capture_links": "existing-client-navigate"
 }
