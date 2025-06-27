@@ -802,6 +802,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all data for fresh deployment (development only)
+  app.post("/api/admin/clear-data", async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "Data clearing not allowed in production" });
+      }
+      
+      await (storage as any).clearAllData();
+      res.json({ message: "All data cleared successfully for fresh deployment" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to clear data: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
