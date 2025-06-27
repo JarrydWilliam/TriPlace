@@ -36,19 +36,10 @@
       "url": "/communities"
     }
   ],
-  "display_override": ["standalone", "minimal-ui", "browser"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "prefer_related_applications": false,
-  "related_applications": [],
   "scope": "/",
-  "id": "triplace-app",
-  "dir": "ltr",
-  "lang": "en",
-  "iarc_rating_id": "",
-  "edge_side_panel": {},
-  "protocol_handlers": [],
-  "file_handlers": [],
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
-  },
-  "capture_links": "new-client"
+  }
 }

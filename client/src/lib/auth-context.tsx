@@ -57,12 +57,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         } catch (error) {
           console.error('Error handling user authentication:', error);
-          // If there's an error fetching user data, sign out to reset state
-          if (firebaseUser) {
-            await auth.signOut();
-            setFirebaseUser(null);
-            setUser(null);
-          }
         }
       } else {
         setUser(null);
