@@ -9,13 +9,19 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { ProductionWrapper } from "@/components/production-ready";
 
 import { useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard-mobile";
-import Onboarding from "@/pages/onboarding-mobile";
-import Profile from "@/pages/profile-mobile";
-import Messaging from "@/pages/messaging-mobile";
+import DashboardMobile from "@/pages/dashboard-mobile";
+import DashboardDesktop from "@/pages/dashboard";
+import OnboardingMobile from "@/pages/onboarding-mobile";
+import OnboardingDesktop from "@/pages/onboarding";
+import ProfileMobile from "@/pages/profile-mobile";
+import ProfileDesktop from "@/pages/profile";
+import MessagingMobile from "@/pages/messaging-mobile";
+import MessagingDesktop from "@/pages/messaging";
 import CommunityPage from "@/pages/community";
-import CreateEvent from "@/pages/create-event-mobile";
+import CreateEventMobile from "@/pages/create-event-mobile";
+import CreateEventDesktop from "@/pages/create-event";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";
 import NotificationSettings from "@/pages/settings/notifications";
@@ -24,9 +30,36 @@ import SecuritySettings from "@/pages/settings/security";
 import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
 
+// Responsive component wrappers
+function Dashboard() {
+  const isMobile = useIsMobile();
+  return isMobile ? <DashboardMobile /> : <DashboardDesktop />;
+}
+
+function Onboarding() {
+  const isMobile = useIsMobile();
+  return isMobile ? <OnboardingMobile /> : <OnboardingDesktop />;
+}
+
+function Profile() {
+  const isMobile = useIsMobile();
+  return isMobile ? <ProfileMobile /> : <ProfileDesktop />;
+}
+
+function Messaging() {
+  const isMobile = useIsMobile();
+  return isMobile ? <MessagingMobile /> : <MessagingDesktop />;
+}
+
+function CreateEvent() {
+  const isMobile = useIsMobile();
+  return isMobile ? <CreateEventMobile /> : <CreateEventDesktop />;
+}
+
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
   const [location, setLocation] = useLocation();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
