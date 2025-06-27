@@ -1,79 +1,98 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Switch, Route, useLocation } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { ThemeProvider } from "@/lib/theme-context";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { GlobalPWAPrompt } from "@/components/ui/global-pwa-prompt";
+import { useEffect } from "react";
+import Landing from "@/pages/landing";
+import Dashboard from "@/pages/dashboard";
+import Onboarding from "@/pages/onboarding";
+import Profile from "@/pages/profile";
+import Messaging from "@/pages/messaging";
+import Community from "@/pages/community";
+import CreateEvent from "@/pages/create-event";
+import ProfileSettings from "@/pages/settings/profile";
+import AccountSettings from "@/pages/settings/account";
+import NotificationSettings from "@/pages/settings/notifications";
+import CommunitySettings from "@/pages/settings/community";
+import SecuritySettings from "@/pages/settings/security";
+import SupportSettings from "@/pages/settings/support";
+import NotFound from "@/pages/not-found";
 
-// Contexts
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { LocationProvider } from './contexts/LocationContext';
+function Router() {
+  const { user, firebaseUser, loading } = useAuth();
+  const [location, setLocation] = useLocation();
 
-// Screens converted to web components
-import LoginScreen from './screens/LoginScreen';
-import OnboardingScreen from './screens/OnboardingScreen';
-import DashboardScreen from './screens/DashboardScreen';
-import CommunitiesScreen from './screens/CommunitiesScreen';
-import CommunityDetailScreen from './screens/CommunityDetailScreen';
-import MessagesScreen from './screens/MessagesScreen';
-import ProfileScreen from './screens/ProfileScreen';
-import CreateEventScreen from './screens/CreateEventScreen';
+  useEffect(() => {
+    if (!loading && firebaseUser && user) {
+      // Check if user needs to complete onboarding
+      const needsOnboarding = !user.onboardingCompleted;
+      const isOnOnboardingPage = location === '/onboarding';
+      
+      if (needsOnboarding && !isOnOnboardingPage) {
+        setLocation('/onboarding');
+      } else if (!needsOnboarding && isOnOnboardingPage) {
+        setLocation('/dashboard');
+      }
+    }
+  }, [user, firebaseUser, loading, location, setLocation]);
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 2,
-      staleTime: 5 * 60 * 1000,
-    },
-  },
-});
-
-function AppNavigator() {
-  const { user, loading } = useAuth();
-  
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-900 overflow-hidden">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
   }
-  
+
   return (
-    <Router>
-      <Routes>
-        {user ? (
-          user.hasCompletedOnboarding ? (
-            <>
-              <Route path="/" element={<DashboardScreen />} />
-              <Route path="/communities" element={<CommunitiesScreen />} />
-              <Route path="/community/:id" element={<CommunityDetailScreen />} />
-              <Route path="/messages" element={<MessagesScreen />} />
-              <Route path="/profile" element={<ProfileScreen />} />
-              <Route path="/create-event" element={<CreateEventScreen />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </>
-          ) : (
-            <>
-              <Route path="/onboarding" element={<OnboardingScreen />} />
-              <Route path="*" element={<Navigate to="/onboarding" replace />} />
-            </>
-          )
-        ) : (
-          <>
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </>
-        )}
-      </Routes>
-    </Router>
+    <div className="h-screen overflow-hidden">
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/onboarding" component={Onboarding} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/profile/:userId" component={Profile} />
+        <Route path="/messaging" component={Messaging} />
+        <Route path="/messages" component={Messaging} />
+        <Route path="/community/:communityId" component={Community} />
+        <Route path="/create-event" component={CreateEvent} />
+        <Route path="/settings/profile" component={ProfileSettings} />
+        <Route path="/settings/account" component={AccountSettings} />
+        <Route path="/settings/notifications" component={NotificationSettings} />
+        <Route path="/settings/community" component={CommunitySettings} />
+        <Route path="/settings/security" component={SecuritySettings} />
+        <Route path="/settings/support" component={SupportSettings} />
+        <Route path="/discover" component={Dashboard} />
+        <Route path="/communities" component={Dashboard} />
+        <Route path="/kudos" component={Dashboard} />
+        {/* Fallback to 404 */}
+        <Route component={NotFound} />
+      </Switch>
+    </div>
   );
 }
 
-export default function App() {
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <LocationProvider>
-            <AppNavigator />
-          </LocationProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <GlobalPWAPrompt />
+              <Router />
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
+
+export default App;

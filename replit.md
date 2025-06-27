@@ -1,57 +1,54 @@
-# TriPlace - Mobile Social Platform
+# TriPlace - Social Platform
 
 ## Overview
 
-TriPlace is a React Native mobile application that connects people through location-aware communities and authentic social interactions. Built with Expo and modern mobile development practices, it provides a native mobile experience for discovering and engaging with local communities.
+TriPlace is a full-stack social platform that connects people through shared experiences, communities, and events. Built with a modern tech stack, it features a React frontend with Express.js backend, utilizing PostgreSQL for data persistence and Firebase for authentication.
 
 ## System Architecture
 
 ### Technology Stack
-- **Framework**: React Native with Expo
-- **Navigation**: React Navigation v6
-- **State Management**: TanStack Query (React Query)
+- **Frontend**: React 18 with TypeScript, Vite build tool
+- **Backend**: Express.js with TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Firebase Auth
-- **Database**: Firebase Firestore
-- **Location Services**: Expo Location
-- **UI Components**: React Native Paper + Custom Components
-- **Icons**: React Native Vector Icons (Material Icons)
-- **Theme**: Custom theme system with light/dark/system modes
+- **UI Components**: Radix UI with shadcn/ui components
+- **Styling**: Tailwind CSS
+- **State Management**: TanStack Query (React Query)
+- **Routing**: Wouter (lightweight React router)
 
 ### Project Structure
 ```
-├── src/
-│   ├── contexts/    # React contexts (Auth, Theme, Location)
-│   ├── screens/     # App screens and navigation
-│   ├── components/  # Reusable UI components
-│   ├── services/    # API and external service integrations
-│   └── types/       # TypeScript type definitions
-├── assets/          # App icons, splash screens, images
-├── App.tsx          # Main app component with navigation
-└── expo.json        # Expo configuration
+├── client/          # React frontend application
+├── server/          # Express.js backend API
+├── shared/          # Shared TypeScript types and schemas
+├── migrations/      # Database migration files
+└── dist/           # Production build output
 ```
 
 ## Key Components
 
-### Mobile Architecture
-- **Native Experience**: React Native components optimized for iOS and Android
-- **Navigation**: Stack and tab navigation with React Navigation
+### Frontend Architecture
+- **Component-based**: Modular React components with TypeScript
+- **UI System**: Comprehensive design system using Radix UI primitives
 - **State Management**: TanStack Query for server state, React Context for app state
-- **Location Services**: GPS-based community discovery with Expo Location
-- **Theme Support**: Dynamic theme switching with system preference detection
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Theme Support**: Built-in light/dark theme switching
 
-### Firebase Integration
-- **Authentication**: Email/password and Google sign-in
-- **Database**: Firestore for real-time data synchronization
-- **Storage**: Firebase Storage for profile pictures and media
-- **Push Notifications**: Firebase Cloud Messaging support
+### Backend Architecture
+- **RESTful API**: Express.js with TypeScript for type safety
+- **Database Layer**: Drizzle ORM with PostgreSQL for data persistence
+- **Authentication**: Firebase Authentication integration
+- **Session Management**: Express sessions with PostgreSQL store
+- **File Structure**: Modular route handlers and storage abstraction
 
-### Core Features
-- **Authentication Flow**: Registration, login, and profile management
-- **Location Services**: GPS-based community and event discovery
-- **Communities**: Interest-based groups with real-time messaging
-- **Events**: Create and join local events with attendance tracking
-- **Messaging**: Direct messaging between community members
-- **Profile Management**: User profiles with interests and preferences
+### Database Schema
+Core entities include:
+- **Users**: Firebase UID integration, profiles, interests
+- **Communities**: Category-based groupings with membership tracking
+- **Events**: Location-aware events with attendance management
+- **Messages**: Direct messaging between users
+- **Kudos**: Recognition system for user interactions
+- **Activity Feed**: Real-time activity tracking
 
 ## Data Flow
 
@@ -359,93 +356,6 @@ Changelog:
   - Added smart dismissal system with 6-hour cooldown period for user convenience
   - Fixed Google login with improved error messages and popup configuration
   - Global PWA system ensures installation prompt works universally across the entire app
-
-- June 26, 2025. Implemented comprehensive deployment readiness system for live updates
-  - Created deployment status monitoring system with real-time configuration checks
-  - Built automatic update detection system using version endpoints for cache invalidation
-  - Enhanced service worker with dynamic cache naming for production update distribution
-  - Implemented production feature initialization including security hardening
-  - Added performance monitoring system for production environments
-  - Created version endpoint API for client-server update synchronization
-  - Built force update mechanism to ensure all users receive latest deployments
-  - Comprehensive error handling and fallback systems for production stability
-  - All features configured to automatically propagate updates on redeployment
-  - Application fully prepared for seamless live deployment with automatic user updates
-
-- June 26, 2025. Finalized production-ready live application deployment system
-  - Built comprehensive production middleware with security headers, compression, and rate limiting
-  - Created advanced service worker system with automatic cache invalidation and update propagation
-  - Implemented health check endpoints for production monitoring and status verification
-  - Added offline fallback page with branded design and connection retry mechanisms
-  - Created production configuration system with feature flags and environment-specific settings
-  - Built automatic update detection with user prompts for seamless version updates
-  - Enhanced error handling with production-appropriate error messages and logging
-  - Implemented performance monitoring with memory usage and response time tracking
-  - All systems configured for immediate deployment with automatic user update propagation
-  - Complete production-ready infrastructure ensures reliable live app operation with zero-downtime updates
-
-- June 26, 2025. Implemented comprehensive email authentication alongside Google sign-in
-  - Added Firebase email/password authentication methods with robust error handling
-  - Created EmailSignupForm component with dual sign-up/sign-in functionality
-  - Integrated password reset functionality and comprehensive validation
-  - Enhanced authentication flow with seamless switching between Google and email methods
-  - Fixed Safari reload issues with cache control headers and navigation handling
-  - Added proper form validation, password visibility toggles, and user feedback
-  - Authentication now supports both Google OAuth and email/password for all users
-  - Requires Firebase console configuration to enable email/password authentication method
-
-- June 26, 2025. Fixed Google sign-in errors and enhanced PWA installation system
-  - Completely overhauled Google authentication with better error handling and debugging
-  - Created fresh Google provider instances to avoid stale authentication state
-  - Added comprehensive error messages for all Firebase authentication error codes
-  - Built device-specific PWA installation instructions component for iOS, Android, and desktop
-  - Enhanced PWA prompt to show detailed step-by-step installation guides instead of generic messages
-  - Fixed authentication initialization checks and environment variable validation
-  - Google sign-in now provides clear error messages and fallback guidance for users
-  - PWA installation instructions automatically detect device type and browser for optimal guidance
-
-- June 26, 2025. Implemented mobile-optimized Google authentication with redirect flow
-  - Added mobile device detection to use redirect authentication instead of popup for iPhone/Android
-  - Implemented getRedirectResult handling for seamless mobile Google sign-in experience
-  - Desktop devices continue using popup method while mobile devices use redirect for domain authorization
-  - Enhanced error messaging specifically for "unauthorized domain" errors with setup instructions
-  - Mobile users now get proper Google authentication flow that works with Firebase domain restrictions
-  - Auth context automatically handles redirect results on app initialization for mobile sign-in completion
-
-- June 26, 2025. Integrated custom logo as app icon for PWA installation across all devices
-  - Replaced all placeholder icons with user's custom logo for professional branding
-  - Added comprehensive Apple-specific icon sizes (57x57 through 180x180) for iPhone compatibility
-  - Updated PWA manifest with proper icon references for "Add to Home Screen" functionality
-  - Enhanced HTML meta tags with apple-touch-icon links for iOS home screen installation
-  - Logo now displays correctly when users install the app on iPhone, Android, and desktop devices
-  - Removed all placeholder imagery to ensure complete live production app experience
-
-- June 27, 2025. Production deployment preparation and demo data removal
-  - Completely removed all demo/mock data from dashboard components
-  - Implemented authentic API endpoints for kudos tracking and user challenges
-  - Enhanced Firestore security rules with proper authentication and authorization
-  - Created comprehensive PWA manifest with shortcuts and proper icon configuration
-  - Added 404 error page and Netlify redirects for production hosting
-  - Fixed mobile scrolling issues and responsive component routing
-  - Database reset for fresh user experience - no existing data or demo content
-  - All features now use authentic data sources with proper error handling
-  - Application ready for production deployment with security-first approach
-
-- June 27, 2025. COMPLETE REACT NATIVE MIGRATION WITH EXPO FRAMEWORK
-  - Migrated entire application from web-based React to React Native with Expo
-  - Removed all desktop/web code, demo data, and hardcoded content for clean mobile architecture
-  - Created comprehensive React Native app structure with proper navigation, contexts, and screens
-  - Implemented Firebase authentication with email/password and proper mobile integration
-  - Built location-aware features using Expo Location with GPS and permission handling
-  - Created native mobile screens: Login, Onboarding, Dashboard, Communities, Community Detail, Messages, Profile, Create Event
-  - Implemented React Navigation with tab and stack navigation for native mobile experience
-  - Added comprehensive theme system with light/dark/system modes using React Native's useColorScheme
-  - Built real-time messaging interface with Firebase Firestore integration
-  - Created location-based community discovery with native mobile UI patterns
-  - Implemented event creation and management with mobile-optimized forms and date/time pickers
-  - Added profile management with photo upload capabilities and settings management
-  - Configured Expo build system with proper permissions, icons, and platform-specific settings
-  - Complete mobile-native application ready for iOS and Android deployment through Expo/EAS
 ```
 
 ## User Preferences
