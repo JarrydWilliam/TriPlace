@@ -70,8 +70,8 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   
   async initializeData() {
-    // Database starts clean for live deployment - no demo data
-    console.log('Database ready for live deployment - no demo data initialized');
+    // Clean deployment - all data will be user-generated
+    console.log('Clean deployment ready - all user data cleared for authentic experience');
   }
 
   async getUser(id: number): Promise<User | undefined> {
