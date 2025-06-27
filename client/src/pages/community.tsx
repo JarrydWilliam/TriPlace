@@ -357,22 +357,23 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-safe">
+      <div className="container mx-auto px-4 py-4 md:py-6 max-w-6xl">
         
-        {/* Community Header */}
-        <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Logo size="md" className="mr-2" />
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">
+        {/* Community Header - Mobile Optimized */}
+        <Card className="mb-4 md:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center space-x-3 md:space-x-4">
+                <Logo size="sm" className="md:hidden" />
+                <Logo size="md" className="hidden md:block" />
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center text-lg md:text-2xl">
                   🌟
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold">{community.name}</h1>
-                  <p className="text-white/80 mt-1">{community.description}</p>
-                  <div className="flex items-center space-x-4 mt-2 text-white/70">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl md:text-3xl font-bold leading-tight">{community.name}</h1>
+                  <p className="text-white/80 mt-1 text-sm md:text-base line-clamp-2">{community.description}</p>
+                  <div className="flex flex-wrap gap-3 md:gap-4 mt-2 text-white/70">
                     <div className="flex items-center space-x-1">
                       <Users className="w-4 h-4" />
                       <span className="text-sm">{community.memberCount} members</span>
@@ -611,10 +612,10 @@ export default function CommunityPage() {
                   )}
                 </div>
 
-                {/* Instagram-style Message Input */}
-                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex-shrink-0">
-                  <div className="flex items-end space-x-3">
-                    <Avatar className="w-8 h-8 flex-shrink-0">
+                {/* Mobile-Optimized Message Input */}
+                <div className="sticky bottom-0 md:relative border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 md:p-4 flex-shrink-0 z-10">
+                  <div className="flex items-end space-x-2 md:space-x-3">
+                    <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
                       <AvatarImage src={user?.avatar || undefined} />
                       <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
                         {user?.name?.charAt(0) || 'U'}
@@ -634,16 +635,16 @@ export default function CommunityPage() {
                               }
                             }
                           }}
-                          className="min-h-[40px] max-h-32 resize-none border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 transition-colors pr-12"
+                          className="min-h-[36px] md:min-h-[40px] max-h-24 md:max-h-32 resize-none border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 transition-colors pr-10 md:pr-12 text-sm md:text-base"
                           rows={1}
                         />
-                        <div className="absolute right-3 bottom-2 flex items-center space-x-1">
+                        <div className="absolute right-2 md:right-3 bottom-1.5 md:bottom-2 flex items-center space-x-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="h-5 w-5 md:h-6 md:w-6 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           >
-                            <span className="text-sm">😊</span>
+                            <span className="text-xs md:text-sm">😊</span>
                           </Button>
                         </div>
                       </div>

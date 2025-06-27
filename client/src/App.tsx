@@ -85,7 +85,7 @@ function Router() {
 
   // Authenticated user routes
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="min-h-screen overflow-x-hidden pb-20 md:pb-0">
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/dashboard" component={Dashboard} />
@@ -107,6 +107,7 @@ function Router() {
         <Route path="/kudos" component={Dashboard} />
         <Route component={NotFound} />
       </Switch>
+      <MobileNav />
     </div>
   );
 }
