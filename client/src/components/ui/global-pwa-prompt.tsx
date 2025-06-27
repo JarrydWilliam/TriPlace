@@ -84,7 +84,7 @@ export function GlobalPWAPrompt() {
       return false;
     };
 
-    // Detect platform
+    // Detect platform with enhanced iOS detection
     const detectPlatform = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       if (/mobile|android|iphone|ipad|tablet/.test(userAgent)) {
@@ -92,6 +92,15 @@ export function GlobalPWAPrompt() {
       } else {
         setPlatform('desktop');
       }
+    };
+
+    // Enhanced iOS Safari detection
+    const isIOSSafari = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return (userAgent.includes('safari') && 
+              (userAgent.includes('iphone') || userAgent.includes('ipad')) &&
+              !userAgent.includes('chrome') &&
+              !userAgent.includes('firefox'));
     };
 
     // Listen for beforeinstallprompt event
@@ -132,19 +141,30 @@ export function GlobalPWAPrompt() {
       const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000);
       
       if (!dismissed || lastDismissed < sixHoursAgo) {
-        const timer = setTimeout(() => {
-          console.log('Showing install dialog fallback');
-          setShowInstallDialog(true);
-        }, 5000);
-        
-        // Clear timer if beforeinstallprompt fires
-        const clearTimer = () => clearTimeout(timer);
-        window.addEventListener('beforeinstallprompt', clearTimer);
-        
-        return () => {
-          clearTimeout(timer);
-          window.removeEventListener('beforeinstallprompt', clearTimer);
-        };
+        // iOS Safari needs immediate prompt since beforeinstallprompt doesn't fire
+        if (isIOSSafari()) {
+          const timer = setTimeout(() => {
+            console.log('Showing iOS Safari install dialog');
+            setShowInstallDialog(true);
+          }, 2000); // Shorter delay for iOS
+          
+          return () => clearTimeout(timer);
+        } else {
+          // Other browsers - wait for beforeinstallprompt or show fallback
+          const timer = setTimeout(() => {
+            console.log('Showing install dialog fallback');
+            setShowInstallDialog(true);
+          }, 5000);
+          
+          // Clear timer if beforeinstallprompt fires
+          const clearTimer = () => clearTimeout(timer);
+          window.addEventListener('beforeinstallprompt', clearTimer);
+          
+          return () => {
+            clearTimeout(timer);
+            window.removeEventListener('beforeinstallprompt', clearTimer);
+          };
+        }
       }
     }
     
@@ -163,11 +183,11 @@ export function GlobalPWAPrompt() {
       const userAgent = navigator.userAgent.toLowerCase();
       
       if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-        // iOS devices - show detailed instructions
+        // iOS devices - show enhanced visual instructions
         toast({
-          title: "Install TriPlace",
-          description: "1. Tap the Share button (⎙) at the bottom\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to confirm",
-          duration: 8000
+          title: "📱 Install TriPlace App",
+          description: "Tap the Share button (⬆️) → Scroll down → Tap 'Add to Home Screen' → Tap 'Add'",
+          duration: 10000
         });
       } else if (userAgent.includes('android')) {
         // Android devices - improved installation handling
@@ -232,9 +252,9 @@ export function GlobalPWAPrompt() {
     const userAgent = navigator.userAgent.toLowerCase();
     
     if (userAgent.includes('safari') && userAgent.includes('iphone')) {
-      return "Tap the Share button, then 'Add to Home Screen'";
+      return "1. Tap the Share button (⬆️) at the bottom of Safari\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to install TriPlace";
     } else if (userAgent.includes('safari') && userAgent.includes('ipad')) {
-      return "Tap the Share button, then 'Add to Home Screen'";
+      return "1. Tap the Share button (⬆️) in Safari\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to install TriPlace";
     } else if (userAgent.includes('chrome') && platform === 'mobile') {
       return "Tap the menu (⋮) and select 'Add to Home Screen'";
     } else if (userAgent.includes('firefox') && platform === 'mobile') {
