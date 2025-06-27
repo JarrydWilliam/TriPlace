@@ -59,7 +59,6 @@ export const signInWithGoogle = async () => {
   }
 };
 
-// Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
   if (!auth) {
     throw new Error('Authentication service not available');

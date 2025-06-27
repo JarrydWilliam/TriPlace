@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/auth-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

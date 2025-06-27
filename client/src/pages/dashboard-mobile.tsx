@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/auth-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useLocationSync } from "@/hooks/use-location-sync";
 import { useTheme } from "@/lib/theme-context";
