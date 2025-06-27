@@ -18,6 +18,39 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Mobile scroll containers */
+.mobile-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Mobile navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--background);
+  border-top: 1px solid var(--border);
+  height: 64px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* PWA header */
+.pwa-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Fix for mobile viewport */
+.mobile-viewport {
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for modern browsers */
+}
+
 /* Enhanced responsive design for all devices */
 @supports (viewport-fit: cover) {
   .safe-area-top { padding-top: env(safe-area-inset-top); }

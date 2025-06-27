@@ -20,7 +20,7 @@ export function MobileLayout({
     <div className={cn(
       "w-full mx-auto",
       "safe-area-top safe-area-bottom safe-area-left safe-area-right",
-      fullHeight && "min-h-screen",
+      fullHeight && "mobile-viewport",
       // Mobile-first responsive widths
       "max-w-full", // Mobile: full width
       "sm:max-w-md sm:mx-auto", // Small tablets: centered with max width
@@ -30,8 +30,7 @@ export function MobileLayout({
       className
     )}>
       <div className={cn(
-        "flex flex-col",
-        fullHeight && "min-h-screen",
+        "flex flex-col h-full",
         hasHeader && "pwa-header",
         hasBottomNav && "pb-16" // Space for bottom navigation
       )}>
