@@ -100,6 +100,13 @@ export const activityFeed = pgTable("activity_feed", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const messageResonance = pgTable("message_resonance", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => messages.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -139,6 +146,11 @@ export const insertEventAttendeeSchema = createInsertSchema(eventAttendees).omit
   registeredAt: true,
 });
 
+export const insertMessageResonanceSchema = createInsertSchema(messageResonance).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -155,3 +167,5 @@ export type InsertCommunityMember = z.infer<typeof insertCommunityMemberSchema>;
 export type EventAttendee = typeof eventAttendees.$inferSelect;
 export type InsertEventAttendee = z.infer<typeof insertEventAttendeeSchema>;
 export type ActivityFeedItem = typeof activityFeed.$inferSelect;
+export type MessageResonance = typeof messageResonance.$inferSelect;
+export type InsertMessageResonance = z.infer<typeof insertMessageResonanceSchema>;
