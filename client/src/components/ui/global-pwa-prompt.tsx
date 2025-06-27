@@ -39,14 +39,13 @@ export function GlobalPWAPrompt() {
         return true;
       }
       
-      // Check if installed via navigator
-      if ('getInstalledRelatedApps' in navigator) {
-        (navigator as any).getInstalledRelatedApps().then((apps: any[]) => {
-          if (apps.length > 0) {
-            setIsInstalled(true);
-          }
-        });
+      // Check localStorage for previous installation
+      const wasInstalled = localStorage.getItem('pwa-installed');
+      if (wasInstalled === 'true') {
+        setIsInstalled(true);
+        return true;
       }
+      
       return false;
     };
 
@@ -80,6 +79,7 @@ export function GlobalPWAPrompt() {
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowInstallDialog(false);
+      localStorage.setItem('pwa-installed', 'true');
       toast({
         title: "App Installed!",
         description: "TriPlace has been added to your device. Launch it anytime from your home screen.",
@@ -141,6 +141,11 @@ export function GlobalPWAPrompt() {
       if (choiceResult.outcome === 'accepted') {
         setIsInstalled(true);
         setShowInstallDialog(false);
+        localStorage.setItem('pwa-installed', 'true');
+        toast({
+          title: "Installing App...",
+          description: "TriPlace is being added to your device. You'll see it on your home screen shortly.",
+        });
       }
       
       setDeferredPrompt(null);
