@@ -33,21 +33,19 @@ button, a, [role="button"] {
   touch-action: manipulation;
 }
 
-/* Prevent scroll overflow above/below screen boundaries */
+/* Mobile-first viewport and scroll optimization */
 html, body {
   overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  overscroll-behavior-x: none;
-  height: 100%;
+  height: 100vh;
   overflow-x: hidden;
-  position: fixed;
-  width: 100%;
   -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 #root {
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   overflow-x: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;

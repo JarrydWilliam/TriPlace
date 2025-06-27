@@ -30,13 +30,16 @@ function Router() {
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
-      // Check if user needs to complete onboarding
+      // Implement proper authentication flow: login → quiz → dashboard
       const needsOnboarding = !user.onboardingCompleted;
       const isOnOnboardingPage = location === '/onboarding';
+      const isOnDashboard = location === '/dashboard';
       
       if (needsOnboarding && !isOnOnboardingPage) {
+        // Redirect to quiz if not completed
         setLocation('/onboarding');
-      } else if (!needsOnboarding && isOnOnboardingPage) {
+      } else if (!needsOnboarding && (isOnOnboardingPage || location === '/')) {
+        // Redirect to dashboard after quiz completion
         setLocation('/dashboard');
       }
     }

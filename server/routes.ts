@@ -327,16 +327,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
-}
-  
   // Version endpoint for deployment updates
   app.get("/api/version", (req, res) => {
     res.send(Date.now().toString());
   });
-  // User routes
-  app.get("/api/users/:id", async (req, res) => {
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
     try {
       const id = parseInt(req.params.id);
       const user = await storage.getUser(id);
