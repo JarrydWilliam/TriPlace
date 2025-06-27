@@ -27,10 +27,35 @@ export function GlobalPWAPrompt() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if running inside mobile app WebView
+    const isInMobileApp = () => {
+      // Check for mobile app indicators
+      if (localStorage.getItem('mobile-app') === 'true') {
+        return true;
+      }
+      
+      // Check for WebView user agents
+      const userAgent = navigator.userAgent.toLowerCase();
+      if (userAgent.includes('wv') || // Android WebView
+          userAgent.includes('triplace') || // Custom mobile app identifier
+          window.ReactNativeWebView || // React Native WebView
+          window.webkit?.messageHandlers) { // iOS WebView
+        return true;
+      }
+      
+      return false;
+    };
+
     // Check if app is running as PWA (standalone mode)
     const isRunningStandalone = () => {
       return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     };
+
+    // Don't show any prompts if running in mobile app
+    if (isInMobileApp()) {
+      setIsInstalled(true);
+      return;
+    }
 
     // Check if app is already installed
     const checkInstalled = () => {
@@ -209,8 +234,38 @@ export function GlobalPWAPrompt() {
     }
   };
 
-  // Don't show if already installed or running as PWA
-  if (isInstalled || window.matchMedia('(display-mode: standalone)').matches) {
+  // Enhanced detection for mobile app WebView
+  const isInMobileAppWebView = () => {
+    // Check localStorage flag set by mobile app
+    if (localStorage.getItem('mobile-app') === 'true') {
+      return true;
+    }
+    
+    // Check for React Native WebView
+    if (window.ReactNativeWebView) {
+      return true;
+    }
+    
+    // Check user agent for WebView indicators
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('wv') || 
+        userAgent.includes('triplace') ||
+        userAgent.includes('expo')) {
+      return true;
+    }
+    
+    // Check for iOS WebView
+    if (window.webkit?.messageHandlers) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Don't show if already installed, running as PWA, or in mobile app
+  if (isInstalled || 
+      window.matchMedia('(display-mode: standalone)').matches ||
+      isInMobileAppWebView()) {
     return null;
   }
 

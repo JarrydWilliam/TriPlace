@@ -189,6 +189,12 @@ export default function App() {
         case 'SEND_NOTIFICATION':
           scheduleNotification(data);
           break;
+        case 'AUTH_ERROR':
+          Alert.alert('Authentication Error', data.message);
+          break;
+        case 'PWA_PROMPT_DISMISSED':
+          // PWA prompts are handled natively, no action needed
+          break;
         default:
           console.log('Unknown message type:', data.type);
       }
@@ -317,27 +323,116 @@ export default function App() {
       }
     });
 
-    // Enhanced Firebase authentication for mobile
+    // Enhanced Firebase authentication for mobile WebView
     window.addEventListener('DOMContentLoaded', function() {
+      // Override Firebase popup authentication for mobile
       if (window.firebase && window.firebase.auth) {
-        const originalSignInWithPopup = window.firebase.auth().signInWithPopup;
+        const auth = window.firebase.auth();
+        const originalSignInWithPopup = auth.signInWithPopup;
+        
         if (originalSignInWithPopup) {
-          window.firebase.auth().signInWithPopup = function(provider) {
+          auth.signInWithPopup = function(provider) {
+            // Enhanced mobile configuration
             provider.setCustomParameters({
               prompt: 'select_account',
-              display: 'popup'
+              display: 'touch'
             });
             
-            return originalSignInWithPopup.call(this, provider).catch(function(error) {
-              console.log('Mobile auth error:', error);
-              if (error.code === 'auth/popup-blocked') {
-                alert('Please allow popups for sign-in to work properly.');
-              }
-              throw error;
-            });
+            // Add mobile-specific scopes
+            if (provider.providerId === 'google.com') {
+              provider.addScope('email');
+              provider.addScope('profile');
+            }
+            
+            return originalSignInWithPopup.call(this, provider)
+              .then(function(result) {
+                console.log('Mobile auth success:', result.user.email);
+                return result;
+              })
+              .catch(function(error) {
+                console.error('Mobile auth error:', error);
+                
+                // Enhanced error handling for mobile
+                switch (error.code) {
+                  case 'auth/popup-blocked':
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'AUTH_ERROR',
+                      message: 'Sign-in popup was blocked. Please allow popups and try again.'
+                    }));
+                    break;
+                  case 'auth/popup-closed-by-user':
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'AUTH_ERROR', 
+                      message: 'Sign-in was cancelled. Please try again.'
+                    }));
+                    break;
+                  case 'auth/network-request-failed':
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'AUTH_ERROR',
+                      message: 'Network error. Please check your connection and try again.'
+                    }));
+                    break;
+                  default:
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'AUTH_ERROR',
+                      message: 'Authentication failed: ' + error.message
+                    }));
+                }
+                throw error;
+              });
           };
         }
       }
+      
+      // Disable PWA installation prompts completely in mobile app
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        return false;
+      });
+      
+      // Override any PWA prompt functions and global variables
+      if (window.localStorage) {
+        window.localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+        window.localStorage.setItem('pwa-installed', 'true');
+        window.localStorage.setItem('mobile-app', 'true');
+      }
+      
+      // Force remove PWA prompts every 100ms
+      const removePWAElements = function() {
+        const selectors = [
+          '[data-pwa-prompt]',
+          '.pwa-install-dialog',
+          '.global-pwa-prompt',
+          '[role="dialog"][aria-label*="install"]',
+          '[role="dialog"][aria-label*="PWA"]',
+          '.install-prompt',
+          '.add-to-home-screen',
+          'button[aria-label*="install"]',
+          'button[aria-label*="add to home"]',
+          '[data-testid*="pwa"]',
+          '[data-testid*="install"]'
+        ];
+        
+        selectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+            el.remove();
+          });
+        });
+      };
+      
+      // Run immediately and then every 100ms
+      removePWAElements();
+      setInterval(removePWAElements, 100);
+      
+      // Override global PWA functions
+      window.showInstallPrompt = function() { return false; };
+      window.installApp = function() { return false; };
+      window.promptToInstall = function() { return false; };
     });
 
     // Mobile-optimized CSS injection
@@ -379,8 +474,25 @@ export default function App() {
         }
       }
 
-      [data-pwa-prompt], .pwa-install-dialog {
+      /* Completely hide PWA install prompts and dialogs */
+      [data-pwa-prompt], 
+      .pwa-install-dialog,
+      .global-pwa-prompt,
+      [role="dialog"][aria-label*="install"],
+      [role="dialog"][aria-label*="PWA"],
+      .install-prompt,
+      .add-to-home-screen,
+      button[aria-label*="install"],
+      button[aria-label*="add to home"],
+      [data-testid*="pwa"],
+      [data-testid*="install"] {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        position: absolute !important;
+        left: -9999px !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
       }
 
       /* Enhanced mobile navigation */
@@ -389,6 +501,32 @@ export default function App() {
       }
       
       .hidden.lg\\:block {
+        display: none !important;
+      }
+
+      /* Ensure proper popup z-index for authentication */
+      .firebase-auth-container,
+      [data-auth-popup],
+      .google-auth-popup,
+      iframe[src*="accounts.google.com"] {
+        z-index: 999999 !important;
+        position: fixed !important;
+      }
+
+      /* Mobile-optimized form inputs to prevent zoom */
+      input[type="email"],
+      input[type="password"], 
+      input[type="text"] {
+        font-size: 16px !important;
+        -webkit-appearance: none !important;
+        border-radius: 8px !important;
+      }
+
+      /* Force remove any remaining PWA elements */
+      *[class*="pwa" i], 
+      *[class*="install" i],
+      *[id*="pwa" i],
+      *[id*="install" i] {
         display: none !important;
       }
     \`;
@@ -422,6 +560,38 @@ export default function App() {
         scrollEnabled={true}
         allowsBackForwardNavigationGestures={true}
         mixedContentMode="always"
+        allowsInlineMediaPlayback={true}
+        mediaPlaybackRequiresUserAction={false}
+        allowsFullscreenVideo={true}
+        allowsProtectedMedia={true}
+        javaScriptCanOpenWindowsAutomatically={true}
+        setSupportMultipleWindows={false}
+        allowsLinkPreview={false}
+        onShouldStartLoadWithRequest={(request) => {
+          // Handle authentication redirects and popups
+          if (request.url.includes('accounts.google.com') || 
+              request.url.includes('firebase') ||
+              request.url.includes('googleapis.com')) {
+            return true; // Allow Firebase/Google auth
+          }
+          
+          // Block external navigation that isn't auth-related
+          if (!request.url.includes('TriPlaceApp.replit.app') && 
+              !request.url.includes('accounts.google.com') &&
+              !request.url.includes('firebase') &&
+              !request.url.includes('googleapis.com')) {
+            WebBrowser.openBrowserAsync(request.url);
+            return false;
+          }
+          
+          return true;
+        }}
+        onNavigationStateChange={(navState) => {
+          // Handle navigation changes for proper auth flow
+          if (navState.url.includes('accounts.google.com')) {
+            console.log('Google auth navigation detected');
+          }
+        }}
         onError={(error) => {
           console.error('WebView Error:', error);
           Alert.alert('Connection Error', 'Unable to load TriPlace. Please check your internet connection.');
