@@ -93,7 +93,7 @@ function Router() {
         <Route path="/profile/:userId" component={Profile} />
         <Route path="/messaging" component={Messaging} />
         <Route path="/messages" component={Messaging} />
-        <Route path="/community/:communityId" component={Community} />
+        <Route path="/community/:communityId" component={CommunityPage} />
         <Route path="/create-event" component={CreateEvent} />
         <Route path="/settings/profile" component={ProfileSettings} />
         <Route path="/settings/account" component={AccountSettings} />
