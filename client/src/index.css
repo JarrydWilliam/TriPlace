@@ -2,41 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent scroll overflow above/below screen boundaries */
+/* Enhanced mobile scroll handling for PWA */
 html, body {
-  overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  overscroll-behavior-x: none;
   height: 100%;
   overflow-x: hidden;
-  position: fixed;
-  width: 100%;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
 }
 
-#root {
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Mobile-specific scroll fixes */
-@supports (-webkit-touch-callout: none) {
-  body {
-    position: fixed;
-    overflow: hidden;
+/* PWA-specific fixes for iPhone home screen app */
+@media (display-mode: standalone) {
+  html, body {
+    position: relative;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    height: auto;
+    min-height: 100vh;
   }
   
   #root {
+    min-height: 100vh;
+    overflow-y: visible;
+    position: relative;
+    height: auto;
+  }
+  
+  /* Ensure all page content is scrollable in PWA */
+  .min-h-screen {
+    min-height: 100vh !important;
+    height: auto !important;
+  }
+}
+
+/* Default browser behavior */
+@media not (display-mode: standalone) {
+  html, body {
+    overscroll-behavior: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+  }
+  
+  #root {
+    height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    body {
+      position: relative;
+      overflow: visible;
+      height: auto;
+      min-height: 100vh;
+    }
+    
+    #root {
+      position: relative;
+      height: auto;
+      min-height: 100vh;
+      overflow: visible;
+    }
+    
+    /* Ensure scrollable content in PWA mode */
+    .quiz-container, .onboarding-container, .page-container {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: none;
+      height: auto;
+      position: relative;
+    }
+    
+    /* Fix quiz scrolling specifically in PWA mode */
+    .quiz-container {
+      min-height: 100vh;
+      padding-bottom: 2rem;
+    }
+    
+    /* Ensure form elements are scrollable */
+    .quiz-container .container {
+      position: relative;
+      height: auto;
+      min-height: 100vh;
+      overflow: visible;
+    }
+    
+    /* Fix card content scrolling */
+    .quiz-container .card {
+      position: relative;
+      height: auto;
+      max-height: none;
+    }
+    
+    /* Ensure long content is scrollable */
+    .quiz-container .space-y-8, .quiz-container .space-y-6 {
+      overflow: visible;
+      height: auto;
+    }
   }
 }
 
