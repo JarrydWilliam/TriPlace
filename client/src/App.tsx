@@ -9,12 +9,12 @@ import { ErrorBoundary } from "@/components/error-boundary";
 
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard-mobile";
-import Onboarding from "@/pages/onboarding-mobile";
-import Profile from "@/pages/profile-mobile";
-import Messaging from "@/pages/messaging-mobile";
-import Community from "@/pages/community-mobile";
-import CreateEvent from "@/pages/create-event-mobile";
+import Dashboard from "@/pages/dashboard";
+import Onboarding from "@/pages/onboarding";
+import Profile from "@/pages/profile";
+import Messaging from "@/pages/messaging";
+import Community from "@/pages/community";
+import CreateEvent from "@/pages/create-event";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";
 import NotificationSettings from "@/pages/settings/notifications";

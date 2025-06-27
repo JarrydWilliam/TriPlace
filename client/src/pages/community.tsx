@@ -1,5 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,27 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal, Plus, ArrowLeft, Home, Compass, PlusSquare, User as UserIcon } from "lucide-react";
+import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal, Plus } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
-import { 
-  MobileLayout, 
-  MobileHeader, 
-  MobileContent, 
-  MobileBottomNav,
-  MobileCard,
-  MobileButton,
-  MobileInput
-} from "@/components/layout/mobile-layout";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -364,41 +356,13 @@ export default function CommunityPage() {
     );
   }
 
-  const [, setLocation] = useLocation();
-
   return (
-    <MobileLayout hasBottomNav={true} className="bg-background">
-      {/* Mobile Header */}
-      <MobileHeader>
-        <div className="flex items-center space-x-3">
-          <MobileButton 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setLocation('/dashboard')}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </MobileButton>
-          <Logo size="sm" />
-          <div className="flex flex-col flex-1">
-            <h1 className="text-lg font-semibold truncate">{community?.name || 'Community'}</h1>
-            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              <span>{community?.memberCount || 0} members</span>
-              <span>•</span>
-              <Badge variant="secondary" className="text-xs">{community?.category}</Badge>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
         
-        <div className="flex items-center space-x-2">
-          <MobileButton variant="ghost" size="sm">
-            <MoreHorizontal className="w-4 h-4" />
-          </MobileButton>
-        </div>
-      </MobileHeader>
-
-      {/* Mobile Content */}
-      <MobileContent className="p-0">
+        {/* Community Header */}
+        <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Logo size="md" className="mr-2" />
