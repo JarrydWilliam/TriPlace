@@ -36,6 +36,28 @@ export function GlobalPWAPrompt() {
   const [platform, setPlatform] = useState<'desktop' | 'mobile' | 'unknown'>('unknown');
   const { toast } = useToast();
 
+  // Enhanced mobile browser detection function
+  const getMobileBrowserType = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+      if (userAgent.includes('crios')) return 'ios-chrome';
+      if (userAgent.includes('fxios')) return 'ios-firefox';
+      if (userAgent.includes('safari') && !userAgent.includes('chrome')) return 'ios-safari';
+      return 'ios-other';
+    }
+    
+    if (userAgent.includes('android')) {
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) return 'android-chrome';
+      if (userAgent.includes('firefox')) return 'android-firefox';
+      if (userAgent.includes('samsung')) return 'android-samsung';
+      if (userAgent.includes('opera')) return 'android-opera';
+      return 'android-other';
+    }
+    
+    return 'desktop';
+  };
+
   useEffect(() => {
     // Check if running inside mobile app WebView
     const isInMobileApp = () => {
@@ -94,14 +116,8 @@ export function GlobalPWAPrompt() {
       }
     };
 
-    // Enhanced iOS Safari detection
-    const isIOSSafari = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      return (userAgent.includes('safari') && 
-              (userAgent.includes('iphone') || userAgent.includes('ipad')) &&
-              !userAgent.includes('chrome') &&
-              !userAgent.includes('firefox'));
-    };
+    const browserType = getMobileBrowserType();
+    const isMobileBrowser = browserType !== 'desktop';
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -141,22 +157,39 @@ export function GlobalPWAPrompt() {
       const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000);
       
       if (!dismissed || lastDismissed < sixHoursAgo) {
-        // iOS Safari needs immediate prompt since beforeinstallprompt doesn't fire
-        if (isIOSSafari()) {
+        // Mobile browsers need different handling strategies
+        if (isMobileBrowser) {
+          let promptDelay = 3000; // Default mobile delay
+          
+          // iOS browsers don't support beforeinstallprompt, show immediately
+          if (browserType.startsWith('ios')) {
+            promptDelay = 2000;
+          }
+          
           const timer = setTimeout(() => {
-            console.log('Showing iOS Safari install dialog');
+            console.log(`Showing install dialog for ${browserType}`);
             setShowInstallDialog(true);
-          }, 2000); // Shorter delay for iOS
+          }, promptDelay);
+          
+          // Only Android Chrome supports beforeinstallprompt reliably
+          if (browserType === 'android-chrome') {
+            const clearTimer = () => clearTimeout(timer);
+            window.addEventListener('beforeinstallprompt', clearTimer);
+            
+            return () => {
+              clearTimeout(timer);
+              window.removeEventListener('beforeinstallprompt', clearTimer);
+            };
+          }
           
           return () => clearTimeout(timer);
         } else {
-          // Other browsers - wait for beforeinstallprompt or show fallback
+          // Desktop browsers - wait for beforeinstallprompt or show fallback
           const timer = setTimeout(() => {
             console.log('Showing install dialog fallback');
             setShowInstallDialog(true);
           }, 5000);
           
-          // Clear timer if beforeinstallprompt fires
           const clearTimer = () => clearTimeout(timer);
           window.addEventListener('beforeinstallprompt', clearTimer);
           
@@ -177,51 +210,105 @@ export function GlobalPWAPrompt() {
     };
   }, [isInstalled, toast]);
 
+  // Helper function for browser detection used in multiple places
+  const getMobileBrowserTypeForHandling = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+      if (userAgent.includes('crios')) return 'ios-chrome';
+      if (userAgent.includes('fxios')) return 'ios-firefox';
+      if (userAgent.includes('safari') && !userAgent.includes('chrome')) return 'ios-safari';
+      return 'ios-other';
+    }
+    
+    if (userAgent.includes('android')) {
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) return 'android-chrome';
+      if (userAgent.includes('firefox')) return 'android-firefox';
+      if (userAgent.includes('samsung')) return 'android-samsung';
+      if (userAgent.includes('opera')) return 'android-opera';
+      return 'android-other';
+    }
+    
+    return 'desktop';
+  };
+
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      // Enhanced mobile installation handling
+      // Enhanced mobile installation handling based on browser type
       const userAgent = navigator.userAgent.toLowerCase();
+      const browserType = getMobileBrowserType();
       
-      if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-        // iOS devices - show enhanced visual instructions
-        toast({
-          title: "📱 Install TriPlace App",
-          description: "Tap the Share button (⬆️) → Scroll down → Tap 'Add to Home Screen' → Tap 'Add'",
-          duration: 10000
-        });
-      } else if (userAgent.includes('android')) {
-        // Android devices - improved installation handling
-        if (userAgent.includes('chrome')) {
-          // Create a proper installation trigger for Android Chrome
-          const installEvent = new CustomEvent('beforeinstallprompt');
-          window.dispatchEvent(installEvent);
+      // Browser-specific installation instructions
+      switch (browserType) {
+        case 'ios-safari':
+          toast({
+            title: "Install TriPlace App",
+            description: "Tap Share (⬆️) → Scroll down → Tap 'Add to Home Screen' → Tap 'Add'",
+            duration: 12000
+          });
+          break;
           
-          // Show user-friendly instructions
-          setTimeout(() => {
-            toast({
-              title: "Install Available",
-              description: "Look for the 'Install' option in your browser menu (⋮) or address bar",
-              duration: 5000
-            });
-          }, 1000);
-        }
-        
-        toast({
-          title: "Install TriPlace",
-          description: "Tap the menu (⋮) in your browser, then 'Add to Home screen' or 'Install app'",
-          duration: 6000
-        });
-      } else {
-        // Other mobile browsers
-        toast({
-          title: "Add to Home Screen",
-          description: "Use your browser's menu to add TriPlace to your home screen for quick access",
-        });
+        case 'ios-chrome':
+          toast({
+            title: "Install TriPlace App", 
+            description: "Tap the menu (⋯) → Tap 'Add to Home Screen' → Tap 'Add'",
+            duration: 10000
+          });
+          break;
+          
+        case 'ios-firefox':
+          toast({
+            title: "Install TriPlace App",
+            description: "Tap the menu → Tap 'Add to Home Screen' → Tap 'Add'",
+            duration: 10000
+          });
+          break;
+          
+        case 'android-chrome':
+          toast({
+            title: "Install TriPlace App",
+            description: "Look for 'Install' in the address bar or menu (⋮) → Tap 'Install app'",
+            duration: 8000
+          });
+          break;
+          
+        case 'android-firefox':
+          toast({
+            title: "Install TriPlace App",
+            description: "Tap the menu (⋮) → Tap 'Install' → Tap 'Add to Home Screen'",
+            duration: 8000
+          });
+          break;
+          
+        case 'android-samsung':
+          toast({
+            title: "Install TriPlace App",
+            description: "Tap the menu → Tap 'Add page to' → Tap 'Home screen'",
+            duration: 8000
+          });
+          break;
+          
+        case 'android-opera':
+          toast({
+            title: "Install TriPlace App", 
+            description: "Tap the menu → Tap 'Add to Home screen'",
+            duration: 8000
+          });
+          break;
+          
+        default:
+          toast({
+            title: "Add TriPlace to Home Screen",
+            description: "Use your browser's menu to add TriPlace to your home screen for quick access",
+            duration: 6000
+          });
       }
       
       setShowInstallDialog(false);
       return;
     }
+
+
 
     try {
       await deferredPrompt.prompt();
@@ -250,18 +337,55 @@ export function GlobalPWAPrompt() {
 
   const getInstallInstructions = () => {
     const userAgent = navigator.userAgent.toLowerCase();
+    const browserType = getMobileBrowserTypeForDisplay();
     
-    if (userAgent.includes('safari') && userAgent.includes('iphone')) {
-      return "1. Tap the Share button (⬆️) at the bottom of Safari\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to install TriPlace";
-    } else if (userAgent.includes('safari') && userAgent.includes('ipad')) {
-      return "1. Tap the Share button (⬆️) in Safari\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to install TriPlace";
-    } else if (userAgent.includes('chrome') && platform === 'mobile') {
-      return "Tap the menu (⋮) and select 'Add to Home Screen'";
-    } else if (userAgent.includes('firefox') && platform === 'mobile') {
-      return "Tap the menu and select 'Install'";
-    } else {
-      return "Look for the 'Install App' option in your browser's address bar";
+    switch (browserType) {
+      case 'ios-safari':
+        return "1. Tap Share (⬆️) at bottom of Safari\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to confirm installation";
+        
+      case 'ios-chrome':
+        return "1. Tap the menu (⋯) in top corner\n2. Tap 'Add to Home Screen'\n3. Tap 'Add' to confirm installation";
+        
+      case 'ios-firefox':
+        return "1. Tap the menu button\n2. Tap 'Add to Home Screen'\n3. Tap 'Add' to confirm installation";
+        
+      case 'android-chrome':
+        return "Look for 'Install' in address bar or:\n1. Tap menu (⋮)\n2. Tap 'Install app' or 'Add to Home screen'";
+        
+      case 'android-firefox':
+        return "1. Tap the menu (⋮)\n2. Tap 'Install'\n3. Tap 'Add to Home Screen'";
+        
+      case 'android-samsung':
+        return "1. Tap the menu\n2. Tap 'Add page to'\n3. Tap 'Home screen'";
+        
+      case 'android-opera':
+        return "1. Tap the menu\n2. Tap 'Add to Home screen'";
+        
+      default:
+        return "Use your browser's menu to add TriPlace to your home screen for quick access";
     }
+  };
+
+  // Helper function for display purposes
+  const getMobileBrowserTypeForDisplay = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+      if (userAgent.includes('crios')) return 'ios-chrome';
+      if (userAgent.includes('fxios')) return 'ios-firefox';
+      if (userAgent.includes('safari') && !userAgent.includes('chrome')) return 'ios-safari';
+      return 'ios-other';
+    }
+    
+    if (userAgent.includes('android')) {
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) return 'android-chrome';
+      if (userAgent.includes('firefox')) return 'android-firefox';
+      if (userAgent.includes('samsung')) return 'android-samsung';
+      if (userAgent.includes('opera')) return 'android-opera';
+      return 'android-other';
+    }
+    
+    return 'desktop';
   };
 
   // Enhanced detection for mobile app WebView
