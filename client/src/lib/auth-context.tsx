@@ -31,11 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  console.log('AuthProvider state:', { 
-    hasFirebaseUser: !!firebaseUser, 
-    hasUser: !!user, 
-    loading 
-  });
+
 
   useEffect(() => {
     // Check for redirect result on app load (for mobile Google sign-in)
@@ -58,12 +54,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }, 2000); // Reduced to 2 seconds for faster deployment access
 
-    // Check if Firebase is properly initialized
-    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-      console.warn('Firebase auth not available, proceeding without authentication');
+    // Firebase should be available with simplified config
+    if (!auth) {
+      console.warn('Firebase auth not available');
       clearTimeout(loadingTimeout);
       setLoading(false);
-      setFirebaseUser(null); // Ensure we show login page
+      setFirebaseUser(null);
       return;
     }
 

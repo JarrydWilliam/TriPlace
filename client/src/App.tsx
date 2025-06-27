@@ -61,13 +61,7 @@ function Router() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
 
-  console.log('App render:', { 
-    hasFirebaseUser: !!firebaseUser, 
-    hasUser: !!user, 
-    loading, 
-    location,
-    isMobile 
-  });
+
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
@@ -101,7 +95,7 @@ function Router() {
 
   // If not authenticated, show public routes only
   if (!firebaseUser) {
-    console.log('Showing login page - no firebase user');
+
     return (
       <div className="min-h-screen">
         <Switch>

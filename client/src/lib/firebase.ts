@@ -20,24 +20,11 @@ export const handleRedirectResult = async () => {
   
   try {
     const result = await getRedirectResult(auth);
-    if (result) {
-      console.log('Google redirect sign-in successful:', {
-        uid: result.user?.uid,
-        email: result.user?.email,
-        displayName: result.user?.displayName
-      });
-    }
     return result;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Redirect result error:', error);
     return null;
   }
-};
-
-// Detect if device is mobile
-const isMobileDevice = () => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  return /iphone|ipad|ipod|android|mobile|tablet/.test(userAgent);
 };
 
 export const signInWithGoogle = async () => {
@@ -53,17 +40,10 @@ export const signInWithGoogle = async () => {
       throw new Error('Authentication failed');
     }
 
-      return result;
-    }
+    return result;
   } catch (error: any) {
-    console.error('Google sign-in error details:', {
-      code: error.code,
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.substring(0, 200)
-    });
+    console.error('Google sign-in error:', error);
     
-    // Handle specific Firebase auth errors
     switch (error.code) {
       case 'auth/popup-closed-by-user':
         throw new Error('Sign-in was cancelled. Please try again.');
@@ -71,40 +51,18 @@ export const signInWithGoogle = async () => {
         throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
       case 'auth/network-request-failed':
         throw new Error('Network error. Please check your connection and try again.');
-      case 'auth/too-many-requests':
-        throw new Error('Too many sign-in attempts. Please try again later.');
-      case 'auth/configuration-not-found':
-        throw new Error('Authentication not properly configured. Please contact support.');
-      case 'auth/invalid-api-key':
-        throw new Error('Authentication configuration error. Please contact support.');
       case 'auth/unauthorized-domain':
-        throw new Error('This domain is not authorized for Google sign-in. You need to add your current domain to Firebase Console → Authentication → Settings → Authorized domains.');
-      case 'auth/operation-not-allowed':
-        throw new Error('Google sign-in is not enabled in Firebase Console. Please contact support.');
-      case 'auth/cancelled-popup-request':
-        throw new Error('Another sign-in popup is already open. Please close it and try again.');
-      case 'auth/web-storage-unsupported':
-        throw new Error('Your browser does not support authentication. Please try a different browser.');
-      case 'auth/admin-restricted-operation':
-        throw new Error('This action is restricted. Please contact support.');
-      case 'auth/invalid-credential':
-        throw new Error('Invalid credentials. Please try again.');
+        throw new Error('This domain is not authorized for Google sign-in.');
       default:
-        // For debugging - show the actual error in development
-        const isDev = import.meta.env.DEV;
-        if (isDev && error.code) {
-          throw new Error(`Google sign-in failed: ${error.code} - ${error.message}`);
-        }
-        
-        // Generic fallback for production
-        throw new Error('Unable to sign in with Google. Please try again or use email sign-in.');
+        throw new Error('Unable to sign in with Google. Please try again.');
     }
   }
 };
 
+// Email/Password authentication functions
 export const signUpWithEmail = async (email: string, password: string) => {
-  if (!isFirebaseInitialized) {
-    throw new Error('Authentication is not available. Please contact support for assistance.');
+  if (!auth) {
+    throw new Error('Authentication service not available');
   }
 
   try {
@@ -115,15 +73,11 @@ export const signUpWithEmail = async (email: string, password: string) => {
     
     switch (error.code) {
       case 'auth/email-already-in-use':
-        throw new Error('An account with this email already exists. Please sign in instead.');
+        throw new Error('An account with this email already exists.');
+      case 'auth/weak-password':
+        throw new Error('Password should be at least 6 characters.');
       case 'auth/invalid-email':
         throw new Error('Please enter a valid email address.');
-      case 'auth/weak-password':
-        throw new Error('Password should be at least 6 characters long.');
-      case 'auth/network-request-failed':
-        throw new Error('Network error. Please check your connection and try again.');
-      case 'auth/too-many-requests':
-        throw new Error('Too many attempts. Please try again later.');
       default:
         throw new Error('Unable to create account. Please try again.');
     }
@@ -131,8 +85,8 @@ export const signUpWithEmail = async (email: string, password: string) => {
 };
 
 export const signInWithEmail = async (email: string, password: string) => {
-  if (!isFirebaseInitialized) {
-    throw new Error('Authentication is not available. Please contact support for assistance.');
+  if (!auth) {
+    throw new Error('Authentication service not available');
   }
 
   try {
@@ -143,26 +97,22 @@ export const signInWithEmail = async (email: string, password: string) => {
     
     switch (error.code) {
       case 'auth/user-not-found':
-        throw new Error('No account found with this email. Please sign up first.');
+        throw new Error('No account found with this email.');
       case 'auth/wrong-password':
-        throw new Error('Incorrect password. Please try again.');
+        throw new Error('Incorrect password.');
       case 'auth/invalid-email':
         throw new Error('Please enter a valid email address.');
-      case 'auth/user-disabled':
-        throw new Error('This account has been disabled. Please contact support.');
-      case 'auth/network-request-failed':
-        throw new Error('Network error. Please check your connection and try again.');
       case 'auth/too-many-requests':
         throw new Error('Too many failed attempts. Please try again later.');
       default:
-        throw new Error('Unable to sign in. Please check your credentials and try again.');
+        throw new Error('Unable to sign in. Please check your credentials.');
     }
   }
 };
 
 export const resetPassword = async (email: string) => {
-  if (!isFirebaseInitialized) {
-    throw new Error('Authentication is not available. Please contact support for assistance.');
+  if (!auth) {
+    throw new Error('Authentication service not available');
   }
 
   try {
@@ -172,24 +122,21 @@ export const resetPassword = async (email: string) => {
     
     switch (error.code) {
       case 'auth/user-not-found':
-        throw new Error('No account found with this email address.');
+        throw new Error('No account found with this email.');
       case 'auth/invalid-email':
         throw new Error('Please enter a valid email address.');
-      case 'auth/network-request-failed':
-        throw new Error('Network error. Please check your connection and try again.');
       default:
-        throw new Error('Unable to send reset email. Please try again.');
+        throw new Error('Unable to send password reset email. Please try again.');
     }
   }
 };
 
 export const signOutUser = async () => {
+  if (!auth) return;
+  
   try {
-    if (auth && auth.signOut) {
-      await auth.signOut();
-    }
+    await signOut(auth);
   } catch (error) {
-    console.error('Sign-out error:', error);
-    throw new Error('Unable to sign out. Please try again.');
+    console.error('Sign out error:', error);
   }
 };
