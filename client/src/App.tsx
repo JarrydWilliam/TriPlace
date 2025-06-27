@@ -7,14 +7,14 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LocationProvider } from './contexts/LocationContext';
 
 // Screens converted to web components
-import LoginScreen from '../../src/screens/LoginScreen';
-import OnboardingScreen from '../../src/screens/OnboardingScreen';
-import DashboardScreen from '../../src/screens/DashboardScreen';
-import CommunitiesScreen from '../../src/screens/CommunitiesScreen';
-import CommunityDetailScreen from '../../src/screens/CommunityDetailScreen';
-import MessagesScreen from '../../src/screens/MessagesScreen';
-import ProfileScreen from '../../src/screens/ProfileScreen';
-import CreateEventScreen from '../../src/screens/CreateEventScreen';
+import LoginScreen from './screens/LoginScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import DashboardScreen from './screens/DashboardScreen';
+import CommunitiesScreen from './screens/CommunitiesScreen';
+import CommunityDetailScreen from './screens/CommunityDetailScreen';
+import MessagesScreen from './screens/MessagesScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import CreateEventScreen from './screens/CreateEventScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {

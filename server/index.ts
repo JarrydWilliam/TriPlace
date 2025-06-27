@@ -12,7 +12,7 @@ const PORT = Number(process.env.PORT) || 5000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../dist/public')));
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
