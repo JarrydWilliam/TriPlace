@@ -13,7 +13,7 @@ import Dashboard from "@/pages/dashboard-mobile";
 import Onboarding from "@/pages/onboarding-mobile";
 import Profile from "@/pages/profile-mobile";
 import Messaging from "@/pages/messaging-mobile";
-import Community from "@/pages/community";
+import CommunityPage from "@/pages/community";
 import CreateEvent from "@/pages/create-event-mobile";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";

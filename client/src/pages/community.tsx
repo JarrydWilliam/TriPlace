@@ -29,7 +29,7 @@ import {
   MobileInput
 } from "@/components/layout/mobile-layout";
 
-export default function Community() {
+export default function CommunityPage() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation();
   const { toast } = useToast();
