@@ -326,34 +326,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
-  // Safari cache control middleware to prevent blank screen on reload
-  app.use((req, res, next) => {
-    // Set cache control headers for Safari compatibility
-    res.set({
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block'
-    });
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      res.set({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      });
-      return res.sendStatus(200);
-    }
-    
-    next();
-  });
 
-  // Health check endpoint for production monitoring
-  app.get("/health", healthCheckHandler);
-  app.get("/api/health", healthCheckHandler);
+  const httpServer = createServer(app);
+  return httpServer;
+}
   
   // Version endpoint for deployment updates
   app.get("/api/version", (req, res) => {
