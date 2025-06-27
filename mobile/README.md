@@ -22,14 +22,29 @@ npx expo start
 
 ## Features
 
-- Native mobile wrapper for TriPlace web app
-- Integrated GPS location services with high accuracy
-- Touch-optimized interface with 44px minimum touch targets
-- iOS and Android support via Expo
-- Automatic removal of desktop-specific UI elements
-- Enhanced Firebase authentication for mobile devices
-- Native location override for improved geolocation
-- PWA install prompts hidden in native app context
+### Core TriPlace Functionality
+- Complete web app feature parity via native WebView wrapper
+- AI-powered community matching and recommendations
+- Real-time messaging with community chat features
+- Event discovery and attendance tracking
+- Location-aware community and event filtering
+- User onboarding with comprehensive 15-question quiz
+- Dynamic community membership with activity-based rotation
+- Kudos system and weekly challenges
+- Profile management and settings
+
+### Native Mobile Enhancements  
+- High-accuracy GPS location services with background updates
+- Push notifications for community updates and event reminders
+- Secure storage for sensitive user data
+- Deep linking support for community and event sharing
+- Native sharing capabilities
+- Touch-optimized interface (44px minimum touch targets)
+- Automatic desktop parameter removal and mobile CSS injection
+- Enhanced Firebase authentication with mobile-specific error handling
+- App state management with foreground/background detection
+- Native camera and photo library integration ready
+- Contact access for friend discovery (when permissions granted)
 
 ## Firebase Configuration
 

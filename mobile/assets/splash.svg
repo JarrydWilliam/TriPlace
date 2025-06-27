@@ -1,0 +1,11 @@
+<svg width="1242" height="2688" viewBox="0 0 1242 2688" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1242" height="2688" fill="#f59e0b"/>
+  <g transform="translate(371, 1094)">
+    <circle cx="250" cy="250" r="200" fill="#ffffff" opacity="0.9"/>
+    <circle cx="150" cy="350" r="120" fill="#ffffff" opacity="0.7"/>
+    <circle cx="350" cy="350" r="120" fill="#ffffff" opacity="0.7"/>
+    <path d="M100 450 Q250 350 400 450" stroke="#ffffff" stroke-width="40" stroke-linecap="round" fill="none" opacity="0.8"/>
+  </g>
+  <text x="621" y="1600" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="bold">TriPlace</text>
+  <text x="621" y="1660" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" opacity="0.9">Your Digital Third Place</text>
+</svg>
