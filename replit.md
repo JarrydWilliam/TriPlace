@@ -380,6 +380,17 @@ Changelog:
   - Built automatic desktop constraint removal with mobile-optimized CSS injection
   - Configured complete iOS and Android deployment with proper permissions and intent filters
   - Mobile app provides enhanced user experience while maintaining full web functionality access
+
+- June 27, 2025. Fixed mobile app authentication popup and PWA prompt issues
+  - Enhanced Firebase authentication with mobile WebView-specific popup configuration
+  - Added comprehensive PWA prompt removal system with multiple detection methods
+  - Implemented mobile app environment detection in web app to disable PWA prompts
+  - Added native error handling with React Native alert system for authentication failures
+  - Enhanced WebView configuration with proper popup and navigation handling
+  - Added aggressive PWA element removal with 100ms interval scanning
+  - Created mobile app localStorage flag system for web app detection
+  - Fixed TypeScript declarations for WebView environment detection
+  - Authentication popups now work correctly without PWA installation interference
 ```
 
 ## User Preferences

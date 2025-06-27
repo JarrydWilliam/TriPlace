@@ -10,6 +10,16 @@ import {
 import { Download, Smartphone, Monitor, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Type declarations for WebView detection
+declare global {
+  interface Window {
+    ReactNativeWebView?: any;
+    webkit?: {
+      messageHandlers?: any;
+    };
+  }
+}
+
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{
