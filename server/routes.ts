@@ -250,7 +250,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       currentMonth.setHours(0, 0, 0, 0);
       
       const kudos = await storage.getUserKudosReceived(userId);
-      const monthlyKudos = kudos.filter(k => k.createdAt && new Date(k.createdAt) >= currentMonth);
+      const monthlyKudos = kudos.filter(k => {
+        if (!k.createdAt) return false;
+        const createdDate = typeof k.createdAt === 'string' ? new Date(k.createdAt) : k.createdAt;
+        return createdDate >= currentMonth;
+      });
       
       res.json({ count: monthlyKudos.length });
     } catch (error) {
