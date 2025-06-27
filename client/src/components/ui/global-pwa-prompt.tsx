@@ -124,13 +124,47 @@ export function GlobalPWAPrompt() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) {
-      // Fallback for browsers that don't support PWA installation
-      toast({
-        title: "Add to Home Screen",
-        description: platform === 'mobile' 
-          ? "Tap the share button in your browser and select 'Add to Home Screen'"
-          : "Use your browser's 'Install App' option or bookmark this page",
-      });
+      // Enhanced mobile installation handling
+      const userAgent = navigator.userAgent.toLowerCase();
+      
+      if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+        // iOS devices - show detailed instructions
+        toast({
+          title: "Install TriPlace",
+          description: "1. Tap the Share button (⎙) at the bottom\n2. Scroll down and tap 'Add to Home Screen'\n3. Tap 'Add' to confirm",
+          duration: 8000
+        });
+      } else if (userAgent.includes('android')) {
+        // Android devices - improved installation handling
+        if (userAgent.includes('chrome')) {
+          // Create a proper installation trigger for Android Chrome
+          const installEvent = new CustomEvent('beforeinstallprompt');
+          window.dispatchEvent(installEvent);
+          
+          // Show user-friendly instructions
+          setTimeout(() => {
+            toast({
+              title: "Install Available",
+              description: "Look for the 'Install' option in your browser menu (⋮) or address bar",
+              duration: 5000
+            });
+          }, 1000);
+        }
+        
+        toast({
+          title: "Install TriPlace",
+          description: "Tap the menu (⋮) in your browser, then 'Add to Home screen' or 'Install app'",
+          duration: 6000
+        });
+      } else {
+        // Other mobile browsers
+        toast({
+          title: "Add to Home Screen",
+          description: "Use your browser's menu to add TriPlace to your home screen for quick access",
+        });
+      }
+      
+      setShowInstallDialog(false);
       return;
     }
 

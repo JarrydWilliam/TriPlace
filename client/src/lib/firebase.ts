@@ -22,37 +22,48 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    // Configure Google provider for better user experience
+    // Configure Google provider for mobile compatibility
     googleProvider.setCustomParameters({
       prompt: 'select_account'
     });
+
+    // Add mobile-specific configuration
+    googleProvider.addScope('email');
+    googleProvider.addScope('profile');
 
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
     
-    // Handle specific Firebase auth errors
+    // Enhanced error handling for mobile devices
     switch (error.code) {
       case 'auth/popup-closed-by-user':
         throw new Error('Sign-in was cancelled. Please try again.');
       case 'auth/popup-blocked':
-        throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
+        throw new Error('Popup was blocked. Please allow popups and try again.');
       case 'auth/network-request-failed':
-        throw new Error(ERROR_MESSAGES.NETWORK);
+        throw new Error('Network error. Please check your internet connection and try again.');
       case 'auth/too-many-requests':
-        throw new Error('Too many sign-in attempts. Please try again later.');
+        throw new Error('Too many sign-in attempts. Please wait a moment and try again.');
       case 'auth/configuration-not-found':
-        throw new Error('Authentication not properly configured. Please contact support.');
+        throw new Error('Authentication not configured. Please contact support.');
       case 'auth/invalid-api-key':
         throw new Error('Authentication configuration error. Please contact support.');
       case 'auth/unauthorized-domain':
-        throw new Error('This domain is not authorized for sign-in. Please contact support.');
+        throw new Error('Domain not authorized for sign-in. Please contact support.');
+      case 'auth/cancelled-popup-request':
+        throw new Error('Sign-in interrupted. Please try again.');
+      case 'auth/user-disabled':
+        throw new Error('Your account has been disabled. Please contact support.');
+      case 'auth/operation-not-allowed':
+        throw new Error('Google sign-in is not enabled. Please contact support.');
       default:
-        if (error.message?.includes('Firebase')) {
-          throw new Error('Authentication service error. Please try again or contact support.');
+        console.error('Detailed Firebase error:', error);
+        if (error.message?.toLowerCase().includes('firebase')) {
+          throw new Error('Authentication service temporarily unavailable. Please try again.');
         }
-        throw new Error('Unable to sign in with Google. Please try again.');
+        throw new Error('Unable to sign in with Google. Please try again or contact support.');
     }
   }
 };
