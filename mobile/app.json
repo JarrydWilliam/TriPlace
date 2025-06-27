@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "TriPlace",
+    "slug": "triplace-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f59e0b"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.triplace.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f59e0b"
+      },
+      "package": "com.triplace.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "permissions": [
+      "LOCATION",
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION"
+    ]
+  }
+}
