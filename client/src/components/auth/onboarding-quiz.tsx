@@ -564,40 +564,42 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-2 sm:py-8 px-2 sm:px-4">
+      <div className="container mx-auto max-w-4xl h-full">
+        <div className="text-center mb-4 sm:mb-8">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-4 text-white">
             🌱 TriPlace Community Matching Quiz
           </h1>
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
             Help us build communities from your actual life, not just static preferences
           </p>
-          <div className="mt-6">
+          <div className="mt-3 sm:mt-6">
             <Progress value={progressValue} className="w-full h-2" />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
               {sections[currentSection].icon} Section {currentSection + 1} of {sections.length}
             </p>
           </div>
         </div>
 
-        <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl text-white flex items-center gap-2">
-              <span className="text-2xl">{sections[currentSection].icon}</span>
+        <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm flex flex-col h-[calc(100vh-140px)] sm:h-auto">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-2xl text-white flex items-center gap-2">
+              <span className="text-lg sm:text-2xl">{sections[currentSection].icon}</span>
               {sections[currentSection].title}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-gray-400 text-sm sm:text-base">
               {sections[currentSection].subtitle}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
+          <CardContent className="space-y-4 sm:space-y-8 flex-1 overflow-y-auto">
             {renderSection()}
 
-            <div className="flex justify-between pt-6">
+            <div className="flex justify-between pt-4 sm:pt-6 sticky bottom-0 bg-gray-800/90 backdrop-blur-sm p-2 sm:p-0 -mx-2 sm:mx-0">
               <Button
                 onClick={handlePrevious}
                 variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm h-8 sm:h-10"
                 className="px-6 py-3 bg-gray-700 hover:bg-gray-600 border-gray-600 text-white"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
