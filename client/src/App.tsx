@@ -94,7 +94,7 @@ function Router() {
   // If not authenticated, show public routes only
   if (!firebaseUser) {
     return (
-      <div className="h-screen overflow-hidden">
+      <div className="min-h-screen">
         <Switch>
           <Route path="/" component={Landing} />
           <Route component={() => <Landing />} />
@@ -118,7 +118,7 @@ function Router() {
 
   // Authenticated user routes
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="min-h-screen">
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/dashboard" component={Dashboard} />

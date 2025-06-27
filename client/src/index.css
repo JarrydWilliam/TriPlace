@@ -51,6 +51,16 @@ html, body {
   height: 100dvh; /* Dynamic viewport height for modern browsers */
 }
 
+/* Mobile button styling */
+.button-mobile {
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 12px;
+  min-height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Enhanced responsive design for all devices */
 @supports (viewport-fit: cover) {
   .safe-area-top { padding-top: env(safe-area-inset-top); }

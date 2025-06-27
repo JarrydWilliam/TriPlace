@@ -27,6 +27,7 @@ import {
   MobileCard,
   MobileButton
 } from "@/components/layout/mobile-layout";
+import { DebugMobile } from "@/components/debug-mobile";
 
 export default function DashboardMobile() {
   const { user, loading: authLoading } = useAuth();
@@ -121,6 +122,7 @@ export default function DashboardMobile() {
 
   return (
     <MobileLayout hasBottomNav={true} className="bg-background">
+      <DebugMobile />
       {/* Mobile Header */}
       <MobileHeader>
         <div className="flex items-center space-x-3">
