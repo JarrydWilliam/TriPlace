@@ -15,7 +15,7 @@ import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, 
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
@@ -1096,6 +1096,7 @@ export default function CommunityPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </MobileContent>
+    </MobileLayout>
   );
 }
