@@ -1,11 +1,10 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Contexts
-import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
-import { ThemeProvider } from '../../src/contexts/ThemeContext';
-import { LocationProvider } from '../../src/contexts/LocationContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { LocationProvider } from './contexts/LocationContext';
 
 // Screens converted to web components
 import LoginScreen from '../../src/screens/LoginScreen';
