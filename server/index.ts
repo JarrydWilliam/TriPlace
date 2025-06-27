@@ -26,7 +26,7 @@ app.get('/api/*', (req: Request, res: Response) => {
 
 // Serve React app for all other routes
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../dist/public/index.html'));
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 server.listen(PORT, '0.0.0.0', () => {
