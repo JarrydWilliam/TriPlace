@@ -3,35 +3,24 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/
 import { ENV } from "./env";
 import { ERROR_MESSAGES } from "./production-config";
 
-// Use fallback configuration for development if env vars are missing
-const usesFallback = !ENV.FIREBASE_API_KEY || !ENV.FIREBASE_PROJECT_ID || !ENV.FIREBASE_APP_ID;
+// Validate required Firebase configuration for live deployment
+if (!ENV.FIREBASE_API_KEY || !ENV.FIREBASE_PROJECT_ID || !ENV.FIREBASE_APP_ID) {
+  throw new Error('Firebase configuration missing. Please provide VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID, and VITE_FIREBASE_APP_ID environment variables.');
+}
 
 const firebaseConfig = {
-  apiKey: ENV.FIREBASE_API_KEY || "demo-key",
-  authDomain: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebaseapp.com`,
-  projectId: ENV.FIREBASE_PROJECT_ID || "demo-project",
-  storageBucket: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebasestorage.app`,
-  appId: ENV.FIREBASE_APP_ID || "demo-app-id",
+  apiKey: ENV.FIREBASE_API_KEY,
+  authDomain: `${ENV.FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: ENV.FIREBASE_PROJECT_ID,
+  storageBucket: `${ENV.FIREBASE_PROJECT_ID}.firebasestorage.app`,
+  appId: ENV.FIREBASE_APP_ID,
 };
-
-// Log warning if using fallback configuration
-if (usesFallback) {
-  console.warn("Firebase using fallback configuration. Google login may not work properly.");
-  if (ENV.PROD) {
-    console.error("Production deployment detected with missing Firebase configuration!");
-  }
-}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
-  // Check if Firebase is properly configured
-  if (usesFallback) {
-    throw new Error('Google sign-in is not configured. Please contact support for assistance.');
-  }
-
   try {
     // Configure Google provider for better user experience
     googleProvider.setCustomParameters({
