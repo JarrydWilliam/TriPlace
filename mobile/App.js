@@ -11,8 +11,8 @@ export default function App() {
   const [webViewUrl, setWebViewUrl] = useState('');
   
   useEffect(() => {
-    // Get the Replit URL dynamically - replace with your actual Replit URL
-    const replitUrl = 'https://triplace.replit.app'; // Update this with your actual Replit URL
+    // Get the Replit URL - using the current development URL
+    const replitUrl = 'https://triplace--5000.repl.co'; // Current Replit development URL
     setWebViewUrl(replitUrl);
     
     // Request location permissions on app startup
