@@ -61,6 +61,14 @@ function Router() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
 
+  console.log('App render:', { 
+    hasFirebaseUser: !!firebaseUser, 
+    hasUser: !!user, 
+    loading, 
+    location,
+    isMobile 
+  });
+
   useEffect(() => {
     if (!loading && firebaseUser && user) {
       // Check if user needs to complete onboarding
@@ -75,16 +83,16 @@ function Router() {
     }
   }, [user, firebaseUser, loading, location, setLocation]);
 
-  // Mobile-optimized loading state with shorter timeout
+  // Show minimal loading state for faster perceived performance
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-cream-50 dark:bg-slate-900 overflow-hidden">
+      <div className="h-screen flex items-center justify-center bg-gray-900 overflow-hidden">
         <div className="text-center">
-          <div className="text-amber-800 dark:text-cyan-300 font-medium mb-2">
+          <div className="text-white font-medium mb-2">
             TriPlace
           </div>
-          <div className="text-sm text-amber-600 dark:text-cyan-400">
-            Loading your digital third place...
+          <div className="text-sm text-gray-400">
+            Loading...
           </div>
         </div>
       </div>
@@ -93,6 +101,7 @@ function Router() {
 
   // If not authenticated, show public routes only
   if (!firebaseUser) {
+    console.log('Showing login page - no firebase user');
     return (
       <div className="min-h-screen">
         <Switch>
