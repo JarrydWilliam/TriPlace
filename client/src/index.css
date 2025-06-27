@@ -40,6 +40,47 @@ html, body {
   }
 }
 
+/* Mobile-first optimizations - Remove all desktop constraints */
+.container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Remove fixed desktop widths */
+.w-64, .w-80, .w-96, .min-w-0 {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+/* Touch-friendly sizing for all interactive elements */
+button, .btn, [role="button"], input, select, textarea {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  touch-action: manipulation;
+}
+
+/* Remove desktop hover effects on mobile */
+@media (hover: none) and (pointer: coarse) {
+  *:hover {
+    background-color: inherit !important;
+    color: inherit !important;
+    transform: none !important;
+  }
+}
+
+/* Full mobile viewport usage */
+.desktop-only, .hidden.lg\\:block {
+  display: none !important;
+}
+
+.mobile-full {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+}
+
 /* Prevent bounce scrolling on iOS */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
   html, body {
