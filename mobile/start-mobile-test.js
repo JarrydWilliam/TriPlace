@@ -71,7 +71,7 @@ rl.question('\n3. Enter your deployed Replit URL (e.g., https://triplace.replit.
   rl.close();
   
   try {
-    execSync('npx expo start', { stdio: 'inherit', cwd: __dirname });
+    execSync('npx expo start --tunnel', { stdio: 'inherit', cwd: __dirname });
   } catch (error) {
     console.log('\n❌ Expo server stopped');
   }
