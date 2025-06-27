@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { GlobalPWAPrompt } from "@/components/ui/global-pwa-prompt";
 import { useEffect } from "react";
+import { auth } from "@/lib/firebase";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Onboarding from "@/pages/onboarding";
@@ -27,16 +28,45 @@ function Router() {
   const { user, firebaseUser, loading } = useAuth();
   const [location, setLocation] = useLocation();
 
+  // Clear inconsistent auth state for clean deployment
   useEffect(() => {
-    if (!loading && firebaseUser && user) {
-      // Check if user needs to complete onboarding
-      const needsOnboarding = !user.onboardingCompleted;
-      const isOnOnboardingPage = location === '/onboarding';
-      
-      if (needsOnboarding && !isOnOnboardingPage) {
-        setLocation('/onboarding');
-      } else if (!needsOnboarding && isOnOnboardingPage) {
-        setLocation('/dashboard');
+    const clearInconsistentAuth = async () => {
+      if (!loading && firebaseUser && !user) {
+        console.log('Detected inconsistent auth state - clearing for clean deployment');
+        try {
+          await auth.signOut();
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch (error) {
+          console.error('Error clearing auth:', error);
+        }
+      }
+    };
+    clearInconsistentAuth();
+  }, [firebaseUser, user, loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      // If no user is authenticated, ensure we're on the landing page
+      if (!firebaseUser || !user) {
+        if (location !== '/') {
+          setLocation('/');
+        }
+        return;
+      }
+
+      // If user is authenticated, handle onboarding flow
+      if (firebaseUser && user) {
+        const needsOnboarding = !user.onboardingCompleted;
+        const isOnOnboardingPage = location === '/onboarding';
+        
+        if (needsOnboarding && !isOnOnboardingPage) {
+          setLocation('/onboarding');
+        } else if (!needsOnboarding && isOnOnboardingPage) {
+          setLocation('/dashboard');
+        } else if (!needsOnboarding && location === '/') {
+          setLocation('/dashboard');
+        }
       }
     }
   }, [user, firebaseUser, loading, location, setLocation]);
