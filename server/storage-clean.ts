@@ -1,4 +1,4 @@
-import { users, communities, communityMembers, events, eventAttendees, messages, kudos, activityFeed, messageResonance } from "@shared/schema";
+import { users, communities, communityMembers, events, eventAttendees, messages, kudos as kudosTable, activityFeed, messageResonance } from "@shared/schema";
 import type { User, InsertUser, Community, InsertCommunity, Event, InsertEvent, Message, InsertMessage, Kudos, InsertKudos, CommunityMember, InsertCommunityMember, EventAttendee, InsertEventAttendee, ActivityFeedItem, MessageResonance, InsertMessageResonance } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc, sql, gte, lte, ne, inArray } from "drizzle-orm";
@@ -690,8 +690,8 @@ export class DatabaseStorage implements IStorage {
   // Kudos operations
   async getKudos(id: number): Promise<Kudos | undefined> {
     try {
-      const [kudos] = await db.select().from(kudos).where(eq(kudos.id, id));
-      return kudos;
+      const [kudosRecord] = await db.select().from(kudosTable).where(eq(kudosTable.id, id));
+      return kudosRecord;
     } catch (error) {
       console.error('Error getting kudos:', error);
       return undefined;
@@ -700,9 +700,9 @@ export class DatabaseStorage implements IStorage {
 
   async getUserKudosReceived(userId: number): Promise<Kudos[]> {
     try {
-      return await db.select().from(kudos)
-        .where(eq(kudos.receiverId, userId))
-        .orderBy(desc(kudos.createdAt));
+      return await db.select().from(kudosTable)
+        .where(eq(kudosTable.receiverId, userId))
+        .orderBy(desc(kudosTable.createdAt));
     } catch (error) {
       console.error('Error getting user kudos received:', error);
       return [];
@@ -711,9 +711,9 @@ export class DatabaseStorage implements IStorage {
 
   async getUserKudosGiven(userId: number): Promise<Kudos[]> {
     try {
-      return await db.select().from(kudos)
-        .where(eq(kudos.giverId, userId))
-        .orderBy(desc(kudos.createdAt));
+      return await db.select().from(kudosTable)
+        .where(eq(kudosTable.giverId, userId))
+        .orderBy(desc(kudosTable.createdAt));
     } catch (error) {
       console.error('Error getting user kudos given:', error);
       return [];
@@ -722,7 +722,7 @@ export class DatabaseStorage implements IStorage {
 
   async giveKudos(insertKudos: InsertKudos): Promise<Kudos> {
     try {
-      const [kudosRecord] = await db.insert(kudos).values({
+      const [kudosRecord] = await db.insert(kudosTable).values({
         ...insertKudos,
         createdAt: new Date()
       }).returning();
