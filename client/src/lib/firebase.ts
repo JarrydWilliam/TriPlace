@@ -1,83 +1,22 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 
-// Mobile-optimized Firebase configuration
-let auth: Auth | any;
-let googleProvider: GoogleAuthProvider | any;
-let isFirebaseInitialized = false;
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+};
 
-// Initialize Firebase with proper error handling for mobile
-function initializeFirebase() {
-  try {
-    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-    const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-    const appId = import.meta.env.VITE_FIREBASE_APP_ID;
-
-    console.log('Firebase environment check:', {
-      hasApiKey: !!apiKey,
-      hasProjectId: !!projectId,
-      hasAppId: !!appId,
-      apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'missing',
-      projectId: projectId || 'missing'
-    });
-
-    if (!apiKey || !projectId || !appId) {
-      console.error('Missing Firebase environment variables. Please check your secrets configuration.');
-      createAuthFallback();
-      return;
-    }
-
-    const firebaseConfig = {
-      apiKey,
-      authDomain: `${projectId}.firebaseapp.com`,
-      projectId,
-      storageBucket: `${projectId}.firebasestorage.app`,
-      appId,
-    };
-    
-    console.log('Initializing Firebase with config:', {
-      authDomain: firebaseConfig.authDomain,
-      projectId: firebaseConfig.projectId
-    });
-    
-    const app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-    
-    // Test if auth is working by getting current user
-    console.log('Auth initialized, current user:', auth.currentUser);
-    
-    isFirebaseInitialized = true;
-    console.log('Firebase initialized successfully');
-  } catch (error) {
-    console.error('Firebase initialization failed:', error);
-    createAuthFallback();
-  }
-}
-
-// Create fallback auth object that won't crash the app
-function createAuthFallback() {
-  auth = {
-    currentUser: null,
-    onAuthStateChanged: (callback: any) => {
-      // Call callback immediately with null user
-      setTimeout(() => callback(null), 0);
-      return () => {}; // Return unsubscribe function
-    },
-    signOut: () => Promise.resolve()
-  };
-  googleProvider = {};
-  isFirebaseInitialized = false;
-}
-
-// Initialize on module load
-initializeFirebase();
-
-export { auth, googleProvider, isFirebaseInitialized };
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
 // Check for redirect result on page load
 export const handleRedirectResult = async () => {
-  if (!isFirebaseInitialized || !auth) return null;
+  if (!auth) return null;
   
   try {
     const result = await getRedirectResult(auth);
@@ -102,52 +41,17 @@ const isMobileDevice = () => {
 };
 
 export const signInWithGoogle = async () => {
-  console.log('Starting Google sign-in process...');
-  
-  // Check if Firebase is properly configured
-  if (!isFirebaseInitialized) {
-    console.error('Firebase not initialized - check environment variables');
-    throw new Error('Authentication is not available. Please contact support for assistance.');
-  }
-
-  // Validate auth and provider are available
-  if (!auth || typeof auth.currentUser === 'undefined') {
-    console.error('Firebase auth not properly initialized');
-    throw new Error('Authentication service not ready. Please refresh the page and try again.');
+  if (!auth) {
+    throw new Error('Authentication service not available');
   }
 
   try {
-    console.log('Creating fresh Google provider...');
-    
-    // Always create a fresh provider to avoid stale state
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
-    // Use redirect for mobile devices, popup for desktop
-    const isMobile = isMobileDevice();
-    console.log('Device type:', isMobile ? 'mobile' : 'desktop');
-
-    if (isMobile) {
-      console.log('Using redirect sign-in for mobile device...');
-      await signInWithRedirect(auth, provider);
-      // The redirect will happen, no result to return here
-      return null;
-    } else {
-      console.log('Using popup sign-in for desktop...');
-      const result = await signInWithPopup(auth, provider);
-      
-      console.log('Google sign-in successful:', {
-        uid: result.user?.uid,
-        email: result.user?.email,
-        displayName: result.user?.displayName
-      });
-      
-      // Validate the result
-      if (!result || !result.user) {
-        throw new Error('Authentication failed - no user returned. Please try again.');
-      }
+    const result = await signInWithPopup(auth, provider);
+    
+    if (!result || !result.user) {
+      throw new Error('Authentication failed');
+    }
 
       return result;
     }
