@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useLocationSync } from "@/hooks/use-location-sync";
 import { useTheme } from "@/lib/theme-context";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +32,9 @@ export default function DashboardMobile() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation();
   const { theme, toggleTheme } = useTheme();
+  
+  // Automatically sync user location for dynamic community filtering
+  useLocationSync();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();

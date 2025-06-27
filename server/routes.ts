@@ -112,6 +112,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user location for community filtering
+  app.put("/api/users/:id/location", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { latitude, longitude } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude are required" });
+      }
+      
+      const user = await storage.updateUser(id, { 
+        latitude: latitude.toString(), 
+        longitude: longitude.toString() 
+      });
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ success: true, message: "Location updated successfully" });
+    } catch (error) {
+      console.error('Error updating user location:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Community routes
   app.get("/api/communities", async (req, res) => {
     try {
