@@ -101,6 +101,32 @@ export default function App() {
       }
     });
 
+    // Enhanced Firebase authentication for mobile
+    window.addEventListener('DOMContentLoaded', function() {
+      // Improve popup handling for mobile devices
+      if (window.firebase && window.firebase.auth) {
+        const originalSignInWithPopup = window.firebase.auth().signInWithPopup;
+        if (originalSignInWithPopup) {
+          window.firebase.auth().signInWithPopup = function(provider) {
+            // Mobile-specific popup configuration
+            provider.setCustomParameters({
+              prompt: 'select_account',
+              display: 'popup'
+            });
+            
+            return originalSignInWithPopup.call(this, provider).catch(function(error) {
+              console.log('Mobile auth error:', error);
+              // Enhanced error handling for mobile
+              if (error.code === 'auth/popup-blocked') {
+                alert('Please allow popups for sign-in to work properly.');
+              }
+              throw error;
+            });
+          };
+        }
+      }
+    });
+
     // Remove desktop-specific styles and parameters
     const style = document.createElement('style');
     style.textContent = \`
@@ -151,6 +177,11 @@ export default function App() {
           background-color: inherit !important;
           color: inherit !important;
         }
+      }
+
+      /* Hide PWA install prompts in mobile app */
+      [data-pwa-prompt], .pwa-install-dialog {
+        display: none !important;
       }
     \`;
     document.head.appendChild(style);

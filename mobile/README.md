@@ -23,10 +23,13 @@ npx expo start
 ## Features
 
 - Native mobile wrapper for TriPlace web app
-- Integrated GPS location services
-- Touch-optimized interface
-- iOS and Android support
+- Integrated GPS location services with high accuracy
+- Touch-optimized interface with 44px minimum touch targets
+- iOS and Android support via Expo
 - Automatic removal of desktop-specific UI elements
+- Enhanced Firebase authentication for mobile devices
+- Native location override for improved geolocation
+- PWA install prompts hidden in native app context
 
 ## Firebase Configuration
 
