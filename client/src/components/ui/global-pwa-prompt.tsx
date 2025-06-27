@@ -236,7 +236,7 @@ export function GlobalPWAPrompt() {
     if (!deferredPrompt) {
       // Enhanced mobile installation handling based on browser type
       const userAgent = navigator.userAgent.toLowerCase();
-      const browserType = getMobileBrowserType();
+      const browserType = getMobileBrowserTypeForHandling();
       
       // Browser-specific installation instructions
       switch (browserType) {
@@ -337,7 +337,7 @@ export function GlobalPWAPrompt() {
 
   const getInstallInstructions = () => {
     const userAgent = navigator.userAgent.toLowerCase();
-    const browserType = getMobileBrowserTypeForDisplay();
+    const browserType = getMobileBrowserTypeForHandling();
     
     switch (browserType) {
       case 'ios-safari':
@@ -366,27 +366,7 @@ export function GlobalPWAPrompt() {
     }
   };
 
-  // Helper function for display purposes
-  const getMobileBrowserTypeForDisplay = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    
-    if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-      if (userAgent.includes('crios')) return 'ios-chrome';
-      if (userAgent.includes('fxios')) return 'ios-firefox';
-      if (userAgent.includes('safari') && !userAgent.includes('chrome')) return 'ios-safari';
-      return 'ios-other';
-    }
-    
-    if (userAgent.includes('android')) {
-      if (userAgent.includes('chrome') && !userAgent.includes('edg')) return 'android-chrome';
-      if (userAgent.includes('firefox')) return 'android-firefox';
-      if (userAgent.includes('samsung')) return 'android-samsung';
-      if (userAgent.includes('opera')) return 'android-opera';
-      return 'android-other';
-    }
-    
-    return 'desktop';
-  };
+
 
   // Enhanced detection for mobile app WebView
   const isInMobileAppWebView = () => {
