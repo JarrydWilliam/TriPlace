@@ -166,13 +166,27 @@ export default function Dashboard() {
     },
   });
 
-  // Sample data for demo purposes
-  const monthlyKudos = 32;
-  const currentChallenges = [
-    { id: "challenge-1", title: "🎯 Attend 2 events this week", progress: 50, target: 2, current: 1 },
-    { id: "challenge-2", title: "📢 Post in 3 communities", progress: 33, target: 3, current: 1 },
-    { id: "challenge-3", title: "🤝 Meet 1 new 90% match member", progress: 0, target: 1, current: 0 }
-  ];
+  // Fetch user's monthly kudos from database
+  const { data: userKudos } = useQuery({
+    queryKey: ["/api/users", user?.id, "kudos", "monthly"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/kudos/monthly`);
+      if (!response.ok) return { count: 0 };
+      return response.json();
+    }
+  });
+
+  // Fetch user's active challenges from database  
+  const { data: userChallenges } = useQuery({
+    queryKey: ["/api/users", user?.id, "challenges"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/challenges`);
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
 
   // Color coding for communities
   const communityColors = {
@@ -273,7 +287,7 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold">Welcome back, {user.name?.split(' ')[0] || 'friend'}!</h2>
               <div className="flex items-center space-x-1 text-sm text-muted-foreground mt-1">
                 <Heart className="w-4 h-4" />
-                <span>{monthlyKudos} Kudos this month</span>
+                <span>{userKudos?.count || 0} Kudos this month</span>
               </div>
             </div>
           </div>
@@ -298,7 +312,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center space-x-1">
                       <Heart className="w-4 h-4" />
-                      <span className="text-sm">💜 {monthlyKudos} Kudos this month</span>
+                      <span className="text-sm">💜 {userKudos?.count || 0} Kudos this month</span>
                     </div>
                   </div>
                 </div>
@@ -564,19 +578,23 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {currentChallenges.map((challenge) => (
+                {userChallenges?.length > 0 ? userChallenges.map((challenge: any) => (
                   <div key={challenge.id} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {challenge.title}
                       </span>
                       <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {challenge.current}/{challenge.target}
+                        {challenge.current || 0}/{challenge.target || 0}
                       </span>
                     </div>
-                    <Progress value={challenge.progress} className="h-2" />
+                    <Progress value={challenge.progress || 0} className="h-2" />
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p>Complete your first community interactions to unlock challenges!</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
