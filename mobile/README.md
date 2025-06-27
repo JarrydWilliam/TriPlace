@@ -1,8 +1,24 @@
 # TriPlace Mobile App
 
-This is the native mobile wrapper for TriPlace using Expo and React Native WebView.
+## Overview
+Native React Native app using Expo WebView to provide full TriPlace functionality with enhanced mobile features.
 
-## Setup Instructions
+## Features
+- 100% web app functionality via WebView
+- Native location services with high accuracy GPS
+- Push notifications for community updates and events
+- Secure storage for authentication data
+- Deep linking support (triplace://)
+- Enhanced mobile UI with touch optimizations
+- PWA prompt removal for native app experience
+
+## Prerequisites
+- Node.js 16+ 
+- Expo CLI: `npm install -g expo-cli`
+- iOS Simulator or Android Emulator
+- Physical device for testing location services
+
+## Installation
 
 1. Install dependencies:
 ```bash
@@ -10,55 +26,87 @@ cd mobile
 npm install
 ```
 
-2. Update the Replit URL in `App.js`:
-```javascript
-const replitUrl = 'https://TriPlaceApp.replit.app';
-```
-
-3. Run the mobile app:
+2. Start development server:
 ```bash
 npx expo start
 ```
 
-## Features
+3. Run on device:
+- iOS: Press `i` or scan QR code with Expo Go
+- Android: Press `a` or scan QR code with Expo Go
 
-### Core TriPlace Functionality
-- Complete web app feature parity via native WebView wrapper
-- AI-powered community matching and recommendations
-- Real-time messaging with community chat features
-- Event discovery and attendance tracking
-- Location-aware community and event filtering
-- User onboarding with comprehensive 15-question quiz
-- Dynamic community membership with activity-based rotation
-- Kudos system and weekly challenges
-- Profile management and settings
+## Building for Production
 
-### Native Mobile Enhancements  
-- High-accuracy GPS location services with background updates
-- Push notifications for community updates and event reminders
-- Secure storage for sensitive user data
-- Deep linking support for community and event sharing
-- Native sharing capabilities
-- Touch-optimized interface (44px minimum touch targets)
-- Automatic desktop parameter removal and mobile CSS injection
-- Enhanced Firebase authentication with mobile-specific error handling
-- App state management with foreground/background detection
-- Native camera and photo library integration ready
-- Contact access for friend discovery (when permissions granted)
+### Android
+```bash
+npx expo build:android
+```
 
-## Firebase Configuration
+### iOS
+```bash
+npx expo build:ios
+```
 
-The mobile app uses the same Firebase configuration as the web app. Make sure your Firebase project has:
+## Configuration
 
-1. iOS app configured (for iOS deployment)
-2. Android app configured (for Android deployment)
-3. Web app configured (current setup)
+### Firebase Setup
+1. Add iOS/Android apps in Firebase Console
+2. Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
+3. Place files in project root
 
-## Deployment
+### Environment Variables
+The app connects to: `https://TriPlaceApp.replit.app`
 
-Use Expo Application Services (EAS) for building and deploying:
+## App Store Deployment
 
-1. Install EAS CLI: `npm install -g @expo/eas-cli`
-2. Configure: `eas build:configure`
-3. Build: `eas build --platform all`
-4. Submit: `eas submit --platform all`
+### iOS App Store
+1. Build IPA: `npx expo build:ios`
+2. Upload to TestFlight via Xcode or Application Loader
+3. Submit for App Store review
+
+### Google Play Store
+1. Build APK/AAB: `npx expo build:android`
+2. Upload to Google Play Console
+3. Complete store listing and submit for review
+
+## Features Integration
+
+### Location Services
+- Automatic location detection
+- Fallback to web geolocation API
+- Permission handling with user prompts
+
+### Push Notifications
+- Expo push notifications
+- Community activity alerts
+- Event reminders
+- Custom notification channels
+
+### Deep Linking
+- `triplace://community/[id]` - Open specific community
+- `triplace://event/[id]` - Open specific event
+- `triplace://profile/[id]` - Open user profile
+
+### Secure Storage
+- Encrypted storage for sensitive data
+- Authentication tokens
+- User preferences
+
+## Performance
+- WebView caching enabled
+- Optimized for 60fps scrolling
+- Native navigation gestures
+- Touch target optimization (44px minimum)
+
+## Debugging
+```bash
+npx expo start --tunnel  # For testing on physical devices
+npx expo doctor         # Check for common issues
+```
+
+## Permissions
+- Location (foreground/background)
+- Camera (profile photos)
+- Photo library (image selection)
+- Notifications (push alerts)
+- Internet access

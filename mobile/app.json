@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TriPlace - Your Digital Third Place",
+    "name": "TriPlace",
     "slug": "triplace-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,25 +9,22 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f59e0b"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.triplace.mobile",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.triplace.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "TriPlace needs location access to find communities and events near you.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "TriPlace uses location to provide personalized community recommendations and nearby events.",
-        "NSCameraUsageDescription": "TriPlace needs camera access to take photos for your profile and community posts.",
-        "NSPhotoLibraryUsageDescription": "TriPlace needs photo library access to share images in communities.",
-        "NSMicrophoneUsageDescription": "TriPlace needs microphone access for voice messages in communities.",
-        "NSContactsUsageDescription": "TriPlace can access your contacts to help you find friends in communities.",
+        "NSLocationWhenInUseUsageDescription": "TriPlace needs location access to connect you with nearby communities and events.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TriPlace uses location to find communities and events near you.",
+        "NSCameraUsageDescription": "TriPlace needs camera access to take profile photos and share moments.",
+        "NSPhotoLibraryUsageDescription": "TriPlace needs photo access to select profile pictures and share images.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLName": "triplace-deep-link",
+            "CFBundleURLName": "triplace",
             "CFBundleURLSchemes": ["triplace"]
           }
         ]
@@ -36,22 +33,17 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f59e0b"
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.triplace.mobile",
-      "versionCode": 1,
+      "package": "com.triplace.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO",
-        "READ_CONTACTS",
-        "VIBRATE",
-        "WAKE_LOCK",
-        "RECEIVE_BOOT_COMPLETED"
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ],
       "intentFilters": [
         {
@@ -59,13 +51,12 @@
           "data": [
             {
               "scheme": "triplace"
-            },
-            {
-              "scheme": "https",
-              "host": "TriPlaceApp.replit.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -74,38 +65,18 @@
     },
     "notification": {
       "icon": "./assets/notification-icon.png",
-      "color": "#f59e0b",
-      "androidMode": "default",
-      "androidCollapsedTitle": "TriPlace",
-      "sounds": [
-        "./assets/notification.wav"
-      ]
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/your-project-id"
-    },
-    "runtimeVersion": "1.0.0",
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
+      "color": "#000000",
+      "sounds": {
+        "default": "./assets/notification.wav"
       }
     },
     "scheme": "triplace",
     "plugins": [
       [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "TriPlace uses location to find communities and events near you.",
-          "locationAlwaysPermission": "TriPlace uses background location to provide personalized recommendations.",
-          "locationWhenInUsePermission": "TriPlace needs location access to show nearby communities."
-        }
-      ],
-      [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#f59e0b",
+          "color": "#ffffff",
           "sounds": ["./assets/notification.wav"]
         }
       ]
