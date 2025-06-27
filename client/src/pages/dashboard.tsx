@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle } from "lucide-react";
+import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle, Home, Compass, PlusSquare, MessageCircle } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -20,6 +20,14 @@ import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
+import { 
+  MobileLayout, 
+  MobileHeader, 
+  MobileContent, 
+  MobileBottomNav,
+  MobileCard,
+  MobileButton
+} from "@/components/layout/mobile-layout";
 
 
 export default function Dashboard() {
@@ -187,47 +195,123 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 pb-safe">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <MobileLayout hasBottomNav={true} className="bg-background">
+      {/* Mobile Header */}
+      <MobileHeader>
+        <div className="flex items-center space-x-3">
+          <Logo size="sm" />
+          <div className="flex flex-col">
+            <h1 className="text-lg font-semibold truncate">TriPlace</h1>
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate">{locationName || 'Loading...'}</span>
+            </div>
+          </div>
+        </div>
         
-        {/* User Banner - Mobile Optimized */}
+        <div className="flex items-center space-x-2">
+          <ShareQR />
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={toggleTheme}
+            className="touch-target"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="touch-target"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-64" align="end">
+              <DropdownMenuLabel>Settings</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLocation('/settings/profile')}>
+                <UserIcon className="w-4 h-4 mr-2" />
+                Profile Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/settings/account')}>
+                <Settings className="w-4 h-4 mr-2" />
+                Account Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/settings/notifications')}>
+                <Bell className="w-4 h-4 mr-2" />
+                Notifications
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/settings/security')}>
+                <Shield className="w-4 h-4 mr-2" />
+                Security
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation('/settings/support')}>
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Support
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </MobileHeader>
+
+      {/* Mobile Content */}
+      <MobileContent className="space-y-4">
+        {/* User Profile Card */}
+        <MobileCard className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+          <div className="flex items-center space-x-4">
+            <Avatar className="w-16 h-16 border-2 border-primary/20">
+              <AvatarImage src={user.avatar || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                {user.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold">Welcome back, {user.name?.split(' ')[0] || 'friend'}!</h2>
+              <div className="flex items-center space-x-1 text-sm text-muted-foreground mt-1">
+                <Heart className="w-4 h-4" />
+                <span>{monthlyKudos} Kudos this month</span>
+              </div>
+            </div>
+          </div>
+        </MobileCard>
         <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <Logo size="sm" className="md:hidden" />
-                <Logo size="md" className="hidden md:block" />
-                <Avatar className="w-12 h-12 md:w-16 md:h-16 border-4 border-white/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Logo size="md" className="mr-2" />
+                <Avatar className="w-16 h-16 border-4 border-white/20">
                   <AvatarImage src={user.avatar || undefined} />
                   <AvatarFallback className="bg-white/20 text-white text-lg">
                     {user.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-lg md:text-2xl font-bold leading-tight">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-1 text-white/80 gap-1 sm:gap-0">
+                <div>
+                  <h1 className="text-2xl font-bold">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
+                  <div className="flex items-center space-x-4 mt-1 text-white/80">
                     <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span className="text-sm truncate">{locationName || 'Location loading...'}</span>
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm">{locationName || 'Location loading...'}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4 flex-shrink-0" />
+                      <Heart className="w-4 h-4" />
                       <span className="text-sm">💜 {monthlyKudos} Kudos this month</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-1 md:space-x-2">
-                <div className="hidden sm:block">
-                  <ShareQR />
-                </div>
+              <div className="flex items-center space-x-2">
+                <ShareQR />
                 <Button 
                   variant="ghost" 
-                  size="sm"
+                  size="icon"
                   onClick={toggleTheme}
-                  className="text-white hover:bg-white/20 p-2"
+                  className="text-white hover:bg-white/20"
                 >
-                  {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>
                 
                 {/* Settings Dropdown Menu */}
@@ -328,24 +412,23 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Event Calendar Widget - Mobile Optimized */}
+          {/* Event Calendar Widget */}
           <div className="lg:col-span-2">
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 p-4 md:p-6">
-                <CardTitle className="text-lg md:text-xl text-gray-900 dark:text-white flex items-center space-x-2">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl text-gray-900 dark:text-white flex items-center space-x-2">
                   <CalendarDays className="w-5 h-5" />
                   <span>Event Calendar</span>
                 </CardTitle>
                 <Button 
                   size="sm" 
-                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto text-sm"
+                  className="bg-purple-600 hover:bg-purple-700"
                   onClick={() => setLocation("/create-event")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Partner Event Creation</span>
-                  <span className="sm:hidden">Create Event</span>
+                  Partner Event Creation
                 </Button>
               </CardHeader>
               <CardContent>

@@ -3,19 +3,18 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/lib/auth-context-rebuilt";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { MobileNav } from "@/components/mobile-nav";
 
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
-import Onboarding from "@/pages/onboarding";
-import Profile from "@/pages/profile";
-import Messaging from "@/pages/messaging";
-import Community from "@/pages/community";
-import CreateEvent from "@/pages/create-event";
+import Dashboard from "@/pages/dashboard-mobile";
+import Onboarding from "@/pages/onboarding-mobile";
+import Profile from "@/pages/profile-mobile";
+import Messaging from "@/pages/messaging-mobile";
+import Community from "@/pages/community-mobile";
+import CreateEvent from "@/pages/create-event-mobile";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";
 import NotificationSettings from "@/pages/settings/notifications";
@@ -30,16 +29,13 @@ function Router() {
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
-      // Implement proper authentication flow: login → quiz → dashboard
+      // Check if user needs to complete onboarding
       const needsOnboarding = !user.onboardingCompleted;
       const isOnOnboardingPage = location === '/onboarding';
-      const isOnDashboard = location === '/dashboard';
       
       if (needsOnboarding && !isOnOnboardingPage) {
-        // Redirect to quiz if not completed
         setLocation('/onboarding');
-      } else if (!needsOnboarding && (isOnOnboardingPage || location === '/')) {
-        // Redirect to dashboard after quiz completion
+      } else if (!needsOnboarding && isOnOnboardingPage) {
         setLocation('/dashboard');
       }
     }
@@ -88,7 +84,7 @@ function Router() {
 
   // Authenticated user routes
   return (
-    <div className="min-h-screen overflow-x-hidden pb-20 md:pb-0">
+    <div className="h-screen overflow-hidden">
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/dashboard" component={Dashboard} />
@@ -110,7 +106,6 @@ function Router() {
         <Route path="/kudos" component={Dashboard} />
         <Route component={NotFound} />
       </Switch>
-      <MobileNav />
     </div>
   );
 }

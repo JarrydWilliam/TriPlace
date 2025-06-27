@@ -1,7 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,17 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal, Plus } from "lucide-react";
+import { Send, Heart, Calendar, Users, MapPin, Pin, MessageCircle, Clock, Star, MoreHorizontal, Plus, ArrowLeft, Home, Compass, PlusSquare, User as UserIcon } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
+import { 
+  MobileLayout, 
+  MobileHeader, 
+  MobileContent, 
+  MobileBottomNav,
+  MobileCard,
+  MobileButton,
+  MobileInput
+} from "@/components/layout/mobile-layout";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -356,24 +364,51 @@ export default function CommunityPage() {
     );
   }
 
+  const [, setLocation] = useLocation();
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-safe">
-      <div className="container mx-auto px-4 py-4 md:py-6 max-w-6xl">
+    <MobileLayout hasBottomNav={true} className="bg-background">
+      {/* Mobile Header */}
+      <MobileHeader>
+        <div className="flex items-center space-x-3">
+          <MobileButton 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setLocation('/dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </MobileButton>
+          <Logo size="sm" />
+          <div className="flex flex-col flex-1">
+            <h1 className="text-lg font-semibold truncate">{community?.name || 'Community'}</h1>
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <Users className="w-3 h-3" />
+              <span>{community?.memberCount || 0} members</span>
+              <span>•</span>
+              <Badge variant="secondary" className="text-xs">{community?.category}</Badge>
+            </div>
+          </div>
+        </div>
         
-        {/* Community Header - Mobile Optimized */}
-        <Card className="mb-4 md:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center space-x-3 md:space-x-4">
-                <Logo size="sm" className="md:hidden" />
-                <Logo size="md" className="hidden md:block" />
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center text-lg md:text-2xl">
+        <div className="flex items-center space-x-2">
+          <MobileButton variant="ghost" size="sm">
+            <MoreHorizontal className="w-4 h-4" />
+          </MobileButton>
+        </div>
+      </MobileHeader>
+
+      {/* Mobile Content */}
+      <MobileContent className="p-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Logo size="md" className="mr-2" />
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">
                   🌟
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-xl md:text-3xl font-bold leading-tight">{community.name}</h1>
-                  <p className="text-white/80 mt-1 text-sm md:text-base line-clamp-2">{community.description}</p>
-                  <div className="flex flex-wrap gap-3 md:gap-4 mt-2 text-white/70">
+                <div>
+                  <h1 className="text-3xl font-bold">{community.name}</h1>
+                  <p className="text-white/80 mt-1">{community.description}</p>
+                  <div className="flex items-center space-x-4 mt-2 text-white/70">
                     <div className="flex items-center space-x-1">
                       <Users className="w-4 h-4" />
                       <span className="text-sm">{community.memberCount} members</span>
@@ -612,10 +647,10 @@ export default function CommunityPage() {
                   )}
                 </div>
 
-                {/* Mobile-Optimized Message Input */}
-                <div className="sticky bottom-0 md:relative border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 md:p-4 flex-shrink-0 z-10">
-                  <div className="flex items-end space-x-2 md:space-x-3">
-                    <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
+                {/* Instagram-style Message Input */}
+                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex-shrink-0">
+                  <div className="flex items-end space-x-3">
+                    <Avatar className="w-8 h-8 flex-shrink-0">
                       <AvatarImage src={user?.avatar || undefined} />
                       <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xs">
                         {user?.name?.charAt(0) || 'U'}
@@ -635,16 +670,16 @@ export default function CommunityPage() {
                               }
                             }
                           }}
-                          className="min-h-[36px] md:min-h-[40px] max-h-24 md:max-h-32 resize-none border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 transition-colors pr-10 md:pr-12 text-sm md:text-base"
+                          className="min-h-[40px] max-h-32 resize-none border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 transition-colors pr-12"
                           rows={1}
                         />
-                        <div className="absolute right-2 md:right-3 bottom-1.5 md:bottom-2 flex items-center space-x-1">
+                        <div className="absolute right-3 bottom-2 flex items-center space-x-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-5 w-5 md:h-6 md:w-6 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           >
-                            <span className="text-xs md:text-sm">😊</span>
+                            <span className="text-sm">😊</span>
                           </Button>
                         </div>
                       </div>

@@ -1,20 +1,22 @@
-import { eq, and, sql, desc, asc, ne, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, asc, isNotNull, ne } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users, communities, events, communityMembers, eventAttendees, 
-  messages, kudos, activityFeed, messageResonance,
+  messages, kudos, activityFeed,
   type User, type Community, type Event, type CommunityMember, type EventAttendee,
   type Message, type Kudos, type ActivityFeedItem, type InsertUser, type InsertCommunity,
   type InsertEvent, type InsertMessage, type InsertKudos
 } from "@shared/schema";
 
 export interface IStorage {
+  // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined>;
   
+  // Community methods
   getCommunity(id: number): Promise<Community | undefined>;
   getAllCommunities(): Promise<Community[]>;
   getCommunitiesByCategory(category: string): Promise<Community[]>;
@@ -24,6 +26,7 @@ export interface IStorage {
   createCommunity(community: InsertCommunity): Promise<Community>;
   updateCommunity(id: number, updates: Partial<InsertCommunity>): Promise<Community | undefined>;
   
+  // Community membership methods
   joinCommunity(userId: number, communityId: number): Promise<CommunityMember>;
   leaveCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserCommunities(userId: number): Promise<Community[]>;
@@ -32,6 +35,7 @@ export interface IStorage {
   updateCommunityActivity(userId: number, communityId: number): Promise<void>;
   joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
   
+  // Event methods
   getEvent(id: number): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
   getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]>;
@@ -40,41 +44,39 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
+  // Event attendance methods
   registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee>;
   unregisterFromEvent(userId: number, eventId: number): Promise<boolean>;
   getUserEvents(userId: number): Promise<Event[]>;
   getEventAttendees(eventId: number): Promise<User[]>;
   
+  // Messaging methods
   getMessage(id: number): Promise<Message | undefined>;
   getConversation(userId1: number, userId2: number): Promise<Message[]>;
   getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]>;
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
+  // Community messaging methods
   getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]>;
   sendCommunityMessage(message: InsertMessage & { communityId: number }): Promise<Message>;
   resonateMessage(messageId: number, userId: number): Promise<boolean>;
   
+  // Community events
   getCommunityEvents(communityId: number): Promise<Event[]>;
   
+  // Kudos methods
   getKudos(id: number): Promise<Kudos | undefined>;
   getUserKudosReceived(userId: number): Promise<Kudos[]>;
   getUserKudosGiven(userId: number): Promise<Kudos[]>;
   giveKudos(kudos: InsertKudos): Promise<Kudos>;
   
+  // Activity feed methods
   getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]>;
   addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem>;
 }
 
 export class DatabaseStorage implements IStorage {
-  
-  async initializeData() {
-    // Live app - no demo data initialization
-    // Communities are created through AI recommendations based on user quiz responses
-    // Events are populated through real-time scraping from external APIs
-    console.log('Live app initialized - using real user-generated content only');
-  }
-
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -106,43 +108,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllCommunities(): Promise<Community[]> {
-    return await db.select().from(communities).where(eq(communities.isActive, true));
+    return await db.select().from(communities);
   }
 
   async getCommunitiesByCategory(category: string): Promise<Community[]> {
-    return await db.select().from(communities)
-      .where(and(eq(communities.category, category), eq(communities.isActive, true)));
+    return await db.select().from(communities).where(eq(communities.category, category));
   }
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
-    // Get all active communities
-    let allCommunities = await db.select().from(communities)
-      .where(eq(communities.isActive, true));
-
+    const allCommunities = await this.getAllCommunities();
+    
     // Filter out communities user is already a member of
+    let filteredCommunities = allCommunities;
     if (userId) {
-      const userCommunityIds = await db.select({ communityId: communityMembers.communityId })
-        .from(communityMembers)
-        .where(eq(communityMembers.userId, userId));
-      
-      const userCommunityIdSet = new Set(userCommunityIds.map(uc => uc.communityId));
-      allCommunities = allCommunities.filter(c => !userCommunityIdSet.has(c.id));
+      const userCommunities = await this.getUserCommunities(userId);
+      const userCommunityIds = userCommunities.map(c => c.id);
+      filteredCommunities = allCommunities.filter(c => !userCommunityIds.includes(c.id));
     }
-
-    // Calculate scores for each community
-    const scoredCommunities = allCommunities.map(community => {
-      const interestScore = this.calculateInterestScore(community, interests);
-      const engagementScore = this.calculateEngagementScore(community);
-      
-      return {
-        ...community,
-        totalScore: interestScore * 0.7 + engagementScore * 0.3
-      };
-    });
-
-    // Sort by score and return top matches
+    
+    // Score communities based on interest match
+    const scoredCommunities = filteredCommunities.map(community => ({
+      ...community,
+      score: this.calculateInterestScore(community, interests) + this.calculateEngagementScore(community)
+    }));
+    
+    // Sort by score and return top communities
     return scoredCommunities
-      .sort((a, b) => b.totalScore - a.totalScore)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 10);
   }
 
@@ -158,8 +150,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private calculateEngagementScore(community: Community): number {
-    // Base score on member count with diminishing returns
-    const memberScore = Math.min(community.memberCount / 100, 1) * 50;
+    const memberScore = Math.min((community.memberCount || 0) / 100, 1) * 50;
     return memberScore;
   }
 
@@ -187,7 +178,7 @@ export class DatabaseStorage implements IStorage {
   async leaveCommunity(userId: number, communityId: number): Promise<boolean> {
     const result = await db.delete(communityMembers)
       .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getUserCommunities(userId: number): Promise<Community[]> {
@@ -198,14 +189,19 @@ export class DatabaseStorage implements IStorage {
       category: communities.category,
       image: communities.image,
       memberCount: communities.memberCount,
-      location: communities.location,
-      isActive: communities.isActive,
-      createdAt: communities.createdAt
+      createdAt: communities.createdAt,
+      tags: communities.tags,
+      latitude: communities.latitude,
+      longitude: communities.longitude,
+      address: communities.address,
+      website: communities.website,
+      contactEmail: communities.contactEmail,
+      isActive: communities.isActive
     })
     .from(communityMembers)
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
-    .where(and(eq(communityMembers.userId, userId), eq(communities.isActive, true)));
-
+    .where(eq(communityMembers.userId, userId));
+    
     return result;
   }
 
@@ -217,17 +213,22 @@ export class DatabaseStorage implements IStorage {
       category: communities.category,
       image: communities.image,
       memberCount: communities.memberCount,
-      location: communities.location,
-      isActive: communities.isActive,
       createdAt: communities.createdAt,
+      tags: communities.tags,
+      latitude: communities.latitude,
+      longitude: communities.longitude,
+      address: communities.address,
+      website: communities.website,
+      contactEmail: communities.contactEmail,
+      isActive: communities.isActive,
       activityScore: communityMembers.activityScore,
       lastActivityAt: communityMembers.lastActivityAt
     })
     .from(communityMembers)
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
-    .where(and(eq(communityMembers.userId, userId), eq(communities.isActive, true)))
-    .orderBy(desc(communityMembers.activityScore));
-
+    .where(eq(communityMembers.userId, userId))
+    .orderBy(desc(communityMembers.lastActivityAt));
+    
     return result.map(r => ({
       ...r,
       activityScore: r.activityScore || 0,
@@ -254,13 +255,13 @@ export class DatabaseStorage implements IStorage {
     .from(communityMembers)
     .innerJoin(users, eq(communityMembers.userId, users.id))
     .where(eq(communityMembers.communityId, communityId));
-
+    
     return result;
   }
 
   async updateCommunityActivity(userId: number, communityId: number): Promise<void> {
     await db.update(communityMembers)
-      .set({
+      .set({ 
         activityScore: sql`${communityMembers.activityScore} + 1`,
         lastActivityAt: new Date()
       })
@@ -268,94 +269,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    // Check current community count
-    const currentCommunities = await this.getUserActiveCommunities(userId);
+    const userCommunities = await this.getUserActiveCommunities(userId);
     
     let dropped: Community | undefined;
-    
-    if (currentCommunities.length >= 5) {
-      // Find least active community to drop
-      const leastActive = currentCommunities[currentCommunities.length - 1];
+    if (userCommunities.length >= 5) {
+      // Find least active community
+      const leastActive = userCommunities[userCommunities.length - 1];
       await this.leaveCommunity(userId, leastActive.id);
       dropped = leastActive;
     }
     
-    // Join new community
     const joined = await this.joinCommunity(userId, communityId);
-    
     return { joined, dropped };
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
-    const community = await this.getCommunity(communityId);
-    if (!community) return [];
-
-    const communityInterests = this.getCommunityInterests(community);
-    
-    // Get all users with location data
     const allUsers = await db.select().from(users)
       .where(and(
-        ne(users.latitude, null),
-        ne(users.longitude, null),
-        ne(users.interests, null)
+        isNotNull(users.latitude),
+        isNotNull(users.longitude),
+        isNotNull(users.interests)
       ));
-
-    const matchingUsers = allUsers.filter(user => {
+    
+    const nearbyUsers = allUsers.filter(user => {
       if (!user.latitude || !user.longitude || !user.interests) return false;
-
-      // Calculate distance
-      const userLat = parseFloat(user.latitude);
-      const userLon = parseFloat(user.longitude);
-      const distance = this.calculateDistance(userLocation.lat, userLocation.lon, userLat, userLon);
+      
+      const distance = this.calculateDistance(
+        userLocation.lat, userLocation.lon,
+        parseFloat(user.latitude), parseFloat(user.longitude)
+      );
       
       if (distance > radiusMiles) return false;
-
-      // Calculate interest overlap
-      const userInterestsList = Array.isArray(user.interests) ? user.interests : [];
-      const overlapScore = this.calculateInterestOverlap(userInterestsList, communityInterests);
       
-      return overlapScore >= 0.7; // 70% interest match required
+      const interestOverlap = this.calculateInterestOverlap(userInterests, user.interests);
+      return interestOverlap >= 0.7;
     });
-
-    return matchingUsers.slice(0, 50); // Limit to 50 members for performance
+    
+    return nearbyUsers.slice(0, 20);
   }
 
   async getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }> {
-    // Try 50-mile radius first
     let members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 50);
+    let radiusUsed = 50;
     
     if (members.length === 0) {
-      // Expand to 100-mile radius
       members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 100);
-      return { members, radiusUsed: 100 };
+      radiusUsed = 100;
     }
     
-    return { members, radiusUsed: 50 };
+    return { members, radiusUsed };
   }
 
   private getCommunityInterests(community: Community): string[] {
-    const interestKeywords = {
-      wellness: ['yoga', 'meditation', 'fitness', 'health', 'mindfulness'],
-      tech: ['programming', 'coding', 'software', 'technology', 'AI'],
-      creative: ['art', 'design', 'music', 'writing', 'photography'],
-      outdoor: ['hiking', 'nature', 'adventure', 'camping', 'sports'],
-      food: ['cooking', 'culinary', 'restaurants', 'baking', 'wine']
-    };
-    
-    return interestKeywords[community.category as keyof typeof interestKeywords] || [];
+    return community.tags || [];
   }
 
   private calculateInterestOverlap(userInterests: string[], targetInterests: string[]): number {
-    if (userInterests.length === 0 || targetInterests.length === 0) return 0;
+    if (!userInterests.length || !targetInterests.length) return 0;
     
-    const matches = userInterests.filter(interest => 
+    const overlap = userInterests.filter(interest => 
       targetInterests.some(target => 
-        interest.toLowerCase().includes(target.toLowerCase()) ||
-        target.toLowerCase().includes(interest.toLowerCase())
+        target.toLowerCase().includes(interest.toLowerCase()) ||
+        interest.toLowerCase().includes(target.toLowerCase())
       )
     );
     
-    return matches.length / Math.max(userInterests.length, targetInterests.length);
+    return overlap.length / userInterests.length;
   }
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -363,8 +342,8 @@ export class DatabaseStorage implements IStorage {
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   }
@@ -375,27 +354,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllEvents(): Promise<Event[]> {
-    return await db.select().from(events).orderBy(desc(events.date));
+    return await db.select().from(events);
   }
 
   async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]> {
-    // For now, return all events (can be enhanced with spatial queries)
-    return await db.select().from(events)
-      .where(sql`date >= ${new Date()}`)
-      .orderBy(asc(events.date));
+    const allEvents = await db.select().from(events);
+    
+    return allEvents.filter(event => {
+      if (!event.latitude || !event.longitude) return false;
+      
+      const distance = this.calculateDistance(
+        parseFloat(latitude), parseFloat(longitude),
+        parseFloat(event.latitude), parseFloat(event.longitude)
+      );
+      
+      return distance <= radiusMiles;
+    });
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
-    return await db.select().from(events)
-      .where(and(eq(events.category, category), sql`date >= ${new Date()}`))
-      .orderBy(asc(events.date));
+    return await db.select().from(events).where(eq(events.category, category));
   }
 
   async getUpcomingEvents(): Promise<Event[]> {
     return await db.select().from(events)
-      .where(sql`date >= ${new Date()}`)
-      .orderBy(asc(events.date))
-      .limit(20);
+      .where(sql`${events.date} > NOW()`)
+      .orderBy(asc(events.date));
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
@@ -421,7 +405,7 @@ export class DatabaseStorage implements IStorage {
   async unregisterFromEvent(userId: number, eventId: number): Promise<boolean> {
     const result = await db.delete(eventAttendees)
       .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.eventId, eventId)));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getUserEvents(userId: number): Promise<Event[]> {
@@ -436,21 +420,22 @@ export class DatabaseStorage implements IStorage {
       category: events.category,
       latitude: events.latitude,
       longitude: events.longitude,
-      attendeeCount: events.attendeeCount,
       maxAttendees: events.maxAttendees,
-      image: events.image,
+      currentAttendees: events.currentAttendees,
+      price: events.price,
+      tags: events.tags,
+      createdAt: events.createdAt,
+      creatorId: events.creatorId,
       isGlobal: events.isGlobal,
       eventType: events.eventType,
       brandPartnerName: events.brandPartnerName,
       revenueSharePercentage: events.revenueSharePercentage,
-      status: events.status,
-      createdAt: events.createdAt
+      status: events.status
     })
     .from(eventAttendees)
     .innerJoin(events, eq(eventAttendees.eventId, events.id))
-    .where(eq(eventAttendees.userId, userId))
-    .orderBy(asc(events.date));
-
+    .where(eq(eventAttendees.userId, userId));
+    
     return result;
   }
 
@@ -473,7 +458,7 @@ export class DatabaseStorage implements IStorage {
     .from(eventAttendees)
     .innerJoin(users, eq(eventAttendees.userId, users.id))
     .where(eq(eventAttendees.eventId, eventId));
-
+    
     return result;
   }
 
@@ -484,50 +469,34 @@ export class DatabaseStorage implements IStorage {
 
   async getConversation(userId1: number, userId2: number): Promise<Message[]> {
     return await db.select().from(messages)
-      .where(
-        and(
-          sql`(${messages.senderId} = ${userId1} AND ${messages.receiverId} = ${userId2}) OR (${messages.senderId} = ${userId2} AND ${messages.receiverId} = ${userId1})`
-        )
-      )
+      .where(and(
+        sql`(${messages.senderId} = ${userId1} AND ${messages.receiverId} = ${userId2}) OR (${messages.senderId} = ${userId2} AND ${messages.receiverId} = ${userId1})`
+      ))
       .orderBy(asc(messages.createdAt));
   }
 
   async getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]> {
-    // Get unique conversation partners
-    const conversationPartners = await db.execute(sql`
-      SELECT DISTINCT 
-        CASE 
-          WHEN sender_id = ${userId} THEN receiver_id 
-          ELSE sender_id 
-        END as partner_id
-      FROM messages 
-      WHERE sender_id = ${userId} OR receiver_id = ${userId}
-    `);
-
+    // Get all messages where user is sender or receiver
+    const userMessages = await db.select().from(messages)
+      .where(sql`${messages.senderId} = ${userId} OR ${messages.receiverId} = ${userId}`)
+      .orderBy(desc(messages.createdAt));
+    
     const conversations: { user: User, lastMessage: Message }[] = [];
-
-    for (const partner of conversationPartners) {
-      const partnerId = (partner as any).partner_id;
-      const user = await this.getUser(partnerId);
-      if (!user) continue;
-
-      const [lastMessage] = await db.select().from(messages)
-        .where(
-          and(
-            sql`(${messages.senderId} = ${userId} AND ${messages.receiverId} = ${partnerId}) OR (${messages.senderId} = ${partnerId} AND ${messages.receiverId} = ${userId})`
-          )
-        )
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
-
-      if (lastMessage) {
-        conversations.push({ user, lastMessage });
+    const seenUsers = new Set<number>();
+    
+    for (const message of userMessages) {
+      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      
+      if (!seenUsers.has(otherUserId)) {
+        seenUsers.add(otherUserId);
+        const otherUser = await this.getUser(otherUserId);
+        if (otherUser) {
+          conversations.push({ user: otherUser, lastMessage: message });
+        }
       }
     }
-
-    return conversations.sort((a, b) => 
-      new Date(b.lastMessage.createdAt || 0).getTime() - new Date(a.lastMessage.createdAt || 0).getTime()
-    );
+    
+    return conversations;
   }
 
   async sendMessage(insertMessage: InsertMessage): Promise<Message> {
@@ -542,39 +511,34 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(messages)
       .set({ isRead: true })
       .where(eq(messages.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getKudos(id: number): Promise<Kudos | undefined> {
-    const [kudos] = await db.select().from(kudos).where(eq(kudos.id, id));
-    return kudos || undefined;
+    const [kudosItem] = await db.select().from(kudos).where(eq(kudos.id, id));
+    return kudosItem || undefined;
   }
 
   async getUserKudosReceived(userId: number): Promise<Kudos[]> {
-    return await db.select().from(kudos)
-      .where(eq(kudos.receiverId, userId))
-      .orderBy(desc(kudos.createdAt));
+    return await db.select().from(kudos).where(eq(kudos.receiverId, userId));
   }
 
   async getUserKudosGiven(userId: number): Promise<Kudos[]> {
-    return await db.select().from(kudos)
-      .where(eq(kudos.giverId, userId))
-      .orderBy(desc(kudos.createdAt));
+    return await db.select().from(kudos).where(eq(kudos.giverId, userId));
   }
 
   async giveKudos(insertKudos: InsertKudos): Promise<Kudos> {
-    const [kudosRecord] = await db.insert(kudos).values({
+    const [kudosItem] = await db.insert(kudos).values({
       ...insertKudos,
       createdAt: new Date()
     }).returning();
-    return kudosRecord;
+    return kudosItem;
   }
 
   async getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]> {
     return await db.select().from(activityFeed)
       .where(eq(activityFeed.userId, userId))
-      .orderBy(desc(activityFeed.createdAt))
-      .limit(50);
+      .orderBy(desc(activityFeed.createdAt));
   }
 
   async addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem> {
@@ -590,15 +554,15 @@ export class DatabaseStorage implements IStorage {
   async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
     const result = await db.select({
       id: messages.id,
-      content: messages.content,
-      createdAt: messages.createdAt,
       senderId: messages.senderId,
       receiverId: messages.receiverId,
+      content: messages.content,
       isRead: messages.isRead,
+      createdAt: messages.createdAt,
       senderName: users.name,
       senderAvatar: users.avatar,
-      senderFirebaseUid: users.firebaseUid,
       senderEmail: users.email,
+      senderFirebaseUid: users.firebaseUid,
       senderBio: users.bio,
       senderLocation: users.location,
       senderLatitude: users.latitude,
@@ -610,50 +574,39 @@ export class DatabaseStorage implements IStorage {
     })
     .from(messages)
     .innerJoin(users, eq(messages.senderId, users.id))
-    .where(eq(messages.receiverId, communityId)) // Using receiverId as communityId for community messages
+    .where(eq(messages.receiverId, communityId))
     .orderBy(desc(messages.createdAt));
-
-    // Get resonance counts for each message
-    const messagesWithResonance = await Promise.all(
-      result.map(async (msg) => {
-        const resonanceCount = await db.select({ count: sql<number>`count(*)` })
-          .from(messageResonance)
-          .where(eq(messageResonance.messageId, msg.id));
-
-        return {
-          id: msg.id,
-          content: msg.content,
-          createdAt: msg.createdAt,
-          senderId: msg.senderId,
-          receiverId: msg.receiverId,
-          isRead: msg.isRead,
-          sender: {
-            id: msg.senderId,
-            name: msg.senderName,
-            avatar: msg.senderAvatar,
-            firebaseUid: msg.senderFirebaseUid,
-            email: msg.senderEmail,
-            bio: msg.senderBio,
-            location: msg.senderLocation,
-            latitude: msg.senderLatitude,
-            longitude: msg.senderLongitude,
-            interests: msg.senderInterests,
-            onboardingCompleted: msg.senderOnboardingCompleted,
-            quizAnswers: msg.senderQuizAnswers,
-            createdAt: msg.senderCreatedAt
-          },
-          resonateCount: resonanceCount[0]?.count || 0
-        };
-      })
-    );
-
-    return messagesWithResonance;
+    
+    return result.map(row => ({
+      id: row.id,
+      senderId: row.senderId,
+      receiverId: row.receiverId,
+      content: row.content,
+      isRead: row.isRead,
+      createdAt: row.createdAt,
+      sender: {
+        id: row.senderId,
+        firebaseUid: row.senderFirebaseUid,
+        email: row.senderEmail,
+        name: row.senderName,
+        avatar: row.senderAvatar,
+        bio: row.senderBio,
+        location: row.senderLocation,
+        latitude: row.senderLatitude,
+        longitude: row.senderLongitude,
+        interests: row.senderInterests,
+        onboardingCompleted: row.senderOnboardingCompleted,
+        quizAnswers: row.senderQuizAnswers,
+        createdAt: row.senderCreatedAt
+      },
+      resonateCount: 0 // Placeholder since we don't have message resonance table
+    }));
   }
 
   async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
     const [message] = await db.insert(messages).values({
       senderId: messageData.senderId,
-      receiverId: messageData.communityId, // Store community ID in receiverId field
+      receiverId: messageData.communityId,
       content: messageData.content,
       createdAt: new Date()
     }).returning();
@@ -661,31 +614,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resonateMessage(messageId: number, userId: number): Promise<boolean> {
-    try {
-      await db.insert(messageResonance).values({
-        messageId,
-        userId,
-        createdAt: new Date()
-      });
-      return true;
-    } catch (error) {
-      // Handle duplicate resonance (user already resonated)
-      return false;
-    }
+    // Placeholder implementation since we don't have message resonance table
+    return true;
   }
 
   async getCommunityEvents(communityId: number): Promise<Event[]> {
-    // For now, return events by category matching the community
+    // Get community details to filter events by category/location
     const community = await this.getCommunity(communityId);
     if (!community) return [];
     
-    return await this.getEventsByCategory(community.category);
+    return await db.select().from(events)
+      .where(eq(events.category, community.category))
+      .orderBy(asc(events.date));
   }
 }
 
-const databaseStorage = new DatabaseStorage();
-
-// Initialize database with live data only (no demo content)
-databaseStorage.initializeData().catch(console.error);
-
-export const storage = databaseStorage;
+export const storage = new DatabaseStorage();

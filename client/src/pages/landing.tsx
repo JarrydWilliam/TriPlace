@@ -1,12 +1,15 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { EmailSignupForm } from "@/components/auth/email-signup-form";
-
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth-context-rebuilt";
+import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
+import { 
+  MobileLayout, 
+  MobileContent
+} from "@/components/layout/mobile-layout";
 
 export default function Landing() {
   const { user, loading } = useAuth();

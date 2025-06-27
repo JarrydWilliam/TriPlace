@@ -57,7 +57,6 @@ export const events = pgTable("events", {
   latitude: text("latitude"),
   longitude: text("longitude"),
   creatorId: integer("creator_id"),
-  communityId: integer("community_id").references(() => communities.id),
   isGlobal: boolean("is_global").default(false),
   eventType: text("event_type"),
   brandPartnerName: text("brand_partner_name"),
@@ -77,8 +76,7 @@ export const eventAttendees = pgTable("event_attendees", {
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   senderId: integer("sender_id").references(() => users.id).notNull(),
-  receiverId: integer("receiver_id").references(() => users.id),
-  communityId: integer("community_id").references(() => communities.id),
+  receiverId: integer("receiver_id").references(() => users.id).notNull(),
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -99,13 +97,6 @@ export const activityFeed = pgTable("activity_feed", {
   userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(), // kudos_received, event_joined, community_joined
   content: jsonb("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const messageResonance = pgTable("message_resonance", {
-  id: serial("id").primaryKey(),
-  messageId: integer("message_id").references(() => messages.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -148,11 +139,6 @@ export const insertEventAttendeeSchema = createInsertSchema(eventAttendees).omit
   registeredAt: true,
 });
 
-export const insertMessageResonanceSchema = createInsertSchema(messageResonance).omit({
-  id: true,
-  createdAt: true,
-});
-
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -169,5 +155,3 @@ export type InsertCommunityMember = z.infer<typeof insertCommunityMemberSchema>;
 export type EventAttendee = typeof eventAttendees.$inferSelect;
 export type InsertEventAttendee = z.infer<typeof insertEventAttendeeSchema>;
 export type ActivityFeedItem = typeof activityFeed.$inferSelect;
-export type MessageResonance = typeof messageResonance.$inferSelect;
-export type InsertMessageResonance = z.infer<typeof insertMessageResonanceSchema>;
