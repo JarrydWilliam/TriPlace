@@ -599,8 +599,7 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
                 onClick={handlePrevious}
                 variant="outline"
                 size="sm"
-                className="text-xs sm:text-sm h-8 sm:h-10"
-                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 border-gray-600 text-white"
+                className="text-xs sm:text-sm h-8 sm:h-10 px-4 sm:px-6 py-2 sm:py-3 bg-gray-700 hover:bg-gray-600 border-gray-600 text-white"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 {currentSection === 0 ? "Back" : "Previous"}
@@ -608,7 +607,8 @@ export function OnboardingQuiz({ onComplete, onBack }: OnboardingQuizProps) {
               <Button
                 onClick={handleNext}
                 disabled={updateUserMutation.isPending}
-                className="px-8 py-3 bg-primary hover:bg-primary/90"
+                size="sm"
+                className="text-xs sm:text-sm h-8 sm:h-10 px-4 sm:px-8 py-2 sm:py-3 bg-primary hover:bg-primary/90"
               >
                 {updateUserMutation.isPending ? "Saving..." : 
                  currentSection === sections.length - 1 ? "Complete Profile" : "Continue"}
