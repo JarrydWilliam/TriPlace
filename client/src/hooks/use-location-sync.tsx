@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 
 interface GeolocationData {
   latitude: number;
@@ -17,11 +16,17 @@ interface GeolocationData {
 export function useLocationSync(user: any, location: GeolocationData | null) {
   const updateLocationMutation = useMutation({
     mutationFn: async (locationData: GeolocationData) => {
-      const response = await apiRequest('PATCH', '/api/users/current/location', {
-        latitude: locationData.latitude.toString(),
-        longitude: locationData.longitude.toString(),
-        location: locationData.location || `${locationData.latitude}, ${locationData.longitude}`
+      const response = await fetch('/api/users/current/location', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          latitude: locationData.latitude.toString(),
+          longitude: locationData.longitude.toString(),
+          location: locationData.location || `${locationData.latitude}, ${locationData.longitude}`
+        })
       });
+      if (!response.ok) throw new Error('Failed to update location');
       return response.json();
     },
     onError: (error) => {

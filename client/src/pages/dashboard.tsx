@@ -722,10 +722,15 @@ export default function Dashboard() {
                       <p className="text-sm text-gray-600 dark:text-gray-400">Finding your perfect communities...</p>
                     </div>
                   ) : recommendationsError ? (
-                    <InlineErrorMessage 
-                      message="Unable to load community recommendations" 
-                      onRetry={() => window.location.reload()}
-                    />
+                    <div className="text-center p-4">
+                      <InlineErrorMessage message="Unable to load community recommendations" />
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="mt-2 text-sm text-primary underline"
+                      >
+                        Try again
+                      </button>
+                    </div>
                   ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
                     recommendations.slice(0, 2).map((community: Community) => (
                       <div key={community.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
