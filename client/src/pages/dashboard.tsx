@@ -189,21 +189,23 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         
-        {/* User Banner */}
+        {/* Mobile-First User Banner */}
         <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Logo size="md" className="mr-2" />
-                <Avatar className="w-16 h-16 border-4 border-white/20">
+          <CardContent className="p-4 sm:p-6">
+            {/* Mobile Layout - Stack vertically on small screens */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <Logo size="md" className="mr-2 hidden sm:block" />
+                <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20">
                   <AvatarImage src={user.avatar || undefined} />
                   <AvatarFallback className="bg-white/20 text-white text-lg">
                     {user.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h1 className="text-2xl font-bold">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
-                  <div className="flex items-center space-x-4 mt-1 text-white/80">
+                <div className="flex-1">
+                  <h1 className="text-lg sm:text-2xl font-bold leading-tight">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
+                  {/* Mobile - Stack location and kudos vertically */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-1 text-white/80 space-y-1 sm:space-y-0">
                     <div className="flex items-center space-x-1">
                       <MapPin className="w-4 h-4" />
                       <span className="text-sm">{locationName || 'Location loading...'}</span>
@@ -215,13 +217,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              {/* Mobile - Action buttons with larger touch targets */}
+              <div className="flex items-center justify-end space-x-3 sm:space-x-2">
                 <ShareQR />
                 <Button 
                   variant="ghost" 
                   size="icon"
                   onClick={toggleTheme}
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 min-h-[44px] min-w-[44px]"
                 >
                   {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>

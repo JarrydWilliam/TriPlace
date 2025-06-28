@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first base styles - prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+}
+
 /* Enhanced responsive design for all devices */
 @supports (viewport-fit: cover) {
   .safe-area-top { padding-top: env(safe-area-inset-top); }
@@ -10,15 +25,41 @@
   .safe-area-right { padding-right: env(safe-area-inset-right); }
 }
 
-/* Touch-friendly responsive scaling */
+/* Mobile-first touch-friendly design */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* Touch-friendly responsive scaling - minimum 44px touch targets */
+button, [role="button"], input, textarea, select, a {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Remove hover effects on touch devices */
 @media (hover: none) and (pointer: coarse) {
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+  .hover\:bg-gray-800:hover {
+    background-color: inherit;
   }
   
-  button, [role="button"], input, textarea, select {
-    min-height: 44px;
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  /* Larger text and spacing for mobile */
+  .mobile-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  .mobile-p-4 {
+    padding: 1rem;
+  }
+  
+  .mobile-gap-4 {
+    gap: 1rem;
   }
 }
 
