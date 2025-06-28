@@ -72,7 +72,7 @@ export default function Messaging() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 dark:bg-gray-900">
+    <div className="mobile-page-container bg-gray-900 dark:bg-gray-900">
       <div className="flex min-h-screen">
         <Sidebar />
         

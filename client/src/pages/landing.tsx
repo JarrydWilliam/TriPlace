@@ -34,7 +34,7 @@ export default function Landing() {
   }
 
   return (
-    <section className="min-h-screen relative overflow-hidden bg-gray-900">
+    <section className="mobile-page-container relative overflow-hidden bg-gray-900 no-pull-refresh">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
