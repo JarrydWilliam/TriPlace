@@ -186,8 +186,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-6xl min-h-full">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
         
         {/* User Banner */}
         <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">

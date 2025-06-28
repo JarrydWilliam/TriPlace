@@ -15,11 +15,8 @@ const firebaseConfig = {
 };
 
 // Log warning if using fallback configuration
-if (usesFallback) {
-  console.warn("Firebase using fallback configuration. Google login may not work properly.");
-  if (ENV.PROD) {
-    console.error("Production deployment detected with missing Firebase configuration!");
-  }
+if (usesFallback && ENV.PROD) {
+  console.error("Production deployment detected with missing Firebase configuration!");
 }
 
 const app = initializeApp(firebaseConfig);
@@ -27,17 +24,7 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
-  // Check if Firebase is properly configured
-  if (usesFallback) {
-    throw new Error('Google sign-in is not configured. Please contact support for assistance.');
-  }
-
   try {
-    // Configure Google provider for better user experience
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
@@ -53,17 +40,8 @@ export const signInWithGoogle = async () => {
         throw new Error(ERROR_MESSAGES.NETWORK);
       case 'auth/too-many-requests':
         throw new Error('Too many sign-in attempts. Please try again later.');
-      case 'auth/configuration-not-found':
-        throw new Error('Authentication not properly configured. Please contact support.');
-      case 'auth/invalid-api-key':
-        throw new Error('Authentication configuration error. Please contact support.');
-      case 'auth/unauthorized-domain':
-        throw new Error('This domain is not authorized for sign-in. Please contact support.');
       default:
-        if (error.message?.includes('Firebase')) {
-          throw new Error('Authentication service error. Please try again or contact support.');
-        }
-        throw new Error('Unable to sign in with Google. Please try again.');
+        throw new Error('Unable to sign in. Please try again.');
     }
   }
 };

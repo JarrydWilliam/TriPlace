@@ -5,6 +5,7 @@ import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
+import { PWAInstall } from "@/components/ui/pwa-install";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -34,7 +35,7 @@ export default function Landing() {
   }
 
   return (
-    <section className="h-screen relative overflow-hidden bg-gray-900">
+    <section className="min-h-screen relative overflow-hidden bg-gray-900">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
@@ -46,7 +47,7 @@ export default function Landing() {
         }}
       ></div>
       
-      <div className="relative z-10 container mx-auto px-4 py-8 h-full flex flex-col overflow-y-auto">
+      <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
         {/* Header */}
         <header className="flex justify-between items-center mb-16">
           <div className="flex items-center space-x-3">
@@ -105,6 +106,9 @@ export default function Landing() {
           </div>
         </div>
       </div>
+      
+      {/* PWA Installation Prompt */}
+      <PWAInstall />
     </section>
   );
 }

@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { GlobalPWAPrompt } from "@/components/ui/global-pwa-prompt";
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -43,37 +42,35 @@ function Router() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-900 overflow-hidden">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen overflow-hidden">
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/onboarding" component={Onboarding} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/profile/:userId" component={Profile} />
-        <Route path="/messaging" component={Messaging} />
-        <Route path="/messages" component={Messaging} />
-        <Route path="/community/:communityId" component={Community} />
-        <Route path="/create-event" component={CreateEvent} />
-        <Route path="/settings/profile" component={ProfileSettings} />
-        <Route path="/settings/account" component={AccountSettings} />
-        <Route path="/settings/notifications" component={NotificationSettings} />
-        <Route path="/settings/community" component={CommunitySettings} />
-        <Route path="/settings/security" component={SecuritySettings} />
-        <Route path="/settings/support" component={SupportSettings} />
-        <Route path="/discover" component={Dashboard} />
-        <Route path="/communities" component={Dashboard} />
-        <Route path="/kudos" component={Dashboard} />
-        {/* Fallback to 404 */}
-        <Route component={NotFound} />
-      </Switch>
-    </div>
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/onboarding" component={Onboarding} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/profile/:userId" component={Profile} />
+      <Route path="/messaging" component={Messaging} />
+      <Route path="/messages" component={Messaging} />
+      <Route path="/community/:communityId" component={Community} />
+      <Route path="/create-event" component={CreateEvent} />
+      <Route path="/settings/profile" component={ProfileSettings} />
+      <Route path="/settings/account" component={AccountSettings} />
+      <Route path="/settings/notifications" component={NotificationSettings} />
+      <Route path="/settings/community" component={CommunitySettings} />
+      <Route path="/settings/security" component={SecuritySettings} />
+      <Route path="/settings/support" component={SupportSettings} />
+      <Route path="/discover" component={Dashboard} />
+      <Route path="/communities" component={Dashboard} />
+      <Route path="/kudos" component={Dashboard} />
+      {/* Fallback to 404 */}
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
@@ -85,7 +82,6 @@ function App() {
           <AuthProvider>
             <TooltipProvider>
               <Toaster />
-              <GlobalPWAPrompt />
               <Router />
             </TooltipProvider>
           </AuthProvider>
