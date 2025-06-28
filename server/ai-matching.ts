@@ -44,7 +44,6 @@ export class AIMatchingEngine {
   ): Promise<CommunityRecommendation[]> {
     // If OpenAI is not available, use fallback matching immediately
     if (!openai) {
-      console.log('OpenAI API key not available, using fallback matching algorithm');
       return this.fallbackMatching(user, availableCommunities);
     }
 
@@ -142,7 +141,6 @@ Only include matches scoring 70+ for quality connections.
   async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
     // If OpenAI is not available, return empty array
     if (!openai) {
-      console.log('OpenAI API key not available, skipping community generation');
       return [];
     }
 
