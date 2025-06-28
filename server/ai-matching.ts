@@ -2,7 +2,12 @@ import OpenAI from "openai";
 import { Community, User } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+
+// Initialize OpenAI client only if API key is available
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 interface MatchingResult {
   score: number;
@@ -37,6 +42,12 @@ export class AIMatchingEngine {
     availableCommunities: Community[],
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
+    // If OpenAI is not available, use fallback matching immediately
+    if (!openai) {
+      console.log('OpenAI API key not available, using fallback matching algorithm');
+      return this.fallbackMatching(user, availableCommunities);
+    }
+
     try {
       const userProfile = this.buildUserProfile(user);
       const locationContext = userLocation ? 
@@ -97,7 +108,7 @@ Respond with JSON:
 Only include matches scoring 70+ for quality connections.
 `;
 
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
@@ -129,6 +140,12 @@ Only include matches scoring 70+ for quality connections.
   }
 
   async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
+    // If OpenAI is not available, return empty array
+    if (!openai) {
+      console.log('OpenAI API key not available, skipping community generation');
+      return [];
+    }
+
     try {
       const userProfile = this.buildUserProfile(user);
       
@@ -162,7 +179,7 @@ Respond with JSON:
 }
 `;
 
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
