@@ -15,7 +15,6 @@ export function LoginForm({ onEmailSignup, onShowLogin, showEmailButton = true }
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      console.error('Error signing in with Google:', error);
       alert(`Sign-in failed: ${error.message}`);
     }
   };

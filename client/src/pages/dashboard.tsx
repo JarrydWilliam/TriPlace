@@ -68,7 +68,6 @@ export default function Dashboard() {
       }
     },
     onError: (error) => {
-      console.error("Error auto-populating events:", error);
     }
   });
 

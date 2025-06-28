@@ -46,7 +46,7 @@ export function useGeolocation() {
             locationName = `${data.locality}, ${data.principalSubdivision}`;
           }
         } catch (error) {
-          console.log('Reverse geocoding failed, using coordinates');
+          // Use coordinates if reverse geocoding fails
         }
         
         setLocation({
@@ -70,15 +70,12 @@ export function useGeolocation() {
             })
           });
           if (!response.ok) {
-            console.log('Failed to update user location');
           }
         } catch (error) {
-          console.log('Error updating user location:', error);
         }
       };
 
       const handleError = (error: GeolocationPositionError) => {
-        console.log('GPS failed, trying IP fallback:', error.message);
         tryIPLocation();
       };
 

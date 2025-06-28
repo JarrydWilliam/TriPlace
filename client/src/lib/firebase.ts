@@ -27,7 +27,6 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
-    console.error('Google sign-in error:', error);
     
     // Handle specific Firebase auth errors
     switch (error.code) {
@@ -49,7 +48,6 @@ export const signOutUser = async () => {
   try {
     await signOut(auth);
   } catch (error) {
-    console.error('Sign-out error:', error);
     throw new Error('Unable to sign out. Please try again.');
   }
 };

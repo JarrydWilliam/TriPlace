@@ -38,7 +38,6 @@ export function ShareQR() {
       });
       setQrCodeUrl(qrDataUrl);
     } catch (error) {
-      console.error('Error generating QR code:', error);
       toast({
         title: "Error",
         description: "Failed to generate QR code. Please try again.",

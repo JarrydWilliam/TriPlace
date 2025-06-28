@@ -23,7 +23,6 @@ export default function Landing() {
 
   const handleShowLogin = () => {
     // For now, just show the same form - in a real app you'd have separate login/signup forms
-    console.log("Show login form");
   };
 
   if (loading) {

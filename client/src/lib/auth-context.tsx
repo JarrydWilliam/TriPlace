@@ -57,11 +57,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               const createdUser = await createResponse.json();
               setUser(createdUser);
             } else {
-              console.error('Failed to create user');
             }
           }
         } catch (error) {
-          console.error('Error handling user authentication:', error);
         }
       } else {
         setUser(null);
@@ -79,7 +77,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setFirebaseUser(null);
     } catch (error) {
-      console.error('Error signing out:', error);
     }
   };
 

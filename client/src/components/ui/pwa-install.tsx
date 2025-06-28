@@ -102,7 +102,6 @@ export function PWAInstall() {
       
       setDeferredPrompt(null);
     } catch (error) {
-      console.error('Installation failed:', error);
       toast({
         title: "Installation Error",
         description: "Failed to install the app. Please try again.",

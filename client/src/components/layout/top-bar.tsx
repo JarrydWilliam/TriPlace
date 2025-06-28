@@ -12,8 +12,6 @@ export function TopBar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log("Searching for:", searchQuery);
   };
 
   if (!user) return null;

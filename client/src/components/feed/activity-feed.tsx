@@ -135,8 +135,6 @@ export function ActivityFeed({ activities, loading }: ActivityFeedProps) {
               <ActivityItem
                 key={activity.id}
                 activity={activity}
-                onLike={() => console.log('Like activity', activity.id)}
-                onComment={() => console.log('Comment on activity', activity.id)}
               />
             ))
           )}
