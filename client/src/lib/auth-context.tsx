@@ -32,16 +32,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Firebase auth state changed:', firebaseUser?.email);
       setFirebaseUser(firebaseUser);
       
       if (firebaseUser) {
         try {
+          console.log('Fetching user data for Firebase UID:', firebaseUser.uid);
           // Try to get existing user
           const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`);
+          console.log('User fetch response status:', response.status);
+          
           if (response.ok) {
             const userData = await response.json();
+            console.log('Found existing user:', userData.email);
             setUser(userData);
           } else if (response.status === 404) {
+            console.log('Creating new user...');
             // Create new user
             const newUserData = {
               firebaseUid: firebaseUser.uid,
@@ -52,8 +58,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             };
             
             const createResponse = await apiRequest('POST', '/api/users', newUserData);
-            const createdUser = await createResponse.json();
-            setUser(createdUser);
+            if (createResponse.ok) {
+              const createdUser = await createResponse.json();
+              console.log('Created new user:', createdUser.email);
+              setUser(createdUser);
+            } else {
+              const errorText = await createResponse.text();
+              console.error('Failed to create user:', errorText);
+            }
+          } else {
+            console.error('Unexpected response status:', response.status);
           }
         } catch (error) {
           console.error('Error handling user authentication:', error);
