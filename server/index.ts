@@ -47,14 +47,8 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Force production mode for deployment
-  const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
-  
-  if (isProduction) {
-    serveStatic(app);
-  } else {
-    await setupVite(app, server);
-  }
+  // Always serve static files for deployment (no development mode)
+  serveStatic(app);
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
