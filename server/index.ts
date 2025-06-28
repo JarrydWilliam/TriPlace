@@ -47,13 +47,13 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
+  // Force production mode for deployment
+  const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+  
+  if (isProduction) {
     serveStatic(app);
+  } else {
+    await setupVite(app, server);
   }
 
   // ALWAYS serve the app on port 5000
