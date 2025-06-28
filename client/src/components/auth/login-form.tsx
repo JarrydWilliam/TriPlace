@@ -13,9 +13,12 @@ interface LoginFormProps {
 export function LoginForm({ onEmailSignup, onShowLogin, showEmailButton = true }: LoginFormProps) {
   const handleGoogleLogin = async () => {
     try {
-      await signInWithGoogle();
-    } catch (error) {
+      console.log('Attempting Google sign-in...');
+      const result = await signInWithGoogle();
+      console.log('Sign-in successful:', result?.user?.email);
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      alert(`Sign-in failed: ${error.message}`);
     }
   };
 
