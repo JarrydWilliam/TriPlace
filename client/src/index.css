@@ -2,19 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-first base styles - prevent horizontal scroll */
+/* Mobile-first base styles - prevent horizontal scroll and overscroll */
 html, body {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 body {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile */
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile page container for optimal scrolling */
+.mobile-page-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+  touch-action: pan-y;
+}
+
+/* Mobile scroll wrapper for content areas */
+.mobile-scroll-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  -webkit-overscroll-behavior-y: none;
+  touch-action: pan-y;
+}
+
+/* Prevent pull-to-refresh on mobile */
+.no-pull-refresh {
+  overscroll-behavior-y: contain;
+  -webkit-overscroll-behavior-y: contain;
 }
 
 /* Enhanced responsive design for all devices */

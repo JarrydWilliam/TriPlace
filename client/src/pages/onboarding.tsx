@@ -576,7 +576,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900 no-pull-refresh">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Mobile-First Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
