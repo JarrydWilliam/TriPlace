@@ -1,23 +1,19 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import { ENV } from "./env";
 import { ERROR_MESSAGES } from "./production-config";
 
-// Use fallback configuration for development if env vars are missing
-const usesFallback = !ENV.FIREBASE_API_KEY || !ENV.FIREBASE_PROJECT_ID || !ENV.FIREBASE_APP_ID;
-
+// Firebase configuration with provided credentials
 const firebaseConfig = {
-  apiKey: ENV.FIREBASE_API_KEY || "demo-key",
-  authDomain: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebaseapp.com`,
-  projectId: ENV.FIREBASE_PROJECT_ID || "demo-project",
-  storageBucket: `${ENV.FIREBASE_PROJECT_ID || "demo-project"}.firebasestorage.app`,
-  appId: ENV.FIREBASE_APP_ID || "demo-app-id",
+  apiKey: "AIzaSyDvvOMs_7vBWRiLm4HsqV9_SB7-xdGaIJI",
+  authDomain: "triplace-v2.firebaseapp.com",
+  projectId: "triplace-v2",
+  storageBucket: "triplace-v2.firebasestorage.app",
+  messagingSenderId: "779102688787",
+  appId: "1:779102688787:web:176d1dc6c4f165b01e91e6",
+  measurementId: "G-EYXMFMMXCY"
 };
 
-// Log warning if using fallback configuration
-if (usesFallback && ENV.PROD) {
-  console.error("Production deployment detected with missing Firebase configuration!");
-}
+// Firebase configuration is now hardcoded with provided credentials
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
