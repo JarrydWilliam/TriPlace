@@ -1,0 +1,18 @@
+{
+  "name": "triplace-mobile-webview",
+  "version": "1.0.0",
+  "description": "TriPlace Mobile WebView Wrapper",
+  "main": "webview.html",
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "serve-node": "npx http-server . -p 8080 -c-1",
+    "build": "echo 'WebView wrapper ready for deployment'",
+    "deploy": "echo 'Deploy webview.html to your mobile app container'"
+  },
+  "keywords": ["webview", "mobile", "triplace", "social", "community"],
+  "author": "TriPlace Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

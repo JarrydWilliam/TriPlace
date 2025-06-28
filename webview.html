@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>TriPlace Mobile App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overscroll-behavior: none;
+        }
+        
+        #webview-container {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            overflow: hidden;
+            display: block;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #6366f1;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 18px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        /* Enable text selection for inputs */
+        input, textarea, [contenteditable] {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div>Loading TriPlace...</div>
+        <div style="font-size: 14px; margin-top: 10px; opacity: 0.7;">Your digital third place</div>
+    </div>
+    
+    <iframe 
+        id="webview-container"
+        src="/"
+        frameborder="0"
+        allowfullscreen
+        allow="geolocation; camera; microphone; fullscreen; payment"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-top-navigation allow-downloads"
+        loading="eager"
+    ></iframe>
+
+    <script>
+        // WebView optimization and mobile app behavior
+        const iframe = document.getElementById('webview-container');
+        const loading = document.getElementById('loading');
+        let isLoaded = false;
+        
+        // Hide loading when iframe loads
+        iframe.onload = function() {
+            if (!isLoaded) {
+                isLoaded = true;
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 300);
+                
+                // Inject mobile optimizations
+                injectMobileOptimizations();
+            }
+        };
+        
+        function injectMobileOptimizations() {
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Only inject if we can access the iframe content (same origin)
+                if (iframeDoc && iframeDoc.body) {
+                    // Add mobile viewport meta tag
+                    let viewportMeta = iframeDoc.querySelector('meta[name="viewport"]');
+                    if (!viewportMeta) {
+                        viewportMeta = iframeDoc.createElement('meta');
+                        viewportMeta.name = 'viewport';
+                        viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+                        iframeDoc.head.appendChild(viewportMeta);
+                    }
+                    
+                    // Add comprehensive mobile styles
+                    const mobileStyles = iframeDoc.createElement('style');
+                    mobileStyles.id = 'webview-mobile-optimizations';
+                    mobileStyles.textContent = `
+                        /* WebView mobile optimizations */
+                        * {
+                            -webkit-user-select: none;
+                            -webkit-touch-callout: none;
+                            -webkit-tap-highlight-color: transparent;
+                        }
+                        
+                        input, textarea, [contenteditable] {
+                            -webkit-user-select: auto;
+                            user-select: auto;
+                        }
+                        
+                        html, body {
+                            overscroll-behavior: none;
+                            -webkit-overscroll-behavior: none;
+                            overflow-x: hidden;
+                            -webkit-text-size-adjust: 100%;
+                            -ms-text-size-adjust: 100%;
+                        }
+                        
+                        .mobile-page-container {
+                            height: 100vh;
+                            height: 100dvh;
+                            overflow-y: auto;
+                            -webkit-overflow-scrolling: touch;
+                            overscroll-behavior: none;
+                            -webkit-overscroll-behavior: none;
+                        }
+                        
+                        /* Enhanced touch targets */
+                        button, [role="button"], input, textarea, select, a {
+                            min-height: 44px;
+                            min-width: 44px;
+                            touch-action: manipulation;
+                        }
+                        
+                        /* Prevent zoom on input focus */
+                        input, textarea, select {
+                            font-size: 16px;
+                            transform: translateZ(0);
+                            -webkit-transform: translateZ(0);
+                        }
+                        
+                        /* Smooth scrolling */
+                        * {
+                            scroll-behavior: smooth;
+                        }
+                    `;
+                    iframeDoc.head.appendChild(mobileStyles);
+                    
+                    // Disable context menu
+                    iframeDoc.addEventListener('contextmenu', e => e.preventDefault());
+                    
+                    // Prevent double-tap zoom
+                    let lastTouchEnd = 0;
+                    iframeDoc.addEventListener('touchend', function (event) {
+                        const now = Date.now();
+                        if (now - lastTouchEnd <= 300) {
+                            event.preventDefault();
+                        }
+                        lastTouchEnd = now;
+                    }, false);
+                    
+                    // Optimize for mobile keyboard
+                    iframeDoc.addEventListener('focusin', function(e) {
+                        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                            setTimeout(() => {
+                                e.target.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                            }, 300);
+                        }
+                    });
+                    
+                    // Handle orientation changes
+                    iframeDoc.defaultView.addEventListener('orientationchange', function() {
+                        setTimeout(() => {
+                            iframeDoc.defaultView.scrollTo(0, 0);
+                        }, 100);
+                    });
+                }
+            } catch (error) {
+                // Same-origin policy prevents access - this is normal for cross-origin content
+                console.log('WebView: Same-origin policy active, mobile optimizations applied at container level');
+            }
+        }
+        
+        // Handle iframe errors
+        iframe.onerror = function() {
+            loading.innerHTML = `
+                <div>Connection Error</div>
+                <div style="font-size: 14px; margin-top: 10px;">Please check your internet connection</div>
+                <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 5px; font-size: 14px;">Retry</button>
+            `;
+        };
+        
+        // Container-level mobile optimizations
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Disable context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Prevent text selection
+        document.addEventListener('selectstart', e => e.preventDefault());
+        
+        // Handle orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                iframe.style.height = window.innerHeight + 'px';
+                iframe.style.width = window.innerWidth + 'px';
+            }, 100);
+        });
+        
+        // Handle resize events
+        window.addEventListener('resize', function() {
+            iframe.style.height = window.innerHeight + 'px';
+            iframe.style.width = window.innerWidth + 'px';
+        });
+        
+        // Set initial dimensions
+        function setInitialDimensions() {
+            iframe.style.height = window.innerHeight + 'px';
+            iframe.style.width = window.innerWidth + 'px';
+        }
+        
+        // Initialize
+        setInitialDimensions();
+        
+        // Hide address bar on mobile browsers
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.scrollTo(0, 1);
+            }, 0);
+        });
+        
+        // Prevent pull-to-refresh
+        document.body.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) return;
+            const startY = e.touches[0].clientY;
+            if (startY < 10 && window.pageYOffset === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.body.addEventListener('touchmove', e => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Show loading animation
+        loading.style.opacity = '1';
+        
+        // Timeout for loading
+        setTimeout(() => {
+            if (!isLoaded) {
+                loading.innerHTML = `
+                    <div>Taking longer than expected...</div>
+                    <div style="font-size: 14px; margin-top: 10px;">Please check your connection</div>
+                    <button onclick="window.location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 5px; font-size: 14px;">Retry</button>
+                `;
+            }
+        }, 10000); // 10 second timeout
+    </script>
+</body>
+</html>
