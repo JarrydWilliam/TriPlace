@@ -395,7 +395,7 @@ export default function Onboarding() {
                   "🏃 Physical fitness",
                   "🧠 Mental health and wellbeing",
                   "💰 Financial stability",
-                  "❤️ Relationships and connections",
+                  "🤝 Community and friendships",
                   "🎨 Creative skills",
                   "🌍 Travel and cultural experiences",
                   "🎓 Education and knowledge"
