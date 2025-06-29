@@ -336,19 +336,19 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid-responsive">
           
           {/* Event Calendar Widget */}
           <div className="lg:col-span-2">
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl text-gray-900 dark:text-white flex items-center space-x-2">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white flex items-center space-x-2">
                   <CalendarDays className="w-5 h-5" />
                   <span>Event Calendar</span>
                 </CardTitle>
                 <Button 
                   size="sm" 
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
                   onClick={() => setLocation("/create-event")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -641,7 +641,7 @@ export default function Dashboard() {
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="flex-1"
+                            className="flex-1 min-h-[44px]"
                             onClick={() => joinCommunityMutation.mutate(community.id)}
                             disabled={joinCommunityMutation.isPending}
                           >
@@ -650,6 +650,7 @@ export default function Dashboard() {
                           <Button 
                             size="sm" 
                             variant="ghost"
+                            className="min-h-[44px] min-w-[44px]"
                             onClick={() => window.location.href = `/community/${community.id}`}
                           >
                             View

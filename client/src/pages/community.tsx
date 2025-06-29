@@ -20,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -53,6 +54,16 @@ export default function CommunityPage() {
     location: "",
     price: ""
   });
+
+  // Pull-to-refresh handler
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "dynamic-info"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] })
+    ]);
+  };
 
   // Fetch community details with dynamic member count
   const { data: community, isLoading: communityLoading } = useQuery({
