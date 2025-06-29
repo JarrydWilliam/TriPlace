@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/lib/theme-context";
+// import { useTheme } from "@/lib/theme-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,7 @@ import { Link, useLocation } from "wouter";
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  // const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation();
 
@@ -130,17 +130,7 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="mt-auto p-6 border-t border-gray-700 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2 text-gray-400 dark:text-gray-400">
-            {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            <span className="text-sm">Dark Mode</span>
-          </div>
-          <Switch
-            checked={theme === "dark"}
-            onCheckedChange={toggleTheme}
-            className="data-[state=checked]:bg-primary"
-          />
-        </div>
+        {/* Theme toggle temporarily disabled */}
         
         <Button
           onClick={signOut}

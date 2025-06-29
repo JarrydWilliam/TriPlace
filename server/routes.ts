@@ -207,51 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test OpenAI integration and community generation
-  app.post("/api/test-ai", async (req, res) => {
-    try {
-      console.log('Testing OpenAI integration...');
-      
-      // Create a test user for community generation
-      const testUser = {
-        id: 999,
-        interests: ['technology', 'fitness', 'creative writing', 'outdoor activities', 'learning'],
-        latitude: '40.7128',
-        longitude: '-74.0060',
-        quizAnswers: {
-          pastActivities: ['programming', 'hiking'],
-          currentInterests: ['AI', 'machine learning', 'rock climbing'],
-          futureGoals: ['start a tech company', 'travel more'],
-          personalityType: 'collaborative and growth-oriented'
-        }
-      };
-      
-      const allUsers = [testUser];
-      const userLocation = { lat: 40.7128, lon: -74.0060 };
-      
-      // Test AI community generation
-      const { aiMatcher } = await import('./ai-matching');
-      const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
-      
-      console.log('Generated communities:', generatedCommunities.length);
-      
-      res.json({
-        success: true,
-        openaiWorking: !!process.env.OPENAI_API_KEY,
-        communitiesGenerated: generatedCommunities.length,
-        communities: generatedCommunities
-      });
-      
-    } catch (error) {
-      console.error('OpenAI test error:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message,
-        openaiWorking: !!process.env.OPENAI_API_KEY
-      });
-    }
-  });
-
   // Get dynamic community members based on location and interests
   app.get("/api/communities/:id/dynamic-members", async (req, res) => {
     try {
@@ -453,6 +408,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Global event creation error:', error);
       res.status(500).json({ message: "Failed to create global event: " + error.message });
+    }
+  });
+
+  // Test OpenAI integration
+  app.post("/api/test-openai", async (req, res) => {
+    try {
+      console.log("Testing OpenAI integration...");
+      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.json({ success: false, error: "No API key found", hasKey: false });
+      }
+      
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
+        max_tokens: 10
+      });
+      
+      const content = response.choices[0]?.message?.content;
+      res.json({ success: true, response: content, hasKey: true });
+    } catch (error: any) {
+      console.error("OpenAI test failed:", error.message);
+      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
     }
   });
 

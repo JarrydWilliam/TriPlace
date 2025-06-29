@@ -190,34 +190,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Ensure exactly 5 communities are returned
-      if (createdCommunities.length < 5) {
-        // Generate additional communities to reach 5
-        const additionalNeeded = 5 - createdCommunities.length;
-        const additionalCommunities = await aiMatcher.generateMissingCommunities(user);
-        
-        for (let i = 0; i < Math.min(additionalNeeded, additionalCommunities.length); i++) {
-          const genCommunity = additionalCommunities[i];
-          const existing = await db.select()
-            .from(communities)
-            .where(eq(communities.name, genCommunity.name))
-            .limit(1);
-            
-          if (existing.length === 0) {
-            const newCommunity = await this.createCommunity({
-              name: genCommunity.name,
-              description: genCommunity.description,
-              category: genCommunity.category,
-              location: genCommunity.suggestedLocation || (userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual')
-            });
-            
-            createdCommunities.push(newCommunity);
-          }
-        }
-      }
-      
-      // Return exactly 5 communities (or fewer if couldn't generate enough)
-      return createdCommunities.slice(0, 5);
+      return createdCommunities;
       
     } catch (error) {
       console.error('Error generating dynamic communities:', error);
