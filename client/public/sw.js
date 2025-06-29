@@ -1,213 +1,186 @@
-const CACHE_NAME = 'triplace-v2';
-const CACHE_VERSION = '2.0.0';
-const STATIC_CACHE = `triplace-static-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `triplace-dynamic-${CACHE_VERSION}`;
+const CACHE_NAME = 'triplace-v1.0.0';
+const STATIC_CACHE = 'triplace-static-v1.0.0';
+const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.0';
 
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.webmanifest',
-  '/assets/logo.png'
+// Community discovery API endpoints that should always be fresh for ChatGPT updates
+const CHATGPT_DISCOVERY_ENDPOINTS = [
+  '/api/communities/recommended',
+  '/api/users',
+  '/api/communities'
 ];
 
-// Install event - cache static assets and skip waiting
+// Install event - cache static files
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker');
-  
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        console.log('[SW] Static assets cached, skipping waiting');
-        return self.skipWaiting(); // Force immediate activation
-      })
-  );
+  console.log('TriPlace Service Worker: Installing with ChatGPT discovery support...');
+  event.waitUntil(self.skipWaiting());
 });
 
-// Activate event - clean old caches and claim clients
+// Activate event - claim clients immediately for PWA updates
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker');
+  console.log('TriPlace Service Worker: Activating with ChatGPT community updates...');
   
   event.waitUntil(
-    Promise.all([
-      // Clean up old caches
-      caches.keys().then((cacheNames) => {
+    caches.keys()
+      .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('[SW] Deleting old cache:', cacheName);
+              console.log('TriPlace Service Worker: Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
-      }),
-      // Take control of all clients immediately
-      self.clients.claim()
-    ]).then(() => {
-      console.log('[SW] Service worker activated and claimed clients');
-      // Notify all clients about the update
-      return self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({
-            type: 'SW_UPDATED',
-            message: 'Service worker updated and activated'
-          });
-        });
-      });
-    })
+      })
+      .then(() => {
+        console.log('TriPlace Service Worker: Claiming all clients for ChatGPT updates');
+        return self.clients.claim();
+      })
   );
 });
 
-// Fetch event - network first with cache fallback for dynamic content
+// Fetch event - prioritize fresh ChatGPT community data for all users
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const url = new URL(event.request.url);
   
-  // Handle different types of requests
-  if (url.pathname.startsWith('/api/')) {
-    // API requests - network first, no cache for dynamic data
+  // Always fetch fresh ChatGPT community discovery data
+  if (CHATGPT_DISCOVERY_ENDPOINTS.some(endpoint => url.pathname.includes(endpoint))) {
+    console.log('TriPlace Service Worker: Fetching fresh ChatGPT community data for:', url.pathname);
+    
     event.respondWith(
-      fetch(request)
-        .catch(() => {
-          // Return offline response for API failures
-          return new Response(
-            JSON.stringify({ offline: true, message: 'You are offline' }),
-            {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
-        })
-    );
-  } else if (STATIC_ASSETS.includes(url.pathname)) {
-    // Static assets - cache first
-    event.respondWith(
-      caches.match(request)
-        .then((cachedResponse) => {
-          return cachedResponse || fetch(request);
-        })
-    );
-  } else {
-    // Other requests - network first with cache fallback
-    event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          // Cache successful responses
-          if (networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
+      fetch(event.request)
+        .then((response) => {
+          // Clone response for caching
+          const responseClone = response.clone();
+          
+          // Cache successful ChatGPT responses
+          if (response.ok) {
             caches.open(DYNAMIC_CACHE)
               .then((cache) => {
-                cache.put(request, responseClone);
+                cache.put(event.request, responseClone);
               });
           }
-          return networkResponse;
+          
+          return response;
         })
         .catch(() => {
-          // Fallback to cache when network fails
-          return caches.match(request)
-            .then((cachedResponse) => {
-              return cachedResponse || new Response(
-                '<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>',
-                {
-                  status: 503,
-                  statusText: 'Service Unavailable',
-                  headers: { 'Content-Type': 'text/html' }
-                }
-              );
-            });
+          // Fallback to cache if network fails
+          console.log('TriPlace Service Worker: Network failed, using cached ChatGPT data for:', url.pathname);
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+  
+  // Handle other requests normally
+  if (event.request.method === 'GET') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE)
+              .then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request);
         })
     );
   }
 });
 
-// Listen for messages from the main thread
+// Message event - handle ChatGPT community refresh requests
 self.addEventListener('message', (event) => {
-  console.log('[SW] Received message:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Skipping waiting as requested');
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'CHECK_UPDATE') {
-    console.log('[SW] Checking for updates');
-    // Force update check by registering again
-    event.source.postMessage({
-      type: 'UPDATE_CHECKING',
-      message: 'Checking for updates...'
+  if (event.data && event.data.type === 'REFRESH_CHATGPT_COMMUNITIES') {
+    console.log('TriPlace Service Worker: Refreshing ChatGPT community cache for all users');
+    
+    // Clear ChatGPT community cache to force fresh data
+    caches.open(DYNAMIC_CACHE)
+      .then((cache) => {
+        CHATGPT_DISCOVERY_ENDPOINTS.forEach(endpoint => {
+          cache.keys().then(keys => {
+            keys.forEach(key => {
+              if (key.url.includes(endpoint)) {
+                cache.delete(key);
+              }
+            });
+          });
+        });
+      });
+    
+    // Notify all clients about ChatGPT community updates
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'CHATGPT_COMMUNITIES_REFRESHED',
+          message: 'ChatGPT community recommendations updated'
+        });
+      });
     });
   }
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
-// Periodic background sync for updates (when supported)
+// Background sync for ChatGPT community updates (PWA support)
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
-  
-  if (event.tag === 'app-update-check') {
+  if (event.tag === 'chatgpt-community-sync') {
+    console.log('TriPlace Service Worker: Background syncing ChatGPT communities for PWA users');
+    
     event.waitUntil(
-      // Check for app updates
-      fetch('/')
-        .then(() => {
-          console.log('[SW] Update check completed');
+      fetch('/api/communities/recommended')
+        .then(response => {
+          if (response.ok) {
+            return caches.open(DYNAMIC_CACHE)
+              .then(cache => cache.put('/api/communities/recommended', response));
+          }
         })
-        .catch(() => {
-          console.log('[SW] Update check failed - offline');
+        .catch(error => {
+          console.log('TriPlace Service Worker: ChatGPT background sync failed:', error);
         })
     );
   }
 });
 
-// Push notification handling (for future update notifications)
+// Push notifications for ChatGPT community updates
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received');
+  console.log('TriPlace Service Worker: ChatGPT community update notification received');
   
-  if (event.data) {
-    const data = event.data.json();
-    
-    if (data.type === 'app-update') {
-      event.waitUntil(
-        self.registration.showNotification('TriPlace Update Available', {
-          body: data.message || 'A new version of TriPlace is available!',
-          icon: '/assets/logo.png',
-          badge: '/assets/logo.png',
-          tag: 'app-update',
-          requireInteraction: true,
-          actions: [
-            {
-              action: 'update',
-              title: 'Update Now'
-            },
-            {
-              action: 'dismiss',
-              title: 'Later'
-            }
-          ]
-        })
-      );
-    }
-  }
+  const options = {
+    body: 'New communities discovered based on your quiz responses!',
+    icon: '/logo.png',
+    badge: '/logo.png',
+    tag: 'chatgpt-community-update',
+    data: {
+      url: '/dashboard'
+    },
+    actions: [
+      {
+        action: 'open',
+        title: 'View Communities'
+      }
+    ]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification('TriPlace - New Communities Found', options)
+  );
 });
 
-// Handle notification clicks
+// Notification click event
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
-  
   event.notification.close();
   
-  if (event.action === 'update') {
-    // Open the app and trigger update
+  if (event.action === 'open' || !event.action) {
     event.waitUntil(
-      clients.openWindow('/').then((client) => {
-        if (client) {
-          client.postMessage({
-            type: 'FORCE_UPDATE',
-            message: 'Updating app...'
-          });
-        }
-      })
+      clients.openWindow('/dashboard')
     );
   }
 });
+
+console.log('TriPlace Service Worker: Ready for ChatGPT community discovery updates for all users including PWA installations');

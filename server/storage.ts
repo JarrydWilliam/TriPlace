@@ -118,13 +118,22 @@ export class DatabaseStorage implements IStorage {
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     try {
-      if (!userId) return [];
+      if (!userId) {
+        console.log('Discovery: No userId provided for recommendations');
+        return [];
+      }
       
       const user = await this.getUser(userId);
-      if (!user) return [];
+      if (!user) {
+        console.log('Discovery: User not found for recommendations');
+        return [];
+      }
 
-      // First generate dynamic communities based on collective user data
+      console.log(`Discovery: ChatGPT generating dynamic communities for user ${user.name} (${user.id})`);
+      
+      // First generate dynamic communities using ChatGPT based on collective user data
       const dynamicCommunities = await this.generateDynamicCommunities(userId);
+      console.log(`Discovery: ChatGPT generated ${dynamicCommunities.length} dynamic communities`);
       
       // Get user's current communities to exclude them from recommendations
       const userCommunities = await this.getUserCommunities(userId);
@@ -135,13 +144,19 @@ export class DatabaseStorage implements IStorage {
         !userCommunityIds.includes(community.id)
       );
       
-      // Use AI matching with 70%+ compatibility requirement
+      console.log(`Discovery: ${availableCommunities.length} communities available for ChatGPT matching (excluding ${userCommunityIds.length} already joined)`);
+      
+      // Use ChatGPT AI matching with 70%+ compatibility requirement
       const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
+      console.log(`Discovery: ChatGPT generated ${recommendations.length} community recommendations`);
       
       // Only return communities with 70%+ compatibility
-      return recommendations
+      const filteredRecommendations = recommendations
         .filter(rec => rec.matchScore >= 70)
         .map(rec => rec.community);
+        
+      console.log(`Discovery: Returning ${filteredRecommendations.length} communities with 70%+ compatibility from ChatGPT analysis`);
+      return filteredRecommendations;
         
     } catch (error) {
       console.error('Error getting recommended communities:', error);

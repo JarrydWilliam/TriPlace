@@ -42,6 +42,34 @@
   <body class="bg-gray-900 text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Service Worker Registration for ChatGPT Community Discovery Updates -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('TriPlace Service Worker registered successfully for ChatGPT community updates');
+            
+            // Listen for service worker messages about ChatGPT community updates
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'CHATGPT_COMMUNITIES_REFRESHED') {
+                console.log('ChatGPT community data refreshed:', event.data.message);
+                // Trigger UI refresh for new community recommendations
+                window.dispatchEvent(new CustomEvent('chatgpt-communities-updated'));
+              }
+            });
+            
+            // Register for background sync for PWA users
+            if ('sync' in window.ServiceWorkerRegistration.prototype) {
+              await registration.sync.register('chatgpt-community-sync');
+            }
+            
+          } catch (error) {
+            console.log('Service Worker registration failed:', error);
+          }
+        });
+      }
+    </script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>

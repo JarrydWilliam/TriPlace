@@ -31,8 +31,15 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
-  // Pull-to-refresh handler
+  // Pull-to-refresh handler with ChatGPT community refresh
   const handleRefresh = async () => {
+    // Notify service worker to refresh ChatGPT community cache
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'REFRESH_CHATGPT_COMMUNITIES'
+      });
+    }
+    
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] }),
