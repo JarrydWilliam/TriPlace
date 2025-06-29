@@ -187,13 +187,9 @@ export default function Dashboard() {
     },
   });
 
-  // Sample data for demo purposes
-  const monthlyKudos = 32;
-  const currentChallenges = [
-    { id: "challenge-1", title: "🎯 Attend 2 events this week", progress: 50, target: 2, current: 1 },
-    { id: "challenge-2", title: "📢 Post in 3 communities", progress: 33, target: 3, current: 1 },
-    { id: "challenge-3", title: "🤝 Meet 1 new 90% match member", progress: 0, target: 1, current: 0 }
-  ];
+  // Live data from user activity
+  const monthlyKudos = 0;
+  const currentChallenges: Array<{ id: string; title: string; progress: number; target: number; current: number }> = [];
 
   // Color coding for communities
   const communityColors = {
@@ -480,20 +476,30 @@ export default function Dashboard() {
                   <span>Weekly Challenges</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {currentChallenges.map((challenge) => (
-                  <div key={challenge.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {challenge.title}
-                      </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {challenge.current}/{challenge.target}
-                      </span>
-                    </div>
-                    <Progress value={challenge.progress} className="h-2" />
+              <CardContent>
+                {currentChallenges.length > 0 ? (
+                  <div className="space-y-4">
+                    {currentChallenges.map((challenge) => (
+                      <div key={challenge.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {challenge.title}
+                          </span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                            {challenge.current}/{challenge.target}
+                          </span>
+                        </div>
+                        <Progress value={challenge.progress} className="h-2" />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>Challenges coming soon</p>
+                    <p className="text-sm">Stay active to unlock weekly challenges!</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
