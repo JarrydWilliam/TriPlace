@@ -352,7 +352,7 @@ export default function Onboarding() {
                   "🧘 Quiet time and reflection",
                   "💪 Regular exercise routine",
                   "🎓 Continuous learning",
-                  "🏡 Family time and relationships"
+                  "🏡 Community involvement and volunteering"
                 ].map((option) => (
                   <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
                     <Checkbox
@@ -507,7 +507,7 @@ export default function Onboarding() {
                   "🤝 Professional networking",
                   "👫 Casual friendships",
                   "💡 Mentorship opportunities",
-                  "🎯 Accountability partners",
+                  "🎯 Goal-focused community support",
                   "🎨 Creative collaborations",
                   "🏃 Activity buddies",
                   "🧠 Intellectual discussions",
