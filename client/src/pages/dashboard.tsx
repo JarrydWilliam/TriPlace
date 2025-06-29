@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
+import { useCommunityUpdates } from "@/hooks/use-community-updates";
 // import { useTheme } from "@/lib/theme-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

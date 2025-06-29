@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { eventScraper } from "./event-scraper";
 import { communityRefreshService } from "./community-refresh";
+import { communityUpdateNotifier } from "./community-update-notifier";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -874,19 +875,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PWA notification endpoint for community updates
-  app.post("/api/pwa/notify-community-update", async (req, res) => {
+  // Community update status endpoint for PWA polling
+  app.get("/api/community-updates/status", async (req, res) => {
     try {
-      // This endpoint can be called to trigger PWA notifications
-      // The service worker will handle the actual notification delivery
+      const clientTimestamp = parseInt(req.query.timestamp as string) || 0;
+      const lastUpdate = communityUpdateNotifier.getLastUpdateTimestamp();
+      const hasUpdates = communityUpdateNotifier.hasUpdatesFor(clientTimestamp);
+      
+      res.json({
+        lastUpdate,
+        hasUpdates,
+        message: hasUpdates ? "New location-aware communities available" : "Communities up to date"
+      });
+    } catch (error) {
+      console.error("Error checking community update status:", error);
+      res.status(500).json({ message: "Failed to check update status" });
+    }
+  });
+
+  // Trigger global community database refresh
+  app.post("/api/community-updates/refresh", async (req, res) => {
+    try {
+      console.log("Community Update: Triggering global refresh");
+      await communityUpdateNotifier.triggerGlobalCommunityRefresh();
       
       res.json({ 
         success: true, 
-        message: "Community update notification sent to all PWA clients"
+        timestamp: communityUpdateNotifier.getLastUpdateTimestamp(),
+        message: "Global community refresh completed with location-aware data"
       });
     } catch (error) {
-      console.error("Error sending PWA notification:", error);
-      res.status(500).json({ message: "Failed to send PWA notification" });
+      console.error("Error triggering community refresh:", error);
+      res.status(500).json({ message: "Failed to trigger community refresh" });
     }
   });
 
