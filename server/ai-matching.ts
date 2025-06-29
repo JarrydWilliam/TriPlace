@@ -41,16 +41,27 @@ export class AIMatchingEngine {
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // If OpenAI is not available, return empty array
-    if (!openai) {
-      return [];
+    // Try AI generation first, fallback if not available
+    if (openai) {
+      try {
+        return await this.generateCommunitiesWithAI(allUsers, userLocation);
+      } catch (error) {
+        console.error('AI community generation failed, using fallback:', error);
+      }
     }
+    
+    // Fallback community generation without AI
+    return this.generateCommunitiesWithFallback(allUsers, userLocation);
+  }
 
-    try {
-      // Analyze collective user patterns to identify community gaps
-      const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
-      
-      const prompt = `
+  private async generateCommunitiesWithAI(
+    allUsers: User[],
+    userLocation?: { lat: number, lon: number }
+  ): Promise<GeneratedCommunity[]> {
+    // Analyze collective user patterns to identify community gaps
+    const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
+    
+    const prompt = `
 You are an AI community architect for TriPlace, designed to create dynamic communities based on collective user patterns and emerging interests.
 
 COMMUNITY CREATION PHILOSOPHY:
@@ -66,56 +77,97 @@ ${collectiveProfile}
 LOCATION CONTEXT:
 ${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
 
-DYNAMIC COMMUNITY REQUIREMENTS:
-1. 70%+ interest match between potential members
-2. Geographic clustering within 50-100 mile radius
-3. Shared values and growth trajectories
-4. Complementary skills and experience levels
-5. Sustainable community size (5-50 active members)
-6. Clear purpose and regular engagement opportunities
-
-Create 3-7 dynamic communities that would naturally emerge from these user patterns. Focus on authentic connection opportunities rather than broad categories.
+TASK: Generate 5-7 dynamic communities that would serve the collective needs of these users. Each community should have:
+- Specific interest overlap requirements (70%+ minimum)
+- Clear value proposition for meaningful connections
+- Geographic relevance when location is available
+- Growth potential for sustainable engagement
 
 Respond with JSON:
 {
   "emergentCommunities": [
     {
-      "name": "Community name that reflects shared interests",
-      "description": "Clear description of community purpose and activities", 
-      "category": "Primary focus area",
-      "targetInterests": ["specific", "interest", "keywords"],
-      "geographicScope": "Local/Regional/Virtual",
-      "estimatedMemberCount": number,
+      "name": "Community Name",
+      "description": "Detailed description of community purpose and activities",
+      "category": "Primary category",
+      "estimatedMemberCount": 8-20,
+      "suggestedLocation": "Geographic area or Virtual",
       "membershipCriteria": "Specific requirements for 70%+ match",
       "reasoning": "Why this community needs to exist based on user data"
     }
   ]
 }`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2000
-      });
+    const response = await openai!.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) return [];
+    const content = response.choices[0]?.message?.content;
+    if (!content) return [];
 
-      const result = JSON.parse(content);
-      return result.emergentCommunities.map((community: any) => ({
-        name: community.name,
-        description: community.description,
-        category: community.category,
-        estimatedMemberCount: community.estimatedMemberCount,
-        suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
-        reasoning: community.reasoning
-      }));
+    const result = JSON.parse(content);
+    return result.emergentCommunities.map((community: any) => ({
+      name: community.name,
+      description: community.description,
+      category: community.category,
+      estimatedMemberCount: community.estimatedMemberCount,
+      suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
+      reasoning: community.reasoning
+    }));
+  }
 
-    } catch (error) {
-      console.error('AI community generation failed:', error);
-      return [];
-    }
+  private generateCommunitiesWithFallback(
+    allUsers: User[],
+    userLocation?: { lat: number, lon: number }
+  ): GeneratedCommunity[] {
+    // Create diverse communities based on common interest patterns
+    const baseLocation = userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual';
+    
+    return [
+      {
+        name: "Local Adventurers",
+        description: "A community for people who love exploring new places, trying outdoor activities, and discovering hidden gems in their area.",
+        category: "Recreation",
+        estimatedMemberCount: 15,
+        suggestedLocation: baseLocation,
+        reasoning: "Popular interest in outdoor activities and exploration"
+      },
+      {
+        name: "Creative Collaborators", 
+        description: "Artists, writers, musicians, and creators who want to share projects, get feedback, and collaborate on creative endeavors.",
+        category: "Arts & Culture",
+        estimatedMemberCount: 12,
+        suggestedLocation: baseLocation,
+        reasoning: "High interest in creative pursuits and artistic expression"
+      },
+      {
+        name: "Wellness Warriors",
+        description: "A supportive community focused on fitness, mental health, healthy cooking, and overall well-being through shared accountability.",
+        category: "Health & Wellness", 
+        estimatedMemberCount: 18,
+        suggestedLocation: baseLocation,
+        reasoning: "Strong focus on health, fitness, and personal development"
+      },
+      {
+        name: "Tech Innovators",
+        description: "Technology enthusiasts who love discussing latest trends, sharing projects, and exploring how tech can solve real-world problems.",
+        category: "Technology",
+        estimatedMemberCount: 10,
+        suggestedLocation: baseLocation,
+        reasoning: "Interest in technology and innovation"
+      },
+      {
+        name: "Community Builders",
+        description: "People passionate about making their neighborhoods better through volunteer work, local events, and civic engagement.",
+        category: "Community Service",
+        estimatedMemberCount: 14,
+        suggestedLocation: baseLocation,
+        reasoning: "Desire to contribute to community and help others"
+      }
+    ];
   }
 
   async generateCommunityRecommendations(
@@ -177,93 +229,101 @@ Respond with JSON:
 Only include matches scoring 70+ for quality connections.
 `;
 
-      const response = await openai!.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.4
+        temperature: 0.3,
+        max_tokens: 1500
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"selectiveMatches": []}');
-      
-      return result.selectiveMatches.map((match: any) => {
-        const community = availableCommunities.find(c => c.id === match.communityId);
-        if (!community) return null;
-        
-        return {
-          community,
-          matchScore: match.compatibilityScore / 100, // Convert to 0-1 scale
-          reasoning: match.deepReasoning,
-          personalizedDescription: match.personalizedValue,
-          suggestedRole: match.contributionRole,
-          connectionType: match.connectionType,
-          growthPotential: match.growthPotential
-        };
-      }).filter(Boolean);
-      
+      const content = response.choices[0]?.message?.content;
+      if (!content) return this.fallbackMatching(user, availableCommunities);
+
+      const result = JSON.parse(content);
+      return result.matches
+        .filter((match: any) => match.compatibilityScore >= 70)
+        .map((match: any) => {
+          const community = availableCommunities.find(c => c.id === match.communityId);
+          if (!community) return null;
+          
+          return {
+            community,
+            matchScore: match.compatibilityScore,
+            reasoning: match.reasoning,
+            personalizedDescription: match.personalizedDescription,
+            suggestedRole: match.suggestedRole,
+            connectionType: match.connectionType,
+            growthPotential: match.growthPotential
+          };
+        })
+        .filter(Boolean);
+
     } catch (error) {
-      console.error('AI matching error:', error);
-      // Fallback to basic matching if AI fails
+      console.error('AI matching failed, using fallback:', error);
       return this.fallbackMatching(user, availableCommunities);
     }
   }
 
   private analyzeCollectivePatterns(allUsers: User[]): string {
-    // Analyze all user interests, goals, and patterns to identify community needs
-    const allInterests = allUsers.flatMap(user => user.interests || []);
-    const interestCounts = allInterests.reduce((acc, interest) => {
+    // Extract common interests across all users
+    const allInterests = allUsers.flatMap(user => 
+      user.interests ? user.interests.reduce((acc: string[], interest: string) => {
+        acc.push(interest.trim());
+        return acc;
+      }, []) : []
+    );
+
+    // Count frequency of interests
+    const interestCounts = allInterests.reduce((acc: Record<string, number>, interest: string) => {
       acc[interest] = (acc[interest] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
-    const popularInterests = Object.entries(interestCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 20)
-      .map(([interest, count]) => `${interest} (${count} users)`);
+    // Get most common interests
+    const topInterests = Object.entries(interestCounts)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, 10)
+      .map(([interest]) => interest);
 
-    const quizData = allUsers
-      .filter(user => user.quizAnswers)
-      .map(user => {
-        const answers = user.quizAnswers as any;
-        return {
-          goals: answers.futureGoals || [],
-          activities: answers.currentInterests || [],
-          lifestyle: answers.lifestyleParts || [],
-          connections: answers.connectionTypes || []
-        };
-      });
+    // Analyze goals and preferences
+    const commonGoals = this.extractCommonPatterns(
+      allUsers.map(user => user.goals || '').filter(Boolean)
+    );
 
     return `
-COLLECTIVE USER ANALYSIS (${allUsers.length} total users):
+COLLECTIVE INTEREST ANALYSIS:
+- Total users analyzed: ${allUsers.length}
+- Most common interests: ${topInterests.join(', ')}
+- Common goals and aspirations: ${commonGoals}
+- Geographic distribution: ${allUsers.filter(u => u.location).length} users with location data
+- Age demographics: Mix of various life stages and experiences
+- Community engagement patterns: Users seeking meaningful connections and shared activities
 
-POPULAR INTERESTS:
-${popularInterests.join(', ')}
-
-COMMON PATTERNS FROM QUIZ DATA:
-- Future Goals: ${this.extractCommonPatterns(quizData.flatMap(q => q.goals))}
-- Current Activities: ${this.extractCommonPatterns(quizData.flatMap(q => q.activities))}
-- Lifestyle Preferences: ${this.extractCommonPatterns(quizData.flatMap(q => q.lifestyle))}
-- Connection Types: ${this.extractCommonPatterns(quizData.flatMap(q => q.connections))}
-
-COMMUNITY GAPS TO ADDRESS:
-- Underserved interest combinations
-- Geographic clustering opportunities  
-- Skill-sharing and mentorship needs
-- Activity-based social connections
-- Professional and creative collaborations
-    `;
+EMERGING PATTERNS:
+- High interest in personal growth and skill development
+- Strong desire for local community engagement
+- Mix of creative, recreational, and professional interests
+- Focus on authentic relationships over superficial networking
+- Geographic clustering around urban and suburban areas
+- Preference for small, intimate community sizes (8-20 members)
+`;
   }
 
   private extractCommonPatterns(items: string[]): string {
-    const counts = items.reduce((acc, item) => {
-      acc[item] = (acc[item] || 0) + 1;
+    // Simple pattern extraction - could be enhanced with NLP
+    const words = items.flatMap(item => 
+      item.toLowerCase().split(/\s+/).filter(word => word.length > 3)
+    );
+    
+    const wordCounts = words.reduce((acc: Record<string, number>, word: string) => {
+      acc[word] = (acc[word] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(counts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 8)
-      .map(([item, count]) => `${item} (${count})`)
+    }, {});
+    
+    return Object.entries(wordCounts)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, 5)
+      .map(([word]) => word)
       .join(', ');
   }
 
@@ -277,150 +337,121 @@ COMMUNITY GAPS TO ADDRESS:
       const userProfile = this.buildUserProfile(user);
       
       const prompt = `
-Based on this user's unique profile, identify 3-5 communities that should exist but might not be available yet.
+Based on this user's profile, what types of communities are missing from the current landscape that would serve their specific needs?
 
 USER PROFILE:
 ${userProfile}
 
-Think creatively about communities that would serve their specific combination of:
-- Past experiences and skills they could share
-- Current interests and lifestyle
-- Future goals and aspirations
-- Personality preferences and social style
-- Geographic location and travel preferences
-
-Generate communities that would be perfect matches but might not exist in typical platforms.
+Generate 2-3 missing communities that would be perfect for this user but don't currently exist. Focus on:
+- 70%+ compatibility with their interests and goals
+- Addressing gaps in current community offerings
+- Sustainable member base potential
+- Clear value proposition for meaningful connections
 
 Respond with JSON:
 {
-  "communities": [
+  "missingCommunities": [
     {
-      "name": "community name",
-      "description": "detailed description of community purpose and activities",
-      "category": "primary category",
-      "estimatedMemberCount": number (realistic estimate),
-      "suggestedLocation": "ideal location for this community",
-      "reasoning": "why this specific user would love and contribute to this community"
+      "name": "Community Name",
+      "description": "What this community would provide",
+      "category": "Primary focus area",
+      "estimatedMemberCount": 8-15,
+      "suggestedLocation": "Geographic focus or Virtual",
+      "reasoning": "Why this community is needed for this user"
     }
   ]
-}
-`;
+}`;
 
-      const response = await openai!.chat.completions.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.7
+        temperature: 0.7,
+        max_tokens: 1000
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"communities": []}');
-      return result.communities || [];
-      
+      const content = response.choices[0]?.message?.content;
+      if (!content) return [];
+
+      const result = JSON.parse(content);
+      return result.missingCommunities;
+
     } catch (error) {
-      console.error('AI community generation error:', error);
+      console.error('Missing community generation failed:', error);
       return [];
     }
   }
 
   private buildUserProfile(user: User): string {
-    const profile = [];
-    
-    profile.push(`Name: ${user.name}`);
-    profile.push(`Location: ${user.location || 'Not specified'}`);
-    profile.push(`Bio: ${user.bio || 'No bio provided'}`);
-    
-    if (user.interests && user.interests.length > 0) {
-      profile.push(`Interests: ${user.interests.join(', ')}`);
-    }
-    
-    // Parse quiz answers if available
-    if (user.quizAnswers && typeof user.quizAnswers === 'object') {
-      const quiz = user.quizAnswers as any;
-      
-      if (quiz.pastActivities) {
-        profile.push(`Past Activities: ${Array.isArray(quiz.pastActivities) ? quiz.pastActivities.join(', ') : quiz.pastActivities}`);
-      }
-      
-      if (quiz.pastActivitiesOther) {
-        profile.push(`Other Past Activities: ${quiz.pastActivitiesOther}`);
-      }
-      
-      if (quiz.volunteered) {
-        profile.push(`Volunteering Experience: ${quiz.volunteered}`);
-        if (quiz.volunteerDescription) {
-          profile.push(`Volunteer Details: ${quiz.volunteerDescription}`);
-        }
-      }
-      
-      if (quiz.pastHobby) {
-        profile.push(`Past Hobby: ${quiz.pastHobby}`);
-      }
-      
-      if (quiz.currentInterests) {
-        profile.push(`Current Interests: ${Array.isArray(quiz.currentInterests) ? quiz.currentInterests.join(', ') : quiz.currentInterests}`);
-      }
-      
-      if (quiz.currentInterestsOther) {
-        profile.push(`Other Current Interests: ${quiz.currentInterestsOther}`);
-      }
-      
-      if (quiz.weekendActivities) {
-        profile.push(`Weekend Activities: ${Array.isArray(quiz.weekendActivities) ? quiz.weekendActivities.join(', ') : quiz.weekendActivities}`);
-      }
-      
-      if (quiz.lifestyleParts) {
-        profile.push(`Important Lifestyle Parts: ${Array.isArray(quiz.lifestyleParts) ? quiz.lifestyleParts.join(', ') : quiz.lifestyleParts}`);
-      }
-      
-      if (quiz.futureGoal) {
-        profile.push(`Primary Future Goal: ${quiz.futureGoal}`);
-      }
-      
-      if (quiz.futureGoals) {
-        profile.push(`Future Goals: ${Array.isArray(quiz.futureGoals) ? quiz.futureGoals.join(', ') : quiz.futureGoals}`);
-      }
-      
-      if (quiz.dreamCommunity) {
-        profile.push(`Dream Community: ${quiz.dreamCommunity}`);
-      }
-      
-      if (quiz.groupPreference) {
-        profile.push(`Group Preference: ${quiz.groupPreference}`);
-      }
-      
-      if (quiz.travelDistance) {
-        profile.push(`Travel Distance: ${quiz.travelDistance}`);
-      }
-      
-      if (quiz.connectionTypes) {
-        profile.push(`Connection Types: ${Array.isArray(quiz.connectionTypes) ? quiz.connectionTypes.join(', ') : quiz.connectionTypes}`);
-      }
-      
-      if (quiz.dreamCommunityName) {
-        profile.push(`Dream Community Name: ${quiz.dreamCommunityName}`);
-      }
-      
-      if (quiz.idealVibe) {
-        profile.push(`Ideal Community Vibe: ${quiz.idealVibe}`);
-      }
-      
-      if (quiz.personalIntro) {
-        profile.push(`Personal Intro: ${quiz.personalIntro}`);
-      }
-    }
-    
-    return profile.join('\n');
+    return `
+USER PROFILE:
+- Name: ${user.name}
+- Email: ${user.email}
+- Location: ${user.location || 'Not specified'}
+- Interests: ${user.interests ? user.interests.join(', ') : 'Not specified'}
+- Goals: ${user.goals || 'Not specified'}
+- Bio: ${user.bio || 'Not specified'}
+- Age Group: ${user.ageGroup || 'Not specified'}
+- Profession: ${user.profession || 'Not specified'}
+- Hobbies: ${user.hobbies ? user.hobbies.join(', ') : 'Not specified'}
+- Values: ${user.values ? user.values.join(', ') : 'Not specified'}
+- Communication Style: ${user.communicationStyle || 'Not specified'}
+- Availability: ${user.availability || 'Not specified'}
+- Personal Growth Areas: ${user.personalGrowthAreas ? user.personalGrowthAreas.join(', ') : 'Not specified'}
+- Life Stage: ${user.lifeStage || 'Not specified'}
+- Community Involvement: ${user.communityInvolvement || 'Not specified'}
+- Learning Interests: ${user.learningInterests ? user.learningInterests.join(', ') : 'Not specified'}
+- Geographic Coordinates: ${user.latitude && user.longitude ? `${user.latitude}, ${user.longitude}` : 'Not available'}
+`;
   }
 
   private fallbackMatching(user: User, communities: Community[]): CommunityRecommendation[] {
-    // Simple fallback matching logic
-    return communities.slice(0, 3).map(community => ({
-      community,
-      matchScore: 0.6,
-      reasoning: "Basic compatibility match",
-      personalizedDescription: `${community.description} - This community aligns with your interests and location.`,
-      suggestedRole: "Active member"
-    }));
+    // Simple fallback matching based on interest overlap
+    const userInterests = user.interests || [];
+    
+    return communities.map(community => {
+      // Calculate basic interest overlap
+      const communityInterests = this.getCommunityInterests(community);
+      const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
+      
+      // Only return communities with 70%+ match
+      if (overlapScore < 70) return null;
+      
+      return {
+        community,
+        matchScore: overlapScore,
+        reasoning: `Shared interests in ${communityInterests.slice(0, 3).join(', ')}`,
+        personalizedDescription: `This community aligns with your interests in ${userInterests.slice(0, 2).join(' and ')}.`,
+        suggestedRole: 'Active participant',
+        connectionType: 'Interest-based connections',
+        growthPotential: 'Skill development and networking'
+      };
+    }).filter(Boolean) as CommunityRecommendation[];
+  }
+
+  private getCommunityInterests(community: Community): string[] {
+    // Extract interests from community description and category
+    const words = (community.description + ' ' + community.category)
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 3);
+    
+    return [...new Set(words)];
+  }
+
+  private calculateInterestOverlap(userInterests: string[], communityInterests: string[]): number {
+    if (userInterests.length === 0 || communityInterests.length === 0) return 0;
+    
+    const userSet = new Set(userInterests.map(i => i.toLowerCase()));
+    const communitySet = new Set(communityInterests.map(i => i.toLowerCase()));
+    
+    let matches = 0;
+    for (const interest of userSet) {
+      if (communitySet.has(interest)) {
+        matches++;
+      }
+    }
+    
+    return Math.round((matches / userInterests.length) * 100);
   }
 }
 
