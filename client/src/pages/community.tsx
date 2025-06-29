@@ -322,76 +322,134 @@ export default function CommunityPage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Chat Tab */}
-            <TabsContent value="chat" className="mt-0">
-              <div className="responsive-padding space-y-4">
-                {/* Message Input */}
-                <div className="flex space-x-2">
-                  <Textarea
-                    placeholder="Share with the community..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="flex-1 min-h-[44px] resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                  />
+            {/* Chat Tab - Instagram-style Messaging */}
+            <TabsContent value="chat" className="mt-0 h-[70vh] flex flex-col">
+              {/* Chat Header with Community Status */}
+              <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+                        {community.name.charAt(0)}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{community.name}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{community.memberCount} members online</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Active
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Messages Container with Scroll */}
+              <div className="flex-1 overflow-y-auto responsive-padding space-y-4 bg-gray-50 dark:bg-gray-900">
+                {messagesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : messages?.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
+                      <MessageCircle className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Welcome to {community.name}!</h3>
+                    <p>Be the first to start the conversation</p>
+                  </div>
+                ) : (
+                  messages?.map((message: any) => (
+                    <div key={message.id} className="group">
+                      <div className="flex space-x-3">
+                        <button className="flex-shrink-0 hover:scale-105 transition-transform">
+                          <Avatar className="w-10 h-10 ring-2 ring-white dark:ring-gray-800 shadow-sm">
+                            <AvatarImage src={message.sender?.avatar} />
+                            <AvatarFallback className="bg-gradient-to-br from-purple-400 via-blue-400 to-cyan-400 text-white font-semibold">
+                              {formatDisplayName(message.sender?.name).charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          {/* Message Bubble */}
+                          <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-md shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-200 group-hover:scale-[1.02]">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                                {formatDisplayName(message.sender?.name)}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {format(parseISO(message.createdAt), 'MMM d, h:mm a')}
+                              </span>
+                            </div>
+                            <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{message.content}</p>
+                            
+                            {/* Message Actions */}
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                              <div className="flex items-center space-x-4">
+                                <button
+                                  onClick={() => resonateMutation.mutate(message.id)}
+                                  className="flex items-center space-x-1.5 text-xs text-gray-500 hover:text-red-500 transition-colors group/resonate"
+                                  disabled={resonateMutation.isPending}
+                                >
+                                  <Heart className="w-4 h-4 group-hover/resonate:scale-110 transition-transform" />
+                                  <span className="font-medium">{message.resonateCount || 0} resonates</span>
+                                </button>
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2">
+                                <button className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                  Reply
+                                </button>
+                                <button className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                  Share
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Enhanced Message Input */}
+              <div className="responsive-padding border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="flex items-end space-x-3 py-3">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Textarea
+                        placeholder={`Message ${community.name}...`}
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        className="min-h-[44px] max-h-32 resize-none rounded-2xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                      />
+                      <div className="absolute bottom-2 right-3 text-xs text-gray-400">
+                        {newMessage.length}/500
+                      </div>
+                    </div>
+                  </div>
                   <Button 
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     size="sm"
-                    className="min-w-[44px] h-[44px]"
+                    className="min-w-[44px] h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                   >
-                    <Send className="w-4 h-4" />
+                    {sendMessageMutation.isPending ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
-
-                {/* Messages Feed */}
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                  {messagesLoading ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                    </div>
-                  ) : messages?.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>No messages yet. Start the conversation!</p>
-                    </div>
-                  ) : (
-                    messages?.map((message: any) => (
-                      <div key={message.id} className="flex space-x-3">
-                        <Avatar className="w-8 h-8 flex-shrink-0">
-                          <AvatarImage src={message.sender?.avatar} />
-                          <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white text-xs">
-                            {formatDisplayName(message.sender?.name).charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-sm text-gray-900 dark:text-white">
-                              {formatDisplayName(message.sender?.name)}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {format(parseISO(message.createdAt), 'MMM d, h:mm a')}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{message.content}</p>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              onClick={() => resonateMutation.mutate(message.id)}
-                              className="flex items-center space-x-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
-                            >
-                              <Heart className="w-3 h-3" />
-                              <span>{message.resonateCount || 0}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                <div className="text-xs text-gray-500 dark:text-gray-400 pb-2">
+                  Press Enter to send • Shift+Enter for new line
                 </div>
               </div>
             </TabsContent>

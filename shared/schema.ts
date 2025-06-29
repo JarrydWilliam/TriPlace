@@ -83,6 +83,14 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const communityMessages = pgTable("community_messages", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").references(() => communities.id).notNull(),
+  senderId: integer("sender_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const kudos = pgTable("kudos", {
   id: serial("id").primaryKey(),
   giverId: integer("giver_id").references(() => users.id).notNull(),
@@ -140,6 +148,11 @@ export const insertEventAttendeeSchema = createInsertSchema(eventAttendees).omit
   registeredAt: true,
 });
 
+export const insertCommunityMessageSchema = createInsertSchema(communityMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -155,4 +168,6 @@ export type CommunityMember = typeof communityMembers.$inferSelect;
 export type InsertCommunityMember = z.infer<typeof insertCommunityMemberSchema>;
 export type EventAttendee = typeof eventAttendees.$inferSelect;
 export type InsertEventAttendee = z.infer<typeof insertEventAttendeeSchema>;
+export type CommunityMessage = typeof communityMessages.$inferSelect;
+export type InsertCommunityMessage = z.infer<typeof insertCommunityMessageSchema>;
 export type ActivityFeedItem = typeof activityFeed.$inferSelect;

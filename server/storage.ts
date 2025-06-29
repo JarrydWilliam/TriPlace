@@ -663,17 +663,16 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
-  async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
-    // Get all messages where sender and receiver are the same (community messages)
+  async getCommunityMessages(communityId: number): Promise<(CommunityMessage & { sender: User, resonateCount: number })[]> {
+    // Get messages for specific community only
     const result = await db
       .select({
-        // Message fields
-        messageId: messages.id,
-        senderId: messages.senderId,
-        receiverId: messages.receiverId,
-        content: messages.content,
-        createdAt: messages.createdAt,
-        isRead: messages.isRead,
+        // Community message fields
+        messageId: communityMessages.id,
+        communityId: communityMessages.communityId,
+        senderId: communityMessages.senderId,
+        content: communityMessages.content,
+        createdAt: communityMessages.createdAt,
         // User fields
         userId: users.id,
         firebaseUid: users.firebaseUid,
@@ -687,19 +686,18 @@ export class DatabaseStorage implements IStorage {
         userLongitude: users.longitude,
         onboardingCompleted: users.onboardingCompleted
       })
-      .from(messages)
-      .innerJoin(users, eq(messages.senderId, users.id))
-      .where(eq(messages.senderId, messages.receiverId)) // Community messages have sender = receiver
-      .orderBy(desc(messages.createdAt))
+      .from(communityMessages)
+      .innerJoin(users, eq(communityMessages.senderId, users.id))
+      .where(eq(communityMessages.communityId, communityId))
+      .orderBy(desc(communityMessages.createdAt))
       .limit(50);
 
     return result.map(row => ({
       id: row.messageId,
+      communityId: row.communityId,
       senderId: row.senderId,
-      receiverId: row.receiverId,
       content: row.content,
       createdAt: row.createdAt,
-      isRead: row.isRead,
       sender: {
         id: row.userId,
         firebaseUid: row.firebaseUid,
