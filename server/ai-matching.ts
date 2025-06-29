@@ -6,55 +6,56 @@ let openai: OpenAI | null = null;
 let groqAI: OpenAI | null = null;
 let grokAI: OpenAI | null = null;
 
-// Initialize AI clients with dynamic key checking
+// Initialize AI clients with dynamic key checking - prioritizing OpenAI ChatGPT
 function getAIClient(): OpenAI | null {
-  // Try Groq first (fastest inference)
+  // Use OpenAI ChatGPT as primary AI engine
+  if (!openai && process.env.OPENAI_API_KEY) {
+    try {
+      openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      console.log('[AI] ChatGPT (OpenAI) client initialized successfully');
+      return openai;
+    } catch (error) {
+      console.error('[AI] Failed to initialize ChatGPT client:', error);
+    }
+  }
+  
+  // Try Groq as backup
   if (!groqAI && process.env.GROQ_API_KEY) {
     try {
       groqAI = new OpenAI({ 
         baseURL: "https://api.groq.com/openai/v1", 
         apiKey: process.env.GROQ_API_KEY 
       });
-      console.log('[AI] Groq client initialized successfully');
+      console.log('[AI] Groq client initialized as backup');
       return groqAI;
     } catch (error) {
       console.error('[AI] Failed to initialize Groq client:', error);
     }
   }
   
-  // Try xAI Grok as backup
+  // Try xAI Grok as final backup
   if (!grokAI && process.env.XAI_API_KEY) {
     try {
       grokAI = new OpenAI({ 
         baseURL: "https://api.x.ai/v1", 
         apiKey: process.env.XAI_API_KEY 
       });
-      console.log('[AI] Grok (xAI) client initialized successfully');
+      console.log('[AI] Grok (xAI) client initialized as final backup');
       return grokAI;
     } catch (error) {
       console.error('[AI] Failed to initialize Grok client:', error);
     }
   }
   
-  // Fallback to OpenAI
-  if (!openai && process.env.OPENAI_API_KEY) {
-    try {
-      openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      console.log('[AI] OpenAI client initialized successfully');
-      return openai;
-    } catch (error) {
-      console.error('[AI] Failed to initialize OpenAI client:', error);
-    }
-  }
-  
-  return groqAI || grokAI || openai;
+  return openai || groqAI || grokAI;
 }
 
 // Get the appropriate AI model based on available client
 function getAIModel(): string {
-  if (groqAI) return "llama-3.1-70b-versatile"; // Groq's best model for versatile tasks
-  if (grokAI) return "grok-2-1212"; // xAI Grok's best text model
-  return "gpt-4o"; // OpenAI fallback
+  if (openai) return "gpt-4o-mini"; // ChatGPT's cost-effective model for community generation
+  if (groqAI) return "llama-3.1-70b-versatile"; // Groq backup
+  if (grokAI) return "grok-2-1212"; // xAI backup
+  return "gpt-4o-mini"; // Default ChatGPT model
 }
 
 interface MatchingResult {
@@ -100,44 +101,26 @@ export class AIMatchingEngine {
       // Analyze collective user patterns to identify community gaps
       const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
       
-      const prompt = `
-You are an AI community architect for TriPlace, designed to create dynamic communities based on collective user patterns and emerging interests.
+      const prompt = `Create exactly 5 communities for a social app based on these user patterns:
 
-COMMUNITY CREATION PHILOSOPHY:
-- Create communities that emerge organically from user interests and needs
-- No preset communities - everything is data-driven and evolving
-- Focus on 70%+ interest overlap and geographic proximity (50-100 mile radius)
-- Communities should serve genuine connection needs and shared growth goals
-- Build communities that facilitate meaningful third place experiences
+User Data: ${collectiveProfile}
+Location: ${userLocation ? `${userLocation.lat}, ${userLocation.lon}` : 'Virtual'}
 
-COLLECTIVE USER ANALYSIS:
-${collectiveProfile}
+Requirements:
+- 70%+ interest overlap between members
+- Geographic proximity (50-100 mile radius)
+- Authentic connection opportunities
+- Sustainable community size (5-50 members)
 
-LOCATION CONTEXT:
-${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
-
-DYNAMIC COMMUNITY REQUIREMENTS:
-1. 70%+ interest match between potential members
-2. Geographic clustering within 50-100 mile radius
-3. Shared values and growth trajectories
-4. Complementary skills and experience levels
-5. Sustainable community size (5-50 active members)
-6. Clear purpose and regular engagement opportunities
-
-Create exactly 5 dynamic communities that would naturally emerge from these user patterns. Focus on authentic connection opportunities rather than broad categories.
-
-Respond with JSON:
+Return JSON with exactly 5 communities:
 {
   "emergentCommunities": [
     {
-      "name": "Community name that reflects shared interests",
-      "description": "Clear description of community purpose and activities", 
-      "category": "Primary focus area",
-      "targetInterests": ["specific", "interest", "keywords"],
-      "geographicScope": "Local/Regional/Virtual",
-      "estimatedMemberCount": number,
-      "membershipCriteria": "Specific requirements for 70%+ match",
-      "reasoning": "Why this community needs to exist based on user data"
+      "name": "Community Name",
+      "description": "Purpose and activities",
+      "category": "Main focus area",
+      "estimatedMemberCount": 15,
+      "reasoning": "Why this community is needed"
     }
   ]
 }`;
@@ -146,25 +129,40 @@ Respond with JSON:
         model: getAIModel(),
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 1500
       });
 
       const content = response.choices[0]?.message?.content;
-      if (!content) return [];
+      if (!content) {
+        console.log('[AI] No content returned, using fallback communities');
+        return this.generateFallbackCommunities(userLocation);
+      }
 
-      const result = JSON.parse(content);
-      return result.emergentCommunities.map((community: any) => ({
-        name: community.name,
-        description: community.description,
-        category: community.category,
-        estimatedMemberCount: community.estimatedMemberCount,
-        suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
-        reasoning: community.reasoning
-      }));
+      try {
+        const result = JSON.parse(content);
+        const communities = result.emergentCommunities || [];
+        
+        if (communities.length === 0) {
+          console.log('[AI] No communities generated, using fallback');
+          return this.generateFallbackCommunities(userLocation);
+        }
+
+        return communities.slice(0, 5).map((community: any) => ({
+          name: community.name || `Community ${Math.random().toString(36).substr(2, 5)}`,
+          description: community.description || 'A community for like-minded individuals',
+          category: community.category || 'General',
+          estimatedMemberCount: community.estimatedMemberCount || 15,
+          suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
+          reasoning: community.reasoning || 'Generated for user interests'
+        }));
+      } catch (parseError) {
+        console.log('[AI] JSON parse error, using fallback communities');
+        return this.generateFallbackCommunities(userLocation);
+      }
 
     } catch (error) {
-      console.error('AI community generation failed:', error);
-      return [];
+      console.error('[AI] Community generation failed:', error);
+      return this.generateFallbackCommunities(userLocation);
     }
   }
 
