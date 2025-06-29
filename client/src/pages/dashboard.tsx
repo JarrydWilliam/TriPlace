@@ -31,6 +31,20 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
+  // Listen for ChatGPT community updates from service worker
+  useEffect(() => {
+    const handleChatGPTCommunityUpdate = () => {
+      console.log('Dashboard: Received ChatGPT community update notification');
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+    };
+
+    window.addEventListener('chatgpt-communities-updated', handleChatGPTCommunityUpdate);
+    
+    return () => {
+      window.removeEventListener('chatgpt-communities-updated', handleChatGPTCommunityUpdate);
+    };
+  }, [queryClient]);
+
   // Pull-to-refresh handler with ChatGPT community refresh
   const handleRefresh = async () => {
     // Notify service worker to refresh ChatGPT community cache

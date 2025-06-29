@@ -114,12 +114,22 @@ export default function Onboarding() {
       return response.json();
     },
     onSuccess: () => {
+      // Trigger ChatGPT community discovery update for all users
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'REFRESH_CHATGPT_COMMUNITIES'
+        });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/firebase/${user?.firebaseUid}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities/recommended'] });
+      
       toast({
         title: "Welcome to TriPlace!",
-        description: "Your profile is complete. Let's find your community!",
+        description: "Your profile is complete. ChatGPT is finding your perfect communities!",
       });
+      
       // Small delay to ensure user data is updated before navigation
       setTimeout(() => {
         window.location.href = "/dashboard";

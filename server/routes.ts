@@ -99,15 +99,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
       const userIdNum = userId ? parseInt(userId) : undefined;
       
-      console.log('Recommended communities request - interests:', interestsArray, 'userId:', userIdNum, 'location:', userLocation);
+      console.log('ChatGPT Discovery: Recommended communities request - interests:', interestsArray, 'userId:', userIdNum, 'location:', userLocation);
       
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
-      console.log('Recommended communities found:', communities.length);
+      console.log('ChatGPT Discovery: Generated communities found:', communities.length);
+      
+      // Add cache headers to ensure fresh data for PWA users
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       
       res.json(communities);
     } catch (error) {
-      console.error('Error getting recommended communities:', error);
-      res.status(500).json({ message: "Internal server error" });
+      console.error('ChatGPT Discovery: Error getting recommended communities:', error);
+      res.status(500).json({ message: "ChatGPT community discovery temporarily unavailable" });
     }
   });
 
