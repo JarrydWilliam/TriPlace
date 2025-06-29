@@ -54,14 +54,14 @@ export class AIMatchingEngine {
     const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
     
     const prompt = `
-You are an AI community architect for TriPlace, designed to create dynamic communities based on collective user patterns and emerging interests.
+You are ChatGPT, the AI community architect for TriPlace. Analyze quiz responses to generate exactly 5 dynamic communities based on authentic user needs.
 
-COMMUNITY CREATION PHILOSOPHY:
-- Create communities that emerge organically from user interests and needs
-- No preset communities - everything is data-driven and evolving
+CRITICAL REQUIREMENTS:
+- Generate EXACTLY 5 communities, no more, no less
+- Base each community on actual quiz data patterns shown below
 - Focus on 70%+ interest overlap and geographic proximity (50-100 mile radius)
-- Communities should serve genuine connection needs and shared growth goals
-- Build communities that facilitate meaningful third place experiences
+- Create meaningful third place experiences for authentic connections
+- No generic templates - each must reflect genuine user interests from quiz data
 
 COLLECTIVE USER ANALYSIS:
 ${collectiveProfile}
@@ -69,23 +69,23 @@ ${collectiveProfile}
 LOCATION CONTEXT:
 ${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
 
-TASK: Generate exactly 5 dynamic communities that would serve the collective needs of these users. Each community should have:
-- Specific interest overlap requirements (70%+ minimum)
-- Clear value proposition for meaningful connections
-- Geographic relevance when location is available
-- Growth potential for sustainable engagement
+INSTRUCTIONS:
+1. Analyze the quiz patterns above to identify the 5 strongest community opportunities
+2. Each community must serve users with 70%+ interest overlap
+3. Focus on the most frequently mentioned interests, activities, and goals
+4. Create communities that facilitate meaningful connections and personal growth
+5. Generate exactly 5 communities based on the data patterns
 
-Respond with JSON:
+Respond with valid JSON containing exactly 5 communities:
 {
   "emergentCommunities": [
     {
-      "name": "Community Name",
-      "description": "Detailed description of community purpose and activities",
-      "category": "Primary category",
-      "estimatedMemberCount": 8-20,
+      "name": "Specific community name reflecting quiz data",
+      "description": "Detailed description connecting to user quiz responses and interests",
+      "category": "Primary category from user data",
+      "estimatedMemberCount": 12,
       "suggestedLocation": "Geographic area or Virtual",
-      "membershipCriteria": "Specific requirements for 70%+ match",
-      "reasoning": "Why this community needs to exist based on user data"
+      "reasoning": "Specific connection to quiz patterns and collective user needs"
     }
   ]
 }`;
@@ -98,14 +98,25 @@ Respond with JSON:
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) return [];
+    if (!content) {
+      console.error('No content from ChatGPT - using fallback');
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
+    }
 
     const result = JSON.parse(content);
-    return result.emergentCommunities.map((community: any) => ({
+    const communities = result.emergentCommunities || [];
+    
+    // Ensure exactly 5 communities are returned
+    if (communities.length !== 5) {
+      console.warn(`ChatGPT returned ${communities.length} communities instead of 5 - using fallback`);
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
+    }
+
+    return communities.map((community: any) => ({
       name: community.name,
       description: community.description,
       category: community.category,
-      estimatedMemberCount: community.estimatedMemberCount,
+      estimatedMemberCount: community.estimatedMemberCount || 12,
       suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
       reasoning: community.reasoning
     }));
@@ -277,7 +288,9 @@ Only include matches scoring 70+ for quality connections.
     // Analyze quiz patterns across all users
     const quizPatterns = allUsers.map(user => {
       try {
-        return user.quizAnswers ? JSON.parse(user.quizAnswers as string) : null;
+        if (!user.quizAnswers) return null;
+        return typeof user.quizAnswers === 'object' ? user.quizAnswers : 
+               typeof user.quizAnswers === 'string' ? JSON.parse(user.quizAnswers) : null;
       } catch {
         return null;
       }
