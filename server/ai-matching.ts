@@ -1,19 +1,11 @@
 import OpenAI from "openai";
 import { Community, User } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// Initialize OpenAI client
 let openai: OpenAI | null = null;
 
-// Initialize OpenAI client only if API key is available
 if (process.env.OPENAI_API_KEY) {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
-
-interface MatchingResult {
-  score: number;
-  reasoning: string;
-  personalizedDescription: string;
-  suggestedRole?: string;
 }
 
 interface CommunityRecommendation {
@@ -41,24 +33,22 @@ export class AIMatchingEngine {
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // Try AI generation first, fallback if not available
-    if (openai) {
-      try {
-        return await this.generateCommunitiesWithAI(allUsers, userLocation);
-      } catch (error) {
-        console.error('AI community generation failed, using fallback:', error);
-      }
+    if (!openai) {
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
-    
-    // Fallback community generation without AI
-    return this.generateCommunitiesWithFallback(allUsers, userLocation);
+
+    try {
+      return await this.generateCommunitiesWithAI(allUsers, userLocation);
+    } catch (error) {
+      console.error('AI community generation failed:', error);
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
+    }
   }
 
   private async generateCommunitiesWithAI(
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // Analyze collective user patterns to identify community gaps
     const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
     
     const prompt = `
@@ -123,7 +113,6 @@ Respond with JSON:
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): GeneratedCommunity[] {
-    // Create diverse communities based on common interest patterns
     const baseLocation = userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual';
     
     return [
@@ -175,7 +164,6 @@ Respond with JSON:
     availableCommunities: Community[],
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
-    // If OpenAI is not available, use fallback matching immediately
     if (!openai) {
       return this.fallbackMatching(user, availableCommunities);
     }
@@ -219,7 +207,7 @@ Respond with JSON:
       "compatibilityScore": number (70-100 range),
       "reasoning": "Why this user matches with this community",
       "personalizedDescription": "How this community serves their specific interests and goals",
-      "suggestedRole": "How they could contribute"
+      "suggestedRole": "How they could contribute",
       "connectionType": "Type of meaningful relationships they'll likely form",
       "growthPotential": "How this community supports their personal/professional development"
     }
@@ -265,36 +253,24 @@ Only include matches scoring 70+ for quality connections.
   }
 
   private analyzeCollectivePatterns(allUsers: User[]): string {
-    // Extract common interests across all users
     const allInterests = allUsers.flatMap(user => 
-      user.interests ? user.interests.reduce((acc: string[], interest: string) => {
-        acc.push(interest.trim());
-        return acc;
-      }, []) : []
+      user.interests || []
     );
 
-    // Count frequency of interests
     const interestCounts = allInterests.reduce((acc: Record<string, number>, interest: string) => {
       acc[interest] = (acc[interest] || 0) + 1;
       return acc;
     }, {});
 
-    // Get most common interests
     const topInterests = Object.entries(interestCounts)
       .sort(([,a], [,b]) => (b as number) - (a as number))
       .slice(0, 10)
       .map(([interest]) => interest);
 
-    // Analyze goals and preferences
-    const commonGoals = this.extractCommonPatterns(
-      allUsers.map(user => user.goals || '').filter(Boolean)
-    );
-
     return `
 COLLECTIVE INTEREST ANALYSIS:
 - Total users analyzed: ${allUsers.length}
 - Most common interests: ${topInterests.join(', ')}
-- Common goals and aspirations: ${commonGoals}
 - Geographic distribution: ${allUsers.filter(u => u.location).length} users with location data
 - Age demographics: Mix of various life stages and experiences
 - Community engagement patterns: Users seeking meaningful connections and shared activities
@@ -309,78 +285,6 @@ EMERGING PATTERNS:
 `;
   }
 
-  private extractCommonPatterns(items: string[]): string {
-    // Simple pattern extraction - could be enhanced with NLP
-    const words = items.flatMap(item => 
-      item.toLowerCase().split(/\s+/).filter(word => word.length > 3)
-    );
-    
-    const wordCounts = words.reduce((acc: Record<string, number>, word: string) => {
-      acc[word] = (acc[word] || 0) + 1;
-      return acc;
-    }, {});
-    
-    return Object.entries(wordCounts)
-      .sort(([,a], [,b]) => (b as number) - (a as number))
-      .slice(0, 5)
-      .map(([word]) => word)
-      .join(', ');
-  }
-
-  async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
-    // If OpenAI is not available, return empty array
-    if (!openai) {
-      return [];
-    }
-
-    try {
-      const userProfile = this.buildUserProfile(user);
-      
-      const prompt = `
-Based on this user's profile, what types of communities are missing from the current landscape that would serve their specific needs?
-
-USER PROFILE:
-${userProfile}
-
-Generate 2-3 missing communities that would be perfect for this user but don't currently exist. Focus on:
-- 70%+ compatibility with their interests and goals
-- Addressing gaps in current community offerings
-- Sustainable member base potential
-- Clear value proposition for meaningful connections
-
-Respond with JSON:
-{
-  "missingCommunities": [
-    {
-      "name": "Community Name",
-      "description": "What this community would provide",
-      "category": "Primary focus area",
-      "estimatedMemberCount": 8-15,
-      "suggestedLocation": "Geographic focus or Virtual",
-      "reasoning": "Why this community is needed for this user"
-    }
-  ]
-}`;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1000
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) return [];
-
-      const result = JSON.parse(content);
-      return result.missingCommunities;
-
-    } catch (error) {
-      console.error('Missing community generation failed:', error);
-      return [];
-    }
-  }
-
   private buildUserProfile(user: User): string {
     return `
 USER PROFILE:
@@ -388,32 +292,18 @@ USER PROFILE:
 - Email: ${user.email}
 - Location: ${user.location || 'Not specified'}
 - Interests: ${user.interests ? user.interests.join(', ') : 'Not specified'}
-- Goals: ${user.goals || 'Not specified'}
 - Bio: ${user.bio || 'Not specified'}
-- Age Group: ${user.ageGroup || 'Not specified'}
-- Profession: ${user.profession || 'Not specified'}
-- Hobbies: ${user.hobbies ? user.hobbies.join(', ') : 'Not specified'}
-- Values: ${user.values ? user.values.join(', ') : 'Not specified'}
-- Communication Style: ${user.communicationStyle || 'Not specified'}
-- Availability: ${user.availability || 'Not specified'}
-- Personal Growth Areas: ${user.personalGrowthAreas ? user.personalGrowthAreas.join(', ') : 'Not specified'}
-- Life Stage: ${user.lifeStage || 'Not specified'}
-- Community Involvement: ${user.communityInvolvement || 'Not specified'}
-- Learning Interests: ${user.learningInterests ? user.learningInterests.join(', ') : 'Not specified'}
 - Geographic Coordinates: ${user.latitude && user.longitude ? `${user.latitude}, ${user.longitude}` : 'Not available'}
 `;
   }
 
   private fallbackMatching(user: User, communities: Community[]): CommunityRecommendation[] {
-    // Simple fallback matching based on interest overlap
     const userInterests = user.interests || [];
     
     return communities.map(community => {
-      // Calculate basic interest overlap
       const communityInterests = this.getCommunityInterests(community);
       const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
       
-      // Only return communities with 70%+ match
       if (overlapScore < 70) return null;
       
       return {
@@ -429,13 +319,12 @@ USER PROFILE:
   }
 
   private getCommunityInterests(community: Community): string[] {
-    // Extract interests from community description and category
     const words = (community.description + ' ' + community.category)
       .toLowerCase()
       .split(/\s+/)
       .filter(word => word.length > 3);
     
-    return [...new Set(words)];
+    return Array.from(new Set(words));
   }
 
   private calculateInterestOverlap(userInterests: string[], communityInterests: string[]): number {
@@ -445,11 +334,11 @@ USER PROFILE:
     const communitySet = new Set(communityInterests.map(i => i.toLowerCase()));
     
     let matches = 0;
-    for (const interest of userSet) {
+    userSet.forEach(interest => {
       if (communitySet.has(interest)) {
         matches++;
       }
-    }
+    });
     
     return Math.round((matches / userInterests.length) * 100);
   }
