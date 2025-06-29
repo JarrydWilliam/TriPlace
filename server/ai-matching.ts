@@ -272,28 +272,45 @@ Only include matches scoring 70+ for quality connections.
         return this.fallbackMatching(user, availableCommunities);
       }
 
-      // Extract JSON from markdown code blocks or find JSON object
-      let cleanContent = content;
+      // Enhanced JSON extraction with multiple fallback strategies
+      let result;
       
-      // First try to find JSON in code blocks
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      // Strategy 1: Find JSON in code blocks
+      let jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
-        cleanContent = jsonMatch[1].trim();
-      } else {
-        // Look for JSON object pattern
-        const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonObjectMatch) {
-          cleanContent = jsonObjectMatch[0];
-        } else {
-          cleanContent = content.replace(/```\s*|\s*```/g, '').trim();
+        try {
+          result = JSON.parse(jsonMatch[1].trim());
+        } catch (e) {
+          jsonMatch = null;
         }
       }
       
-      let result;
-      try {
-        result = JSON.parse(cleanContent);
-      } catch (parseError) {
-        console.error('JSON parsing failed, using fallback matching:', parseError);
+      // Strategy 2: Find complete JSON object
+      if (!result) {
+        const objectMatch = content.match(/\{[\s\S]*?\}/);
+        if (objectMatch) {
+          try {
+            result = JSON.parse(objectMatch[0]);
+          } catch (e) {
+            // Try fixing common JSON issues
+            let fixedJson = objectMatch[0]
+              .replace(/,\s*}/g, '}')  // Remove trailing commas
+              .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+              .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+            
+            try {
+              result = JSON.parse(fixedJson);
+            } catch (e2) {
+              console.error('All JSON parsing strategies failed, using fallback');
+              return this.fallbackMatching(user, availableCommunities);
+            }
+          }
+        }
+      }
+      
+      // Strategy 3: Manual fallback if no JSON found
+      if (!result) {
+        console.error('No valid JSON found in ChatGPT response, using fallback');
         return this.fallbackMatching(user, availableCommunities);
       }
       return result.matches

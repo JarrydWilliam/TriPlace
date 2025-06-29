@@ -146,17 +146,23 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Discovery: ${availableCommunities.length} communities available for ChatGPT matching (excluding ${userCommunityIds.length} already joined)`);
       
-      // Use ChatGPT AI matching with 70%+ compatibility requirement
-      const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
-      console.log(`Discovery: ChatGPT generated ${recommendations.length} community recommendations`);
+      // Use fast interest-based matching for immediate response
+      console.log(`Discovery: Using optimized interest-based matching for fast response`);
       
-      // Only return communities with 70%+ compatibility
-      const filteredRecommendations = recommendations
-        .filter(rec => rec.matchScore >= 70)
-        .map(rec => rec.community);
-        
-      console.log(`Discovery: Returning ${filteredRecommendations.length} communities with 70%+ compatibility from ChatGPT analysis`);
-      return filteredRecommendations;
+      const userInterests = user.interests || [];
+      const recommendedCommunities = availableCommunities
+        .map(community => {
+          const communityInterests = this.getCommunityInterests(community);
+          const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
+          return { community, score: overlapScore };
+        })
+        .filter(item => item.score >= 70)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(item => item.community);
+      
+      console.log(`Discovery: Returning ${recommendedCommunities.length} communities with 70%+ compatibility from optimized matching`);
+      return recommendedCommunities;
         
     } catch (error) {
       console.error('Error getting recommended communities:', error);
