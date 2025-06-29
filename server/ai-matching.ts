@@ -69,7 +69,7 @@ ${collectiveProfile}
 LOCATION CONTEXT:
 ${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
 
-TASK: Generate 5-7 dynamic communities that would serve the collective needs of these users. Each community should have:
+TASK: Generate exactly 5 dynamic communities that would serve the collective needs of these users. Each community should have:
 - Specific interest overlap requirements (70%+ minimum)
 - Clear value proposition for meaningful connections
 - Geographic relevance when location is available
@@ -117,6 +117,7 @@ Respond with JSON:
   ): GeneratedCommunity[] {
     const baseLocation = userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual';
     
+    // Always return exactly 5 communities
     return [
       {
         name: "Local Adventurers",
@@ -273,25 +274,66 @@ Only include matches scoring 70+ for quality connections.
       .slice(0, 10)
       .map(([interest]) => interest);
 
+    // Analyze quiz patterns across all users
+    const quizPatterns = allUsers.map(user => {
+      try {
+        return user.quizAnswers ? JSON.parse(user.quizAnswers as string) : null;
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    const pastActivities = quizPatterns.flatMap((q: any) => q.pastActivities || []);
+    const currentInterests = quizPatterns.flatMap((q: any) => q.currentInterests || []);
+    const futureGoals = quizPatterns.flatMap((q: any) => q.futureGoals || []);
+    const connectionTypes = quizPatterns.flatMap((q: any) => q.connectionTypes || []);
+    const groupPreferences = quizPatterns.map((q: any) => q.groupPreference).filter(Boolean);
+
     return `
-COLLECTIVE INTEREST ANALYSIS:
+COLLECTIVE QUIZ ANALYSIS:
 - Total users analyzed: ${allUsers.length}
+- Users with quiz data: ${quizPatterns.length}
 - Most common interests: ${topInterests.join(', ')}
 - Geographic distribution: ${allUsers.filter(u => u.location).length} users with location data
-- Age demographics: Mix of various life stages and experiences
-- Community engagement patterns: Users seeking meaningful connections and shared activities
 
-EMERGING PATTERNS:
-- High interest in personal growth and skill development
-- Strong desire for local community engagement
-- Mix of creative, recreational, and professional interests
-- Focus on authentic relationships over superficial networking
-- Geographic clustering around urban and suburban areas
-- Preference for small, intimate community sizes (8-20 members)
+DETAILED PATTERN ANALYSIS:
+- Top past activities: ${this.getTopItems(pastActivities, 5).join(', ') || 'No data available'}
+- Top current interests: ${this.getTopItems(currentInterests, 5).join(', ') || 'No data available'}
+- Top future goals: ${this.getTopItems(futureGoals, 5).join(', ') || 'No data available'}
+- Preferred connection types: ${this.getTopItems(connectionTypes, 3).join(', ') || 'No data available'}
+- Group size preferences: ${this.getTopItems(groupPreferences, 3).join(', ') || 'No data available'}
+
+EMERGING COMMUNITY NEEDS:
+- Users seek authentic connections based on shared interests and values
+- Strong preference for local engagement within 50-100 mile radius
+- Mix of creative, recreational, professional, and personal growth interests
+- Desire for meaningful relationships over superficial networking
+- Focus on small, intimate community sizes (8-20 members)
+- Emphasis on personal development and skill-sharing opportunities
 `;
   }
 
+  private getTopItems(items: string[], count: number): string[] {
+    const itemCounts = items.reduce((acc: Record<string, number>, item: string) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(itemCounts)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
+      .slice(0, count)
+      .map(([item]) => item);
+  }
+
   private buildUserProfile(user: User): string {
+    let quizData: any = null;
+    try {
+      quizData = user.quizAnswers && typeof user.quizAnswers === 'object' ? user.quizAnswers : 
+                 user.quizAnswers && typeof user.quizAnswers === 'string' ? JSON.parse(user.quizAnswers) : null;
+    } catch {
+      quizData = null;
+    }
+    
     return `
 USER PROFILE:
 - Name: ${user.name}
@@ -300,6 +342,25 @@ USER PROFILE:
 - Interests: ${user.interests ? user.interests.join(', ') : 'Not specified'}
 - Bio: ${user.bio || 'Not specified'}
 - Geographic Coordinates: ${user.latitude && user.longitude ? `${user.latitude}, ${user.longitude}` : 'Not available'}
+
+DETAILED QUIZ RESPONSES:
+${quizData ? `
+- Past Activities: ${quizData.pastActivities?.join(', ') || 'Not specified'}
+- Volunteer Experience: ${quizData.volunteered || 'Not specified'}
+- Past Hobby: ${quizData.pastHobby || 'Not specified'}
+- Current Interests: ${quizData.currentInterests?.join(', ') || 'Not specified'}
+- Weekend Activities: ${quizData.weekendActivities?.join(', ') || 'Not specified'}
+- Lifestyle Parts: ${quizData.lifestyleParts?.join(', ') || 'Not specified'}
+- Future Goal: ${quizData.futureGoal || 'Not specified'}
+- Future Goals: ${quizData.futureGoals?.join(', ') || 'Not specified'}
+- Dream Community: ${quizData.dreamCommunity || 'Not specified'}
+- Group Preference: ${quizData.groupPreference || 'Not specified'}
+- Travel Distance: ${quizData.travelDistance || 'Not specified'}
+- Connection Types: ${quizData.connectionTypes?.join(', ') || 'Not specified'}
+- Dream Community Name: ${quizData.dreamCommunityName || 'Not specified'}
+- Ideal Vibe: ${quizData.idealVibe || 'Not specified'}
+- Personal Intro: ${quizData.personalIntro || 'Not specified'}
+` : 'Quiz not completed'}
 `;
   }
 
