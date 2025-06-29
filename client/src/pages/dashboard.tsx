@@ -26,6 +26,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
+  const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
   // const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,6 +46,18 @@ export default function Dashboard() {
       window.removeEventListener('chatgpt-communities-updated', handleChatGPTCommunityUpdate);
     };
   }, [queryClient]);
+
+  // Show update notification when new location-aware communities are available
+  useEffect(() => {
+    if (updateAvailable) {
+      toast({
+        title: "New Communities Available",
+        description: "Location-aware communities have been updated. Refreshing your recommendations.",
+        duration: 3000,
+      });
+      markUpdatesApplied();
+    }
+  }, [updateAvailable, markUpdatesApplied, toast]);
 
   // Pull-to-refresh handler with ChatGPT community refresh
   const handleRefresh = async () => {

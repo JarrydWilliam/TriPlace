@@ -147,23 +147,38 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Discovery: ${availableCommunities.length} communities available for ChatGPT matching (excluding ${userCommunityIds.length} already joined)`);
       
-      // Use fast interest-based matching for immediate response
-      console.log(`Discovery: Using optimized interest-based matching for fast response`);
-      
-      const userInterests = user.interests || [];
-      const recommendedCommunities = availableCommunities
-        .map(community => {
-          const communityInterests = this.getCommunityInterests(community);
-          const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
-          return { community, score: overlapScore };
-        })
-        .filter(item => item.score >= 70)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
-        .map(item => item.community);
-      
-      console.log(`Discovery: Returning ${recommendedCommunities.length} communities with 70%+ compatibility from optimized matching`);
-      return recommendedCommunities;
+      // Use ChatGPT AI matching for location-aware communities
+      try {
+        const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
+        console.log(`Discovery: ChatGPT generated ${recommendations.length} community recommendations`);
+        
+        // Only return communities with 70%+ compatibility
+        const filteredRecommendations = recommendations
+          .filter((rec: any) => rec.matchScore >= 70)
+          .map((rec: any) => rec.community);
+          
+        console.log(`Discovery: Returning ${filteredRecommendations.length} communities with 70%+ compatibility from ChatGPT analysis`);
+        return filteredRecommendations;
+        
+      } catch (error) {
+        console.log(`Discovery: ChatGPT error, using fallback matching`);
+        
+        // Fallback to interest-based matching
+        const userInterests = user.interests || [];
+        const recommendedCommunities = availableCommunities
+          .map(community => {
+            const communityInterests = this.getCommunityInterests(community);
+            const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
+            return { community, score: overlapScore };
+          })
+          .filter(item => item.score >= 70)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3)
+          .map(item => item.community);
+        
+        console.log(`Discovery: Returning ${recommendedCommunities.length} communities with 70%+ compatibility from fallback matching`);
+        return recommendedCommunities;
+      }
         
     } catch (error) {
       console.error('Error getting recommended communities:', error);
