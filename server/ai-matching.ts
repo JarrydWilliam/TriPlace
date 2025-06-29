@@ -74,7 +74,7 @@ DYNAMIC COMMUNITY REQUIREMENTS:
 5. Sustainable community size (5-50 active members)
 6. Clear purpose and regular engagement opportunities
 
-Create 3-7 dynamic communities that would naturally emerge from these user patterns. Focus on authentic connection opportunities rather than broad categories.
+Create exactly 5 dynamic communities that would naturally emerge from these user patterns. Focus on authentic connection opportunities rather than broad categories.
 
 Respond with JSON:
 {
@@ -277,7 +277,7 @@ COMMUNITY GAPS TO ADDRESS:
       const userProfile = this.buildUserProfile(user);
       
       const prompt = `
-Based on this user's unique profile, identify 3-5 communities that should exist but might not be available yet.
+Based on this user's unique profile, identify exactly 5 communities that should exist but might not be available yet.
 
 USER PROFILE:
 ${userProfile}
@@ -289,7 +289,7 @@ Think creatively about communities that would serve their specific combination o
 - Personality preferences and social style
 - Geographic location and travel preferences
 
-Generate communities that would be perfect matches but might not exist in typical platforms.
+Generate exactly 5 communities that would be perfect matches but might not exist in typical platforms.
 
 Respond with JSON:
 {
