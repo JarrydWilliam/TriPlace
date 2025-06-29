@@ -93,16 +93,22 @@ INSTRUCTIONS:
 3. Focus on the most frequently mentioned interests, activities, and goals
 4. Create communities that facilitate meaningful connections and personal growth
 5. Generate exactly 5 communities based on the data patterns
+6. CRITICAL: Use generic, non-location-based community names only
+
+NAMING CONVENTIONS:
+✅ Use generic titles like: "Creative Writers Hub", "Mindful Movement Group", "Beginner Coders Circle"
+❌ Never include city, region, or geographic names like "San Francisco Book Club" or "NYC Tech Meetups"
+💡 Location context will be handled separately through user geolocation
 
 Respond with valid JSON containing exactly 5 communities:
 {
   "emergentCommunities": [
     {
-      "name": "Specific community name reflecting quiz data",
+      "name": "Generic community name (NO geographic references)",
       "description": "Detailed description connecting to user quiz responses and interests",
       "category": "Primary category from user data",
       "estimatedMemberCount": 12,
-      "suggestedLocation": "Geographic area or Virtual",
+      "suggestedLocation": "Virtual",
       "reasoning": "Specific connection to quiz patterns and collective user needs"
     }
   ]
