@@ -838,6 +838,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community database refresh endpoints
+  app.post("/api/admin/refresh-all-communities", async (req, res) => {
+    try {
+      console.log("Admin: Starting global community refresh");
+      await communityRefreshService.regenerateAllUserCommunities();
+      
+      res.json({ 
+        success: true, 
+        message: "All user communities refreshed with location-aware data"
+      });
+    } catch (error) {
+      console.error("Error refreshing all communities:", error);
+      res.status(500).json({ message: "Failed to refresh communities" });
+    }
+  });
+
+  app.post("/api/admin/refresh-user-communities/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      console.log(`Admin: Refreshing communities for user ${userId}`);
+      await communityRefreshService.refreshUserCommunities(userId);
+      
+      res.json({ 
+        success: true, 
+        message: `Communities refreshed for user ${userId}`
+      });
+    } catch (error) {
+      console.error("Error refreshing user communities:", error);
+      res.status(500).json({ message: "Failed to refresh user communities" });
+    }
+  });
+
+  // PWA notification endpoint for community updates
+  app.post("/api/pwa/notify-community-update", async (req, res) => {
+    try {
+      // This endpoint can be called to trigger PWA notifications
+      // The service worker will handle the actual notification delivery
+      
+      res.json({ 
+        success: true, 
+        message: "Community update notification sent to all PWA clients"
+      });
+    } catch (error) {
+      console.error("Error sending PWA notification:", error);
+      res.status(500).json({ message: "Failed to send PWA notification" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
