@@ -3,16 +3,37 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Users, MapPin, ArrowLeft, ChevronDown, Info, Star, Clock } from "lucide-react";
-import { Community, Event } from "@shared/schema";
-import { useState } from "react";
+import { Send, Heart, Calendar, Users, MapPin, MessageCircle, Clock, Star, ChevronDown, Award } from "lucide-react";
+import { Community, Event, User, Message } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { format, parseISO } from "date-fns";
+
+// Helper function to format name as "First Name + Last Initial"
+const formatDisplayName = (fullName: string | null | undefined): string => {
+  if (!fullName || fullName.trim() === '') return 'Anonymous';
+  
+  const nameParts = fullName.trim().split(' ');
+  if (nameParts.length === 1) {
+    return nameParts[0];
+  }
+  
+  const firstName = nameParts[0];
+  const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+  return `${firstName} ${lastInitial}.`;
+};
 
 export default function CommunityPage() {
   const { communityId } = useParams<{ communityId: string }>();
@@ -20,21 +41,63 @@ export default function CommunityPage() {
   const { latitude, longitude } = useGeolocation(user?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedTab, setSelectedTab] = useState("scraped-events");
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  // Pull-to-refresh handler
   const handleRefresh = async () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId] });
-    queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "scraped-events"] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "dynamic-info"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "scraped-events"] })
+    ]);
   };
 
-  // Fetch community details
+  // Fetch community details with dynamic member count
   const { data: community, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/communities", communityId],
+    queryKey: ["/api/communities", communityId, "dynamic-info", latitude, longitude, user?.id],
+    enabled: !!communityId && !!latitude && !!longitude && !!user?.id,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        latitude: latitude?.toString() || '',
+        longitude: longitude?.toString() || '',
+        userId: user?.id?.toString() || ''
+      });
+      const response = await fetch(`/api/communities/${communityId}/dynamic-info?${params}`);
+      if (!response.ok) throw new Error('Community not found');
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  // Fetch community messages/feed
+  const { data: messages, isLoading: messagesLoading } = useQuery({
+    queryKey: ["/api/communities", communityId, "messages"],
     enabled: !!communityId,
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}`);
-      if (!response.ok) throw new Error('Failed to fetch community');
+      const response = await fetch(`/api/communities/${communityId}/messages`);
+      if (!response.ok) throw new Error('Failed to fetch messages');
+      return response.json();
+    },
+    refetchInterval: 500,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  // Fetch community members with match scores
+  const { data: members, isLoading: membersLoading } = useQuery({
+    queryKey: ["/api/communities", communityId, "members"],
+    enabled: !!communityId && !!latitude && !!longitude,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        latitude: latitude?.toString() || '',
+        longitude: longitude?.toString() || '',
+        userInterests: user?.interests?.join(',') || ''
+      });
+      const response = await fetch(`/api/communities/${communityId}/members?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch members');
       return response.json();
     }
   });
@@ -46,16 +109,6 @@ export default function CommunityPage() {
     queryFn: async () => {
       const response = await fetch(`/api/communities/${communityId}/scraped-events`);
       if (!response.ok) throw new Error('Failed to fetch scraped events');
-      return response.json();
-    }
-  });
-
-  // Fetch global partner events
-  const { data: partnerEvents, isLoading: partnerEventsLoading } = useQuery({
-    queryKey: ["/api/events/global"],
-    queryFn: async () => {
-      const response = await fetch('/api/events/global');
-      if (!response.ok) throw new Error('Failed to fetch partner events');
       return response.json();
     }
   });
@@ -87,47 +140,99 @@ export default function CommunityPage() {
     },
   });
 
-  const handleJoinEvent = (eventId: number) => {
-    if (!user?.id) return;
-    joinEventMutation.mutate({ eventId, userId: user.id });
-  };
-
-  // Helper function to format date
-  const formatEventDate = (dateInput: string | Date) => {
-    if (!dateInput) return 'Date TBD';
-    const date = new Date(dateInput);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Helper function to sort events by date
-  const sortEventsByDate = (events: Event[]) => {
-    return events?.sort((a, b) => {
-      const dateA = new Date(a.date || '');
-      const dateB = new Date(b.date || '');
-      return dateA.getTime() - dateB.getTime();
-    }) || [];
-  };
-
-  // Filter partner events relevant to this community
-  const getRelevantPartnerEvents = () => {
-    if (!partnerEvents || !community) return [];
-    
-    return partnerEvents.filter((event: Event) => {
-      const eventCategories = event.category?.toLowerCase() || '';
-      const communityCategory = community.category?.toLowerCase() || '';
-      const communityName = community.name?.toLowerCase() || '';
+  // Send message mutation with optimistic updates
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await apiRequest("POST", `/api/communities/${communityId}/messages`, {
+        content,
+        senderId: user?.id
+      });
+      if (!response.ok) throw new Error("Failed to send message");
+      return response.json();
+    },
+    onMutate: async (content: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/communities", communityId, "messages"] });
       
-      return eventCategories.includes(communityCategory) || 
-             eventCategories.includes(communityName) ||
-             event.title?.toLowerCase().includes(communityCategory) ||
-             event.description?.toLowerCase().includes(communityCategory);
-    });
+      const previousMessages = queryClient.getQueryData(["/api/communities", communityId, "messages"]);
+      
+      const optimisticMessage = {
+        id: Date.now(),
+        content,
+        senderId: user?.id,
+        receiverId: user?.id,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        sender: {
+          id: user?.id,
+          name: user?.name,
+          avatar: user?.avatar,
+          email: user?.email
+        },
+        resonateCount: 0
+      };
+      
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], (old: any) => 
+        old ? [optimisticMessage, ...old] : [optimisticMessage]
+      );
+      
+      return { previousMessages };
+    },
+    onSuccess: (data) => {
+      setNewMessage("");
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], (old: any) => {
+        if (!old) return [data];
+        const filtered = old.filter((msg: any) => msg.id !== Date.now() && msg.id < 1000000000000);
+        return [data, ...filtered];
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
+    },
+    onError: (err, content, context) => {
+      queryClient.setQueryData(["/api/communities", communityId, "messages"], context?.previousMessages);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Like/Resonate message mutation
+  const resonateMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      const response = await apiRequest("POST", `/api/messages/${messageId}/resonate`, {
+        userId: user?.id
+      });
+      if (!response.ok) throw new Error("Failed to resonate");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
+    }
+  });
+
+  // Send kudos mutation
+  const sendKudosMutation = useMutation({
+    mutationFn: async (receiverId: number) => {
+      const response = await apiRequest("POST", "/api/kudos", {
+        receiverId,
+        giverId: user?.id,
+        type: "community_appreciation",
+        message: "Great community member!"
+      });
+      if (!response.ok) throw new Error("Failed to send kudos");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Kudos sent!",
+        description: "Your appreciation has been shared",
+      });
+    }
+  });
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+    sendMessageMutation.mutate(newMessage);
   };
 
   if (authLoading || communityLoading) {
@@ -153,236 +258,256 @@ export default function CommunityPage() {
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
-        {/* Clean Community Header */}
-        <Card className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 border shadow-sm">
-          <CardContent className="responsive-padding">
+        {/* Minimalist Header - Only Community Title */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4 sm:mb-6">
+          <div className="responsive-padding border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              {/* Back Button + Community Title */}
-              <div className="flex items-center space-x-4">
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <ArrowLeft className="w-5 h-5" />
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
+              <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Details</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`} />
                   </Button>
-                </Link>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-3">
+                  <p className="text-gray-600 dark:text-gray-400">{community.description}</p>
+                  <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>{community.memberCount} members</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{community.category}</span>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <Tabs defaultValue="chat" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 rounded-none bg-transparent">
+              <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="events" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                <Calendar className="w-4 h-4 mr-2" />
+                Events
+              </TabsTrigger>
+              <TabsTrigger value="members" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                <Users className="w-4 h-4 mr-2" />
+                Members
+              </TabsTrigger>
+              <TabsTrigger value="kudos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                <Award className="w-4 h-4 mr-2" />
+                Kudos
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="mt-0">
+              <div className="responsive-padding space-y-4">
+                {/* Message Input */}
+                <div className="flex space-x-2">
+                  <Textarea
+                    placeholder="Share with the community..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1 min-h-[44px] resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                    size="sm"
+                    className="min-w-[44px] h-[44px]"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-              
-              {/* Community Info Dropdown */}
-              <div className="relative">
-                <Collapsible open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                      <Info className="w-4 h-4" />
-                      <span>Info</span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${isInfoOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="absolute right-0 top-full mt-2 z-50">
-                    <Card className="w-80 bg-white dark:bg-gray-800 border shadow-lg">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-1">About</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{community.description}</p>
+
+                {/* Messages Feed */}
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                  {messagesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  ) : messages?.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No messages yet. Start the conversation!</p>
+                    </div>
+                  ) : (
+                    messages?.map((message: any) => (
+                      <div key={message.id} className="flex space-x-3">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarImage src={message.sender?.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white text-xs">
+                            {formatDisplayName(message.sender?.name).charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-sm text-gray-900 dark:text-white">
+                              {formatDisplayName(message.sender?.name)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {format(parseISO(message.createdAt), 'MMM d, h:mm a')}
+                            </span>
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-4 h-4" />
-                              <span>{community.memberCount} members</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{community.category}</span>
-                            </div>
+                          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                            <p className="text-gray-900 dark:text-white text-sm">{message.content}</p>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Community Rules</h4>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                              <li>• Be respectful and inclusive</li>
-                              <li>• Share relevant content only</li>
-                              <li>• Help others grow and learn</li>
-                            </ul>
+                          <div className="flex items-center space-x-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => resonateMutation.mutate(message.id)}
+                              className="text-xs h-auto p-1"
+                            >
+                              <Heart className="w-3 h-3 mr-1" />
+                              {message.resonateCount || 0}
+                            </Button>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </CollapsibleContent>
-                </Collapsible>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </TabsContent>
 
-        {/* Events Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
-                <span>Community Events</span>
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-2 mx-4 mb-4">
-                <TabsTrigger value="scraped-events" className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Local Events</span>
-                </TabsTrigger>
-                <TabsTrigger value="featured-events" className="flex items-center space-x-2">
-                  <Star className="w-4 h-4" />
-                  <span>Featured</span>
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Local Scraped Events Tab */}
-              <TabsContent value="scraped-events" className="px-4 pb-4">
+            {/* Events Tab */}
+            <TabsContent value="events" className="mt-0">
+              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
                 {scrapedEventsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-2" />
-                        <div className="h-20 bg-gray-300 dark:bg-gray-700 rounded" />
-                      </div>
-                    ))}
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : scrapedEvents?.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No events found for this community yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {sortEventsByDate(scrapedEvents || []).length === 0 ? (
-                      <div className="text-center py-12">
-                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Local Events Found</h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          We couldn't find any events matching this community's interests in your area yet.
-                        </p>
-                      </div>
-                    ) : (
-                      sortEventsByDate(scrapedEvents || []).map((event: Event) => (
-                        <Card key={event.id} className="border hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{event.title}</h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                                  {event.description}
-                                </p>
-                                <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                                  <div className="flex items-center space-x-1">
-                                    <Clock className="w-4 h-4" />
-                                    <span>{formatEventDate(event.date || '')}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    <MapPin className="w-4 h-4" />
-                                    <span>{event.location}</span>
-                                  </div>
+                  <div className="space-y-3">
+                    {scrapedEvents?.map((event: any) => (
+                      <Card key={event.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{event.title}</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{event.description}</p>
+                              <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{format(parseISO(event.date), 'MMM d, yyyy')}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{event.location}</span>
                                 </div>
                                 {event.price && (
-                                  <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
-                                    ${event.price}
-                                  </div>
+                                  <span className="font-medium">${event.price}</span>
                                 )}
                               </div>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <Badge variant="outline" className="text-xs">
-                                {event.category}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                onClick={() => handleJoinEvent(event.id)}
-                                disabled={joinEventMutation.isPending}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                {joinEventMutation.isPending ? "Joining..." : "Join Event"}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                            <Button
+                              size="sm"
+                              onClick={() => joinEventMutation.mutate({ eventId: event.id, userId: user?.id! })}
+                              disabled={joinEventMutation.isPending}
+                              className="ml-3 flex-shrink-0"
+                            >
+                              Join Event
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 )}
-              </TabsContent>
+              </div>
+            </TabsContent>
 
-              {/* Featured Partner Events Tab */}
-              <TabsContent value="featured-events" className="px-4 pb-4">
-                {partnerEventsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-2" />
-                        <div className="h-20 bg-gray-300 dark:bg-gray-700 rounded" />
-                      </div>
-                    ))}
+            {/* Members Tab */}
+            <TabsContent value="members" className="mt-0">
+              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+                {membersLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : members?.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No members found in your area yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {getRelevantPartnerEvents().length === 0 ? (
-                      <div className="text-center py-12">
-                        <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Featured Events</h3>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          No partner events are currently available for this community.
-                        </p>
-                      </div>
-                    ) : (
-                      sortEventsByDate(getRelevantPartnerEvents()).map((event: Event) => (
-                        <Card key={event.id} className="border-2 border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white">{event.title}</h4>
-                                  <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                    Featured
-                                  </Badge>
+                  <div className="grid gap-3">
+                    {members?.map((member: any) => (
+                      <Card key={member.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={member.avatar} />
+                                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white">
+                                  {formatDisplayName(member.name).charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <h3 className="font-medium text-gray-900 dark:text-white">
+                                  {formatDisplayName(member.name)}
+                                </h3>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  {member.matchPercentage && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {member.matchPercentage}% match
+                                    </Badge>
+                                  )}
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {member.location ? `${member.location.toFixed(1)} mi away` : 'Nearby'}
+                                  </span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                                  {event.description}
-                                </p>
-                                <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                                  <div className="flex items-center space-x-1">
-                                    <Clock className="w-4 h-4" />
-                                    <span>{formatEventDate(event.date || '')}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1">
-                                    <MapPin className="w-4 h-4" />
-                                    <span>{event.location}</span>
-                                  </div>
-                                </div>
-                                {event.price && (
-                                  <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
-                                    ${event.price}
-                                  </div>
-                                )}
                               </div>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <Badge variant="outline" className="text-xs">
-                                {event.category}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                onClick={() => handleJoinEvent(event.id)}
-                                disabled={joinEventMutation.isPending}
-                                className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                              >
-                                {joinEventMutation.isPending ? "Joining..." : "Join Event"}
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendKudosMutation.mutate(member.id)}
+                              disabled={sendKudosMutation.isPending || member.id === user?.id}
+                            >
+                              <Star className="w-3 h-3 mr-1" />
+                              Kudos
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+              </div>
+            </TabsContent>
+
+            {/* Kudos Tab */}
+            <TabsContent value="kudos" className="mt-0">
+              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Community kudos and achievements coming soon!</p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </PullToRefresh>
   );
