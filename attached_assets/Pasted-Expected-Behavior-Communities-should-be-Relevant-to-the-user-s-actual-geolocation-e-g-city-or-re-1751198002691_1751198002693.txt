@@ -1,0 +1,68 @@
+Expected Behavior
+Communities should be:
+
+Relevant to the user’s actual geolocation (e.g. city or region from device/browser).
+
+Generic in name unless hyper-local is intended (e.g. “Introverts Who Hike” vs. “Bay Area Hikers”).
+
+Consistent with user's quiz interests, not defaulting to SF or any static area.
+
+❌ Current Problem
+AI-generated communities are specific to San Francisco, even when your dashboard shows the correct location.
+
+This usually happens when:
+
+The API has a fallback to a static location (often hardcoded or set in the training).
+
+Geolocation isn't being passed correctly during the quiz or community matching call.
+
+There's a mismatch between frontend geolocation and backend AI input.
+
+🔍 Debug Checklist
+1. Check Where the Location Is Captured
+Ensure you’re actually capturing the user’s location in the app before quiz submission or community generation:
+
+js
+Copy
+Edit
+navigator.geolocation.getCurrentPosition(
+  (position) => {
+    const { latitude, longitude } = position.coords;
+    // Save to state or context
+  },
+  (error) => {
+    console.error('Geolocation error:', error);
+    // fallback location?
+  }
+);
+2. Confirm It's Passed to the API
+When calling the OpenAI agent or backend that generates communities, include:
+
+json
+Copy
+Edit
+{
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "interests": [...],
+  ...
+}
+✅ Best practice: reverse geocode the coordinates to city/state using a service like OpenCage, [Google Maps API], or even OpenStreetMap Nominatim before you hit the AI endpoint.
+
+3. Adjust Prompting Logic
+If the OpenAI Agent is being fed a system message or initial context like:
+
+"Generate 5 communities in the San Francisco area based on interests..."
+
+💥 That needs to be replaced with:
+
+"Generate 5 communities based on the user's interests and their current location: {city}, {state}. If the location is unavailable, generate general interest-based communities."
+
+✅ What to Do Now
+✅ Fix in Your Frontend:
+Make sure navigator.geolocation is called and sent with quiz responses.
+
+✅ Fix in Your Agent or Backend:
+Modify your API call or prompt to dynamically inject the user’s city/region.
+
+If no location is provided, fallback to general (non-geographic) community names.

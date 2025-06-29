@@ -272,6 +272,8 @@ Only include matches scoring 70+ for quality connections.
         return this.fallbackMatching(user, availableCommunities);
       }
 
+      console.log('ChatGPT Response:', content);
+
       // Enhanced JSON extraction with multiple fallback strategies
       let result;
       
@@ -281,17 +283,18 @@ Only include matches scoring 70+ for quality connections.
         try {
           result = JSON.parse(jsonMatch[1].trim());
         } catch (e) {
-          jsonMatch = null;
+          console.log('JSON parsing failed for code block:', e);
         }
       }
       
       // Strategy 2: Find complete JSON object
       if (!result) {
-        const objectMatch = content.match(/\{[\s\S]*?\}/);
+        const objectMatch = content.match(/\{[\s\S]*\}/);
         if (objectMatch) {
           try {
             result = JSON.parse(objectMatch[0]);
           } catch (e) {
+            console.log('Direct JSON parsing failed:', e);
             // Try fixing common JSON issues
             let fixedJson = objectMatch[0]
               .replace(/,\s*}/g, '}')  // Remove trailing commas
@@ -301,6 +304,7 @@ Only include matches scoring 70+ for quality connections.
             try {
               result = JSON.parse(fixedJson);
             } catch (e2) {
+              console.log('Fixed JSON parsing also failed:', e2);
               console.error('All JSON parsing strategies failed, using fallback');
               return this.fallbackMatching(user, availableCommunities);
             }
