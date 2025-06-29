@@ -110,6 +110,7 @@ export default function Landing() {
       
       {/* PWA Installation Prompt */}
       <PWAInstall />
-    </section>
+      </section>
+    </MobilePageWrapper>
   );
 }
