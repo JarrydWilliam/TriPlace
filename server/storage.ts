@@ -20,6 +20,7 @@ export interface IStorage {
   getAllCommunities(): Promise<Community[]>;
   getCommunitiesByCategory(category: string): Promise<Community[]>;
   getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]>;
+  generateDynamicCommunities(userId: number): Promise<Community[]>;
   getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles?: number): Promise<User[]>;
   getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }>;
   createCommunity(community: InsertCommunity): Promise<Community>;

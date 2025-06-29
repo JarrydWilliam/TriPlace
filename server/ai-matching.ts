@@ -37,6 +37,87 @@ interface GeneratedCommunity {
 
 export class AIMatchingEngine {
   
+  async generateDynamicCommunities(
+    allUsers: User[],
+    userLocation?: { lat: number, lon: number }
+  ): Promise<GeneratedCommunity[]> {
+    // If OpenAI is not available, return empty array
+    if (!openai) {
+      return [];
+    }
+
+    try {
+      // Analyze collective user patterns to identify community gaps
+      const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
+      
+      const prompt = `
+You are an AI community architect for TriPlace, designed to create dynamic communities based on collective user patterns and emerging interests.
+
+COMMUNITY CREATION PHILOSOPHY:
+- Create communities that emerge organically from user interests and needs
+- No preset communities - everything is data-driven and evolving
+- Focus on 70%+ interest overlap and geographic proximity (50-100 mile radius)
+- Communities should serve genuine connection needs and shared growth goals
+- Build communities that facilitate meaningful third place experiences
+
+COLLECTIVE USER ANALYSIS:
+${collectiveProfile}
+
+LOCATION CONTEXT:
+${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
+
+DYNAMIC COMMUNITY REQUIREMENTS:
+1. 70%+ interest match between potential members
+2. Geographic clustering within 50-100 mile radius
+3. Shared values and growth trajectories
+4. Complementary skills and experience levels
+5. Sustainable community size (5-50 active members)
+6. Clear purpose and regular engagement opportunities
+
+Create 3-7 dynamic communities that would naturally emerge from these user patterns. Focus on authentic connection opportunities rather than broad categories.
+
+Respond with JSON:
+{
+  "emergentCommunities": [
+    {
+      "name": "Community name that reflects shared interests",
+      "description": "Clear description of community purpose and activities", 
+      "category": "Primary focus area",
+      "targetInterests": ["specific", "interest", "keywords"],
+      "geographicScope": "Local/Regional/Virtual",
+      "estimatedMemberCount": number,
+      "membershipCriteria": "Specific requirements for 70%+ match",
+      "reasoning": "Why this community needs to exist based on user data"
+    }
+  ]
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) return [];
+
+      const result = JSON.parse(content);
+      return result.emergentCommunities.map((community: any) => ({
+        name: community.name,
+        description: community.description,
+        category: community.category,
+        estimatedMemberCount: community.estimatedMemberCount,
+        suggestedLocation: userLocation ? `${userLocation.lat},${userLocation.lon}` : 'Virtual',
+        reasoning: community.reasoning
+      }));
+
+    } catch (error) {
+      console.error('AI community generation failed:', error);
+      return [];
+    }
+  }
+
   async generateCommunityRecommendations(
     user: User, 
     availableCommunities: Community[],
@@ -50,19 +131,17 @@ export class AIMatchingEngine {
     try {
       const userProfile = this.buildUserProfile(user);
       const locationContext = userLocation ? 
-        `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles)` : 
+        `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles, expand to 100 miles if needed)` : 
         'Location not available - focus on virtual/remote compatibility';
       
       const prompt = `
-You are an elite AI community curator for TriPlace. Create highly selective, dynamic community matches that feel personally crafted for each user.
+You are an AI community matcher for TriPlace. Match users to dynamic communities based on 70%+ interest overlap and geographic proximity.
 
-DYNAMIC MATCHING PHILOSOPHY:
-- Only recommend communities with 85%+ compatibility
-- Create selective experiences focused on quality connections
-- Analyze deep personality patterns from quiz responses
-- Consider growth trajectory and life goals alignment
-- Factor geographic proximity for meaningful in-person connections
-- Ensure diverse but complementary community portfolio
+MATCHING REQUIREMENTS:
+- 70%+ interest compatibility required
+- Geographic proximity: 50-mile radius preferred, expand to 100 miles if no matches
+- Focus on genuine connection potential and shared growth goals
+- Consider complementary skills and life stage alignment
 
 USER PROFILE:
 ${userProfile}
@@ -78,26 +157,17 @@ Current Members: ${c.memberCount || 0}
 Location: ${c.location || 'Virtual'}
 `).join('\n')}
 
-SELECTIVE CRITERIA:
-1. Deep personality analysis from quiz responses
-2. Interest evolution and growth potential alignment
-3. Geographic relevance (50-mile preference for local communities)
-4. Complementary skill exchange opportunities
-5. Social chemistry and community dynamics fit
-6. Life stage and goal synchronization
-7. Unique value contribution potential
-
-Create 3-5 highly selective recommendations that would create meaningful, lasting connections. Each should feel uniquely tailored to this specific user's journey.
+Only recommend communities with 70%+ compatibility. If no communities meet this threshold, return empty array.
 
 Respond with JSON:
 {
-  "selectiveMatches": [
+  "matches": [
     {
       "communityId": number,
       "compatibilityScore": number (70-100 range),
-      "deepReasoning": "Comprehensive analysis of why this user would thrive in this specific community",
-      "personalizedValue": "Unique value proposition tailored to their interests, goals, and growth trajectory",
-      "contributionRole": "Specific ways they could contribute based on their skills and experience",
+      "reasoning": "Why this user matches with this community",
+      "personalizedDescription": "How this community serves their specific interests and goals",
+      "suggestedRole": "How they could contribute"
       "connectionType": "Type of meaningful relationships they'll likely form",
       "growthPotential": "How this community supports their personal/professional development"
     }
@@ -136,6 +206,65 @@ Only include matches scoring 70+ for quality connections.
       // Fallback to basic matching if AI fails
       return this.fallbackMatching(user, availableCommunities);
     }
+  }
+
+  private analyzeCollectivePatterns(allUsers: User[]): string {
+    // Analyze all user interests, goals, and patterns to identify community needs
+    const allInterests = allUsers.flatMap(user => user.interests || []);
+    const interestCounts = allInterests.reduce((acc, interest) => {
+      acc[interest] = (acc[interest] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const popularInterests = Object.entries(interestCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 20)
+      .map(([interest, count]) => `${interest} (${count} users)`);
+
+    const quizData = allUsers
+      .filter(user => user.quizAnswers)
+      .map(user => {
+        const answers = user.quizAnswers as any;
+        return {
+          goals: answers.futureGoals || [],
+          activities: answers.currentInterests || [],
+          lifestyle: answers.lifestyleParts || [],
+          connections: answers.connectionTypes || []
+        };
+      });
+
+    return `
+COLLECTIVE USER ANALYSIS (${allUsers.length} total users):
+
+POPULAR INTERESTS:
+${popularInterests.join(', ')}
+
+COMMON PATTERNS FROM QUIZ DATA:
+- Future Goals: ${this.extractCommonPatterns(quizData.flatMap(q => q.goals))}
+- Current Activities: ${this.extractCommonPatterns(quizData.flatMap(q => q.activities))}
+- Lifestyle Preferences: ${this.extractCommonPatterns(quizData.flatMap(q => q.lifestyle))}
+- Connection Types: ${this.extractCommonPatterns(quizData.flatMap(q => q.connections))}
+
+COMMUNITY GAPS TO ADDRESS:
+- Underserved interest combinations
+- Geographic clustering opportunities  
+- Skill-sharing and mentorship needs
+- Activity-based social connections
+- Professional and creative collaborations
+    `;
+  }
+
+  private extractCommonPatterns(items: string[]): string {
+    const counts = items.reduce((acc, item) => {
+      acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(counts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 8)
+      .map(([item, count]) => `${item} (${count})`)
+      .join(', ');
   }
 
   async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
