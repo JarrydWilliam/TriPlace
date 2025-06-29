@@ -59,6 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         } catch (error) {
+          // Authentication error - user will remain null
         }
       } else {
         setUser(null);
@@ -76,6 +77,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null);
       setFirebaseUser(null);
     } catch (error) {
+      // Sign out error - will clear state regardless
+      setUser(null);
+      setFirebaseUser(null);
     }
   };
 

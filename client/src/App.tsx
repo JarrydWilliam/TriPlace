@@ -28,7 +28,6 @@ function Router() {
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
-      // Check if user needs to complete onboarding
       const needsOnboarding = !user.onboardingCompleted;
       const isOnOnboardingPage = location === '/onboarding';
       
@@ -42,8 +41,8 @@ function Router() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-900 dark:text-white">Loading...</div>
       </div>
     );
   }
