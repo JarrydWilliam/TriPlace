@@ -20,6 +20,7 @@ import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
