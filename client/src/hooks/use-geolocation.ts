@@ -9,7 +9,7 @@ interface GeolocationState {
   locationName: string | null;
 }
 
-export function useGeolocation() {
+export function useGeolocation(userId?: number) {
   const [location, setLocation] = useState<GeolocationState>({
     latitude: null,
     longitude: null,
@@ -59,19 +59,26 @@ export function useGeolocation() {
         });
 
         // Update user location in backend for dynamic community matching
-        try {
-          const response = await fetch('/api/users/current/location', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              latitude: lat,
-              longitude: lon,
-              location: locationName
-            })
-          });
-          if (!response.ok) {
+        if (userId) {
+          try {
+            const response = await fetch('/api/users/current/location', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userId,
+                latitude: lat,
+                longitude: lon,
+                location: locationName
+              })
+            });
+            if (!response.ok) {
+              console.error('Failed to update user location:', response.status);
+            } else {
+              console.log('Location updated successfully for user:', userId);
+            }
+          } catch (error) {
+            console.error('Error updating user location:', error);
           }
-        } catch (error) {
         }
       };
 

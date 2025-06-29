@@ -53,6 +53,23 @@ export class AIMatchingEngine {
   ): Promise<GeneratedCommunity[]> {
     const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
     
+    // Get actual city name from coordinates
+    let locationContext = 'Location-independent communities';
+    if (userLocation) {
+      try {
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${userLocation.lat}&longitude=${userLocation.lon}&localityLanguage=en`);
+        const locationData = await response.json();
+        const city = locationData.city || locationData.locality || 'Unknown City';
+        const state = locationData.principalSubdivision || locationData.countryName || '';
+        const actualLocation = state ? `${city}, ${state}` : city;
+        locationContext = `Primary location: ${actualLocation} (create communities for this specific area - 50-mile radius preferred, expand to 100 miles if needed)`;
+        console.log(`ChatGPT: Using actual location ${actualLocation} for community generation`);
+      } catch (error) {
+        console.error('Reverse geocoding failed, using coordinates:', error);
+        locationContext = `Primary coordinates: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)`;
+      }
+    }
+    
     const prompt = `
 You are ChatGPT, the AI community architect for TriPlace. Analyze quiz responses to generate exactly 5 dynamic communities based on authentic user needs.
 
@@ -62,12 +79,13 @@ CRITICAL REQUIREMENTS:
 - Focus on 70%+ interest overlap and geographic proximity (50-100 mile radius)
 - Create meaningful third place experiences for authentic connections
 - No generic templates - each must reflect genuine user interests from quiz data
+- Use the ACTUAL LOCATION provided below - do not default to San Francisco or other cities
 
 COLLECTIVE USER ANALYSIS:
 ${collectiveProfile}
 
 LOCATION CONTEXT:
-${userLocation ? `Primary location: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)` : 'Location-independent communities'}
+${locationContext}
 
 INSTRUCTIONS:
 1. Analyze the quiz patterns above to identify the 5 strongest community opportunities

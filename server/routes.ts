@@ -191,11 +191,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update current user's location
   app.patch("/api/users/current/location", async (req, res) => {
     try {
-      const { latitude, longitude, location } = req.body;
+      const { latitude, longitude, location, userId } = req.body;
       
-      // In a real app, get user ID from session/auth
-      // For now, assume user ID 1 (the logged-in user)
-      const userId = 1;
+      // Use the provided userId from the request
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
       
       const updatedUser = await storage.updateUser(userId, { 
         location,

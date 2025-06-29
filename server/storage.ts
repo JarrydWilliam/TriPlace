@@ -177,6 +177,8 @@ export class DatabaseStorage implements IStorage {
         { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) } : 
         undefined;
 
+      console.log(`Discovery: User location data - lat: ${user.latitude}, lon: ${user.longitude}, parsed: ${JSON.stringify(userLocation)}`);
+      
       // Generate dynamic communities based on collective user data
       const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
       
