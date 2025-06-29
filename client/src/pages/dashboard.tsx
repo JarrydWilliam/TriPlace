@@ -89,6 +89,10 @@ export default function Dashboard() {
     }
   });
 
+  // Get live member counts for user's communities
+  const communityIds = userActiveCommunities?.map((c: any) => c.id) || [];
+  const { getLiveCount } = useLiveMembers(communityIds);
+
   // Fetch events user has joined from communities
   const { data: userJoinedEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/users", user?.id, "events"],
@@ -584,13 +588,23 @@ export default function Dashboard() {
                           </Link>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                        {community.memberCount} members • {community.category}
-                      </p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {community.category}
+                        </p>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                            {getLiveCount(community.id)} online
+                          </span>
+                        </div>
+                      </div>
                       <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
                         <span>Last active: {new Date(community.lastActivityAt).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span className="text-green-600 dark:text-green-400">Active</span>
+                        <span className="text-green-600 dark:text-green-400">
+                          {isConnected ? 'Connected' : 'Offline'}
+                        </span>
                       </div>
                     </div>
                   ))
