@@ -51,8 +51,7 @@ export default function CommunityPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "dynamic-info"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "members"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "scraped-events"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/events", "global", communityId] })
     ]);
   };
 
@@ -106,7 +105,7 @@ export default function CommunityPage() {
   // Fetch partner events that are contextually relevant to this community
   const { data: partnerEvents, isLoading: partnerEventsLoading } = useQuery({
     queryKey: ["/api/events", "global", communityId],
-    enabled: !!communityId,
+    enabled: !!communityId && !!community,
     queryFn: async () => {
       const response = await fetch("/api/events/global");
       if (!response.ok) throw new Error('Failed to fetch partner events');
@@ -388,19 +387,15 @@ export default function CommunityPage() {
                               {format(parseISO(message.createdAt), 'MMM d, h:mm a')}
                             </span>
                           </div>
-                          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                            <p className="text-gray-900 dark:text-white text-sm">{message.content}</p>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{message.content}</p>
+                          <div className="flex items-center space-x-3">
+                            <button
                               onClick={() => resonateMutation.mutate(message.id)}
-                              className="text-xs h-auto p-1"
+                              className="flex items-center space-x-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
                             >
-                              <Heart className="w-3 h-3 mr-1" />
-                              {message.resonateCount || 0}
-                            </Button>
+                              <Heart className="w-3 h-3" />
+                              <span>{message.resonateCount || 0}</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -512,19 +507,19 @@ export default function CommunityPage() {
                     <p>No members found in your area yet.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3">
+                  <div className="space-y-3">
                     {members?.map((member: any) => (
                       <Card key={member.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center space-x-3 flex-1">
                               <Avatar className="w-10 h-10">
                                 <AvatarImage src={member.avatar} />
-                                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white">
+                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-400 text-white">
                                   {formatDisplayName(member.name).charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
-                              <div>
+                              <div className="flex-1">
                                 <h3 className="font-medium text-gray-900 dark:text-white">
                                   {formatDisplayName(member.name)}
                                 </h3>
