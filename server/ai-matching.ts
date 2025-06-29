@@ -217,53 +217,22 @@ Respond with valid JSON containing exactly 5 communities:
         'Location not available - focus on virtual/remote compatibility';
       
       const prompt = `
-You are an AI community matcher for TriPlace. Match users to dynamic communities based on 70%+ interest overlap and geographic proximity.
+Match user to communities based on 70%+ interest overlap. User interests: ${user.interests?.join(', ') || 'none specified'}. Location: ${userLocation ? `${userLocation.lat}, ${userLocation.lon}` : 'not specified'}.
 
-MATCHING REQUIREMENTS:
-- 70%+ interest compatibility required
-- Geographic proximity: 50-mile radius preferred, expand to 100 miles if no matches
-- Focus on genuine connection potential and shared growth goals
-- Consider complementary skills and life stage alignment
+Available communities:
+${availableCommunities.map(c => `ID:${c.id} Name:${c.name} Category:${c.category} Description:${c.description}`).join('\n')}
 
-USER PROFILE:
-${userProfile}
+Return JSON with matches scoring 70+:
+{"matches":[{"communityId":number,"compatibilityScore":number,"reasoning":"brief explanation"}]}
 
-LOCATION CONTEXT:
-${locationContext}
-
-AVAILABLE COMMUNITIES:
-${availableCommunities.map(c => `
-ID: ${c.id} | ${c.name} (${c.category})
-Description: ${c.description}
-Current Members: ${c.memberCount || 0}
-Location: ${c.location || 'Virtual'}
-`).join('\n')}
-
-Only recommend communities with 70%+ compatibility. If no communities meet this threshold, return empty array.
-
-Respond with JSON:
-{
-  "matches": [
-    {
-      "communityId": number,
-      "compatibilityScore": number (70-100 range),
-      "reasoning": "Why this user matches with this community",
-      "personalizedDescription": "How this community serves their specific interests and goals",
-      "suggestedRole": "How they could contribute",
-      "connectionType": "Type of meaningful relationships they'll likely form",
-      "growthPotential": "How this community supports their personal/professional development"
-    }
-  ]
-}
-
-Only include matches scoring 70+ for quality connections.
+Only include 70%+ matches.
 `;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
-        max_tokens: 400
+        max_tokens: 1200
       });
 
       const content = response.choices[0]?.message?.content;
@@ -287,16 +256,50 @@ Only include matches scoring 70+ for quality connections.
         }
       }
       
-      // Strategy 2: Find complete JSON object
+      // Strategy 2: Find complete JSON object with truncation handling
       if (!result) {
         const objectMatch = content.match(/\{[\s\S]*\}/);
         if (objectMatch) {
+          let jsonStr = objectMatch[0];
+          
+          // Fix truncated JSON by closing incomplete structures
+          if (!jsonStr.endsWith('}')) {
+            // Count open braces and arrays to properly close
+            const openBraces = (jsonStr.match(/\{/g) || []).length;
+            const closeBraces = (jsonStr.match(/\}/g) || []).length;
+            const openArrays = (jsonStr.match(/\[/g) || []).length;
+            const closeArrays = (jsonStr.match(/\]/g) || []).length;
+            
+            // Close incomplete string if needed
+            if (jsonStr.match(/:\s*"[^"]*$/)) {
+              jsonStr += '"';
+            }
+            
+            // Remove incomplete last entry if it's truncated
+            const lastCommaIndex = jsonStr.lastIndexOf(',');
+            const lastBraceIndex = jsonStr.lastIndexOf('}');
+            if (lastCommaIndex > lastBraceIndex) {
+              // Truncated after comma, remove incomplete entry
+              jsonStr = jsonStr.substring(0, lastCommaIndex);
+            }
+            
+            // Close arrays first
+            for (let i = 0; i < openArrays - closeArrays; i++) {
+              jsonStr += ']';
+            }
+            
+            // Close objects
+            for (let i = 0; i < openBraces - closeBraces; i++) {
+              jsonStr += '}';
+            }
+          }
+          
           try {
-            result = JSON.parse(objectMatch[0]);
+            result = JSON.parse(jsonStr);
           } catch (e) {
             console.log('Direct JSON parsing failed:', e);
             // Try fixing common JSON issues
-            let fixedJson = objectMatch[0]
+            let fixedJson = jsonStr
               .replace(/,\s*}/g, '}')  // Remove trailing commas
               .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
               .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
