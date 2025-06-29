@@ -6,6 +6,9 @@ import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessa
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database with sample data
+  await storage.initializeData();
+  
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     try {
