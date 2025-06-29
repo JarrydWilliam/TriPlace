@@ -207,6 +207,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test OpenAI integration and community generation
+  app.post("/api/test-ai", async (req, res) => {
+    try {
+      console.log('Testing OpenAI integration...');
+      
+      // Create a test user for community generation
+      const testUser = {
+        id: 999,
+        interests: ['technology', 'fitness', 'creative writing', 'outdoor activities', 'learning'],
+        latitude: '40.7128',
+        longitude: '-74.0060',
+        quizAnswers: {
+          pastActivities: ['programming', 'hiking'],
+          currentInterests: ['AI', 'machine learning', 'rock climbing'],
+          futureGoals: ['start a tech company', 'travel more'],
+          personalityType: 'collaborative and growth-oriented'
+        }
+      };
+      
+      const allUsers = [testUser];
+      const userLocation = { lat: 40.7128, lon: -74.0060 };
+      
+      // Test AI community generation
+      const { aiMatcher } = await import('./ai-matching');
+      const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
+      
+      console.log('Generated communities:', generatedCommunities.length);
+      
+      res.json({
+        success: true,
+        openaiWorking: !!process.env.OPENAI_API_KEY,
+        communitiesGenerated: generatedCommunities.length,
+        communities: generatedCommunities
+      });
+      
+    } catch (error) {
+      console.error('OpenAI test error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        openaiWorking: !!process.env.OPENAI_API_KEY
+      });
+    }
+  });
+
   // Get dynamic community members based on location and interests
   app.get("/api/communities/:id/dynamic-members", async (req, res) => {
     try {
