@@ -21,6 +21,7 @@ import CommunitySettings from "@/pages/settings/community";
 import SecuritySettings from "@/pages/settings/security";
 import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
+import { AppUpdater } from "@/components/ui/app-updater";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -81,6 +82,7 @@ function App() {
           <AuthProvider>
             <TooltipProvider>
               <Toaster />
+              <AppUpdater />
               <Router />
             </TooltipProvider>
           </AuthProvider>
