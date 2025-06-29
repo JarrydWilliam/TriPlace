@@ -3,13 +3,11 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Users, MapPin, ArrowLeft, ChevronDown, Info, Star, Clock } from "lucide-react";
-import { Community, Event, User } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { Community, Event } from "@shared/schema";
 import { useState } from "react";
 import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -52,7 +50,7 @@ export default function CommunityPage() {
     }
   });
 
-  // Fetch global partner events that could be relevant to this community
+  // Fetch global partner events
   const { data: partnerEvents, isLoading: partnerEventsLoading } = useQuery({
     queryKey: ["/api/events/global"],
     queryFn: async () => {
@@ -95,8 +93,9 @@ export default function CommunityPage() {
   };
 
   // Helper function to format date
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatEventDate = (dateInput: string | Date) => {
+    if (!dateInput) return 'Date TBD';
+    const date = new Date(dateInput);
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -108,7 +107,11 @@ export default function CommunityPage() {
 
   // Helper function to sort events by date
   const sortEventsByDate = (events: Event[]) => {
-    return events?.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
+    return events?.sort((a, b) => {
+      const dateA = new Date(a.date || '');
+      const dateB = new Date(b.date || '');
+      return dateA.getTime() - dateB.getTime();
+    }) || [];
   };
 
   // Filter partner events relevant to this community
@@ -269,7 +272,7 @@ export default function CommunityPage() {
                                 <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
                                   <div className="flex items-center space-x-1">
                                     <Clock className="w-4 h-4" />
-                                    <span>{formatEventDate(event.date)}</span>
+                                    <span>{formatEventDate(event.date || '')}</span>
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <MapPin className="w-4 h-4" />
@@ -343,7 +346,7 @@ export default function CommunityPage() {
                                 <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
                                   <div className="flex items-center space-x-1">
                                     <Clock className="w-4 h-4" />
-                                    <span>{formatEventDate(event.date)}</span>
+                                    <span>{formatEventDate(event.date || '')}</span>
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <MapPin className="w-4 h-4" />
