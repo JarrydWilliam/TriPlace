@@ -462,31 +462,10 @@ export default function Dashboard() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">Sarah Chen</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">127 kudos this month</p>
-                        </div>
-                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Gold</Badge>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="w-8 h-8 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">Mike Torres</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">89 kudos this month</p>
-                        </div>
-                        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">Silver</Badge>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-amber-800 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">Emma Wilson</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">76 kudos this month</p>
-                        </div>
-                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Bronze</Badge>
-                      </div>
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Star className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>Kudos leaderboard building</p>
+                      <p className="text-sm">Give and receive kudos to see leaders here!</p>
                     </div>
                   </CardContent>
                 </CollapsibleContent>
@@ -603,27 +582,11 @@ export default function Dashboard() {
                 {/* High Match Members */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🎯 High Match Members</h4>
-                  {['member-a', 'member-b'].map((memberId) => (
-                    <div key={`high-match-${memberId}`} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={`https://images.unsplash.com/photo-${memberId === 'member-a' ? '1500000000001' : '1500000000002'}?w=40&h=40&fit=crop&crop=face`} />
-                        <AvatarFallback>{memberId === 'member-a' ? 'A' : 'B'}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          Alex Johnson
-                        </p>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                            🎯 92% Match
-                          </Badge>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        👏
-                      </Button>
-                    </div>
-                  ))}
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Building your network</p>
+                    <p className="text-xs">Connect with community members to see matches!</p>
+                  </div>
                 </div>
 
                 {/* New Communities */}
