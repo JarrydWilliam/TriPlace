@@ -505,6 +505,15 @@ Changelog:
   - All communities properly associated with New York coordinates for location-appropriate recommendations
   - PWA notification system successfully distributes updates to all current users without requiring redeployment
   - Complete fresh start ensuring every user receives authentic, location-based community discovery
+
+- June 29, 2025. Fixed community joining workflow to properly filter joined communities from recommendations
+  - Resolved issue where joined communities remained visible in "Today's Discoveries" section
+  - Enhanced query invalidation system to refresh recommendations immediately after joining communities
+  - Verified backend filtering logic properly excludes user's joined communities from recommendation API
+  - Joined communities now correctly appear in user's personal communities list and disappear from discoveries
+  - Improved cache management with specific query key invalidation for real-time UI updates
+  - Complete community workflow: discover → join → removed from discoveries → added to personal communities
+  - System tested and confirmed working with location-aware community filtering (Ogden, Utah communities)
 ```
 
 ## User Preferences
