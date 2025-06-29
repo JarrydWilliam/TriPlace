@@ -20,11 +20,11 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
     timestamp: Date.now()
   });
 
-  for (const [, connection] of activeConnections.entries()) {
+  Array.from(activeConnections.values()).forEach(connection => {
     if (connection.ws.readyState === WebSocket.OPEN) {
       connection.ws.send(message);
     }
-  }
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
