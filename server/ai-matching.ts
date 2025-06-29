@@ -34,10 +34,17 @@ export class AIMatchingEngine {
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
     if (!openai) {
-      throw new Error('OpenAI client not initialized - API key required');
+      console.error('OpenAI client not initialized - using fallback');
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 
-    return await this.generateCommunitiesWithAI(allUsers, userLocation);
+    try {
+      return await this.generateCommunitiesWithAI(allUsers, userLocation);
+    } catch (error: any) {
+      console.error('AI community generation failed:', error.message);
+      // If quota exceeded or other API error, use fallback to ensure users get communities
+      return this.generateCommunitiesWithFallback(allUsers, userLocation);
+    }
   }
 
   private async generateCommunitiesWithAI(
@@ -160,15 +167,17 @@ Respond with JSON:
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
     if (!openai) {
-      throw new Error('OpenAI client not initialized - API key required');
+      console.error('OpenAI client not initialized - using fallback matching');
+      return this.fallbackMatching(user, availableCommunities);
     }
 
-    const userProfile = this.buildUserProfile(user);
-    const locationContext = userLocation ? 
-      `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles, expand to 100 miles if needed)` : 
-      'Location not available - focus on virtual/remote compatibility';
-    
-    const prompt = `
+    try {
+      const userProfile = this.buildUserProfile(user);
+      const locationContext = userLocation ? 
+        `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles, expand to 100 miles if needed)` : 
+        'Location not available - focus on virtual/remote compatibility';
+      
+      const prompt = `
 You are an AI community matcher for TriPlace. Match users to dynamic communities based on 70%+ interest overlap and geographic proximity.
 
 MATCHING REQUIREMENTS:
@@ -211,34 +220,42 @@ Respond with JSON:
 Only include matches scoring 70+ for quality connections.
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1500
-    });
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1500
+      });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) throw new Error('No response from OpenAI');
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        console.error('No response from OpenAI - using fallback');
+        return this.fallbackMatching(user, availableCommunities);
+      }
 
-    const result = JSON.parse(content);
-    return result.matches
-      .filter((match: any) => match.compatibilityScore >= 70)
-      .map((match: any) => {
-        const community = availableCommunities.find(c => c.id === match.communityId);
-        if (!community) return null;
-        
-        return {
-          community,
-          matchScore: match.compatibilityScore,
-          reasoning: match.reasoning,
-          personalizedDescription: match.personalizedDescription,
-          suggestedRole: match.suggestedRole,
-          connectionType: match.connectionType,
-          growthPotential: match.growthPotential
-        };
-      })
-      .filter(Boolean);
+      const result = JSON.parse(content);
+      return result.matches
+        .filter((match: any) => match.compatibilityScore >= 70)
+        .map((match: any) => {
+          const community = availableCommunities.find(c => c.id === match.communityId);
+          if (!community) return null;
+          
+          return {
+            community,
+            matchScore: match.compatibilityScore,
+            reasoning: match.reasoning,
+            personalizedDescription: match.personalizedDescription,
+            suggestedRole: match.suggestedRole,
+            connectionType: match.connectionType,
+            growthPotential: match.growthPotential
+          };
+        })
+        .filter(Boolean);
+
+    } catch (error: any) {
+      console.error('AI matching failed:', error.message);
+      return this.fallbackMatching(user, availableCommunities);
+    }
   }
 
   private analyzeCollectivePatterns(allUsers: User[]): string {
