@@ -1061,6 +1061,6 @@ export default function CommunityPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </MobilePageWrapper>
   );
 }

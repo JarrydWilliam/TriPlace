@@ -419,6 +419,15 @@ Changelog:
   - Quiz system cleaned of any romantic/sexual content - focuses on platonic community building
   - AI analyzes collective user data to generate forever-changing communities based on evolving inputs
   - Complete adherence to TriPlace vision as digital third place for meaningful platonic connections
+
+- June 29, 2025. Implemented global mobile optimizations with safe area insets and pull-to-refresh
+  - Added safe area insets support for notched devices with CSS env() variables
+  - Created MobilePageWrapper component with pull-to-refresh functionality using react-simple-pull-to-refresh
+  - Applied wrapper globally across dashboard, onboarding, community, and landing pages
+  - Enhanced WebView compatibility with touch-optimized scrolling and gesture handling
+  - Added Tailwind utility classes for safe area padding (pt-safe, pb-safe, px-safe)
+  - Optimized for React Native WebView deployment with native app experience
+  - Pull-to-refresh triggers query invalidation for real-time data updates across all pages
 ```
 
 ## User Preferences
