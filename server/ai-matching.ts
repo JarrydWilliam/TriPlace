@@ -241,7 +241,7 @@ Only include 70%+ matches.
         return this.fallbackMatching(user, availableCommunities);
       }
 
-      console.log('ChatGPT Response:', content);
+
 
       // Enhanced JSON extraction with multiple fallback strategies
       let result;
@@ -252,7 +252,7 @@ Only include 70%+ matches.
         try {
           result = JSON.parse(jsonMatch[1].trim());
         } catch (e) {
-          console.log('JSON parsing failed for code block:', e);
+          // JSON parsing failed, continue to next strategy
         }
       }
       
@@ -297,7 +297,6 @@ Only include 70%+ matches.
           try {
             result = JSON.parse(jsonStr);
           } catch (e) {
-            console.log('Direct JSON parsing failed:', e);
             // Try fixing common JSON issues
             let fixedJson = jsonStr
               .replace(/,\s*}/g, '}')  // Remove trailing commas
@@ -307,8 +306,6 @@ Only include 70%+ matches.
             try {
               result = JSON.parse(fixedJson);
             } catch (e2) {
-              console.log('Fixed JSON parsing also failed:', e2);
-              console.error('All JSON parsing strategies failed, using fallback');
               return this.fallbackMatching(user, availableCommunities);
             }
           }
@@ -317,7 +314,6 @@ Only include 70%+ matches.
       
       // Strategy 3: Manual fallback if no JSON found
       if (!result) {
-        console.error('No valid JSON found in ChatGPT response, using fallback');
         return this.fallbackMatching(user, availableCommunities);
       }
       return result.matches
