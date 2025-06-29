@@ -20,6 +20,7 @@ import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -29,6 +30,15 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+
+  // Pull-to-refresh handler
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] })
+    ]);
+  };
 
   // Fetch user's active communities with activity scores
   const { data: userActiveCommunities, isLoading: userCommunitiesLoading } = useQuery({
@@ -185,12 +195,12 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
+      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Mobile-First User Banner */}
-        <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-4 sm:p-6">
+        <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
+          <CardContent className="responsive-padding">
             {/* Mobile Layout - Stack vertically on small screens */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3 sm:space-x-4">
@@ -681,6 +691,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }
