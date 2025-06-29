@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   interests: text("interests").array().default([]),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   quizAnswers: jsonb("quiz_answers"),
+  isOnline: boolean("is_online").default(false),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

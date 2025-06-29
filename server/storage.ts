@@ -16,6 +16,10 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined>;
+  setUserOnlineStatus(userId: number, isOnline: boolean): Promise<void>;
+  updateUserActivity(userId: number): Promise<void>;
+  getOnlineUsers(): Promise<User[]>;
+  getCommunityMembersWithStatus(communityId: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]>;
   
   getCommunity(id: number): Promise<Community | undefined>;
   getAllCommunities(): Promise<Community[]>;
