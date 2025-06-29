@@ -31,6 +31,7 @@ export interface IStorage {
   
   joinCommunity(userId: number, communityId: number): Promise<CommunityMember>;
   leaveCommunity(userId: number, communityId: number): Promise<boolean>;
+  clearUserCommunities(userId: number): Promise<void>;
   getUserCommunities(userId: number): Promise<Community[]>;
   getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]>;
   getCommunityMembers(communityId: number): Promise<User[]>;
@@ -378,6 +379,16 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(communityMembers)
       .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
     return (result.rowCount || 0) > 0;
+  }
+
+  async clearUserCommunities(userId: number): Promise<void> {
+    try {
+      await db.delete(communityMembers)
+        .where(eq(communityMembers.userId, userId));
+    } catch (error) {
+      console.error('Error clearing user communities:', error);
+      throw error;
+    }
   }
 
   async getUserCommunities(userId: number): Promise<Community[]> {

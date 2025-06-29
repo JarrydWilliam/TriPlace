@@ -20,12 +20,25 @@ export class CommunityRefreshService {
         
         await Promise.all(batch.map(async (user) => {
           try {
-            console.log(`Community Refresh: Regenerating communities for ${user.name} (${user.id})`);
+            console.log(`Community Refresh: Processing communities for ${user.name} (${user.id})`);
             
-            // Generate fresh communities for each user based on their location and quiz data
-            await storage.generateDynamicCommunities(user.id);
+            // Clear existing community memberships for fresh matching
+            await storage.clearUserCommunities(user.id);
             
-            console.log(`Community Refresh: Completed for ${user.name}`);
+            // Generate compatible communities for this user
+            const matchedCommunities = await storage.generateDynamicCommunities(user.id);
+            
+            // Join user to their matched communities
+            for (const community of matchedCommunities) {
+              try {
+                await storage.joinCommunity(user.id, community.id);
+                console.log(`Community Refresh: Joined ${user.name} to "${community.name}"`);
+              } catch (joinError) {
+                console.error(`Community Refresh: Failed to join ${user.name} to "${community.name}":`, joinError);
+              }
+            }
+            
+            console.log(`Community Refresh: Completed for ${user.name} - joined ${matchedCommunities.length} communities`);
           } catch (error) {
             console.error(`Community Refresh: Failed for user ${user.id}:`, error);
           }
