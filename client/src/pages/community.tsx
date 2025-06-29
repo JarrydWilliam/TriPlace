@@ -368,12 +368,12 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
+      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Community Header */}
-        <Card className="mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
-          <CardContent className="p-6">
+        <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
+          <CardContent className="responsive-padding">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Logo size="md" className="mr-2" />
@@ -1071,6 +1071,6 @@ export default function CommunityPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

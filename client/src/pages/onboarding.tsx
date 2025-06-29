@@ -13,6 +13,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 interface QuizAnswers {
   // Section 1: Past Experiences
@@ -577,7 +578,7 @@ export default function Onboarding() {
 
   return (
     <div className="mobile-page-container bg-gray-50 dark:bg-gray-900 no-pull-refresh">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-4xl mx-auto">
         {/* Mobile-First Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
           <div className="flex items-center space-x-3">
