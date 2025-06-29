@@ -23,6 +23,7 @@ export interface IStorage {
   generateDynamicCommunities(userId: number): Promise<Community[]>;
   updateCommunityActivityTimestamp(communityId: number): Promise<void>;
   cleanupInactiveCommunities(): Promise<number>;
+  getAllUsers(): Promise<User[]>;
   getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles?: number): Promise<User[]>;
   getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }>;
   createCommunity(community: InsertCommunity): Promise<Community>;
@@ -262,6 +263,15 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error cleaning up inactive communities:', error);
       return 0;
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    try {
+      return await db.select().from(users);
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
     }
   }
 
