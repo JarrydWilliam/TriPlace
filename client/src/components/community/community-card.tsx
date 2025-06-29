@@ -14,6 +14,7 @@ interface CommunityCardProps {
   loading?: boolean;
   hasNewActivity?: boolean;
   nearbyUserCount?: number;
+  liveUserCount?: number;
   onFavorite?: () => void;
   onPin?: () => void;
   isPinned?: boolean;
@@ -28,6 +29,7 @@ export function CommunityCard({
   loading = false,
   hasNewActivity = false,
   nearbyUserCount = 0,
+  liveUserCount = 0,
   onFavorite,
   onPin,
   isPinned = false,
@@ -126,21 +128,24 @@ export function CommunityCard({
             </div>
           </div>
 
-          {/* Nearby Users Avatars */}
-          {nearbyUserCount > 0 && (
+          {/* Live Users Display */}
+          {liveUserCount > 0 && (
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {[...Array(Math.min(3, nearbyUserCount))].map((_, i) => (
-                  <Avatar key={i} className="w-6 h-6 border-2 border-gray-800">
-                    <AvatarFallback className="bg-primary text-white text-xs">
+                {[...Array(Math.min(3, liveUserCount))].map((_, i) => (
+                  <Avatar key={i} className="w-6 h-6 border-2 border-white dark:border-gray-800">
+                    <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs">
                       {String.fromCharCode(65 + i)}
                     </AvatarFallback>
                   </Avatar>
                 ))}
               </div>
-              <span className="text-xs text-gray-500">
-                {nearbyUserCount} nearby
-              </span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                  {liveUserCount} online
+                </span>
+              </div>
             </div>
           )}
 

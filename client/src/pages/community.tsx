@@ -397,7 +397,7 @@ export default function CommunityPage() {
 
             {/* Members Tab */}
             <TabsContent value="members" className="mt-0">
-              <LiveMembersTab communityId={parseInt(communityId)} />
+              <LiveMembersTab communityId={communityId ? parseInt(communityId) : 0} />
             </TabsContent>
 
             {/* Kudos Tab */}
