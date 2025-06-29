@@ -24,7 +24,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
-  const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation();
+  const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
   // const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();

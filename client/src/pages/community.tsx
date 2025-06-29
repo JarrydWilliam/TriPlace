@@ -39,7 +39,7 @@ const formatDisplayName = (fullName: string | null | undefined): string => {
 export default function CommunityPage() {
   const { communityId } = useParams<{ communityId: string }>();
   const { user, loading: authLoading } = useAuth();
-  const { latitude, longitude } = useGeolocation();
+  const { latitude, longitude } = useGeolocation(user?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");

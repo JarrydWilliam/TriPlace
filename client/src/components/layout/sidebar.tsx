@@ -13,7 +13,7 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
   // const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
-  const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation();
+  const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation(user?.id);
 
   const navigationItems = [
     { 

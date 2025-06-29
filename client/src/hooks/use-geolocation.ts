@@ -102,14 +102,38 @@ export function useGeolocation(userId?: number) {
         const data = await response.json();
         
         if (data.latitude && data.longitude) {
+          const locationName = `${data.city}, ${data.region}` || 'IP Location';
           setLocation({
             latitude: data.latitude,
             longitude: data.longitude,
             error: hasGPSAttempted ? 'Using approximate location based on IP address' : null,
             loading: false,
             source: 'ip',
-            locationName: `${data.city}, ${data.region}` || 'IP Location',
+            locationName,
           });
+
+          // Update user location in backend for IP-based location
+          if (userId) {
+            try {
+              const response = await fetch('/api/users/current/location', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: userId,
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  location: locationName
+                })
+              });
+              if (!response.ok) {
+                console.error('Failed to update IP location:', response.status);
+              } else {
+                console.log('IP location updated successfully for user:', userId);
+              }
+            } catch (error) {
+              console.error('Error updating IP location:', error);
+            }
+          }
         } else {
           throw new Error('IP location service unavailable');
         }
