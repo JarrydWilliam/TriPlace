@@ -411,33 +411,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test OpenAI integration
-  app.post("/api/test-openai", async (req, res) => {
-    try {
-      console.log("Testing OpenAI integration...");
-      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
-      
-      if (!process.env.OPENAI_API_KEY) {
-        return res.json({ success: false, error: "No API key found", hasKey: false });
-      }
-      
-      const OpenAI = (await import("openai")).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
-        max_tokens: 10
-      });
-      
-      const content = response.choices[0]?.message?.content;
-      res.json({ success: true, response: content, hasKey: true });
-    } catch (error: any) {
-      console.error("OpenAI test failed:", error.message);
-      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
-    }
-  });
-
   app.get("/api/users/:id/events", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);

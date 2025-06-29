@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
-// import { useTheme } from "@/lib/theme-context";
+import { useTheme } from "@/lib/theme-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation();
-  // const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -229,7 +229,14 @@ export default function Dashboard() {
               {/* Mobile - Action buttons with larger touch targets */}
               <div className="flex items-center justify-end space-x-3 sm:space-x-2">
                 <ShareQR />
-                {/* Theme toggle temporarily disabled */}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="text-white hover:bg-white/20 min-h-[44px] min-w-[44px]"
+                >
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </Button>
                 
                 {/* Settings Dropdown Menu */}
                 <DropdownMenu>
