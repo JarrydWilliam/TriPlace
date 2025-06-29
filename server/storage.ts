@@ -176,55 +176,115 @@ export class DatabaseStorage implements IStorage {
           // Get user's event attendance history for evolving recommendations
           const userEvents = await this.getUserEvents(userId);
           
-          // AI generates recommendations based on quiz data + event patterns
-          const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
+          // Generate dynamic communities based on collective user inputs
+          const allUsers = await db.select().from(users);
+          const generatedCommunities = await aiMatcher.generateDynamicCommunities(
+            allUsers,
+            user,
+            userLocation
+          );
           
-          // If user has attended events, evolve community recommendations
-          if (userEvents.length > 0) {
-            console.log(`User has attended ${userEvents.length} events - evolving community recommendations`);
+          // Create communities that meet requirements
+          const createdCommunities: Community[] = [];
+          
+          for (const genCommunity of generatedCommunities) {
+            // Check if community already exists
+            const existing = await db.select().from(communities)
+              .where(eq(communities.name, genCommunity.name));
             
-            // Extract new interests from attended event categories
-            const eventCategories = userEvents.map(event => event.category).filter(Boolean);
-            const uniqueEventCategories = Array.from(new Set(eventCategories));
-            
-            // Update user interests in database to include event-derived interests
-            if (uniqueEventCategories.length > 0) {
-              const updatedInterests = Array.from(new Set([...interests, ...uniqueEventCategories]));
-              await this.updateUser(userId, { interests: updatedInterests });
-            }
-            
-            // Generate new community types based on evolving profile
-            try {
-              const newCommunities = await aiMatcher.generateMissingCommunities(user);
-              console.log(`AI suggested ${newCommunities.length} new community types based on user evolution`);
+            if (existing.length === 0) {
+              // Create new dynamic community
+              const newCommunity = await this.createCommunity({
+                name: genCommunity.name,
+                description: genCommunity.description,
+                category: genCommunity.category,
+                location: genCommunity.suggestedLocation,
+                isActive: true,
+                image: this.getDefaultCommunityImage(genCommunity.category)
+              });
               
-              // In a real implementation, create these communities dynamically
-              for (const newCommunity of newCommunities) {
-                console.log(`Potential new community: ${newCommunity.name} - ${newCommunity.reasoning}`);
-              }
-            } catch (aiError) {
-              console.error('AI community generation failed:', aiError);
+              createdCommunities.push(newCommunity);
+            } else {
+              createdCommunities.push(existing[0]);
             }
           }
           
-          return recommendations.map(r => r.community);
+          // Filter by 70%+ interest match and geographic requirements
+          const compatibleCommunities = this.filterCommunitiesByCompatibility(
+            createdCommunities, 
+            user, 
+            userLocation, 
+            interests
+          );
+          
+          return compatibleCommunities;
         }
       } catch (error) {
-        console.error('AI matching failed, using fallback:', error);
+        console.error('Dynamic community generation failed:', error);
       }
     }
 
-    // Fallback algorithm for when AI is unavailable
-    return availableCommunities
-      .map(community => ({
-        community,
-        score: this.calculateInterestScore(community, interests) + 
-               this.calculateEngagementScore(community) +
-               (userLocation ? 20 : 0)
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map(item => item.community);
+    // Return empty array if no dynamic communities can be generated - no preset communities
+    return [];
+  }
+
+  private getDefaultCommunityImage(category: string): string {
+    const images: Record<string, string> = {
+      'tech': 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
+      'creative': 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
+      'wellness': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
+      'outdoor': 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
+      'food': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
+      'professional': 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'
+    };
+    return images[category] || images['tech'];
+  }
+
+  private filterCommunitiesByCompatibility(
+    communities: Community[], 
+    user: User, 
+    userLocation: { lat: number, lon: number }, 
+    interests: string[]
+  ): Community[] {
+    return communities.filter(community => {
+      // Calculate interest match score
+      const communityInterests = this.getCommunityInterests(community);
+      const interestOverlap = this.calculateInterestOverlap(interests, communityInterests);
+      
+      // Require 70%+ interest match
+      if (interestOverlap < 0.7) return false;
+      
+      // Check geographic requirements (50-100 mile radius)
+      if (community.location && userLocation) {
+        const distance = this.calculateDistance(
+          userLocation.lat, userLocation.lon,
+          this.parseLocationCoordinates(community.location)
+        );
+        if (distance > 100) return false; // Max 100 miles
+      }
+      
+      return true;
+    });
+  }
+
+  private calculateDistance(lat1: number, lon1: number, coords: { lat: number, lon: number }): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = this.toRadians(coords.lat - lat1);
+    const dLon = this.toRadians(coords.lon - lon1);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(coords.lat)) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  private parseLocationCoordinates(location: string): { lat: number, lon: number } {
+    // Default to San Francisco coordinates if parsing fails
+    return { lat: 37.7749, lon: -122.4194 };
   }
 
   private calculateInterestScore(community: Community, userInterests: string[]): number {
