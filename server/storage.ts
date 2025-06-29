@@ -204,76 +204,88 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
-    const allCommunities = await this.getAllCommunities();
-    
-    // Get user's current communities to exclude them from recommendations
-    let userCommunityIds: number[] = [];
-    if (userId) {
-      const userCommunities = await this.getUserCommunities(userId);
-      userCommunityIds = userCommunities.map(c => c.id);
-    }
-    
-    // Filter out communities user has already joined
-    const availableCommunities = allCommunities.filter(community => 
-      !userCommunityIds.includes(community.id)
-    );
-    
-    if (userId && interests.length > 0) {
-      try {
-        const user = await this.getUser(userId);
-        if (user) {
-          // Get user's event attendance history for evolving recommendations
-          const userEvents = await this.getUserEvents(userId);
-          
-          // AI generates recommendations based on quiz data + event patterns
-          const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
-          
-          // If user has attended events, evolve community recommendations
-          if (userEvents.length > 0) {
-            console.log(`User has attended ${userEvents.length} events - evolving community recommendations`);
-            
-            // Extract new interests from attended event categories
-            const eventCategories = userEvents.map(event => event.category).filter(Boolean);
-            const uniqueEventCategories = Array.from(new Set(eventCategories));
-            
-            // Update user interests in database to include event-derived interests
-            if (uniqueEventCategories.length > 0) {
-              const updatedInterests = Array.from(new Set([...interests, ...uniqueEventCategories]));
-              await this.updateUser(userId, { interests: updatedInterests });
-            }
-            
-            // Generate new community types based on evolving profile
-            try {
-              const newCommunities = await aiMatcher.generateMissingCommunities(user);
-              console.log(`AI suggested ${newCommunities.length} new community types based on user evolution`);
-              
-              // In a real implementation, create these communities dynamically
-              for (const newCommunity of newCommunities) {
-                console.log(`Potential new community: ${newCommunity.name} - ${newCommunity.reasoning}`);
-              }
-            } catch (aiError) {
-              console.error('AI community generation failed:', aiError);
-            }
-          }
-          
-          return recommendations.map(r => r.community);
-        }
-      } catch (error) {
-        console.error('AI matching failed, using fallback:', error);
-      }
-    }
+    try {
+      if (!userId) return [];
+      
+      const user = await this.getUser(userId);
+      if (!user) return [];
 
-    // Fallback algorithm for when AI is unavailable
-    return availableCommunities
-      .map(community => ({
-        community,
-        score: this.calculateInterestScore(community, interests) + 
-               this.calculateEngagementScore(community) +
-               (userLocation ? 20 : 0)
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map(item => item.community);
+      // First generate dynamic communities based on collective user data
+      const dynamicCommunities = await this.generateDynamicCommunities(userId);
+      
+      // Get user's current communities to exclude them from recommendations
+      const userCommunities = await this.getUserCommunities(userId);
+      const userCommunityIds = userCommunities.map(c => c.id);
+      
+      // Filter out communities user has already joined
+      const availableCommunities = dynamicCommunities.filter(community => 
+        !userCommunityIds.includes(community.id)
+      );
+      
+      // Use AI matching with 70%+ compatibility requirement
+      const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
+      
+      // Only return communities with 70%+ compatibility
+      return recommendations
+        .filter(rec => rec.matchScore >= 70)
+        .map(rec => rec.community);
+        
+    } catch (error) {
+      console.error('Error getting recommended communities:', error);
+      return [];
+    }
+  }
+
+  async generateDynamicCommunities(userId: number): Promise<Community[]> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) return [];
+
+      // Get all users to analyze collective patterns
+      const allUsers = await db.select().from(users);
+      
+      // Get user's location
+      const userLocation = user.latitude && user.longitude ? 
+        { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) } : 
+        undefined;
+
+      // Generate dynamic communities based on collective user data
+      const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
+      
+      // Create these communities in the database if they don't exist
+      const createdCommunities: Community[] = [];
+      
+      for (const genCommunity of generatedCommunities) {
+        // Check if similar community already exists
+        const existing = await db.select()
+          .from(communities)
+          .where(eq(communities.name, genCommunity.name))
+          .limit(1);
+          
+        if (existing.length === 0) {
+          // Create new dynamic community
+          const newCommunity = await this.createCommunity({
+            name: genCommunity.name,
+            description: genCommunity.description,
+            category: genCommunity.category,
+            location: genCommunity.suggestedLocation,
+            memberCount: 0,
+            isPrivate: false,
+            isActive: true
+          });
+          
+          createdCommunities.push(newCommunity);
+        } else {
+          createdCommunities.push(existing[0]);
+        }
+      }
+      
+      return createdCommunities;
+      
+    } catch (error) {
+      console.error('Error generating dynamic communities:', error);
+      return [];
+    }
   }
 
   private calculateInterestScore(community: Community, userInterests: string[]): number {
