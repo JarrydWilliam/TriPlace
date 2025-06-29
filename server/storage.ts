@@ -181,7 +181,15 @@ export class DatabaseStorage implements IStorage {
       const user = await this.getUser(userId);
       if (!user) return [];
 
-      // Get all users to analyze collective patterns
+      // First, check for existing communities where this user would have 70%+ compatibility
+      const compatibleCommunities = await this.findCompatibleExistingCommunities(user);
+      
+      if (compatibleCommunities.length >= 5) {
+        console.log(`Discovery: Found ${compatibleCommunities.length} compatible existing communities for user ${user.id}`);
+        return compatibleCommunities.slice(0, 5);
+      }
+
+      // Get all users to analyze collective patterns for remaining slots
       const allUsers = await db.select().from(users);
       
       // Get user's location
@@ -191,13 +199,16 @@ export class DatabaseStorage implements IStorage {
 
       console.log(`Discovery: User location data - lat: ${user.latitude}, lon: ${user.longitude}, parsed: ${JSON.stringify(userLocation)}`);
       
-      // Generate dynamic communities based on collective user data
+      // Generate dynamic communities based on collective user data for remaining slots
+      const needed = 5 - compatibleCommunities.length;
       const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
       
-      // Create these communities in the database if they don't exist
-      const createdCommunities: Community[] = [];
+      // Combine existing compatible communities with new ones
+      const finalCommunities: Community[] = [...compatibleCommunities];
       
-      for (const genCommunity of generatedCommunities) {
+      for (let i = 0; i < Math.min(needed, generatedCommunities.length); i++) {
+        const genCommunity = generatedCommunities[i];
+        
         // Check if similar community already exists
         const existing = await db.select()
           .from(communities)
@@ -213,16 +224,62 @@ export class DatabaseStorage implements IStorage {
             location: genCommunity.suggestedLocation
           });
           
-          createdCommunities.push(newCommunity);
+          finalCommunities.push(newCommunity);
         } else {
-          createdCommunities.push(existing[0]);
+          finalCommunities.push(existing[0]);
         }
       }
       
-      return createdCommunities;
+      return finalCommunities.slice(0, 5);
       
     } catch (error) {
       console.error('Error generating dynamic communities:', error);
+      return [];
+    }
+  }
+
+  private async findCompatibleExistingCommunities(user: User): Promise<Community[]> {
+    try {
+      // Get all existing communities
+      const allCommunities = await this.getAllCommunities();
+      const userInterests = user.interests || [];
+      const compatibleCommunities: Array<{ community: Community, score: number }> = [];
+      
+      for (const community of allCommunities) {
+        // Calculate interest compatibility
+        const communityInterests = this.getCommunityInterests(community);
+        const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
+        
+        // Check geographic compatibility if user has location
+        let locationCompatible = true;
+        if (user.latitude && user.longitude) {
+          // Check if community has members within acceptable radius
+          const userLocation = { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) };
+          const nearbyMembers = await this.getDynamicCommunityMembers(
+            community.id, 
+            userLocation, 
+            userInterests, 
+            100 // Use 100-mile radius for compatibility check
+          );
+          
+          // Community is location-compatible if it has nearby members or if user would be first in area
+          locationCompatible = nearbyMembers.length > 0 || !community.location || community.location === 'Virtual';
+        }
+        
+        // Community is compatible if 70%+ interest overlap and location compatibility
+        if (overlapScore >= 0.7 && locationCompatible) {
+          compatibleCommunities.push({ community, score: overlapScore });
+          console.log(`Discovery: Found compatible community "${community.name}" with ${(overlapScore * 100).toFixed(1)}% match for user ${user.id}`);
+        }
+      }
+      
+      // Sort by compatibility score and return top matches
+      return compatibleCommunities
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.community);
+        
+    } catch (error) {
+      console.error('Error finding compatible communities:', error);
       return [];
     }
   }
