@@ -13,6 +13,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 interface QuizAnswers {
   // Section 1: Past Experiences

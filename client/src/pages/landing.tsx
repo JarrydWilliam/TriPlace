@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { PWAInstall } from "@/components/ui/pwa-install";
+import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -34,7 +35,8 @@ export default function Landing() {
   }
 
   return (
-    <section className="mobile-page-container relative overflow-hidden bg-gray-900 no-pull-refresh">
+    <MobilePageWrapper className="relative overflow-hidden bg-gray-900 no-pull-refresh">
+      <section>
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
