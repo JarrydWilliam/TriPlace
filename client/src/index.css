@@ -2,9 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Safe area insets for notched devices */
+/* Mobile-first base styles - prevent horizontal scroll and overscroll */
 html, body {
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
@@ -24,20 +23,6 @@ body {
 
 body::-webkit-scrollbar {
   display: none;
-}
-
-/* Tailwind utility class for safe area padding */
-.pt-safe {
-  padding-top: env(safe-area-inset-top);
-}
-
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.px-safe {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 }
 
 /* Mobile page container for optimal scrolling */

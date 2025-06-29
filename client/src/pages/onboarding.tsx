@@ -13,7 +13,6 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
-import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 interface QuizAnswers {
   // Section 1: Past Experiences
@@ -577,7 +576,7 @@ export default function Onboarding() {
   };
 
   return (
-    <MobilePageWrapper className="bg-gray-50 dark:bg-gray-900 no-pull-refresh">
+    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900 no-pull-refresh">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Mobile-First Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
@@ -643,6 +642,6 @@ export default function Onboarding() {
           </Button>
         </div>
       </div>
-    </MobilePageWrapper>
+    </div>
   );
 }

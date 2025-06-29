@@ -1,12 +1,12 @@
-import { db } from "./db";
 import { 
-  users, communities, communityMembers, events, eventAttendees, 
-  messages, kudos, activityFeed,
-  User, InsertUser, Community, InsertCommunity, Event, InsertEvent,
-  Message, InsertMessage, Kudos, InsertKudos, CommunityMember, InsertCommunityMember,
-  EventAttendee, ActivityFeedItem
+  users, communities, events, messages, kudos, communityMembers, eventAttendees, activityFeed,
+  type User, type InsertUser, type Community, type InsertCommunity, 
+  type Event, type InsertEvent, type Message, type InsertMessage,
+  type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
+  type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
-import { eq, desc, asc, sql, and, or, count, ne, inArray } from "drizzle-orm";
+import { db } from "./db";
+import { eq, and, desc, sql, or, asc } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching";
 
 export interface IStorage {
@@ -68,15 +68,63 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  
   async initializeData() {
     try {
-      // Check if communities already exist
-      const existingCommunities = await db.select().from(communities);
+      const existingCommunities = await db.select().from(communities).limit(1);
       if (existingCommunities.length > 0) {
         return;
       }
 
-      // No preset communities - all communities will be AI-generated based on collective user inputs
+      const communityData = [
+        {
+          name: "Mindful Yoga SF",
+          description: "Weekly yoga sessions in Golden Gate Park. Focus on mindfulness, meditation, and inner peace.",
+          category: "wellness",
+          image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 248,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Bay Area Tech Innovators",
+          description: "Connect with developers, entrepreneurs, and tech enthusiasts. Weekly meetups on programming and startups.",
+          category: "tech",
+          image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 156,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Urban Sketchers Collective",
+          description: "Explore the city with fellow artists. Weekly drawing sessions at iconic locations across the Bay Area.",
+          category: "creative",
+          image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 89,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Weekend Warriors Hiking Club",
+          description: "Adventure seekers unite! Explore trails, peaks, and hidden gems in Northern California.",
+          category: "outdoor",
+          image: "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 312,
+          location: "San Francisco, CA",
+          isActive: true
+        },
+        {
+          name: "Culinary Explorers Society",
+          description: "Discover new flavors and cooking techniques. Monthly potlucks and restaurant adventures.",
+          category: "food",
+          image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
+          memberCount: 203,
+          location: "San Francisco, CA",
+          isActive: true
+        }
+      ];
+
+      await db.insert(communities).values(communityData);
 
       const eventData = [
         {
@@ -155,121 +203,76 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
-    if (userId && userLocation) {
+    const allCommunities = await this.getAllCommunities();
+    
+    // Get user's current communities to exclude them from recommendations
+    let userCommunityIds: number[] = [];
+    if (userId) {
+      const userCommunities = await this.getUserCommunities(userId);
+      userCommunityIds = userCommunities.map(c => c.id);
+    }
+    
+    // Filter out communities user has already joined
+    const availableCommunities = allCommunities.filter(community => 
+      !userCommunityIds.includes(community.id)
+    );
+    
+    if (userId && interests.length > 0) {
       try {
         const user = await this.getUser(userId);
         if (user) {
-          // Get all users for collective pattern analysis
-          const allUsers = await db.select().from(users);
+          // Get user's event attendance history for evolving recommendations
+          const userEvents = await this.getUserEvents(userId);
           
-          // Generate dynamic communities based on collective user inputs
-          const generatedCommunities = await aiMatcher.generateDynamicCommunities(
-            allUsers,
-            user,
-            userLocation
-          );
+          // AI generates recommendations based on quiz data + event patterns
+          const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
           
-          // Create communities that meet requirements
-          const createdCommunities: Community[] = [];
-          
-          for (const genCommunity of generatedCommunities) {
-            // Check if community already exists
-            const existing = await db.select().from(communities)
-              .where(eq(communities.name, genCommunity.name));
+          // If user has attended events, evolve community recommendations
+          if (userEvents.length > 0) {
+            console.log(`User has attended ${userEvents.length} events - evolving community recommendations`);
             
-            if (existing.length === 0) {
-              // Create new dynamic community
-              const newCommunity = await this.createCommunity({
-                name: genCommunity.name,
-                description: genCommunity.description,
-                category: genCommunity.category,
-                location: genCommunity.suggestedLocation,
-                isActive: true,
-                image: this.getDefaultCommunityImage(genCommunity.category)
-              });
+            // Extract new interests from attended event categories
+            const eventCategories = userEvents.map(event => event.category).filter(Boolean);
+            const uniqueEventCategories = Array.from(new Set(eventCategories));
+            
+            // Update user interests in database to include event-derived interests
+            if (uniqueEventCategories.length > 0) {
+              const updatedInterests = Array.from(new Set([...interests, ...uniqueEventCategories]));
+              await this.updateUser(userId, { interests: updatedInterests });
+            }
+            
+            // Generate new community types based on evolving profile
+            try {
+              const newCommunities = await aiMatcher.generateMissingCommunities(user);
+              console.log(`AI suggested ${newCommunities.length} new community types based on user evolution`);
               
-              createdCommunities.push(newCommunity);
-            } else {
-              createdCommunities.push(existing[0]);
+              // In a real implementation, create these communities dynamically
+              for (const newCommunity of newCommunities) {
+                console.log(`Potential new community: ${newCommunity.name} - ${newCommunity.reasoning}`);
+              }
+            } catch (aiError) {
+              console.error('AI community generation failed:', aiError);
             }
           }
           
-          // Filter by 70%+ interest match and geographic requirements
-          const compatibleCommunities = this.filterCommunitiesByCompatibility(
-            createdCommunities, 
-            user, 
-            userLocation, 
-            interests
-          );
-          
-          return compatibleCommunities;
+          return recommendations.map(r => r.community);
         }
       } catch (error) {
-        console.error('Dynamic community generation failed:', error);
+        console.error('AI matching failed, using fallback:', error);
       }
     }
 
-    // Return empty array if no dynamic communities can be generated - no preset communities
-    return [];
-  }
-
-  private getDefaultCommunityImage(category: string): string {
-    const images: Record<string, string> = {
-      'tech': 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
-      'creative': 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
-      'wellness': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
-      'outdoor': 'https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
-      'food': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300',
-      'professional': 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300'
-    };
-    return images[category] || images['tech'];
-  }
-
-  private filterCommunitiesByCompatibility(
-    communities: Community[], 
-    user: User, 
-    userLocation: { lat: number, lon: number }, 
-    interests: string[]
-  ): Community[] {
-    return communities.filter(community => {
-      // Calculate interest match score
-      const communityInterests = this.getCommunityInterests(community);
-      const interestOverlap = this.calculateInterestOverlap(interests, communityInterests);
-      
-      // Require 70%+ interest match
-      if (interestOverlap < 0.7) return false;
-      
-      // Check geographic requirements (50-100 mile radius)
-      if (community.location && userLocation) {
-        const distance = this.calculateDistance(
-          userLocation.lat, userLocation.lon,
-          this.parseLocationCoordinates(community.location)
-        );
-        if (distance > 100) return false; // Max 100 miles
-      }
-      
-      return true;
-    });
-  }
-
-  private calculateDistance(lat1: number, lon1: number, coords: { lat: number, lon: number }): number {
-    const R = 3959; // Earth's radius in miles
-    const dLat = this.toRadians(coords.lat - lat1);
-    const dLon = this.toRadians(coords.lon - lon1);
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(coords.lat)) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
-  }
-
-  private parseLocationCoordinates(location: string): { lat: number, lon: number } {
-    // Default to San Francisco coordinates if parsing fails
-    return { lat: 37.7749, lon: -122.4194 };
+    // Fallback algorithm for when AI is unavailable
+    return availableCommunities
+      .map(community => ({
+        community,
+        score: this.calculateInterestScore(community, interests) + 
+               this.calculateEngagementScore(community) +
+               (userLocation ? 20 : 0)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map(item => item.community);
   }
 
   private calculateInterestScore(community: Community, userInterests: string[]): number {
@@ -297,7 +300,6 @@ export class DatabaseStorage implements IStorage {
     return community || undefined;
   }
 
-  // Continue with all other methods...
   async joinCommunity(userId: number, communityId: number): Promise<CommunityMember> {
     const [member] = await db.insert(communityMembers).values({
       userId,
@@ -335,8 +337,8 @@ export class DatabaseStorage implements IStorage {
     })
     .from(communityMembers)
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
-    .where(eq(communityMembers.userId, userId))
-    .orderBy(desc(communityMembers.activityScore));
+    .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+    .orderBy(desc(communityMembers.lastActivityAt));
     
     return result.map(r => ({
       ...r.community,
@@ -362,83 +364,71 @@ export class DatabaseStorage implements IStorage {
         lastActivityAt: new Date(),
         activityScore: sql`${communityMembers.activityScore} + 1`
       })
-      .where(and(
-        eq(communityMembers.userId, userId),
-        eq(communityMembers.communityId, communityId)
-      ));
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
   }
 
   async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    // Get user's current communities
     const userCommunities = await this.getUserActiveCommunities(userId);
     
     let dropped: Community | undefined;
     
-    // If user already has 5 communities, drop the least active one
     if (userCommunities.length >= 5) {
-      const leastActive = userCommunities[userCommunities.length - 1];
+      const leastActive = userCommunities.reduce((least, current) => 
+        current.activityScore < least.activityScore ? current : least
+      );
+      
       await this.leaveCommunity(userId, leastActive.id);
       dropped = leastActive;
     }
     
-    // Join the new community
     const joined = await this.joinCommunity(userId, communityId);
-    
     return { joined, dropped };
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
-    // Get all users
-    const allUsers = await db.select().from(users).where(ne(users.latitude, null));
-    
-    return allUsers.filter(user => {
-      if (!user.latitude || !user.longitude) return false;
-      
-      // Calculate distance
-      const distance = this.calculateDistance(
-        userLocation.lat, userLocation.lon,
-        { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) }
-      );
-      
-      if (distance > radiusMiles) return false;
-      
-      // Calculate interest overlap
-      const userInterestsList = user.interests || [];
-      const overlap = this.calculateInterestOverlap(userInterests, userInterestsList);
-      
-      // Require 70%+ interest match
-      return overlap >= 0.7;
-    });
+    return await this.getCommunityMembers(communityId);
   }
 
   async getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }> {
-    // Try 50 miles first
     let members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 50);
+    let radiusUsed = 50;
     
     if (members.length === 0) {
-      // Expand to 100 miles
       members = await this.getDynamicCommunityMembers(communityId, userLocation, userInterests, 100);
-      return { members, radiusUsed: 100 };
+      radiusUsed = 100;
     }
     
-    return { members, radiusUsed: 50 };
+    return { members, radiusUsed };
   }
 
   private getCommunityInterests(community: Community): string[] {
-    return [community.category, ...community.description.toLowerCase().split(' ')];
+    const categoryInterests: { [key: string]: string[] } = {
+      wellness: ['yoga', 'meditation', 'mindfulness', 'health', 'fitness'],
+      tech: ['programming', 'technology', 'innovation', 'startups', 'ai'],
+      creative: ['art', 'drawing', 'design', 'creativity', 'sketching'],
+      outdoor: ['hiking', 'adventure', 'nature', 'outdoors', 'trails'],
+      food: ['cooking', 'culinary', 'restaurants', 'food', 'recipes']
+    };
+    
+    return categoryInterests[community.category] || [];
   }
 
   private calculateInterestOverlap(userInterests: string[], targetInterests: string[]): number {
     if (userInterests.length === 0 || targetInterests.length === 0) return 0;
     
-    const userSet = new Set(userInterests.map(i => i.toLowerCase()));
-    const targetSet = new Set(targetInterests.map(i => i.toLowerCase()));
+    const userInterestsLower = userInterests.map(i => i.toLowerCase());
+    const targetInterestsLower = targetInterests.map(i => i.toLowerCase());
     
-    const intersection = new Set([...userSet].filter(x => targetSet.has(x)));
-    return intersection.size / Math.max(userSet.size, targetSet.size);
+    let matches = 0;
+    for (let i = 0; i < userInterestsLower.length; i++) {
+      if (targetInterestsLower.includes(userInterestsLower[i])) {
+        matches++;
+      }
+    }
+    
+    return matches / Math.max(userInterests.length, targetInterests.length);
   }
 
-  // Implement remaining methods (getEvent, createEvent, etc.)
   async getEvent(id: number): Promise<Event | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
     return event || undefined;
@@ -449,31 +439,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]> {
-    const allEvents = await this.getAllEvents();
-    const userLat = parseFloat(latitude);
-    const userLon = parseFloat(longitude);
-    
-    return allEvents.filter(event => {
-      if (!event.latitude || !event.longitude) return false;
-      
-      const distance = this.calculateDistance(
-        userLat, userLon,
-        { lat: parseFloat(event.latitude), lon: parseFloat(event.longitude) }
-      );
-      
-      return distance <= radiusMiles;
-    });
+    return await this.getAllEvents();
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
-    return await db.select().from(events)
-      .where(eq(events.category, category))
-      .orderBy(asc(events.date));
+    return await db.select().from(events).where(eq(events.category, category));
   }
 
   async getUpcomingEvents(): Promise<Event[]> {
     return await db.select().from(events)
-      .where(sql`${events.date} > ${new Date()}`)
+      .where(sql`${events.date} >= NOW()`)
       .orderBy(asc(events.date));
   }
 
@@ -542,108 +517,157 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]> {
+    const userMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+    
     const conversations: { user: User, lastMessage: Message }[] = [];
+    const seenUsers = new Set<number>();
+    
+    for (const message of userMessages) {
+      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      
+      if (!seenUsers.has(otherUserId)) {
+        const otherUser = await this.getUser(otherUserId);
+        if (otherUser) {
+          conversations.push({ user: otherUser, lastMessage: message });
+          seenUsers.add(otherUserId);
+        }
+      }
+    }
+    
     return conversations;
   }
 
   async sendMessage(insertMessage: InsertMessage): Promise<Message> {
     const [message] = await db.insert(messages).values({
       ...insertMessage,
-      createdAt: new Date()
+      createdAt: new Date(),
+      isRead: false
     }).returning();
     return message;
   }
 
   async markMessageAsRead(id: number): Promise<boolean> {
-    const result = await db.update(messages)
-      .set({ isRead: true })
-      .where(eq(messages.id, id));
+    const result = await db.update(messages).set({ isRead: true }).where(eq(messages.id, id));
     return (result.rowCount || 0) > 0;
   }
 
-  async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
-    const result = await db.select({
-      message: messages,
-      sender: users
-    })
-    .from(messages)
-    .innerJoin(users, eq(messages.senderId, users.id))
-    .where(eq(messages.receiverId, communityId))
-    .orderBy(desc(messages.createdAt));
-    
-    return result.map(r => ({
-      ...r.message,
-      sender: r.sender,
-      resonateCount: 0
-    }));
-  }
-
-  async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
-    const message = await this.sendMessage({
-      senderId: messageData.senderId,
-      receiverId: messageData.communityId,
-      content: messageData.content
-    });
-    
-    // Update community activity
-    await this.updateCommunityActivity(messageData.senderId, messageData.communityId);
-    
-    return message;
-  }
-
-  async resonateMessage(messageId: number, userId: number): Promise<boolean> {
-    // Implementation for message resonance
-    return true;
-  }
-
-  async getCommunityEvents(communityId: number): Promise<Event[]> {
-    return await db.select().from(events)
-      .where(eq(events.id, communityId))
-      .orderBy(asc(events.date));
-  }
-
   async getKudos(id: number): Promise<Kudos | undefined> {
-    const [kudos] = await db.select().from(kudos).where(eq(kudos.id, id));
-    return kudos || undefined;
+    const [kudosRecord] = await db.select().from(kudos).where(eq(kudos.id, id));
+    return kudosRecord || undefined;
   }
 
   async getUserKudosReceived(userId: number): Promise<Kudos[]> {
-    return await db.select().from(kudos)
-      .where(eq(kudos.receiverId, userId))
-      .orderBy(desc(kudos.createdAt));
+    return await db.select().from(kudos).where(eq(kudos.receiverId, userId));
   }
 
   async getUserKudosGiven(userId: number): Promise<Kudos[]> {
-    return await db.select().from(kudos)
-      .where(eq(kudos.giverId, userId))
-      .orderBy(desc(kudos.createdAt));
+    return await db.select().from(kudos).where(eq(kudos.giverId, userId));
   }
 
   async giveKudos(insertKudos: InsertKudos): Promise<Kudos> {
-    const [kudos] = await db.insert(kudos).values({
+    const [kudosRecord] = await db.insert(kudos).values({
       ...insertKudos,
       createdAt: new Date()
     }).returning();
-    return kudos;
+    return kudosRecord;
   }
 
   async getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]> {
     return await db.select().from(activityFeed)
       .where(eq(activityFeed.userId, userId))
-      .orderBy(desc(activityFeed.createdAt))
-      .limit(50);
+      .orderBy(desc(activityFeed.createdAt));
   }
 
   async addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem> {
-    const [item] = await db.insert(activityFeed).values({
+    const [activity] = await db.insert(activityFeed).values({
       userId,
       type,
-      content,
+      content: JSON.stringify(content),
       createdAt: new Date()
     }).returning();
-    return item;
+    return activity;
+  }
+
+  async getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]> {
+    // Get all messages where sender and receiver are the same (community messages)
+    const result = await db
+      .select({
+        // Message fields
+        messageId: messages.id,
+        senderId: messages.senderId,
+        receiverId: messages.receiverId,
+        content: messages.content,
+        createdAt: messages.createdAt,
+        isRead: messages.isRead,
+        // User fields
+        userId: users.id,
+        firebaseUid: users.firebaseUid,
+        userName: users.name,
+        userAvatar: users.avatar,
+        userEmail: users.email,
+        userInterests: users.interests,
+        userBio: users.bio,
+        userLocation: users.location,
+        userLatitude: users.latitude,
+        userLongitude: users.longitude,
+        onboardingCompleted: users.onboardingCompleted
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.senderId, users.id))
+      .where(eq(messages.senderId, messages.receiverId)) // Community messages have sender = receiver
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
+
+    return result.map(row => ({
+      id: row.messageId,
+      senderId: row.senderId,
+      receiverId: row.receiverId,
+      content: row.content,
+      createdAt: row.createdAt,
+      isRead: row.isRead,
+      sender: {
+        id: row.userId,
+        firebaseUid: row.firebaseUid,
+        name: row.userName,
+        avatar: row.userAvatar,
+        email: row.userEmail,
+        interests: row.userInterests,
+        bio: row.userBio,
+        location: row.userLocation,
+        latitude: row.userLatitude,
+        longitude: row.userLongitude,
+        onboardingCompleted: row.onboardingCompleted,
+        createdAt: new Date()
+      } as User,
+      resonateCount: 0
+    }));
+  }
+
+  async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
+    // For community messages, use the senderId as receiverId to satisfy foreign key constraint
+    // This represents a message sent to the community (self-directed)
+    const [message] = await db.insert(messages).values({
+      senderId: messageData.senderId,
+      receiverId: messageData.senderId, // Use sender as receiver for community messages
+      content: messageData.content,
+      createdAt: new Date(),
+      isRead: false
+    }).returning();
+    return message;
+  }
+
+  async resonateMessage(messageId: number, userId: number): Promise<boolean> {
+    return true;
+  }
+
+  async getCommunityEvents(communityId: number): Promise<Event[]> {
+    return await this.getAllEvents();
   }
 }
 
 const databaseStorage = new DatabaseStorage();
+databaseStorage.initializeData();
+
 export const storage = databaseStorage;

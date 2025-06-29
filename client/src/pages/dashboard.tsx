@@ -20,7 +20,6 @@ import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
-import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -186,7 +185,7 @@ export default function Dashboard() {
   }
 
   return (
-    <MobilePageWrapper className="bg-gray-50 dark:bg-gray-900">
+    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         
         {/* Mobile-First User Banner */}
@@ -682,6 +681,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </MobilePageWrapper>
+    </div>
   );
 }

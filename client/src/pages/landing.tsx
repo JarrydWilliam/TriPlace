@@ -6,7 +6,6 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { PWAInstall } from "@/components/ui/pwa-install";
-import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -14,13 +13,7 @@ export default function Landing() {
 
   useEffect(() => {
     if (!loading && user) {
-      // New users need to complete onboarding quiz first
-      if (!user.onboardingCompleted) {
-        navigate("/onboarding");
-      } else {
-        // Returning users go straight to dashboard
-        navigate("/dashboard");
-      }
+      navigate("/dashboard");
     }
   }, [user, loading, navigate]);
 
@@ -41,8 +34,7 @@ export default function Landing() {
   }
 
   return (
-    <MobilePageWrapper className="relative overflow-hidden bg-gray-900 no-pull-refresh">
-      <section>
+    <section className="mobile-page-container relative overflow-hidden bg-gray-900 no-pull-refresh">
       {/* Background with gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
       <div 
@@ -116,7 +108,6 @@ export default function Landing() {
       
       {/* PWA Installation Prompt */}
       <PWAInstall />
-      </section>
-    </MobilePageWrapper>
+    </section>
   );
 }

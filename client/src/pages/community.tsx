@@ -20,7 +20,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { Logo } from "@/components/ui/logo";
-import { MobilePageWrapper } from "@/components/ui/mobile-page-wrapper";
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -358,7 +357,7 @@ export default function CommunityPage() {
   }
 
   return (
-    <MobilePageWrapper className="bg-gray-50 dark:bg-gray-900">
+    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         
         {/* Community Header */}
@@ -1061,6 +1060,6 @@ export default function CommunityPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </MobilePageWrapper>
+    </div>
   );
 }
