@@ -242,10 +242,10 @@ Only include matches scoring 70+ for quality connections.
 `;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
-        max_tokens: 1500
+        max_tokens: 800
       });
 
       const content = response.choices[0]?.message?.content;
@@ -254,8 +254,15 @@ Only include matches scoring 70+ for quality connections.
         return this.fallbackMatching(user, availableCommunities);
       }
 
-      // Clean up markdown code blocks and parse JSON
-      const cleanContent = content.replace(/```json\s*|\s*```/g, '').trim();
+      // Extract JSON from markdown code blocks
+      let cleanContent = content;
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        cleanContent = jsonMatch[1].trim();
+      } else {
+        cleanContent = content.replace(/```\s*|\s*```/g, '').trim();
+      }
+      
       const result = JSON.parse(cleanContent);
       return result.matches
         .filter((match: any) => match.compatibilityScore >= 70)
