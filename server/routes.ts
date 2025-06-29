@@ -805,10 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messageData = {
         content: content.trim(),
         senderId: parseInt(senderId),
-        communityId: communityId,
-        receiverId: parseInt(senderId), // Use sender as receiver for community messages
-        isRead: false,
-        createdAt: new Date()
+        communityId: communityId
       };
       
       const message = await storage.sendCommunityMessage(messageData);

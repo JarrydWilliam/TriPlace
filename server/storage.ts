@@ -1,7 +1,8 @@
 import { 
-  users, communities, events, messages, kudos, communityMembers, eventAttendees, activityFeed,
+  users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
+  type CommunityMessage, type InsertCommunityMessage,
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
@@ -57,8 +58,8 @@ export interface IStorage {
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
-  getCommunityMessages(communityId: number): Promise<(Message & { sender: User, resonateCount: number })[]>;
-  sendCommunityMessage(message: InsertMessage & { communityId: number }): Promise<Message>;
+  getCommunityMessages(communityId: number): Promise<(CommunityMessage & { sender: User, resonateCount: number })[]>;
+  sendCommunityMessage(message: InsertCommunityMessage): Promise<CommunityMessage>;
   resonateMessage(messageId: number, userId: number): Promise<boolean>;
   
   getCommunityEvents(communityId: number): Promise<Event[]>;
@@ -716,15 +717,13 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async sendCommunityMessage(messageData: InsertMessage & { communityId: number }): Promise<Message> {
-    // For community messages, use the senderId as receiverId to satisfy foreign key constraint
-    // This represents a message sent to the community (self-directed)
-    const [message] = await db.insert(messages).values({
+  async sendCommunityMessage(messageData: InsertCommunityMessage): Promise<CommunityMessage> {
+    // Insert into dedicated community messages table for proper isolation
+    const [message] = await db.insert(communityMessages).values({
+      communityId: messageData.communityId,
       senderId: messageData.senderId,
-      receiverId: messageData.senderId, // Use sender as receiver for community messages
       content: messageData.content,
-      createdAt: new Date(),
-      isRead: false
+      createdAt: new Date()
     }).returning();
     return message;
   }
