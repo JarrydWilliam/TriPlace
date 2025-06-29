@@ -27,7 +27,6 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
-    
     // Handle specific Firebase auth errors
     switch (error.code) {
       case 'auth/popup-closed-by-user':
@@ -38,8 +37,10 @@ export const signInWithGoogle = async () => {
         throw new Error(ERROR_MESSAGES.NETWORK);
       case 'auth/too-many-requests':
         throw new Error('Too many sign-in attempts. Please try again later.');
+      case 'auth/unauthorized-domain':
+        throw new Error('This domain is not authorized for authentication. Please contact support.');
       default:
-        throw new Error('Unable to sign in. Please try again.');
+        throw new Error('Authentication failed. Please try again or contact support.');
     }
   }
 };

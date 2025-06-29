@@ -56,7 +56,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (createResponse.ok) {
               const createdUser = await createResponse.json();
               setUser(createdUser);
-            } else {
             }
           }
         } catch (error) {
