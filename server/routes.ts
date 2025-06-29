@@ -1,11 +1,31 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { eventScraper } from "./event-scraper";
 import { communityRefreshService } from "./community-refresh";
 import { communityUpdateNotifier } from "./community-update-notifier";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Track active WebSocket connections for real-time member detection
+const activeConnections = new Map<number, { ws: WebSocket, lastActivity: Date }>();
+
+// Broadcast member status updates to all connected clients
+function broadcastMemberUpdate(userId: number, isOnline: boolean) {
+  const message = JSON.stringify({
+    type: 'member_status_update',
+    userId,
+    isOnline,
+    timestamp: Date.now()
+  });
+
+  for (const [, connection] of activeConnections.entries()) {
+    if (connection.ws.readyState === WebSocket.OPEN) {
+      connection.ws.send(message);
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -926,6 +946,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API routes for real-time member detection
+  app.get("/api/communities/:id/members/live", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
+      
+      // Only return live members (online within last 15 minutes)
+      const liveMembers = membersWithStatus.filter(member => member.isOnline);
+      
+      res.json({
+        online: liveMembers,
+        offline: membersWithStatus.filter(member => !member.isOnline),
+        totalLive: liveMembers.length
+      });
+    } catch (error) {
+      console.error("Error fetching live community members:", error);
+      res.status(500).json({ message: "Failed to fetch live members" });
+    }
+  });
+
+  // Update user activity (heartbeat)
+  app.post("/api/users/:id/activity", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await storage.updateUserActivity(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating user activity:", error);
+      res.status(500).json({ message: "Failed to update activity" });
+    }
+  });
+
+  // Set user online/offline status
+  app.post("/api/users/:id/status", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { isOnline } = req.body;
+      await storage.setUserOnlineStatus(userId, Boolean(isOnline));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting user status:", error);
+      res.status(500).json({ message: "Failed to set status" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // WebSocket server for real-time member detection
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws, req) => {
+    let userId: number | null = null;
+    
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'auth' && data.userId) {
+          userId = parseInt(data.userId);
+          activeConnections.set(userId, { ws, lastActivity: new Date() });
+          await storage.setUserOnlineStatus(userId, true);
+          
+          // Broadcast online status update to all clients
+          broadcastMemberUpdate(userId, true);
+        }
+        
+        if (data.type === 'heartbeat' && userId) {
+          activeConnections.set(userId, { ws, lastActivity: new Date() });
+          await storage.updateUserActivity(userId);
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+    
+    ws.on('close', async () => {
+      if (userId) {
+        activeConnections.delete(userId);
+        await storage.setUserOnlineStatus(userId, false);
+        broadcastMemberUpdate(userId, false);
+      }
+    });
+  });
+
+  // Cleanup inactive connections every 5 minutes
+  setInterval(() => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    activeConnections.forEach(async (connection, userId) => {
+      if (connection.lastActivity < fiveMinutesAgo) {
+        connection.ws.close();
+        activeConnections.delete(userId);
+        await storage.setUserOnlineStatus(userId, false);
+        broadcastMemberUpdate(userId, false);
+      }
+    });
+  }, 5 * 60 * 1000);
+
   return httpServer;
 }

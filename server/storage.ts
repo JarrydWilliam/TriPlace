@@ -739,6 +739,55 @@ export class DatabaseStorage implements IStorage {
   async getCommunityEvents(communityId: number): Promise<Event[]> {
     return await this.getAllEvents();
   }
+
+  async setUserOnlineStatus(userId: number, isOnline: boolean): Promise<void> {
+    await db.update(users).set({
+      isOnline,
+      lastActiveAt: new Date()
+    }).where(eq(users.id, userId));
+  }
+
+  async updateUserActivity(userId: number): Promise<void> {
+    await db.update(users).set({
+      lastActiveAt: new Date(),
+      isOnline: true
+    }).where(eq(users.id, userId));
+  }
+
+  async getOnlineUsers(): Promise<User[]> {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    return await db.select().from(users).where(
+      and(
+        eq(users.isOnline, true),
+        sql`${users.lastActiveAt} > ${fifteenMinutesAgo}`
+      )
+    );
+  }
+
+  async getCommunityMembersWithStatus(communityId: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]> {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
+    const result = await db
+      .select()
+      .from(users)
+      .innerJoin(communityMembers, eq(users.id, communityMembers.userId))
+      .where(eq(communityMembers.communityId, communityId))
+      .orderBy(
+        desc(users.isOnline),
+        desc(users.lastActiveAt)
+      );
+
+    return result.map(({ users: user }) => {
+      const lastActive = user.lastActiveAt || new Date();
+      const isCurrentlyOnline = Boolean(user.isOnline) && lastActive > fifteenMinutesAgo;
+      
+      return {
+        ...user,
+        isOnline: isCurrentlyOnline,
+        lastActiveAt: lastActive
+      };
+    });
+  }
 }
 
 const databaseStorage = new DatabaseStorage();
