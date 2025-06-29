@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Heart, Calendar, Users, MapPin, MessageCircle, Clock, Star, ChevronDown, Award } from "lucide-react";
+import { Send, Heart, Calendar, Users, MapPin, MessageCircle, Clock, Star, ChevronDown, Award, ArrowLeft, Pin } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -43,6 +43,7 @@ export default function CommunityPage() {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [pinnedEvents, setPinnedEvents] = useState<number[]>([]);
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -102,14 +103,30 @@ export default function CommunityPage() {
     }
   });
 
-  // Fetch scraped events for this community
-  const { data: scrapedEvents, isLoading: scrapedEventsLoading } = useQuery({
-    queryKey: ["/api/communities", communityId, "scraped-events"],
+  // Fetch partner events that are contextually relevant to this community
+  const { data: partnerEvents, isLoading: partnerEventsLoading } = useQuery({
+    queryKey: ["/api/events", "global", communityId],
     enabled: !!communityId,
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/scraped-events`);
-      if (!response.ok) throw new Error('Failed to fetch scraped events');
-      return response.json();
+      const response = await fetch("/api/events/global");
+      if (!response.ok) throw new Error('Failed to fetch partner events');
+      const allPartnerEvents = await response.json();
+      
+      // Filter events that are contextually relevant to this community's theme
+      return allPartnerEvents.filter((event: Event) => {
+        const eventCategories = event.category?.toLowerCase() || '';
+        const eventTitle = event.title?.toLowerCase() || '';
+        const eventDescription = event.description?.toLowerCase() || '';
+        const communityCategory = community?.category?.toLowerCase() || '';
+        const communityName = community?.name?.toLowerCase() || '';
+        
+        // Check if event is relevant to community theme
+        return eventCategories.includes(communityCategory) ||
+               eventTitle.includes(communityCategory) ||
+               eventDescription.includes(communityCategory) ||
+               eventTitle.includes(communityName.split(' ')[0]) ||
+               eventDescription.includes(communityName.split(' ')[0]);
+      }).slice(0, 3); // Limit to 3 most relevant events
     }
   });
 
@@ -258,11 +275,18 @@ export default function CommunityPage() {
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
-        {/* Minimalist Header - Only Community Title */}
+        {/* Clean Header with Back Button and Community Title */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4 sm:mb-6">
           <div className="responsive-padding border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
+              <div className="flex items-center space-x-3">
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
+              </div>
               <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
@@ -389,43 +413,67 @@ export default function CommunityPage() {
             {/* Events Tab */}
             <TabsContent value="events" className="mt-0">
               <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-                {scrapedEventsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                ) : scrapedEvents?.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No events found for this community yet.</p>
-                  </div>
-                ) : (
+                
+                {/* Featured Partner Events Section */}
+                {partnerEvents && partnerEvents.length > 0 && (
                   <div className="space-y-3">
-                    {scrapedEvents?.map((event: any) => (
-                      <Card key={event.id} className="hover:shadow-md transition-shadow">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Pin className="w-4 h-4 text-amber-500" />
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Featured Events</h3>
+                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                        Partner Events
+                      </Badge>
+                    </div>
+                    {partnerEvents.map((event: Event) => (
+                      <Card key={`partner-${event.id}`} className="border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10">
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400">
+                                  Featured
+                                </Badge>
+                                <button
+                                  onClick={() => {
+                                    const newPinned = pinnedEvents.includes(event.id!) 
+                                      ? pinnedEvents.filter(id => id !== event.id)
+                                      : [...pinnedEvents, event.id!];
+                                    setPinnedEvents(newPinned);
+                                    toast({
+                                      title: pinnedEvents.includes(event.id!) ? "Event Unpinned" : "Event Pinned",
+                                      description: pinnedEvents.includes(event.id!) ? "Removed from your pinned events" : "Added to your pinned events",
+                                    });
+                                  }}
+                                  className={`p-1 rounded-full transition-colors ${
+                                    pinnedEvents.includes(event.id!) 
+                                      ? 'text-amber-600 hover:text-amber-700' 
+                                      : 'text-gray-400 hover:text-amber-500'
+                                  }`}
+                                >
+                                  <Pin className="w-3 h-3" />
+                                </button>
+                              </div>
                               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{event.title}</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{event.description}</p>
                               <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                                 <div className="flex items-center space-x-1">
                                   <Calendar className="w-3 h-3" />
-                                  <span>{format(parseISO(event.date), 'MMM d, yyyy')}</span>
+                                  <span>{format(new Date(event.date), 'MMM d, yyyy')}</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                   <MapPin className="w-3 h-3" />
                                   <span>{event.location}</span>
                                 </div>
                                 {event.price && (
-                                  <span className="font-medium">${event.price}</span>
+                                  <span className="font-medium text-green-600 dark:text-green-400">${event.price}</span>
                                 )}
                               </div>
                             </div>
                             <Button
                               size="sm"
-                              onClick={() => joinEventMutation.mutate({ eventId: event.id, userId: user?.id! })}
+                              onClick={() => joinEventMutation.mutate({ eventId: event.id!, userId: user?.id! })}
                               disabled={joinEventMutation.isPending}
-                              className="ml-3 flex-shrink-0"
+                              className="bg-amber-500 hover:bg-amber-600 text-white"
                             >
                               Join Event
                             </Button>
@@ -435,6 +483,19 @@ export default function CommunityPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Loading and Empty States */}
+                {partnerEventsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (!partnerEvents || partnerEvents.length === 0) ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No relevant partner events available for this community yet.</p>
+                    <p className="text-sm mt-1">Check back later for featured events!</p>
+                  </div>
+                ) : null}
               </div>
             </TabsContent>
 
