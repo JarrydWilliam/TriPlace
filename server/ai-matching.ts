@@ -1,20 +1,60 @@
 import OpenAI from "openai";
 import { Community, User } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+// AI clients - supporting Groq, OpenAI, and xAI
 let openai: OpenAI | null = null;
+let groqAI: OpenAI | null = null;
+let grokAI: OpenAI | null = null;
 
-// Initialize OpenAI client with dynamic key checking
-function getOpenAIClient(): OpenAI | null {
+// Initialize AI clients with dynamic key checking
+function getAIClient(): OpenAI | null {
+  // Try Groq first (fastest inference)
+  if (!groqAI && process.env.GROQ_API_KEY) {
+    try {
+      groqAI = new OpenAI({ 
+        baseURL: "https://api.groq.com/openai/v1", 
+        apiKey: process.env.GROQ_API_KEY 
+      });
+      console.log('[AI] Groq client initialized successfully');
+      return groqAI;
+    } catch (error) {
+      console.error('[AI] Failed to initialize Groq client:', error);
+    }
+  }
+  
+  // Try xAI Grok as backup
+  if (!grokAI && process.env.XAI_API_KEY) {
+    try {
+      grokAI = new OpenAI({ 
+        baseURL: "https://api.x.ai/v1", 
+        apiKey: process.env.XAI_API_KEY 
+      });
+      console.log('[AI] Grok (xAI) client initialized successfully');
+      return grokAI;
+    } catch (error) {
+      console.error('[AI] Failed to initialize Grok client:', error);
+    }
+  }
+  
+  // Fallback to OpenAI
   if (!openai && process.env.OPENAI_API_KEY) {
     try {
       openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       console.log('[AI] OpenAI client initialized successfully');
+      return openai;
     } catch (error) {
       console.error('[AI] Failed to initialize OpenAI client:', error);
     }
   }
-  return openai;
+  
+  return groqAI || grokAI || openai;
+}
+
+// Get the appropriate AI model based on available client
+function getAIModel(): string {
+  if (groqAI) return "llama-3.1-70b-versatile"; // Groq's best model for versatile tasks
+  if (grokAI) return "grok-2-1212"; // xAI Grok's best text model
+  return "gpt-4o"; // OpenAI fallback
 }
 
 interface MatchingResult {
@@ -49,10 +89,10 @@ export class AIMatchingEngine {
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // Get OpenAI client dynamically
-    const client = getOpenAIClient();
+    // Get AI client (Grok or OpenAI)
+    const client = getAIClient();
     if (!client) {
-      console.log('[AI] OpenAI client not available for dynamic community generation');
+      console.log('[AI] No AI client available for dynamic community generation');
       return [];
     }
 
@@ -102,8 +142,8 @@ Respond with JSON:
   ]
 }`;
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const response = await client.chat.completions.create({
+        model: getAIModel(),
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
         max_tokens: 2000
@@ -133,8 +173,9 @@ Respond with JSON:
     availableCommunities: Community[],
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
-    // If OpenAI is not available, use fallback matching immediately
-    if (!openai) {
+    // Get AI client (Grok or OpenAI)
+    const client = getAIClient();
+    if (!client) {
       return this.fallbackMatching(user, availableCommunities);
     }
 
@@ -187,8 +228,8 @@ Respond with JSON:
 Only include matches scoring 70+ for quality connections.
 `;
 
-      const response = await openai!.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await client.chat.completions.create({
+        model: getAIModel(),
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
         temperature: 0.4
@@ -278,8 +319,9 @@ COMMUNITY GAPS TO ADDRESS:
   }
 
   async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
-    // If OpenAI is not available, return empty array
-    if (!openai) {
+    // Get AI client (Grok or OpenAI)
+    const client = getAIClient();
+    if (!client) {
       return [];
     }
 
@@ -316,8 +358,8 @@ Respond with JSON:
 }
 `;
 
-      const response = await openai!.chat.completions.create({
-        model: "gpt-4o",
+      const response = await client.chat.completions.create({
+        model: getAIModel(),
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
         temperature: 0.7
