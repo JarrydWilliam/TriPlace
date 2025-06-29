@@ -458,6 +458,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get global partner events
+  app.get("/api/events/global", async (req, res) => {
+    try {
+      const events = await storage.getAllEvents();
+      // Filter to only global/partner events that are approved
+      const globalEvents = events.filter(event => 
+        event.isGlobal === true && 
+        event.status === "approved"
+      );
+      res.json(globalEvents);
+    } catch (error) {
+      console.error("Error fetching global events:", error);
+      res.status(500).json({ message: "Failed to fetch global events" });
+    }
+  });
+
   // Message routes
   app.get("/api/conversations/:userId1/:userId2", async (req, res) => {
     try {
