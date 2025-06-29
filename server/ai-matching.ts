@@ -4,9 +4,17 @@ import { Community, User } from "@shared/schema";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 let openai: OpenAI | null = null;
 
-// Initialize OpenAI client only if API key is available
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI client with dynamic key checking
+function getOpenAIClient(): OpenAI | null {
+  if (!openai && process.env.OPENAI_API_KEY) {
+    try {
+      openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      console.log('[AI] OpenAI client initialized successfully');
+    } catch (error) {
+      console.error('[AI] Failed to initialize OpenAI client:', error);
+    }
+  }
+  return openai;
 }
 
 interface MatchingResult {
@@ -41,8 +49,10 @@ export class AIMatchingEngine {
     allUsers: User[],
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // If OpenAI is not available, return empty array
-    if (!openai) {
+    // Get OpenAI client dynamically
+    const client = getOpenAIClient();
+    if (!client) {
+      console.log('[AI] OpenAI client not available for dynamic community generation');
       return [];
     }
 
