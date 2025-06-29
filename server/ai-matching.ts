@@ -103,7 +103,16 @@ Respond with valid JSON containing exactly 5 communities:
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 
-    const result = JSON.parse(content);
+    // Extract JSON from markdown code blocks
+    let cleanContent = content;
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      cleanContent = jsonMatch[1].trim();
+    } else {
+      cleanContent = content.replace(/```\s*|\s*```/g, '').trim();
+    }
+    
+    const result = JSON.parse(cleanContent);
     const communities = result.emergentCommunities || [];
     
     // Ensure exactly 5 communities are returned
@@ -245,7 +254,9 @@ Only include matches scoring 70+ for quality connections.
         return this.fallbackMatching(user, availableCommunities);
       }
 
-      const result = JSON.parse(content);
+      // Clean up markdown code blocks and parse JSON
+      const cleanContent = content.replace(/```json\s*|\s*```/g, '').trim();
+      const result = JSON.parse(cleanContent);
       return result.matches
         .filter((match: any) => match.compatibilityScore >= 70)
         .map((match: any) => {
