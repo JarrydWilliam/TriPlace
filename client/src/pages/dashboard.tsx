@@ -165,7 +165,8 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Failed to fetch recommendations');
       return response.json();
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always fetch fresh data for recommendations
+    refetchOnMount: true,
   });
 
   // Join community with rotation mutation
@@ -177,8 +178,16 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
+      // Invalidate all relevant queries with specific parameters
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/communities/recommended", latitude, longitude, user?.id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/users", user?.id, "active-communities"] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/users", user?.id, "communities"] 
+      });
       
       if (data.dropped) {
         toast({
