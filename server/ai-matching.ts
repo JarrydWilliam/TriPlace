@@ -9,23 +9,6 @@ if (process.env.OPENAI_API_KEY) {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
-interface MatchingResult {
-  score: number;
-  reasoning: string;
-  personalizedDescription: string;
-  suggestedRole?: string;
-}
-
-interface CommunityRecommendation {
-  community: Community;
-  matchScore: number;
-  reasoning: string;
-  personalizedDescription: string;
-  suggestedRole?: string;
-  connectionType?: string;
-  growthPotential?: string;
-}
-
 interface GeneratedCommunity {
   name: string;
   description: string;
@@ -37,261 +20,195 @@ interface GeneratedCommunity {
 
 export class AIMatchingEngine {
   
-  async generateCommunityRecommendations(
-    user: User, 
-    availableCommunities: Community[],
+  async generateDynamicCommunities(
+    allUsers: User[],
+    targetUser: User,
     userLocation?: { lat: number, lon: number }
-  ): Promise<CommunityRecommendation[]> {
-    // If OpenAI is not available, use fallback matching immediately
+  ): Promise<GeneratedCommunity[]> {
+    // If OpenAI is not available, return empty array - no preset communities
     if (!openai) {
-      return this.fallbackMatching(user, availableCommunities);
+      return [];
     }
 
     try {
-      const userProfile = this.buildUserProfile(user);
+      const userProfile = this.buildUserProfile(targetUser);
       const locationContext = userLocation ? 
-        `User coordinates: ${userLocation.lat}, ${userLocation.lon} (prioritize communities within 50 miles)` : 
-        'Location not available - focus on virtual/remote compatibility';
+        `Target location: ${userLocation.lat}, ${userLocation.lon} (create communities within 50-100 mile radius)` : 
+        'Location not available - focus on virtual communities';
+      
+      // Analyze collective user patterns for community generation
+      const collectiveInterests = this.analyzeCollectivePatterns(allUsers, userLocation);
       
       const prompt = `
-You are an elite AI community curator for TriPlace. Create highly selective, dynamic community matches that feel personally crafted for each user.
+You are an AI community architect for TriPlace. Generate dynamic, ever-evolving communities based on collective user inputs and patterns.
 
-DYNAMIC MATCHING PHILOSOPHY:
-- Only recommend communities with 85%+ compatibility
-- Create selective experiences focused on quality connections
-- Analyze deep personality patterns from quiz responses
-- Consider growth trajectory and life goals alignment
-- Factor geographic proximity for meaningful in-person connections
-- Ensure diverse but complementary community portfolio
+CORE MISSION: Create meaningful "Third Place" communities that foster genuine platonic connections and shared growth.
 
-USER PROFILE:
+DYNAMIC COMMUNITY PHILOSOPHY:
+- Generate communities from collective user data patterns
+- Ensure 70%+ interest compatibility requirement
+- Focus on platonic relationships and community building
+- Create location-aware communities (50-100 mile geographic matching)
+- No preset communities - all communities emerge from actual user needs
+- Forever-changing based on evolving user inputs and interests
+
+TARGET USER PROFILE:
 ${userProfile}
 
 LOCATION CONTEXT:
 ${locationContext}
 
-AVAILABLE COMMUNITIES:
-${availableCommunities.map(c => `
-ID: ${c.id} | ${c.name} (${c.category})
-Description: ${c.description}
-Current Members: ${c.memberCount || 0}
-Location: ${c.location || 'Virtual'}
-`).join('\n')}
+COLLECTIVE USER PATTERNS:
+${collectiveInterests}
 
-SELECTIVE CRITERIA:
-1. Deep personality analysis from quiz responses
-2. Interest evolution and growth potential alignment
-3. Geographic relevance (50-mile preference for local communities)
-4. Complementary skill exchange opportunities
-5. Social chemistry and community dynamics fit
-6. Life stage and goal synchronization
-7. Unique value contribution potential
+COMMUNITY GENERATION REQUIREMENTS:
+1. 70%+ interest match requirement with target user
+2. Geographic relevance within 50-100 mile radius
+3. Focus on platonic connections and shared growth
+4. Remove any romantic/dating elements
+5. Create communities that evolve with user inputs
+6. Ensure meaningful third place community experiences
 
-Create 3-5 highly selective recommendations that would create meaningful, lasting connections. Each should feel uniquely tailored to this specific user's journey.
+Generate 3-5 dynamic communities that would naturally emerge from these collective patterns and serve the target user's growth journey.
 
 Respond with JSON:
 {
-  "selectiveMatches": [
+  "dynamicCommunities": [
     {
-      "communityId": number,
-      "compatibilityScore": number (70-100 range),
-      "deepReasoning": "Comprehensive analysis of why this user would thrive in this specific community",
-      "personalizedValue": "Unique value proposition tailored to their interests, goals, and growth trajectory",
-      "contributionRole": "Specific ways they could contribute based on their skills and experience",
-      "connectionType": "Type of meaningful relationships they'll likely form",
-      "growthPotential": "How this community supports their personal/professional development"
+      "name": "Community name that reflects collective interests",
+      "description": "Detailed description focusing on platonic connections and shared growth",
+      "category": "Appropriate category based on interests",
+      "targetLocation": "Geographic area within 50-100 miles",
+      "interestMatchScore": 85,
+      "collectiveNeed": "Why this community emerges from user patterns",
+      "thirdPlaceVision": "How this serves as a meaningful third place",
+      "estimatedMembers": 25,
+      "evolutionPotential": "How this community will evolve with user inputs"
     }
   ]
-}
+}`;
 
-Only include matches scoring 70+ for quality connections.
-`;
-
-      const response = await openai!.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.4
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{"selectiveMatches": []}');
-      
-      return result.selectiveMatches.map((match: any) => {
-        const community = availableCommunities.find(c => c.id === match.communityId);
-        if (!community) return null;
-        
-        return {
-          community,
-          matchScore: match.compatibilityScore / 100, // Convert to 0-1 scale
-          reasoning: match.deepReasoning,
-          personalizedDescription: match.personalizedValue,
-          suggestedRole: match.contributionRole,
-          connectionType: match.connectionType,
-          growthPotential: match.growthPotential
-        };
-      }).filter(Boolean);
-      
-    } catch (error) {
-      console.error('AI matching error:', error);
-      // Fallback to basic matching if AI fails
-      return this.fallbackMatching(user, availableCommunities);
-    }
-  }
-
-  async generateMissingCommunities(user: User): Promise<GeneratedCommunity[]> {
-    // If OpenAI is not available, return empty array
-    if (!openai) {
-      return [];
-    }
-
-    try {
-      const userProfile = this.buildUserProfile(user);
-      
-      const prompt = `
-Based on this user's unique profile, identify 3-5 communities that should exist but might not be available yet.
-
-USER PROFILE:
-${userProfile}
-
-Think creatively about communities that would serve their specific combination of:
-- Past experiences and skills they could share
-- Current interests and lifestyle
-- Future goals and aspirations
-- Personality preferences and social style
-- Geographic location and travel preferences
-
-Generate communities that would be perfect matches but might not exist in typical platforms.
-
-Respond with JSON:
-{
-  "communities": [
-    {
-      "name": "community name",
-      "description": "detailed description of community purpose and activities",
-      "category": "primary category",
-      "estimatedMemberCount": number (realistic estimate),
-      "suggestedLocation": "ideal location for this community",
-      "reasoning": "why this specific user would love and contribute to this community"
-    }
-  ]
-}
-`;
-
-      const response = await openai!.chat.completions.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.7
+        temperature: 0.7,
+        max_tokens: 2000
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{"communities": []}');
-      return result.communities || [];
+      const result = JSON.parse(response.choices[0]?.message?.content || "{}");
       
+      return result.dynamicCommunities?.map((community: any) => ({
+        name: community.name,
+        description: community.description,
+        category: community.category,
+        estimatedMemberCount: community.estimatedMembers || 0,
+        suggestedLocation: community.targetLocation,
+        reasoning: community.collectiveNeed
+      })) || [];
+
     } catch (error) {
-      console.error('AI community generation error:', error);
+      console.error('AI community generation failed:', error);
       return [];
     }
   }
 
   private buildUserProfile(user: User): string {
-    const profile = [];
-    
-    profile.push(`Name: ${user.name}`);
-    profile.push(`Location: ${user.location || 'Not specified'}`);
-    profile.push(`Bio: ${user.bio || 'No bio provided'}`);
-    
-    if (user.interests && user.interests.length > 0) {
-      profile.push(`Interests: ${user.interests.join(', ')}`);
-    }
-    
-    // Parse quiz answers if available
-    if (user.quizAnswers && typeof user.quizAnswers === 'object') {
+    if (!user.quizAnswers) return `User: ${user.name || 'Anonymous'}\nNo quiz data available`;
+
+    try {
       const quiz = user.quizAnswers as any;
-      
-      if (quiz.pastActivities) {
-        profile.push(`Past Activities: ${Array.isArray(quiz.pastActivities) ? quiz.pastActivities.join(', ') : quiz.pastActivities}`);
-      }
-      
-      if (quiz.pastActivitiesOther) {
-        profile.push(`Other Past Activities: ${quiz.pastActivitiesOther}`);
-      }
-      
-      if (quiz.volunteered) {
-        profile.push(`Volunteering Experience: ${quiz.volunteered}`);
-        if (quiz.volunteerDescription) {
-          profile.push(`Volunteer Details: ${quiz.volunteerDescription}`);
-        }
-      }
-      
-      if (quiz.pastHobby) {
-        profile.push(`Past Hobby: ${quiz.pastHobby}`);
-      }
-      
-      if (quiz.currentInterests) {
-        profile.push(`Current Interests: ${Array.isArray(quiz.currentInterests) ? quiz.currentInterests.join(', ') : quiz.currentInterests}`);
-      }
-      
-      if (quiz.currentInterestsOther) {
-        profile.push(`Other Current Interests: ${quiz.currentInterestsOther}`);
-      }
-      
-      if (quiz.weekendActivities) {
-        profile.push(`Weekend Activities: ${Array.isArray(quiz.weekendActivities) ? quiz.weekendActivities.join(', ') : quiz.weekendActivities}`);
-      }
-      
-      if (quiz.lifestyleParts) {
-        profile.push(`Important Lifestyle Parts: ${Array.isArray(quiz.lifestyleParts) ? quiz.lifestyleParts.join(', ') : quiz.lifestyleParts}`);
-      }
-      
-      if (quiz.futureGoal) {
-        profile.push(`Primary Future Goal: ${quiz.futureGoal}`);
-      }
-      
-      if (quiz.futureGoals) {
-        profile.push(`Future Goals: ${Array.isArray(quiz.futureGoals) ? quiz.futureGoals.join(', ') : quiz.futureGoals}`);
-      }
-      
-      if (quiz.dreamCommunity) {
-        profile.push(`Dream Community: ${quiz.dreamCommunity}`);
-      }
-      
-      if (quiz.groupPreference) {
-        profile.push(`Group Preference: ${quiz.groupPreference}`);
-      }
-      
-      if (quiz.travelDistance) {
-        profile.push(`Travel Distance: ${quiz.travelDistance}`);
-      }
-      
-      if (quiz.connectionTypes) {
-        profile.push(`Connection Types: ${Array.isArray(quiz.connectionTypes) ? quiz.connectionTypes.join(', ') : quiz.connectionTypes}`);
-      }
-      
-      if (quiz.dreamCommunityName) {
-        profile.push(`Dream Community Name: ${quiz.dreamCommunityName}`);
-      }
-      
-      if (quiz.idealVibe) {
-        profile.push(`Ideal Community Vibe: ${quiz.idealVibe}`);
-      }
-      
-      if (quiz.personalIntro) {
-        profile.push(`Personal Intro: ${quiz.personalIntro}`);
-      }
+      return `
+User: ${user.name || 'Anonymous'}
+Location: ${user.location || 'Not specified'}
+
+Past Experiences: ${quiz.pastActivities?.join(', ') || 'Not specified'}
+Volunteer Experience: ${quiz.volunteered || 'Not specified'}
+Past Hobby: ${quiz.pastHobby || 'Not specified'}
+
+Current Interests: ${quiz.currentInterests?.join(', ') || 'Not specified'}
+Weekend Activities: ${quiz.weekendActivities?.join(', ') || 'Not specified'}
+Lifestyle: ${quiz.lifestyleParts?.join(', ') || 'Not specified'}
+
+Future Goals: ${quiz.futureGoals?.join(', ') || 'Not specified'}
+Dream Community: ${quiz.dreamCommunity || 'Not specified'}
+
+Group Preference: ${quiz.groupPreference || 'Not specified'}
+Travel Distance: ${quiz.travelDistance || 'Not specified'}
+Connection Types: ${quiz.connectionTypes?.join(', ') || 'Not specified'}
+
+Dream Community Name: ${quiz.dreamCommunityName || 'Not specified'}
+Ideal Vibe: ${quiz.idealVibe || 'Not specified'}
+Personal Intro: ${quiz.personalIntro || 'Not specified'}
+      `.trim();
+    } catch (e) {
+      return `User: ${user.name || 'Anonymous'}\nQuiz data parsing error`;
     }
-    
-    return profile.join('\n');
   }
 
-  private fallbackMatching(user: User, communities: Community[]): CommunityRecommendation[] {
-    // Simple fallback matching logic
-    return communities.slice(0, 3).map(community => ({
-      community,
-      matchScore: 0.6,
-      reasoning: "Basic compatibility match",
-      personalizedDescription: `${community.description} - This community aligns with your interests and location.`,
-      suggestedRole: "Active member"
-    }));
+  private analyzeCollectivePatterns(allUsers: User[], userLocation?: { lat: number, lon: number }): string {
+    if (!allUsers.length) return "No user data available for pattern analysis";
+
+    // Analyze interests across all users
+    const allInterests: string[] = [];
+    const locationPatterns: string[] = [];
+    const goalPatterns: string[] = [];
+
+    allUsers.forEach(user => {
+      if (user.interests?.length) {
+        allInterests.push(...user.interests);
+      }
+      if (user.quizAnswers) {
+        try {
+          const quiz = user.quizAnswers as any;
+          if (quiz.currentInterests) allInterests.push(...quiz.currentInterests);
+          if (quiz.futureGoals) goalPatterns.push(...quiz.futureGoals);
+          if (user.latitude && user.longitude && userLocation) {
+            const distance = this.calculateDistance(
+              parseFloat(user.latitude), parseFloat(user.longitude),
+              userLocation.lat, userLocation.lon
+            );
+            if (distance <= 100) {
+              locationPatterns.push(`User within ${Math.round(distance)} miles`);
+            }
+          }
+        } catch (e) {
+          // Skip invalid quiz data
+        }
+      }
+    });
+
+    // Count interest frequencies
+    const interestCounts = allInterests.reduce((acc, interest) => {
+      acc[interest] = (acc[interest] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topInterests = Object.entries(interestCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([interest, count]) => `${interest} (${count} users)`);
+
+    return `
+Top Collective Interests: ${topInterests.join(", ")}
+Geographic Distribution: ${locationPatterns.length} users within 100 miles
+Common Goals: ${goalPatterns.slice(0, 5).join(", ")}
+Total User Base: ${allUsers.length} users
+    `.trim();
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLon = this.toRadians(lon2 - lon1);
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 }
 

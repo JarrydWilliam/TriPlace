@@ -76,55 +76,7 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      const communityData = [
-        {
-          name: "Mindful Yoga SF",
-          description: "Weekly yoga sessions in Golden Gate Park. Focus on mindfulness, meditation, and inner peace.",
-          category: "wellness",
-          image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-          memberCount: 248,
-          location: "San Francisco, CA",
-          isActive: true
-        },
-        {
-          name: "Bay Area Tech Innovators",
-          description: "Connect with developers, entrepreneurs, and tech enthusiasts. Weekly meetups on programming and startups.",
-          category: "tech",
-          image: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-          memberCount: 156,
-          location: "San Francisco, CA",
-          isActive: true
-        },
-        {
-          name: "Urban Sketchers Collective",
-          description: "Explore the city with fellow artists. Weekly drawing sessions at iconic locations across the Bay Area.",
-          category: "creative",
-          image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-          memberCount: 89,
-          location: "San Francisco, CA",
-          isActive: true
-        },
-        {
-          name: "Weekend Warriors Hiking Club",
-          description: "Adventure seekers unite! Explore trails, peaks, and hidden gems in Northern California.",
-          category: "outdoor",
-          image: "https://images.unsplash.com/photo-1551632811-561732d1e306?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-          memberCount: 312,
-          location: "San Francisco, CA",
-          isActive: true
-        },
-        {
-          name: "Culinary Explorers Society",
-          description: "Discover new flavors and cooking techniques. Monthly potlucks and restaurant adventures.",
-          category: "food",
-          image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300",
-          memberCount: 203,
-          location: "San Francisco, CA",
-          isActive: true
-        }
-      ];
-
-      await db.insert(communities).values(communityData);
+      // No preset communities - all communities will be AI-generated based on collective user inputs
 
       const eventData = [
         {
