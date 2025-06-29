@@ -474,6 +474,17 @@ Changelog:
   - ChatGPT community generation now operates on completely authentic user data
   - All features display appropriate empty states until users generate real content
   - Application ready for live deployment with zero artificial or demo implementations
+
+- June 29, 2025. Fixed critical location bug in ChatGPT community generation system
+  - Resolved hardcoded San Francisco fallback issue where ChatGPT generated location-specific communities regardless of user's actual location
+  - Added reverse geocoding to convert GPS coordinates to actual city names before sending to ChatGPT
+  - Fixed location update API route that was hardcoded to user ID 1, now properly accepts dynamic user IDs
+  - Updated geolocation hook to accept user ID parameter and send it with location data to backend
+  - Enhanced location debugging with comprehensive logging throughout the data flow pipeline
+  - ChatGPT now receives actual city names (e.g., "San Francisco, California") instead of raw coordinates
+  - Location data properly flows from frontend GPS → backend database → ChatGPT prompts for accurate community generation
+  - All components (dashboard, sidebar, community pages) now pass user ID to geolocation hook for proper location tracking
+  - System generates location-appropriate community names based on user's real geographic location
 ```
 
 ## User Preferences

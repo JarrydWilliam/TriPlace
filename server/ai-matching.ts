@@ -263,7 +263,7 @@ Only include matches scoring 70+ for quality connections.
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 400
       });
 
       const content = response.choices[0]?.message?.content;
@@ -272,16 +272,30 @@ Only include matches scoring 70+ for quality connections.
         return this.fallbackMatching(user, availableCommunities);
       }
 
-      // Extract JSON from markdown code blocks
+      // Extract JSON from markdown code blocks or find JSON object
       let cleanContent = content;
+      
+      // First try to find JSON in code blocks
       const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
         cleanContent = jsonMatch[1].trim();
       } else {
-        cleanContent = content.replace(/```\s*|\s*```/g, '').trim();
+        // Look for JSON object pattern
+        const jsonObjectMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonObjectMatch) {
+          cleanContent = jsonObjectMatch[0];
+        } else {
+          cleanContent = content.replace(/```\s*|\s*```/g, '').trim();
+        }
       }
       
-      const result = JSON.parse(cleanContent);
+      let result;
+      try {
+        result = JSON.parse(cleanContent);
+      } catch (parseError) {
+        console.error('JSON parsing failed, using fallback matching:', parseError);
+        return this.fallbackMatching(user, availableCommunities);
+      }
       return result.matches
         .filter((match: any) => match.compatibilityScore >= 70)
         .map((match: any) => {
