@@ -4,17 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Users, MapPin, Calendar, Sparkles } from "lucide-react";
+import { ArrowLeft, Users, MapPin, Calendar, Sparkles, Sun, Moon } from "lucide-react";
 import { Community, Event } from "@shared/schema";
 import { useState } from "react";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTheme } from "@/lib/theme-context";
 
 export default function CommunitiesPage() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude } = useGeolocation(user?.id);
   const queryClient = useQueryClient();
+  const { theme, toggleTheme } = useTheme();
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -87,7 +89,7 @@ export default function CommunitiesPage() {
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
-        {/* Header with Back Button */}
+        {/* Header with Back Button and Theme Toggle */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <Link href="/dashboard">
@@ -98,6 +100,14 @@ export default function CommunitiesPage() {
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Communities</h1>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="p-2"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
         </div>
 
         {/* Partner Events Section */}
