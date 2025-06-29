@@ -23,7 +23,7 @@ export function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [platform, setPlatform] = useState<'desktop' | 'mobile' | 'unknown'>('unknown');
+  const [platform, setPlatform] = useState<'desktop' | 'mobile' | 'ios' | 'android' | 'unknown'>('unknown');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -37,7 +37,15 @@ export function PWAInstall() {
     // Detect platform
     const detectPlatform = () => {
       const userAgent = navigator.userAgent.toLowerCase();
-      if (/mobile|android|iphone|ipad|tablet/.test(userAgent)) {
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+      const isMobile = /mobile|android|iphone|ipad|tablet/.test(userAgent);
+      
+      if (isIOS) {
+        setPlatform('ios');
+      } else if (isAndroid) {
+        setPlatform('android');
+      } else if (isMobile) {
         setPlatform('mobile');
       } else {
         setPlatform('desktop');
@@ -54,7 +62,7 @@ export function PWAInstall() {
         if (!isInstalled) {
           setShowInstallDialog(true);
         }
-      }, 3000);
+      }, 2000);
     };
 
     // Listen for app installed event
@@ -70,8 +78,20 @@ export function PWAInstall() {
     checkInstalled();
     detectPlatform();
     
+    // Auto-show installation prompt for iOS and Android after delay
+    const autoShowPrompt = () => {
+      setTimeout(() => {
+        if (!isInstalled && (platform === 'ios' || platform === 'android' || platform === 'mobile')) {
+          setShowInstallDialog(true);
+        }
+      }, 3000);
+    };
+    
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
+    
+    // Show prompt for iOS/Android devices even without beforeinstallprompt
+    autoShowPrompt();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -179,38 +199,111 @@ export function PWAInstall() {
             </div>
           </div>
           
-          <div className="space-y-2">
-            {deferredPrompt ? (
-              <Button
-                onClick={handleInstall}
-                className="w-full"
-                size="lg"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Install TriPlace
-              </Button>
-            ) : (
-              <div className="text-center space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {getInstallInstructions()}
-                </p>
-                <Button
+          <div className="space-y-3">
+            {platform === 'ios' ? (
+              <div className="text-center space-y-4">
+                <div className="text-4xl">📱</div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Add to iPhone Home Screen</h3>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-left">
+                    <ol className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+                        <span>Tap the <strong>Share</strong> button (📤) at the bottom of Safari</span>
+                      </li>
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                        <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+                      </li>
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+                        <span>Tap <strong>"Add"</strong> to install TriPlace</span>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+                <Button 
                   onClick={() => setShowInstallDialog(false)}
-                  variant="outline"
                   className="w-full"
+                  size="lg"
                 >
-                  Got it!
+                  Got it, thanks!
+                </Button>
+              </div>
+            ) : platform === 'android' ? (
+              <div className="text-center space-y-4">
+                <div className="text-4xl">🤖</div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Install on Android</h3>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-left">
+                    <ol className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+                        <span>Tap the <strong>menu</strong> button (⋮) in your browser</span>
+                      </li>
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                        <span>Select <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></span>
+                      </li>
+                      <li className="flex items-start space-x-2">
+                        <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+                        <span>Tap <strong>"Install"</strong> to add TriPlace to your home screen</span>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  {deferredPrompt && (
+                    <Button onClick={handleInstall} className="flex-1" size="lg">
+                      <Download className="w-4 h-4 mr-2" />
+                      Install Now
+                    </Button>
+                  )}
+                  <Button 
+                    variant={deferredPrompt ? "outline" : "default"}
+                    onClick={() => setShowInstallDialog(false)}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Got it!
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center space-y-3">
+                {deferredPrompt ? (
+                  <Button
+                    onClick={handleInstall}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Install TriPlace
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {getInstallInstructions()}
+                    </p>
+                    <Button
+                      onClick={() => setShowInstallDialog(false)}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Got it!
+                    </Button>
+                  </div>
+                )}
+                
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowInstallDialog(false)}
+                  className="w-full text-sm"
+                >
+                  Maybe later
                 </Button>
               </div>
             )}
-            
-            <Button
-              variant="ghost"
-              onClick={() => setShowInstallDialog(false)}
-              className="w-full text-sm"
-            >
-              Maybe later
-            </Button>
           </div>
         </div>
       </DialogContent>

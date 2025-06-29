@@ -436,6 +436,7 @@ Changelog:
   - Complete fresh start experience ensuring every user begins with personalized community discovery
   - Application fully prepared for production deployment with zero development implementations
   - Removed final romantic relationship references from onboarding quiz for pure platonic community focus
+  - Enhanced PWA installation popup with automatic device detection for iOS and Android users at login page
 ```
 
 ## User Preferences
