@@ -428,6 +428,14 @@ Changelog:
   - Added Tailwind utility classes for safe area padding (pt-safe, pb-safe, px-safe)
   - Optimized for React Native WebView deployment with native app experience
   - Pull-to-refresh triggers query invalidation for real-time data updates across all pages
+
+- June 29, 2025. Prepared fresh launch with proper new vs returning user flow
+  - Cleared all user data from database for clean production launch
+  - Implemented proper user flow: new users take onboarding quiz after login, returning users go directly to dashboard
+  - Enhanced authentication logic to check onboardingCompleted status for routing decisions
+  - Maintained QR code functionality in dashboard top banner for user sharing
+  - Onboarding completion properly sets onboardingCompleted flag in user profile
+  - Ready for production launch with clean slate and professional user experience
 ```
 
 ## User Preferences

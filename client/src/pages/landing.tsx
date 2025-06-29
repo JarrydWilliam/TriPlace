@@ -14,7 +14,13 @@ export default function Landing() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      // New users need to complete onboarding quiz first
+      if (!user.onboardingCompleted) {
+        navigate("/onboarding");
+      } else {
+        // Returning users go straight to dashboard
+        navigate("/dashboard");
+      }
     }
   }, [user, loading, navigate]);
 
