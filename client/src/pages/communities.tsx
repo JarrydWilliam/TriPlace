@@ -71,7 +71,8 @@ export default function CommunitiesPage() {
     if (description.includes("music")) tags.push("Music");
     if (description.includes("business") || description.includes("entrepreneur")) tags.push("Business");
     
-    return [...new Set(tags)]; // Remove duplicates
+    // Remove duplicates using filter
+    return tags.filter((tag, index) => tags.indexOf(tag) === index);
   };
 
   if (authLoading) {

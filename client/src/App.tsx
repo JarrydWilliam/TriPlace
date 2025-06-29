@@ -13,6 +13,7 @@ import Onboarding from "@/pages/onboarding";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
 import Community from "@/pages/community";
+import Communities from "@/pages/communities";
 import CreateEvent from "@/pages/create-event";
 import ProfileSettings from "@/pages/settings/profile";
 import AccountSettings from "@/pages/settings/account";
@@ -66,7 +67,7 @@ function Router() {
       <Route path="/settings/security" component={SecuritySettings} />
       <Route path="/settings/support" component={SupportSettings} />
       <Route path="/discover" component={Dashboard} />
-      <Route path="/communities" component={Dashboard} />
+      <Route path="/communities" component={Communities} />
       <Route path="/kudos" component={Dashboard} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />

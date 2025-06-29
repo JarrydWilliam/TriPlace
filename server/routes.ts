@@ -758,6 +758,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global events route for communities page
+  app.get("/api/events/global", async (req, res) => {
+    try {
+      // Get all global/partner events (events marked as global or from partners)
+      const allEvents = await storage.getAllEvents();
+      const globalEvents = allEvents.filter(event => 
+        event.isGlobal === true || 
+        event.eventType === "partner" ||
+        event.title?.toLowerCase().includes("partner") ||
+        new Date(event.date) >= new Date() // Future events only
+      ).slice(0, 10); // Limit to 10 most recent
+      
+      res.json(globalEvents);
+    } catch (error) {
+      console.error("Error fetching global events:", error);
+      res.status(500).json({ message: "Failed to fetch global events" });
+    }
+  });
+
   // Community messaging routes
   app.get("/api/communities/:id/messages", async (req, res) => {
     try {

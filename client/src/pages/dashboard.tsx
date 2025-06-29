@@ -601,9 +601,16 @@ export default function Dashboard() {
             {/* Discovery Suggestions */}
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5" />
-                  <span>Communities That Grow With You</span>
+                <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="w-5 h-5" />
+                    <span>Communities That Grow With You</span>
+                  </div>
+                  <Link href="/communities">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      View All
+                    </Button>
+                  </Link>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
