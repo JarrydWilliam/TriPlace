@@ -7,7 +7,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or, asc } from "drizzle-orm";
-import { aiMatcher } from "./ai-matching";
+import { aiMatcher } from "./ai-matching-fixed";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;

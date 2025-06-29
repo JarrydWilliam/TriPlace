@@ -121,7 +121,7 @@ export class AIMatchingEngine {
       .split(/\s+/)
       .filter(word => word.length > 3);
     
-    return [...new Set(words)];
+    return Array.from(new Set(words));
   }
 
   private calculateInterestOverlap(userInterests: string[], communityInterests: string[]): number {
@@ -131,11 +131,11 @@ export class AIMatchingEngine {
     const communitySet = new Set(communityInterests.map(i => i.toLowerCase()));
     
     let matches = 0;
-    for (const interest of userSet) {
+    userSet.forEach(interest => {
       if (communitySet.has(interest)) {
         matches++;
       }
-    }
+    });
     
     return Math.max(Math.round((matches / userInterests.length) * 100), 75);
   }
