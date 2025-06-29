@@ -25,7 +25,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation();
-  const { theme, toggleTheme } = useTheme();
+  // const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -229,14 +229,7 @@ export default function Dashboard() {
               {/* Mobile - Action buttons with larger touch targets */}
               <div className="flex items-center justify-end space-x-3 sm:space-x-2">
                 <ShareQR />
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={toggleTheme}
-                  className="text-white hover:bg-white/20 min-h-[44px] min-w-[44px]"
-                >
-                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </Button>
+                {/* Theme toggle temporarily disabled */}
                 
                 {/* Settings Dropdown Menu */}
                 <DropdownMenu>
