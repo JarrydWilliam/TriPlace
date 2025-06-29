@@ -21,6 +21,8 @@ export interface IStorage {
   getCommunitiesByCategory(category: string): Promise<Community[]>;
   getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]>;
   generateDynamicCommunities(userId: number): Promise<Community[]>;
+  updateCommunityActivityTimestamp(communityId: number): Promise<void>;
+  cleanupInactiveCommunities(): Promise<number>;
   getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles?: number): Promise<User[]>;
   getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }>;
   createCommunity(community: InsertCommunity): Promise<Community>;
@@ -268,10 +270,7 @@ export class DatabaseStorage implements IStorage {
             name: genCommunity.name,
             description: genCommunity.description,
             category: genCommunity.category,
-            location: genCommunity.suggestedLocation,
-            memberCount: 0,
-            isPrivate: false,
-            isActive: true
+            location: genCommunity.suggestedLocation
           });
           
           createdCommunities.push(newCommunity);
@@ -285,6 +284,50 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error generating dynamic communities:', error);
       return [];
+    }
+  }
+
+  async updateCommunityActivityTimestamp(communityId: number): Promise<void> {
+    try {
+      await db.update(communities)
+        .set({ lastActivityAt: new Date() })
+        .where(eq(communities.id, communityId));
+    } catch (error) {
+      console.error('Error updating community activity timestamp:', error);
+    }
+  }
+
+  async cleanupInactiveCommunities(): Promise<number> {
+    try {
+      // Calculate date 30 days ago
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Get communities with no activity for 30+ days
+      const inactiveCommunities = await db.select()
+        .from(communities)
+        .where(and(
+          eq(communities.isActive, true),
+          sql`last_activity_at < ${thirtyDaysAgo}`
+        ));
+
+      let deletedCount = 0;
+
+      for (const community of inactiveCommunities) {
+        // Delete associated data first
+        await db.delete(communityMembers).where(eq(communityMembers.communityId, community.id));
+        
+        // Delete the community
+        await db.delete(communities).where(eq(communities.id, community.id));
+        
+        deletedCount++;
+        console.log(`Deleted inactive community: ${community.name} (inactive since ${community.lastActivityAt})`);
+      }
+
+      return deletedCount;
+    } catch (error) {
+      console.error('Error cleaning up inactive communities:', error);
+      return 0;
     }
   }
 

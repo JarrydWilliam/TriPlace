@@ -28,6 +28,7 @@ export const communities = pgTable("communities", {
   isActive: boolean("is_active").default(true),
   location: text("location"),
   createdAt: timestamp("created_at").defaultNow(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
 });
 
 export const communityMembers = pgTable("community_members", {
