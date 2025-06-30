@@ -428,32 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test OpenAI integration
-  app.post("/api/test-openai", async (req, res) => {
-    try {
-      console.log("Testing OpenAI integration...");
-      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
-      
-      if (!process.env.OPENAI_API_KEY) {
-        return res.json({ success: false, error: "No API key found", hasKey: false });
-      }
-      
-      const OpenAI = (await import("openai")).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
-        max_tokens: 10
-      });
-      
-      const content = response.choices[0]?.message?.content;
-      res.json({ success: true, response: content, hasKey: true });
-    } catch (error: any) {
-      console.error("OpenAI test failed:", error.message);
-      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
-    }
-  });
+
 
   app.get("/api/users/:id/events", async (req, res) => {
     try {
@@ -1065,57 +1040,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting user status:", error);
       res.status(500).json({ message: "Failed to set status" });
-    }
-  });
-
-  // Debug endpoint to add test member to community
-  app.post("/api/debug/communities/:id/add-test-member", async (req, res) => {
-    try {
-      const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ message: "Invalid community ID" });
-      }
-      
-      // Check if community exists
-      const community = await storage.getCommunity(communityId);
-      if (!community) {
-        return res.status(404).json({ message: "Community not found" });
-      }
-      
-      // Get or create a test user
-      let testUser = await storage.getUserByEmail('test@example.com');
-      if (!testUser) {
-        testUser = await storage.createUser({
-          firebaseUid: 'test-user-123',
-          name: 'Test User',
-          email: 'test@example.com',
-          interests: ['Technology', 'Fitness'],
-          bio: 'Test user for debugging',
-          location: 'Test Location',
-          latitude: '40.7128',
-          longitude: '-74.0060',
-          onboardingCompleted: true
-        });
-      }
-      
-      // Add user to community
-      const member = await storage.joinCommunity(testUser.id, communityId);
-      
-      // Set user as online
-      await storage.setUserOnlineStatus(testUser.id, true);
-      
-      res.json({
-        success: true,
-        message: `Added test user ${testUser.name} to community ${community.name}`,
-        member: member,
-        user: testUser
-      });
-    } catch (error) {
-      console.error("Error adding test member:", error);
-      res.status(500).json({ 
-        message: "Failed to add test member",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

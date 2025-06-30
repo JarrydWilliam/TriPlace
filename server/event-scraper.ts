@@ -502,17 +502,9 @@ export class EventScraper {
   }
 
   private getLocationName(userLocation: { lat: number, lon: number }): string {
-    // Simple location name mapping - in production, use reverse geocoding
-    if (userLocation.lat > 40 && userLocation.lat < 42 && userLocation.lon > -112 && userLocation.lon < -111) {
-      return 'Ogden-Utah';
-    }
-    if (userLocation.lat > 40 && userLocation.lat < 41 && userLocation.lon > -74 && userLocation.lon < -73) {
-      return 'New-York-NY';
-    }
-    if (userLocation.lat > 37 && userLocation.lat < 38 && userLocation.lon > -123 && userLocation.lon < -122) {
-      return 'San-Francisco-CA';
-    }
-    return 'Local';
+    // In production, this should use reverse geocoding service
+    // For now, return a generic location name that works with most APIs
+    return 'local';
   }
 
   private parseEventsFromHTML(html: string, community: Community): ScrapedEvent[] {
