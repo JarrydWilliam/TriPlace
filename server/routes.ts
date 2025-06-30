@@ -703,6 +703,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API routes for real-time member detection
+  app.get("/api/communities/:id/members/live", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      console.log(`Fetching live members for community ${communityId}`);
+      
+      // Check if community exists
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        console.log(`Community ${communityId} not found`);
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
+      console.log(`Found ${membersWithStatus.length} members for community ${communityId}`);
+      
+      // Only return live members (online within last 15 minutes)
+      const liveMembers = membersWithStatus.filter(member => member.isOnline);
+      const offlineMembers = membersWithStatus.filter(member => !member.isOnline);
+      
+      const response = {
+        online: liveMembers,
+        offline: offlineMembers,
+        totalLive: liveMembers.length,
+        totalMembers: membersWithStatus.length
+      };
+      
+      console.log(`Returning ${liveMembers.length} online and ${offlineMembers.length} offline members`);
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching live community members:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch live members",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Create community event
   app.post("/api/communities/:id/events", async (req, res) => {
     try {
@@ -994,26 +1036,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API routes for real-time member detection
-  app.get("/api/communities/:id/members/live", async (req, res) => {
-    try {
-      const communityId = parseInt(req.params.id);
-      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
-      
-      // Only return live members (online within last 15 minutes)
-      const liveMembers = membersWithStatus.filter(member => member.isOnline);
-      
-      res.json({
-        online: liveMembers,
-        offline: membersWithStatus.filter(member => !member.isOnline),
-        totalLive: liveMembers.length
-      });
-    } catch (error) {
-      console.error("Error fetching live community members:", error);
-      res.status(500).json({ message: "Failed to fetch live members" });
-    }
-  });
-
   // Update user activity (heartbeat)
   app.post("/api/users/:id/activity", async (req, res) => {
     try {
@@ -1036,6 +1058,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting user status:", error);
       res.status(500).json({ message: "Failed to set status" });
+    }
+  });
+
+  // Debug endpoint to add test member to community
+  app.post("/api/debug/communities/:id/add-test-member", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      // Check if community exists
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      // Get or create a test user
+      let testUser = await storage.getUserByEmail('test@example.com');
+      if (!testUser) {
+        testUser = await storage.createUser({
+          firebaseUid: 'test-user-123',
+          name: 'Test User',
+          email: 'test@example.com',
+          interests: ['Technology', 'Fitness'],
+          bio: 'Test user for debugging',
+          location: 'Test Location',
+          latitude: '40.7128',
+          longitude: '-74.0060',
+          onboardingCompleted: true
+        });
+      }
+      
+      // Add user to community
+      const member = await storage.joinCommunity(testUser.id, communityId);
+      
+      // Set user as online
+      await storage.setUserOnlineStatus(testUser.id, true);
+      
+      res.json({
+        success: true,
+        message: `Added test user ${testUser.name} to community ${community.name}`,
+        member: member,
+        user: testUser
+      });
+    } catch (error) {
+      console.error("Error adding test member:", error);
+      res.status(500).json({ 
+        message: "Failed to add test member",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

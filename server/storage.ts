@@ -765,28 +765,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommunityMembersWithStatus(communityId: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]> {
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    
-    const result = await db
-      .select()
-      .from(users)
-      .innerJoin(communityMembers, eq(users.id, communityMembers.userId))
-      .where(eq(communityMembers.communityId, communityId))
-      .orderBy(
-        desc(users.isOnline),
-        desc(users.lastActiveAt)
-      );
-
-    return result.map(({ users: user }) => {
-      const lastActive = user.lastActiveAt || new Date();
-      const isCurrentlyOnline = Boolean(user.isOnline) && lastActive > fifteenMinutesAgo;
+    try {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
       
-      return {
-        ...user,
-        isOnline: isCurrentlyOnline,
-        lastActiveAt: lastActive
-      };
-    });
+      // First check if the community exists
+      const community = await this.getCommunity(communityId);
+      if (!community) {
+        console.log(`Community ${communityId} not found`);
+        return [];
+      }
+      
+      // Get all members of this community with their online status
+      const result = await db
+        .select()
+        .from(users)
+        .innerJoin(communityMembers, eq(users.id, communityMembers.userId))
+        .where(eq(communityMembers.communityId, communityId))
+        .orderBy(
+          desc(users.isOnline),
+          desc(users.lastActiveAt)
+        );
+
+      console.log(`Found ${result.length} members for community ${communityId}`);
+
+      return result.map(({ users: user }) => {
+        const lastActive = user.lastActiveAt || new Date();
+        const isCurrentlyOnline = Boolean(user.isOnline) && lastActive > fifteenMinutesAgo;
+        
+        return {
+          ...user,
+          isOnline: isCurrentlyOnline,
+          lastActiveAt: lastActive
+        };
+      });
+    } catch (error) {
+      console.error(`Error getting community members with status for community ${communityId}:`, error);
+      return [];
+    }
   }
 }
 

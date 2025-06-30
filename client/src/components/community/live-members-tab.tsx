@@ -26,9 +26,23 @@ interface LiveMembersTabProps {
 export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
   const { memberUpdates } = useWebSocket();
   
-  const { data: membersData, isLoading, refetch } = useQuery<LiveMembersResponse>({
+  const { data: membersData, isLoading, error, refetch } = useQuery<LiveMembersResponse>({
     queryKey: ['/api/communities', communityId, 'members', 'live'],
+    queryFn: async () => {
+      console.log('Fetching live members for community:', communityId);
+      const response = await fetch(`/api/communities/${communityId}/members/live`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch live members:', response.status, errorText);
+        throw new Error(`Failed to fetch live members: ${response.status} ${errorText}`);
+      }
+      const data = await response.json();
+      console.log('Live members data received:', data);
+      return data;
+    },
     refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Apply real-time updates from WebSocket
@@ -75,6 +89,30 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
         <div className="text-center py-8">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
           <p className="text-gray-500 dark:text-gray-400">Loading live members...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="text-center py-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+            <Users className="w-8 h-8 text-red-500 dark:text-red-400" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2 text-red-600 dark:text-red-400">Error Loading Members</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error instanceof Error ? error.message : 'Failed to load community members'}
+          </p>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-900/20"
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
