@@ -723,23 +723,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
       console.log(`Found ${membersWithStatus.length} members for community ${communityId}`);
       
-      // Only return live members (online within last 15 minutes)
+      // Always return a valid response structure, even with no members
       const liveMembers = membersWithStatus.filter(member => member.isOnline);
       const offlineMembers = membersWithStatus.filter(member => !member.isOnline);
       
       const response = {
-        online: liveMembers,
-        offline: offlineMembers,
-        totalLive: liveMembers.length,
-        totalMembers: membersWithStatus.length
+        online: liveMembers || [],
+        offline: offlineMembers || [],
+        totalLive: liveMembers.length || 0,
+        totalMembers: membersWithStatus.length || 0,
+        communityId: communityId,
+        communityName: community.name
       };
       
       console.log(`Returning ${liveMembers.length} online and ${offlineMembers.length} offline members`);
       res.json(response);
     } catch (error) {
       console.error("Error fetching live community members:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch live members",
+      // Return empty response instead of error for better UX
+      res.json({
+        online: [],
+        offline: [],
+        totalLive: 0,
+        totalMembers: 0,
+        communityId: parseInt(req.params.id),
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
