@@ -31,19 +31,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const user = await storage.getUser(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.get("/api/users/:id", async (req, res) => {
-    try {
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
@@ -641,17 +628,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Community not found" });
       }
       
-      // Get events that match this community's category and are recent
-      const events = await storage.getEventsByCategory(community.category);
-      const recentEvents = events.filter(event => 
-        new Date(event.date) >= new Date() && // Future events only
-        new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
-      );
+      const latitude = parseFloat(req.query.latitude as string);
+      const longitude = parseFloat(req.query.longitude as string);
       
-      res.json(recentEvents);
+      let events: any[] = [];
+      
+      if (latitude && longitude) {
+        try {
+          // Use web scraping to get events for this community
+          const scrapedEvents = await eventScraper.scrapeEventsForCommunity(community, { lat: latitude, lon: longitude });
+          
+          // Convert scraped events to Event format
+          events = scrapedEvents.map(scrapedEvent => ({
+            id: Math.random() * 1000000, // Temporary ID for scraped events
+            title: scrapedEvent.title,
+            description: scrapedEvent.description,
+            organizer: scrapedEvent.organizerName || 'Event Organizer',
+            date: scrapedEvent.date,
+            location: scrapedEvent.location,
+            address: scrapedEvent.location,
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
+            category: scrapedEvent.category,
+            maxAttendees: scrapedEvent.attendeeCount || 50,
+            price: (scrapedEvent.price || 0).toString(),
+            sourceUrl: scrapedEvent.sourceUrl,
+            isScraped: true
+          }));
+        } catch (scrapingError) {
+          console.error('Web scraping failed, falling back to database events:', scrapingError);
+        }
+      }
+      
+      // Fallback to database events if web scraping failed or returned no events
+      if (events.length === 0) {
+        const dbEvents = await storage.getEventsByCategory(community.category);
+        const recentEvents = dbEvents.filter(event => 
+          new Date(event.date) >= new Date() && // Future events only
+          new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
+        );
+        
+        events = recentEvents.map(event => ({
+          ...event,
+          isScraped: false
+        }));
+      }
+      
+      res.json(events);
     } catch (error) {
       console.error('Error fetching scraped events:', error);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Get live member count for a community
+  app.get("/api/communities/:id/live-members-count", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
+      const liveMembers = membersWithStatus.filter(member => member.isOnline);
+      
+      res.json({
+        totalMembers: membersWithStatus.length,
+        liveMembers: liveMembers.length,
+        onlineMembers: liveMembers
+      });
+    } catch (error) {
+      console.error("Error fetching live member count:", error);
+      res.status(500).json({ message: "Failed to fetch member count" });
     }
   });
 

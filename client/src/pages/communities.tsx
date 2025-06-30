@@ -32,7 +32,33 @@ export default function CommunitiesPage() {
     queryFn: async () => {
       const response = await fetch("/api/communities");
       if (!response.ok) throw new Error("Failed to fetch communities");
-      return response.json();
+      const communities = await response.json();
+      
+      // Fetch live member counts for each community
+      const communitiesWithLiveCounts = await Promise.all(
+        communities.map(async (community: Community) => {
+          try {
+            const memberCountResponse = await fetch(`/api/communities/${community.id}/live-members-count`);
+            if (memberCountResponse.ok) {
+              const memberData = await memberCountResponse.json();
+              return {
+                ...community,
+                liveMemberCount: memberData.liveMembers,
+                totalMemberCount: memberData.totalMembers
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to fetch member count for community ${community.id}:`, error);
+          }
+          return {
+            ...community,
+            liveMemberCount: 0,
+            totalMemberCount: community.memberCount || 0
+          };
+        })
+      );
+      
+      return communitiesWithLiveCounts;
     }
   });
 
@@ -208,7 +234,7 @@ export default function CommunitiesPage() {
                       <div className="text-right">
                         <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">
                           <Users className="w-3 h-3" />
-                          <span>{community.memberCount || 0}</span>
+                          <span>{community.liveMemberCount} / {community.totalMemberCount}</span>
                         </div>
                       </div>
                     </div>
