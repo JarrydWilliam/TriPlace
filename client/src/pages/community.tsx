@@ -88,6 +88,24 @@ export default function CommunityPage() {
     staleTime: 0,
   });
 
+  // Fetch web-scraped events for this community
+  const { data: scrapedEvents, isLoading: scrapedEventsLoading } = useQuery({
+    queryKey: ["/api/communities", communityId, "scraped-events"],
+    enabled: !!communityId && !!latitude && !!longitude,
+    queryFn: async () => {
+      if (!latitude || !longitude) return [];
+      
+      const response = await fetch(`/api/communities/${communityId}/scraped-events?latitude=${latitude}&longitude=${longitude}`);
+      if (!response.ok) throw new Error('Failed to fetch scraped events');
+      const events = await response.json();
+      
+      // Sort events by date/time
+      return events.sort((a: Event, b: Event) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+    }
+  });
+
   // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -156,6 +174,33 @@ export default function CommunityPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
     }
+  });
+
+  // Event registration mutation
+  const joinEventMutation = useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: number, userId: number }) => {
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status: "attending" }),
+      });
+      if (!response.ok) throw new Error("Failed to join event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Joined",
+        description: "You've successfully joined this event! It will appear in your dashboard calendar.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to join event. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleSendMessage = () => {
@@ -388,10 +433,76 @@ export default function CommunityPage() {
             {/* Events Tab */}
             <TabsContent value="events" className="mt-0">
               <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Community events coming soon!</p>
-                </div>
+                
+                {/* Web-scraped Events Section */}
+                {scrapedEventsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : scrapedEvents?.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No events found for this community yet.</p>
+                    <p className="text-sm mt-1">Events are automatically discovered from local sources.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {scrapedEvents?.map((event: any) => (
+                      <Card key={event.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {event.category || 'Event'}
+                                </Badge>
+                                {event.sourceUrl && (
+                                  <Badge variant="outline" className="text-xs">
+                                    External
+                                  </Badge>
+                                )}
+                              </div>
+                              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{event.title}</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{event.description}</p>
+                              <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{format(new Date(event.date), 'MMM d, h:mm a')}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{event.location}</span>
+                                </div>
+                                {event.price && event.price !== "0" && (
+                                  <span className="font-medium text-green-600 dark:text-green-400">${event.price}</span>
+                                )}
+                                {event.attendeeCount && (
+                                  <div className="flex items-center space-x-1">
+                                    <Users className="w-3 h-3" />
+                                    <span>{event.attendeeCount} attending</span>
+                                  </div>
+                                )}
+                              </div>
+                              {event.organizerName && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Organized by {event.organizerName}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => joinEventMutation.mutate({ eventId: event.id, userId: user?.id! })}
+                              disabled={joinEventMutation.isPending}
+                              className="ml-3 flex-shrink-0"
+                            >
+                              Join Event
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
