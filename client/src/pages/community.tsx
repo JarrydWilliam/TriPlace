@@ -17,7 +17,6 @@ import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { format, parseISO } from "date-fns";
@@ -45,7 +44,6 @@ export default function CommunityPage() {
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
   const [newMessage, setNewMessage] = useState("");
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -252,27 +250,6 @@ export default function CommunityPage() {
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </Button>
-                <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Details</span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4 space-y-3">
-                    <p className="text-gray-600 dark:text-gray-400">{community.description}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{community.memberCount} members</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4" />
-                        <span>{community.category}</span>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
               </div>
             </div>
           </div>
@@ -313,6 +290,17 @@ export default function CommunityPage() {
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">{community.name}</h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{community.memberCount} members online</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{community.description}</p>
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{community.memberCount} members</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>{community.category}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
