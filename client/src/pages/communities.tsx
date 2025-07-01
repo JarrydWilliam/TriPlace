@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/lib/theme-context";
+import { BackToTop } from "@/components/ui/back-to-top";
 
 export default function CommunitiesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -246,6 +247,7 @@ export default function CommunitiesPage() {
         {/* Smooth scroll fade at bottom */}
         <div className="h-8 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none"></div>
       </div>
+      <BackToTop />
     </PullToRefresh>
   );
 }
