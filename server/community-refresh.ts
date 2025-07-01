@@ -76,10 +76,20 @@ export class CommunityRefreshService {
         await storage.leaveCommunity(userId, community.id);
       }
       
-      // Generate fresh communities
-      await storage.generateDynamicCommunities(userId);
+      // Generate fresh communities and assign user to them
+      const matchedCommunities = await storage.generateDynamicCommunities(userId);
       
-      console.log(`Community Refresh: Completed refresh for user ${userId}`);
+      // Join user to their matched communities
+      for (const community of matchedCommunities) {
+        try {
+          await storage.joinCommunity(userId, community.id);
+          console.log(`Community Refresh: Joined user ${userId} to "${community.name}"`);
+        } catch (joinError) {
+          console.error(`Community Refresh: Failed to join user ${userId} to "${community.name}":`, joinError);
+        }
+      }
+      
+      console.log(`Community Refresh: Completed refresh for user ${userId} - joined ${matchedCommunities.length} communities`);
     } catch (error) {
       console.error(`Community Refresh: Failed to refresh user ${userId}:`, error);
       throw error;
