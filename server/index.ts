@@ -3,26 +3,58 @@ import { registerRoutes } from "./routes";
 // Import vite utilities - conditionally loaded based on environment
 let setupVite: any, serveStatic: any, log: any;
 
-try {
-  const viteModule = require("./vite");
-  setupVite = viteModule.setupVite;
-  serveStatic = viteModule.serveStatic;
-  log = viteModule.log;
-} catch (error) {
-  // Fallback implementations for production
-  setupVite = async (app: any, server: any) => {};
-  serveStatic = (app: any) => {
-    const path = require("path");
-    app.use(require("express").static(path.resolve("dist/public")));
-    app.get("*", (req: any, res: any) => {
-      res.sendFile(path.resolve("dist/public/index.html"));
-    });
-  };
-  log = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`${timestamp} [express] ${message}`);
-  };
-}
+// Fallback implementations for development and production
+import path from "path";
+import fs from "fs";
+
+setupVite = async (app: any, server: any) => {
+  // Serve client source files with proper MIME types
+  app.use("/src", express.static(path.resolve("client/src"), {
+    setHeaders: (res: any, path: string) => {
+      if (path.endsWith('.tsx') || path.endsWith('.ts')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    }
+  }));
+  
+  // Serve client public files
+  app.use(express.static(path.resolve("client/public")));
+  
+  // Handle TypeScript module imports
+  app.get("/src/*", (req: any, res: any) => {
+    const filePath = path.resolve("client" + req.path);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/javascript');
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send("Module not found");
+    }
+  });
+  
+  // Serve the HTML file for all non-API routes
+  app.get("*", (req: any, res: any) => {
+    if (!req.path.startsWith("/api") && !req.path.startsWith("/src")) {
+      const htmlPath = path.resolve("client/index.html");
+      if (fs.existsSync(htmlPath)) {
+        res.sendFile(htmlPath);
+      } else {
+        res.status(404).send("Development server: HTML file not found");
+      }
+    }
+  });
+};
+
+serveStatic = (app: any) => {
+  app.use(express.static(path.resolve("dist/public")));
+  app.get("*", (req: any, res: any) => {
+    res.sendFile(path.resolve("dist/public/index.html"));
+  });
+};
+
+log = (message: string) => {
+  const timestamp = new Date().toLocaleTimeString();
+  console.log(`${timestamp} [express] ${message}`);
+};
 
 // Load environment variables
 if (process.env.NODE_ENV !== 'production') {
@@ -86,14 +118,8 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Force production mode for deployment
-  const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
-  
-  if (isProduction) {
-    serveStatic(app);
-  } else {
-    await setupVite(app, server);
-  }
+  // Always serve static built files
+  serveStatic(app);
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
