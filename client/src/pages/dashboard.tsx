@@ -243,8 +243,9 @@ export default function Dashboard() {
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
+    <div className="scroll-wrapper">
+      <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
+        <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Mobile-First User Banner */}
         <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
@@ -729,8 +730,9 @@ export default function Dashboard() {
 
           </div>
         </div>
-      </div>
-      <BackToTop />
-    </PullToRefresh>
+        </div>
+        <BackToTop />
+      </PullToRefresh>
+    </div>
   );
 }

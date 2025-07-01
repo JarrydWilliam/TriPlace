@@ -550,3 +550,71 @@ button, [role="button"], input, textarea, select, a {
     opacity: 0.95;
   }
 }
+
+/* Enhanced scroll behavior to prevent getting stuck */
+.scroll-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  position: relative;
+  min-height: 0;
+  flex: 1;
+}
+
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Fix for momentum scrolling getting stuck */
+.scroll-wrapper {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scroll-wrapper > .scroll-container {
+  height: 100%;
+  padding-bottom: 40px; /* Extra space to prevent getting stuck at bottom */
+}
+
+/* Enhanced mobile scroll prevention */
+.mobile-page-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  height: 100vh;
+  height: 100dvh;
+  scroll-behavior: smooth;
+  position: relative;
+  padding-bottom: 20px; /* Prevent bottom scroll stuck */
+}
+
+/* Prevent scroll bounce on iOS and fix stuck scrolling */
+@media (max-width: 768px) {
+  .scroll-container, .mobile-page-container {
+    scroll-snap-type: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+  }
+  
+  /* Ensure content has bottom margin to prevent stuck scrolling */
+  .scroll-content {
+    margin-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: 20px;
+  }
+}
