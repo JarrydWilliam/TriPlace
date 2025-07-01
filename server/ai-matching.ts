@@ -34,14 +34,14 @@ export class AIMatchingEngine {
     userLocation?: { lat: number, lon: number }
   ): Promise<GeneratedCommunity[]> {
     if (!openai) {
-      console.error('OpenAI client not initialized - using fallback');
+      // console.error('OpenAI client not initialized - using fallback');
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 
     try {
       return await this.generateCommunitiesWithAI(allUsers, userLocation);
     } catch (error: any) {
-      console.error('AI community generation failed:', error.message);
+      // console.error('AI community generation failed:', error.message);
       // If quota exceeded or other API error, use fallback to ensure users get communities
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
@@ -63,9 +63,9 @@ export class AIMatchingEngine {
         const state = locationData.principalSubdivision || locationData.countryName || '';
         const actualLocation = state ? `${city}, ${state}` : city;
         locationContext = `Primary location: ${actualLocation} (create communities for this specific area - 50-mile radius preferred, expand to 100 miles if needed)`;
-        console.log(`ChatGPT: Using actual location ${actualLocation} for community generation`);
+        // console.log(`ChatGPT: Using actual location ${actualLocation} for community generation`);
       } catch (error) {
-        console.error('Reverse geocoding failed, using coordinates:', error);
+        // console.error('Reverse geocoding failed, using coordinates:', error);
         locationContext = `Primary coordinates: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)`;
       }
     }
@@ -123,7 +123,7 @@ Respond with valid JSON containing exactly 5 communities:
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      console.error('No content from ChatGPT - using fallback');
+      // console.error('No content from ChatGPT - using fallback');
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 
@@ -141,7 +141,7 @@ Respond with valid JSON containing exactly 5 communities:
     
     // Ensure exactly 5 communities are returned
     if (communities.length !== 5) {
-      console.warn(`ChatGPT returned ${communities.length} communities instead of 5 - using fallback`);
+      // console.warn(`ChatGPT returned ${communities.length} communities instead of 5 - using fallback`);
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 
@@ -212,7 +212,7 @@ Respond with valid JSON containing exactly 5 communities:
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
     if (!openai) {
-      console.error('OpenAI client not initialized - using fallback matching');
+      // console.error('OpenAI client not initialized - using fallback matching');
       return this.fallbackMatching(user, availableCommunities);
     }
 
@@ -243,7 +243,7 @@ Only include 70%+ matches.
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        console.error('No response from OpenAI - using fallback');
+        // console.error('No response from OpenAI - using fallback');
         return this.fallbackMatching(user, availableCommunities);
       }
 
@@ -341,7 +341,7 @@ Only include 70%+ matches.
         .filter(Boolean);
 
     } catch (error: any) {
-      console.error('AI matching failed:', error.message);
+      // console.error('AI matching failed:', error.message);
       return this.fallbackMatching(user, availableCommunities);
     }
   }

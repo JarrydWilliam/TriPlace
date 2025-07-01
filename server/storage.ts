@@ -157,8 +157,6 @@ export class DatabaseStorage implements IStorage {
         return filteredRecommendations;
         
       } catch (error) {
-        console.log(`Discovery: ChatGPT error, using fallback matching`);
-        
         // Fallback to interest-based matching
         const userInterests = user.interests || [];
         const recommendedCommunities = availableCommunities
@@ -172,7 +170,6 @@ export class DatabaseStorage implements IStorage {
           .slice(0, 3)
           .map(item => item.community);
         
-        console.log(`Discovery: Returning ${recommendedCommunities.length} communities with 70%+ compatibility from fallback matching`);
         return recommendedCommunities;
       }
         
@@ -191,7 +188,6 @@ export class DatabaseStorage implements IStorage {
       const compatibleCommunities = await this.findCompatibleExistingCommunities(user);
       
       if (compatibleCommunities.length >= 5) {
-        console.log(`Discovery: Found ${compatibleCommunities.length} compatible existing communities for user ${user.id}`);
         return compatibleCommunities.slice(0, 5);
       }
 
@@ -203,8 +199,6 @@ export class DatabaseStorage implements IStorage {
         { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) } : 
         undefined;
 
-      console.log(`Discovery: User location data - lat: ${user.latitude}, lon: ${user.longitude}, parsed: ${JSON.stringify(userLocation)}`);
-      
       // Generate dynamic communities based on collective user data for remaining slots
       const needed = 5 - compatibleCommunities.length;
       const generatedCommunities = await aiMatcher.generateDynamicCommunities(allUsers, userLocation);
@@ -275,7 +269,6 @@ export class DatabaseStorage implements IStorage {
         // Community is compatible if 70%+ interest overlap and location compatibility
         if (overlapScore >= 0.7 && locationCompatible) {
           compatibleCommunities.push({ community, score: overlapScore });
-          console.log(`Discovery: Found compatible community "${community.name}" with ${(overlapScore * 100).toFixed(1)}% match for user ${user.id}`);
         }
       }
       
@@ -324,7 +317,6 @@ export class DatabaseStorage implements IStorage {
         await db.delete(communities).where(eq(communities.id, community.id));
         
         deletedCount++;
-        console.log(`Deleted inactive community: ${community.name} (inactive since ${community.lastActivityAt})`);
       }
 
       return deletedCount;
