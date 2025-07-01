@@ -4,3 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Development folder excluded from production
+dev/
+# Contains: scripts, configs, mock data, test utilities
+# Use development commands for dev tasks
