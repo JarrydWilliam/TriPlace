@@ -187,17 +187,16 @@ export default function CommunityPage() {
     <div className="scroll-wrapper">
       <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
         <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
-        
-        {/* Simple Header with Navigation */}
-        <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 mb-4">
-          <div className="flex items-center justify-between">
+
+          {/* Minimal Navigation */}
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="p-2">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{community.name}</h1>
             </div>
             <Button
               variant="ghost"
@@ -208,7 +207,6 @@ export default function CommunityPage() {
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
           </div>
-        </div>
 
           {/* Tab Navigation */}
           <Tabs defaultValue="chat" className="w-full">
