@@ -24,6 +24,7 @@ import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { BackToTop } from "@/components/ui/back-to-top";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -729,6 +730,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <BackToTop />
     </PullToRefresh>
   );
 }
