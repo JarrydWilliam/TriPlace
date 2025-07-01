@@ -223,8 +223,12 @@ export default function Onboarding() {
         title: "Welcome to TriPlace!",
         description: "Your communities are being personalized based on your responses."
       });
+      // Invalidate user queries to refresh auth state
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      setLocation("/dashboard");
+      queryClient.clear(); // Clear all cached data to force refresh
+      
+      // Force page refresh to update auth context
+      window.location.href = "/dashboard";
     },
     onError: (error) => {
       toast({
