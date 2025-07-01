@@ -21,5 +21,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(port, '0.0.0.0', () => {
-  // Remove all console.log statements for production cleanliness
+  console.log(`🚀 TriPlace production server running on port ${port}`);
 });

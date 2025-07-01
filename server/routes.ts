@@ -3,16 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { eventScraper } from "./event-scraper";
-// Community update tracking
-const lastUpdateTimestamp = Date.now();
-
-const communityUpdateNotifier = {
-  getLastUpdateTimestamp: () => lastUpdateTimestamp,
-  triggerGlobalCommunityRefresh: async () => {
-    // Simplified community refresh implementation
-    return { success: true, timestamp: Date.now() };
-  }
-};
+import { communityRefreshService } from "./community-refresh";
+import { communityUpdateNotifier } from "./community-update-notifier";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -129,7 +121,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
       const userIdNum = userId ? parseInt(userId) : undefined;
       
+      console.log('ChatGPT Discovery: Recommended communities request - interests:', interestsArray, 'userId:', userIdNum, 'location:', userLocation);
+      
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
+      console.log('ChatGPT Discovery: Generated communities found:', communities.length);
       
       // Add cache headers to ensure fresh data for PWA users
       res.set({
@@ -140,6 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(communities);
     } catch (error) {
+      console.error('ChatGPT Discovery: Error getting recommended communities:', error);
       res.status(500).json({ message: "ChatGPT community discovery temporarily unavailable" });
     }
   });
@@ -236,6 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedUser);
     } catch (error) {
+      console.error("Error updating user location:", error);
       res.status(500).json({ message: "Failed to update location" });
     }
   });
@@ -265,6 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(members);
     } catch (error) {
+      console.error("Error fetching dynamic community members:", error);
       res.status(500).json({ message: "Failed to fetch dynamic community members" });
     }
   });
@@ -438,7 +436,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Global event created successfully and submitted for review"
       });
     } catch (error: any) {
+      console.error('Global event creation error:', error);
       res.status(500).json({ message: "Failed to create global event: " + error.message });
+    }
+  });
+
+  // Test OpenAI integration
+  app.post("/api/test-openai", async (req, res) => {
+    try {
+      console.log("Testing OpenAI integration...");
+      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.json({ success: false, error: "No API key found", hasKey: false });
+      }
+      
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
+        max_tokens: 10
+      });
+      
+      const content = response.choices[0]?.message?.content;
+      res.json({ success: true, response: content, hasKey: true });
+    } catch (error: any) {
+      console.error("OpenAI test failed:", error.message);
+      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
     }
   });
 
@@ -560,6 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const events = await eventScraper.populateCommunityEvents(community, userLocation);
           totalEventsAdded += events.length;
         } catch (error) {
+          console.error(`Error populating events for community ${community.name}:`, error);
         }
       }
       
@@ -569,6 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         communitiesProcessed: userCommunities.length
       });
     } catch (error) {
+      console.error('Error auto-populating events:', error);
       res.status(500).json({ message: "Failed to auto-populate events" });
     }
   });
@@ -596,6 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         events: scrapedEvents 
       });
     } catch (error) {
+      console.error('Event scraping error:', error);
       res.status(500).json({ message: "Failed to scrape events" });
     }
   });
@@ -621,6 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(recentEvents);
     } catch (error) {
+      console.error('Error fetching scraped events:', error);
       res.status(500).json({ message: "Failed to fetch events" });
     }
   });
@@ -672,6 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(newEvent);
     } catch (error) {
+      console.error("Error creating community event:", error);
       res.status(500).json({ message: "Failed to create event" });
     }
   });
@@ -715,6 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attendance: attendance
       });
     } catch (error) {
+      console.error("Error marking attendance:", error);
       res.status(500).json({ message: "Failed to mark attendance" });
     }
   });
@@ -741,6 +773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(confirmedAttended);
     } catch (error) {
+      console.error("Error fetching attended events:", error);
       res.status(500).json({ message: "Failed to fetch attended events" });
     }
   });
@@ -759,6 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(globalEvents);
     } catch (error) {
+      console.error("Error fetching global events:", error);
       res.status(500).json({ message: "Failed to fetch global events" });
     }
   });
@@ -774,6 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getCommunityMessages(communityId);
       res.json(messages);
     } catch (error) {
+      console.error("Error fetching community messages:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
     }
   });
@@ -796,6 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.sendCommunityMessage(messageData);
       res.status(201).json(message);
     } catch (error) {
+      console.error("Error sending community message:", error);
       res.status(500).json({ message: "Failed to send message" });
     }
   });
@@ -834,6 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dynamicMembers: dynamicMembers
       });
     } catch (error) {
+      console.error("Error fetching dynamic community info:", error);
       res.status(500).json({ message: "Failed to fetch dynamic community info" });
     }
   });
@@ -841,6 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Community database refresh endpoints
   app.post("/api/admin/refresh-all-communities", async (req, res) => {
     try {
+      console.log("Admin: Starting global community refresh");
       await communityRefreshService.regenerateAllUserCommunities();
       
       res.json({ 
@@ -848,6 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "All user communities refreshed with location-aware data"
       });
     } catch (error) {
+      console.error("Error refreshing all communities:", error);
       res.status(500).json({ message: "Failed to refresh communities" });
     }
   });
@@ -859,6 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      console.log(`Admin: Refreshing communities for user ${userId}`);
       await communityRefreshService.refreshUserCommunities(userId);
       
       res.json({ 
@@ -866,6 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Communities refreshed for user ${userId}`
       });
     } catch (error) {
+      console.error("Error refreshing user communities:", error);
       res.status(500).json({ message: "Failed to refresh user communities" });
     }
   });
@@ -883,6 +924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: hasUpdates ? "New location-aware communities available" : "Communities up to date"
       });
     } catch (error) {
+      console.error("Error checking community update status:", error);
       res.status(500).json({ message: "Failed to check update status" });
     }
   });
@@ -890,6 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trigger global community database refresh
   app.post("/api/community-updates/refresh", async (req, res) => {
     try {
+      console.log("Community Update: Triggering global refresh");
       await communityUpdateNotifier.triggerGlobalCommunityRefresh();
       
       res.json({ 
@@ -898,6 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Global community refresh completed with location-aware data"
       });
     } catch (error) {
+      console.error("Error triggering community refresh:", error);
       res.status(500).json({ message: "Failed to trigger community refresh" });
     }
   });
@@ -917,6 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalLive: liveMembers.length
       });
     } catch (error) {
+      console.error("Error fetching live community members:", error);
       res.status(500).json({ message: "Failed to fetch live members" });
     }
   });
@@ -928,6 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserActivity(userId);
       res.json({ success: true });
     } catch (error) {
+      console.error("Error updating user activity:", error);
       res.status(500).json({ message: "Failed to update activity" });
     }
   });
@@ -940,6 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.setUserOnlineStatus(userId, Boolean(isOnline));
       res.json({ success: true });
     } catch (error) {
+      console.error("Error setting user status:", error);
       res.status(500).json({ message: "Failed to set status" });
     }
   });
@@ -970,6 +1017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateUserActivity(userId);
         }
       } catch (error) {
+        console.error('WebSocket message error:', error);
       }
     });
     

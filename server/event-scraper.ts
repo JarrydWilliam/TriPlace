@@ -58,15 +58,19 @@ export class EventScraper {
       if (universeEvents.status === 'fulfilled') events.push(...universeEvents.value);
       if (seatgeekEvents.status === 'fulfilled') events.push(...seatgeekEvents.value);
       
+      console.log(`Scraped ${events.length} total events from all sources for ${community.name}`);
+      
       // Filter and deduplicate events
       return this.filterAndDeduplicateEvents(events, community);
     } catch (error) {
+      console.error(`Error scraping events for ${community.name}:`, error);
       return [];
     }
   }
 
   private async scrapeEventbrite(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.eventbriteApiKey) {
+      console.log('No Eventbrite API key found, skipping Eventbrite scraping');
       return [];
     }
 
@@ -102,12 +106,14 @@ export class EventScraper {
         attendeeCount: event.capacity || 0
       })) || [];
     } catch (error) {
+      console.error('Eventbrite scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeMeetup(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.meetupApiKey) {
+      console.log('No Meetup API key found, skipping Meetup scraping');
       return [];
     }
 
@@ -141,12 +147,14 @@ export class EventScraper {
         attendeeCount: event.yes_rsvp_count || 0
       }));
     } catch (error) {
+      console.error('Meetup scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeTicketmaster(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.ticketmasterApiKey) {
+      console.log('No Ticketmaster API key found, skipping Ticketmaster scraping');
       return [];
     }
 
@@ -182,12 +190,14 @@ export class EventScraper {
         attendeeCount: 0
       }));
     } catch (error) {
+      console.error('Ticketmaster scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeFacebook(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.facebookApiKey) {
+      console.log('No Facebook API key found, skipping Facebook scraping');
       return [];
     }
 
@@ -223,12 +233,14 @@ export class EventScraper {
         attendeeCount: 0
       }));
     } catch (error) {
+      console.error('Facebook scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeStubHub(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.stubhubApiKey) {
+      console.log('No StubHub API key found, skipping StubHub scraping');
       return [];
     }
 
@@ -268,12 +280,14 @@ export class EventScraper {
         attendeeCount: 0
       }));
     } catch (error) {
+      console.error('StubHub scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeEventful(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.eventfulApiKey) {
+      console.log('No Eventful API key found, skipping Eventful scraping');
       return [];
     }
 
@@ -309,12 +323,14 @@ export class EventScraper {
         attendeeCount: parseInt(event.going_count) || 0
       }));
     } catch (error) {
+      console.error('Eventful scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeUniverse(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.universeApiKey) {
+      console.log('No Universe API key found, skipping Universe scraping');
       return [];
     }
 
@@ -354,12 +370,14 @@ export class EventScraper {
         attendeeCount: event.attendee_count || 0
       }));
     } catch (error) {
+      console.error('Universe scraping failed:', error);
       return [];
     }
   }
 
   private async scrapeSeatGeek(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.seatgeekApiKey) {
+      console.log('No SeatGeek API key found, skipping SeatGeek scraping');
       return [];
     }
 
@@ -395,6 +413,7 @@ export class EventScraper {
         attendeeCount: 0
       }));
     } catch (error) {
+      console.error('SeatGeek scraping failed:', error);
       return [];
     }
   }
@@ -505,9 +524,10 @@ export class EventScraper {
 
           const createdEvent = await storage.createEvent(newEvent);
           createdEvents.push(createdEvent);
+          console.log(`Created event: ${createdEvent.title} for community ${community.name}`);
         }
       } catch (error) {
-        // console.error(`Error creating event ${scrapedEvent.title}:`, error);
+        console.error(`Error creating event ${scrapedEvent.title}:`, error);
       }
     }
 
