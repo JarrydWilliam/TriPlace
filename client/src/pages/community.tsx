@@ -190,19 +190,20 @@ export default function CommunityPage() {
 
           {/* Minimal Navigation */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="p-2">
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              </Link>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{community.name}</h1>
-            </div>
+            <Link href="/dashboard">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
