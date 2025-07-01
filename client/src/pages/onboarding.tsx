@@ -2,657 +2,447 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 interface QuizAnswers {
-  // Section 1: Past Experiences
-  pastActivities: string[];
-  pastActivitiesOther: string;
-  volunteered: string;
-  volunteerDescription: string;
-  pastHobby: string;
+  // Section 1: Get to Know You
+  hopingToFind: string[];
+  communityFeel: string;
+  personalityVibe: string;
   
-  // Section 2: Present Interests
-  currentInterests: string[];
-  currentInterestsOther: string;
-  weekendActivities: string[];
-  weekendActivitiesOther: string;
-  lifestyleParts: string[];
+  // Section 2: Interests & Passions
+  interestSpaces: string[];
   
-  // Section 3: Future Goals
-  futureGoal: string;
-  futureGoals: string[];
-  futureGoalsOther: string;
-  dreamCommunity: string;
+  // Section 3: Time & Energy
+  activityLevel: string;
+  availability: string[];
   
-  // Section 4: Personality & Preferences
-  groupPreference: string;
-  travelDistance: string;
-  connectionTypes: string[];
+  // Section 4: Location & Matching
+  location: string;
+  digitalOnly: string;
   
-  // Section 5: Free Input
-  dreamCommunityName: string;
-  idealVibe: string;
-  personalIntro: string;
+  // Section 5: Values Layer
+  resonateStatement: string;
 }
 
-const sections = [
-  { title: "Past Experiences", subtitle: "What shaped your journey?", icon: "🕰️" },
-  { title: "Present Passions", subtitle: "What drives you today?", icon: "🧭" },
-  { title: "Future Aspirations", subtitle: "Where are you growing?", icon: "🚀" },
-  { title: "Connection Style", subtitle: "How do you thrive in community?", icon: "🔍" },
-  { title: "Your Third Place Vision", subtitle: "Design your ideal community space", icon: "✍️" }
+const QUIZ_SECTIONS = [
+  {
+    title: "Get to Know You",
+    description: "Let's understand what you're looking for",
+    questions: [
+      {
+        id: "hopingToFind",
+        question: "What are you hoping to find here?",
+        subtitle: "Choose up to 3",
+        type: "multiple",
+        maxSelections: 3,
+        options: [
+          { value: "real-friendships", label: "Real friendships", emoji: "👯‍♀️" },
+          { value: "thoughtful-convos", label: "Safe, thoughtful convos", emoji: "💬" },
+          { value: "local-events", label: "Local events & hangouts", emoji: "🎉" },
+          { value: "collaborators", label: "Collaborators or builders", emoji: "🤝" },
+          { value: "personal-growth", label: "Personal growth or support", emoji: "✨" },
+          { value: "chill-place", label: "Chill place to check in", emoji: "🌱" }
+        ]
+      },
+      {
+        id: "communityFeel",
+        question: "How do you want to feel in a community?",
+        subtitle: "One pick - sets tone of community matching",
+        type: "single",
+        options: [
+          { value: "seen-supported", label: "Seen & supported" },
+          { value: "inspired-challenged", label: "Inspired & challenged" },
+          { value: "comfortable-being-me", label: "Comfortable just being me" },
+          { value: "energized-excited", label: "Energized & excited" },
+          { value: "curious-open", label: "Curious & open" }
+        ]
+      },
+      {
+        id: "personalityVibe",
+        question: "What's your vibe IRL?",
+        subtitle: "Helps match personality dynamics",
+        type: "single",
+        options: [
+          { value: "low-key-introverted", label: "Low-key / introverted", emoji: "🧘‍♂️" },
+          { value: "creative-open", label: "Creative / open-minded", emoji: "🦄" },
+          { value: "driven-ambitious", label: "Driven / ambitious", emoji: "📈" },
+          { value: "warm-social", label: "Warm / social", emoji: "🤗" },
+          { value: "light-hearted", label: "Light-hearted / funny", emoji: "😂" },
+          { value: "deep-thinker", label: "Deep thinker", emoji: "🤓" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Interests & Passions",
+    description: "Pick spaces you'd vibe in",
+    questions: [
+      {
+        id: "interestSpaces",
+        question: "Pick a few spaces you'd vibe in",
+        subtitle: "Choose 3-6 max",
+        type: "multiple",
+        maxSelections: 6,
+        minSelections: 3,
+        options: [
+          { value: "ai-tech", label: "AI & Tech", emoji: "🔬" },
+          { value: "art-design", label: "Art & Design", emoji: "🎨" },
+          { value: "startup-builders", label: "Startup Builders", emoji: "💻" },
+          { value: "mental-wellness", label: "Mental Wellness", emoji: "🧠" },
+          { value: "social-impact", label: "Social Impact", emoji: "🌎" },
+          { value: "mindfulness", label: "Mindfulness", emoji: "🧘" },
+          { value: "music-scenes", label: "Music Scenes", emoji: "🎶" },
+          { value: "bookworms", label: "Bookworms", emoji: "📚" },
+          { value: "lgbtq-spaces", label: "LGBTQ+ spaces", emoji: "🏳️‍🌈" },
+          { value: "outdoors-adventure", label: "Outdoors & Adventure", emoji: "🥾" },
+          { value: "gaming", label: "Gaming", emoji: "🎮" },
+          { value: "cooking-culture", label: "Cooking & Culture", emoji: "🍳" },
+          { value: "students-learners", label: "Students & Learners", emoji: "🧑‍🎓" },
+          { value: "parents-families", label: "Parents & Families", emoji: "👶" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Time & Energy",
+    description: "Filter by activity level & availability",
+    questions: [
+      {
+        id: "activityLevel",
+        question: "How active do you want your communities to be?",
+        type: "single",
+        options: [
+          { value: "super-active", label: "Super active — daily convos", emoji: "🔥" },
+          { value: "just-enough", label: "Just enough — a few posts a week", emoji: "💬" },
+          { value: "chill-pace", label: "Chill pace — low volume", emoji: "🧘" },
+          { value: "mostly-browsing", label: "Mostly browsing for now", emoji: "👀" }
+        ]
+      },
+      {
+        id: "availability",
+        question: "When are you usually around?",
+        type: "multiple",
+        options: [
+          { value: "weekday-evenings", label: "Weekday evenings" },
+          { value: "weekends", label: "Weekends" },
+          { value: "early-mornings", label: "Early mornings" },
+          { value: "late-nights", label: "Late nights" },
+          { value: "random", label: "Randomly / no set time" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Location & Matching",
+    description: "Where you want to connect",
+    questions: [
+      {
+        id: "digitalOnly",
+        question: "Are you open to digital-only spaces too?",
+        type: "single",
+        options: [
+          { value: "yes-anywhere", label: "Yes, anywhere with my vibe" },
+          { value: "local-only", label: "Local only" },
+          { value: "both", label: "Both" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Values Layer",
+    description: "Optional but helps with deep matching",
+    questions: [
+      {
+        id: "resonateStatement",
+        question: "Which statement resonates most with you?",
+        type: "single",
+        options: [
+          { value: "grow-explore", label: "I want to grow and explore new parts of myself." },
+          { value: "feel-understood", label: "I need a space to feel understood." },
+          { value: "find-people", label: "I'm excited to find people who get me." },
+          { value: "building-something", label: "I'm building something and want others on the path." },
+          { value: "chill-friends", label: "I'm just here to chill and maybe make a friend or two." }
+        ]
+      }
+    ]
+  }
 ];
 
 export default function Onboarding() {
-  const { user, loading: authLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const { latitude, longitude, locationName } = useGeolocation(user?.id);
   const [currentSection, setCurrentSection] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({
-    pastActivities: [],
-    pastActivitiesOther: "",
-    volunteered: "",
-    volunteerDescription: "",
-    pastHobby: "",
-    currentInterests: [],
-    currentInterestsOther: "",
-    weekendActivities: [],
-    weekendActivitiesOther: "",
-    lifestyleParts: [],
-    futureGoal: "",
-    futureGoals: [],
-    futureGoalsOther: "",
-    dreamCommunity: "",
-    groupPreference: "",
-    travelDistance: "",
-    connectionTypes: [],
-    dreamCommunityName: "",
-    idealVibe: "",
-    personalIntro: ""
+    hopingToFind: [],
+    communityFeel: "",
+    personalityVibe: "",
+    interestSpaces: [],
+    activityLevel: "",
+    availability: [],
+    location: "",
+    digitalOnly: "",
+    resonateStatement: ""
   });
-  
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Set location when geolocation is available
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/");
+    if (locationName && !answers.location) {
+      setAnswers(prev => ({ ...prev, location: locationName }));
     }
-  }, [user, authLoading, navigate]);
+  }, [locationName, answers.location]);
 
-  const updateUserMutation = useMutation({
+  const submitQuizMutation = useMutation({
     mutationFn: async (quizData: QuizAnswers) => {
-      if (!user) throw new Error("No user found");
-      
-      // Extract interests from quiz answers
-      const interests = [
-        ...answers.pastActivities,
-        ...answers.currentInterests,
-        ...answers.weekendActivities,
-        ...answers.lifestyleParts,
-        ...answers.futureGoals,
-        ...answers.connectionTypes
-      ].filter(Boolean);
-      
-      const response = await apiRequest('PATCH', `/api/users/${user.id}`, { 
-        interests: interests,
-        bio: answers.personalIntro || `${answers.idealVibe} | ${answers.dreamCommunity}`.substring(0, 500),
-        onboardingCompleted: true,
-        quizAnswers: quizData
+      const response = await apiRequest("POST", "/api/onboarding/complete", {
+        ...quizData,
+        latitude,
+        longitude,
+        userId: user?.id
       });
       return response.json();
     },
     onSuccess: () => {
-      // Trigger ChatGPT community discovery update for all users
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'REFRESH_CHATGPT_COMMUNITIES'
-        });
-      }
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/firebase/${user?.firebaseUid}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/communities/recommended'] });
-      
       toast({
         title: "Welcome to TriPlace!",
-        description: "Your profile is complete. ChatGPT is finding your perfect communities!",
+        description: "Your communities are being personalized based on your responses."
       });
-      
-      // Small delay to ensure user data is updated before navigation
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 100);
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setLocation("/dashboard");
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to save your profile. Please try again.",
-        variant: "destructive",
+        description: "Failed to complete onboarding. Please try again.",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleCheckboxChange = (field: keyof QuizAnswers, value: string, checked: boolean) => {
+  const handleAnswer = (questionId: string, value: string | string[]) => {
     setAnswers(prev => ({
       ...prev,
-      [field]: checked 
-        ? [...(prev[field] as string[]), value]
-        : (prev[field] as string[]).filter(item => item !== value)
+      [questionId]: value
     }));
   };
 
-  const handleTextChange = (field: keyof QuizAnswers, value: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const currentSectionData = QUIZ_SECTIONS[currentSection];
+  const currentQuestionData = currentSectionData.questions[currentQuestion];
+  const totalQuestions = QUIZ_SECTIONS.reduce((sum, section) => sum + section.questions.length, 0);
+  const completedQuestions = QUIZ_SECTIONS.slice(0, currentSection).reduce((sum, section) => sum + section.questions.length, 0) + currentQuestion;
+  const progress = (completedQuestions / totalQuestions) * 100;
+
+  const canProceed = () => {
+    const answer = answers[currentQuestionData.id as keyof QuizAnswers];
+    if (currentQuestionData.type === "multiple") {
+      const arrayAnswer = answer as string[];
+      const minSelections = currentQuestionData.minSelections || 1;
+      const maxSelections = currentQuestionData.maxSelections || Infinity;
+      return arrayAnswer.length >= minSelections && arrayAnswer.length <= maxSelections;
+    }
+    return answer && answer !== "";
   };
 
   const handleNext = () => {
-    if (currentSection < sections.length - 1) {
-      setCurrentSection(prev => prev + 1);
+    if (currentQuestion < currentSectionData.questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else if (currentSection < QUIZ_SECTIONS.length - 1) {
+      setCurrentSection(currentSection + 1);
+      setCurrentQuestion(0);
     } else {
-      updateUserMutation.mutate(answers);
+      // Complete quiz
+      submitQuizMutation.mutate(answers);
     }
   };
 
   const handlePrevious = () => {
-    if (currentSection === 0) {
-      navigate("/");
-    } else {
-      setCurrentSection(prev => prev - 1);
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    } else if (currentSection > 0) {
+      setCurrentSection(currentSection - 1);
+      setCurrentQuestion(QUIZ_SECTIONS[currentSection - 1].questions.length - 1);
     }
   };
 
-  const progressValue = ((currentSection + 1) / sections.length) * 100;
+  const isFirstQuestion = currentSection === 0 && currentQuestion === 0;
+  const isLastQuestion = currentSection === QUIZ_SECTIONS.length - 1 && 
+                         currentQuestion === currentSectionData.questions.length - 1;
 
-  if (authLoading) {
-    return <ComponentLoadingSpinner text="Loading your onboarding..." />;
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  const renderSection = () => {
-    switch (currentSection) {
-      case 0: // Past Experiences
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                In the past 12 months, which of these have you participated in?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "🏃‍♂️ A race or athletic competition",
-                  "🎵 A concert or music festival", 
-                  "📚 A book club or reading challenge",
-                  "🧘 A mindfulness or wellness retreat",
-                  "💼 A networking or professional event",
-                  "✈️ A trip to a new city or country",
-                  "🎮 An online or in-person gaming event",
-                  "🎨 An art show or creative workshop"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.pastActivities.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('pastActivities', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <label className="text-sm text-gray-300 mb-2 block">Other activities:</label>
-                <Textarea
-                  value={answers.pastActivitiesOther}
-                  onChange={(e) => handleTextChange('pastActivitiesOther', e.target.value)}
-                  placeholder="Tell us about other activities you've enjoyed..."
-                  className="min-h-[44px] text-base"
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Have you volunteered for a cause you care about?
-              </h3>
-              <div className="space-y-3">
-                {["Yes, regularly", "Yes, occasionally", "Not yet, but I'd like to", "Not interested"].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <input
-                      type="radio"
-                      id={`volunteered-${option}`}
-                      name="volunteered"
-                      value={option}
-                      checked={answers.volunteered === option}
-                      onChange={(e) => handleTextChange('volunteered', e.target.value)}
-                      className="min-h-[20px] min-w-[20px]"
-                    />
-                    <label htmlFor={`volunteered-${option}`} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-              {(answers.volunteered === "Yes, regularly" || answers.volunteered === "Yes, occasionally") && (
-                <div className="mt-4">
-                  <label className="text-sm text-gray-300 mb-2 block">Tell us about your volunteer experience:</label>
-                  <Textarea
-                    value={answers.volunteerDescription}
-                    onChange={(e) => handleTextChange('volunteerDescription', e.target.value)}
-                    placeholder="What cause did you support and what did you do?"
-                    className="min-h-[44px] text-base"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What's a hobby or interest you used to love but haven't pursued recently?
-              </h3>
-              <Textarea
-                value={answers.pastHobby}
-                onChange={(e) => handleTextChange('pastHobby', e.target.value)}
-                placeholder="Maybe something you'd like to pick up again..."
-                className="min-h-[44px] text-base"
-              />
-            </div>
-          </div>
-        );
-
-      case 1: // Present Interests
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What are you most interested in right now?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "🏋️ Fitness and health",
-                  "🎨 Creative arts and crafts",
-                  "💻 Technology and innovation",
-                  "🌱 Environmental sustainability",
-                  "📈 Career and professional growth",
-                  "🧘 Mindfulness and spirituality",
-                  "🍳 Cooking and food culture",
-                  "📚 Learning new skills"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.currentInterests.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('currentInterests', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <label className="text-sm text-gray-300 mb-2 block">Other interests:</label>
-                <Textarea
-                  value={answers.currentInterestsOther}
-                  onChange={(e) => handleTextChange('currentInterestsOther', e.target.value)}
-                  placeholder="What else captures your attention these days?"
-                  className="min-h-[44px] text-base"
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                How do you typically spend your weekends?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "🏞️ Exploring outdoors",
-                  "🏠 Relaxing at home",
-                  "👥 Socializing with friends",
-                  "🛍️ Shopping and errands",
-                  "📱 Scrolling social media",
-                  "🎮 Gaming or entertainment",
-                  "💼 Working on side projects",
-                  "🏃 Being active and exercising"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.weekendActivities.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('weekendActivities', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Which of these are important parts of your lifestyle?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "🌅 Early mornings and productivity",
-                  "🌙 Night owl and late activities",
-                  "🥗 Healthy eating and nutrition",
-                  "🎉 Social events and gatherings",
-                  "🧘 Quiet time and reflection",
-                  "💪 Regular exercise routine",
-                  "🎓 Continuous learning",
-                  "🏡 Community involvement and volunteering"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.lifestyleParts.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('lifestyleParts', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2: // Future Goals
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What's the most important goal you're working toward this year?
-              </h3>
-              <Textarea
-                value={answers.futureGoal}
-                onChange={(e) => handleTextChange('futureGoal', e.target.value)}
-                placeholder="This could be personal, professional, health-related, or anything meaningful to you..."
-                className="min-h-[44px] text-base"
-              />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What areas of growth are you excited about?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "💼 Career advancement",
-                  "🏃 Physical fitness",
-                  "🧠 Mental health and wellbeing",
-                  "💰 Financial stability",
-                  "🤝 Community and friendships",
-                  "🎨 Creative skills",
-                  "🌍 Travel and cultural experiences",
-                  "🎓 Education and knowledge"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.futureGoals.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('futureGoals', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <label className="text-sm text-gray-300 mb-2 block">Other growth areas:</label>
-                <Textarea
-                  value={answers.futureGoalsOther}
-                  onChange={(e) => handleTextChange('futureGoalsOther', e.target.value)}
-                  placeholder="What else are you looking to develop or improve?"
-                  className="min-h-[44px] text-base"
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Imagine your ideal community 5 years from now. What does it look like?
-              </h3>
-              <Textarea
-                value={answers.dreamCommunity}
-                onChange={(e) => handleTextChange('dreamCommunity', e.target.value)}
-                placeholder="Think about the people, activities, values, and atmosphere..."
-                className="min-h-[44px] text-base"
-              />
-            </div>
-          </div>
-        );
-
-      case 3: // Connection Style
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What size group do you feel most comfortable in?
-              </h3>
-              <div className="space-y-3">
-                {[
-                  "1-on-1 conversations",
-                  "Small groups (3-6 people)",
-                  "Medium groups (7-15 people)",
-                  "Large groups (16+ people)",
-                  "It depends on the activity"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <input
-                      type="radio"
-                      id={`group-${option}`}
-                      name="groupPreference"
-                      value={option}
-                      checked={answers.groupPreference === option}
-                      onChange={(e) => handleTextChange('groupPreference', e.target.value)}
-                      className="min-h-[20px] min-w-[20px]"
-                    />
-                    <label htmlFor={`group-${option}`} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                How far would you travel for the right community activity?
-              </h3>
-              <div className="space-y-3">
-                {[
-                  "Within my neighborhood (0-2 miles)",
-                  "Across town (3-10 miles)",
-                  "Anywhere in my city (11-25 miles)",
-                  "Neighboring cities (26-50 miles)",
-                  "I'll travel far for the right experience (50+ miles)"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <input
-                      type="radio"
-                      id={`travel-${option}`}
-                      name="travelDistance"
-                      value={option}
-                      checked={answers.travelDistance === option}
-                      onChange={(e) => handleTextChange('travelDistance', e.target.value)}
-                      className="min-h-[20px] min-w-[20px]"
-                    />
-                    <label htmlFor={`travel-${option}`} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What types of connections are you looking for?
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "🤝 Professional networking",
-                  "👫 Casual friendships",
-                  "💡 Mentorship opportunities",
-                  "🎯 Goal-focused community support",
-                  "🎨 Creative collaborations",
-                  "🏃 Activity buddies",
-                  "🧠 Intellectual discussions",
-                  "💙 Emotional support"
-                ].map((option) => (
-                  <div key={option} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <Checkbox
-                      id={option}
-                      checked={answers.connectionTypes.includes(option)}
-                      onCheckedChange={(checked) => 
-                        handleCheckboxChange('connectionTypes', option, checked as boolean)
-                      }
-                      className="min-h-[44px] min-w-[44px]"
-                    />
-                    <label htmlFor={option} className="text-sm text-gray-300 cursor-pointer flex-1">{option}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4: // Free Input
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                If you could name your dream community, what would you call it?
-              </h3>
-              <Textarea
-                value={answers.dreamCommunityName}
-                onChange={(e) => handleTextChange('dreamCommunityName', e.target.value)}
-                placeholder="Something that captures the spirit of what you're looking for..."
-                className="min-h-[44px] text-base"
-              />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                What kind of vibe or energy do you want in your community spaces?
-              </h3>
-              <Textarea
-                value={answers.idealVibe}
-                onChange={(e) => handleTextChange('idealVibe', e.target.value)}
-                placeholder="Energetic and inspiring? Calm and supportive? Creative and innovative?"
-                className="min-h-[44px] text-base"
-              />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Finally, introduce yourself! What would you want your future community to know about you?
-              </h3>
-              <Textarea
-                value={answers.personalIntro}
-                onChange={(e) => handleTextChange('personalIntro', e.target.value)}
-                placeholder="Share your personality, what makes you unique, or what you're passionate about..."
-                className="min-h-[120px] text-base"
-              />
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
+  const handleRefresh = async () => {
+    // Reset to beginning
+    setCurrentSection(0);
+    setCurrentQuestion(0);
+    setAnswers({
+      hopingToFind: [],
+      communityFeel: "",
+      personalityVibe: "",
+      interestSpaces: [],
+      activityLevel: "",
+      availability: [],
+      location: locationName || "",
+      digitalOnly: "",
+      resonateStatement: ""
+    });
   };
+
+  if (submitQuizMutation.isPending) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <ComponentLoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900 no-pull-refresh">
-      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-4xl mx-auto">
-        {/* Mobile-First Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
-          <div className="flex items-center space-x-3">
-            <Logo size="md" />
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">Welcome to TriPlace</h1>
-              <p className="text-sm text-gray-400">Let's build your community profile</p>
-            </div>
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="mobile-page-container min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <Logo size="lg" className="mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Let's find your digital third place
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {currentSectionData.description}
+            </p>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
-            <span>{currentSection + 1} of {sections.length}</span>
-          </div>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <Progress value={progressValue} className="h-2 mb-2" />
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center space-x-2 mb-2 sm:mb-0">
-              <span className="text-2xl">{sections[currentSection].icon}</span>
-              <div>
-                <h2 className="text-lg font-semibold text-white">{sections[currentSection].title}</h2>
-                <p className="text-sm text-gray-400">{sections[currentSection].subtitle}</p>
+          {/* Progress */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Section {currentSection + 1} of {QUIZ_SECTIONS.length}
+              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {Math.round(progress)}% complete
+              </span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+
+          {/* Question Card */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl">
+                {currentQuestionData.question}
+              </CardTitle>
+              {currentQuestionData.subtitle && (
+                <CardDescription>
+                  {currentQuestionData.subtitle}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {currentQuestionData.options.map((option) => {
+                  const isSelected = currentQuestionData.type === "multiple" 
+                    ? (answers[currentQuestionData.id as keyof QuizAnswers] as string[])?.includes(option.value)
+                    : answers[currentQuestionData.id as keyof QuizAnswers] === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        if (currentQuestionData.type === "multiple") {
+                          const currentValues = (answers[currentQuestionData.id as keyof QuizAnswers] as string[]) || [];
+                          let newValues;
+                          if (isSelected) {
+                            newValues = currentValues.filter(v => v !== option.value);
+                          } else {
+                            const maxSelections = currentQuestionData.maxSelections || Infinity;
+                            if (currentValues.length < maxSelections) {
+                              newValues = [...currentValues, option.value];
+                            } else {
+                              return; // Don't add if at max
+                            }
+                          }
+                          handleAnswer(currentQuestionData.id, newValues);
+                        } else {
+                          handleAnswer(currentQuestionData.id, option.value);
+                        }
+                      }}
+                      className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        {option.emoji && (
+                          <span className="text-2xl">{option.emoji}</span>
+                        )}
+                        <span className="text-gray-900 dark:text-white font-medium">
+                          {option.label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+
+              {/* Location display for location section */}
+              {currentQuestionData.id === "digitalOnly" && locationName && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-blue-800 dark:text-blue-200">
+                      Location detected: {locationName}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Selection counter for multi-select */}
+              {currentQuestionData.type === "multiple" && (
+                <div className="mt-4 text-center">
+                  <Badge variant="outline">
+                    {(answers[currentQuestionData.id as keyof QuizAnswers] as string[])?.length || 0} 
+                    {currentQuestionData.maxSelections && ` / ${currentQuestionData.maxSelections}`} selected
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Navigation */}
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={isFirstQuestion}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
+            </Button>
+
+            <Button
+              onClick={handleNext}
+              disabled={!canProceed()}
+              className="flex items-center space-x-2"
+            >
+              <span>{isLastQuestion ? "Complete" : "Next"}</span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-        </div>
-
-        {/* Quiz Content */}
-        <Card className="mb-8 bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4 sm:p-6">
-            {renderSection()}
-          </CardContent>
-        </Card>
-
-        {/* Mobile-First Navigation */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            className="min-h-[44px] order-2 sm:order-1"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            {currentSection === 0 ? "Back to Login" : "Previous"}
-          </Button>
-          
-          <Button
-            onClick={handleNext}
-            disabled={updateUserMutation.isPending}
-            className="min-h-[44px] order-1 sm:order-2"
-          >
-            {updateUserMutation.isPending ? (
-              "Saving..."
-            ) : currentSection === sections.length - 1 ? (
-              "Complete Profile"
-            ) : (
-              <>
-                Next
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </>
-            )}
-          </Button>
         </div>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }

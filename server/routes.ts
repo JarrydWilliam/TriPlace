@@ -991,6 +991,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Onboarding completion route for new quiz structure
+  app.post("/api/onboarding/complete", async (req, res) => {
+    try {
+      const {
+        hopingToFind,
+        communityFeel,
+        personalityVibe,
+        interestSpaces,
+        activityLevel,
+        availability,
+        location,
+        digitalOnly,
+        resonateStatement,
+        latitude,
+        longitude,
+        userId
+      } = req.body;
+
+      // Validate required fields
+      if (!hopingToFind || !interestSpaces || !activityLevel || !userId) {
+        return res.status(400).json({ message: "Missing required quiz responses or user ID" });
+      }
+
+      // Update user with new quiz structure data
+      const interests = Array.isArray(interestSpaces) ? interestSpaces : [interestSpaces];
+      const goals = Array.isArray(hopingToFind) ? hopingToFind : [hopingToFind];
+      const personalityTraits = [personalityVibe, communityFeel, activityLevel, resonateStatement].filter(Boolean);
+      
+      const updatedUser = await storage.updateUser(parseInt(userId), {
+        interests,
+        goals,
+        personalityTraits,
+        availability: Array.isArray(availability) ? availability : [availability],
+        location: location || "",
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+        onboardingCompleted: true
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Trigger AI-powered community generation based on new quiz responses
+      try {
+        await communityRefreshService.refreshUserCommunities(parseInt(userId));
+      } catch (error) {
+        console.error("Failed to refresh communities after onboarding:", error);
+      }
+
+      res.json({
+        message: "Onboarding completed successfully",
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server for real-time member detection

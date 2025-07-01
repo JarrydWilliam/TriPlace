@@ -1,0 +1,157 @@
+ Revamped Quiz Framework
+SECTION 1: Get to Know You
+Short, intuitive, emotionally intelligent questions.
+
+What are you hoping to find here?
+(choose up to 3 — emoji tiles preferred)
+
+👯‍♀️ Real friendships
+
+💬 Safe, thoughtful convos
+
+🎉 Local events & hangouts
+
+🤝 Collaborators or builders
+
+✨ Personal growth or support
+
+🌱 Chill place to check in
+
+How do you want to feel in a community?
+(one pick – sets tone of community matching)
+
+Seen & supported
+
+Inspired & challenged
+
+Comfortable just being me
+
+Energized & excited
+
+Curious & open
+
+What’s your vibe IRL?
+(helps match personality dynamics)
+
+🧘‍♂️ Low-key / introverted
+
+🦄 Creative / open-minded
+
+📈 Driven / ambitious
+
+🤗 Warm / social
+
+😂 Light-hearted / funny
+
+🤓 Deep thinker
+
+SECTION 2: Interests & Passions
+Gives the AI rich signals for group relevance
+
+Pick a few spaces you'd vibe in
+(choose 3–6 max — use visual tiles)
+
+🔬 AI & Tech
+
+🎨 Art & Design
+
+💻 Startup Builders
+
+🧠 Mental Wellness
+
+🌎 Social Impact
+
+🧘 Mindfulness
+
+🎶 Music Scenes
+
+📚 Bookworms
+
+🏳️‍🌈 LGBTQ+ spaces
+
+🥾 Outdoors & Adventure
+
+🎮 Gaming
+
+🍳 Cooking & Culture
+
+🧑‍🎓 Students & Learners
+
+👶 Parents & Families
+
+SECTION 3: Time & Energy
+Filter by activity level & availability
+
+How active do you want your communities to be?
+
+🔥 Super active — daily convos
+
+💬 Just enough — a few posts a week
+
+🧘 Chill pace — low volume
+
+👀 Mostly browsing for now
+
+When are you usually around?
+
+Weekday evenings
+
+Weekends
+
+Early mornings
+
+Late nights
+
+Randomly / no set time
+
+SECTION 4: Location & Matching
+Where are you located?
+
+Auto-detected but allow override
+
+Used for nearby events & local groups
+
+Are you open to digital-only spaces too?
+
+Yes, anywhere with my vibe
+
+Local only
+
+Both
+
+SECTION 5: Bonus Values Layer
+(Optional but high signal for deep matching)
+
+Which statement resonates most with you?
+
+“I want to grow and explore new parts of myself.”
+
+“I need a space to feel understood.”
+
+“I’m excited to find people who get me.”
+
+“I’m building something and want others on the path.”
+
+“I’m just here to chill and maybe make a friend or two.”
+
+🧩 Final Screen: Feedback Loop
+✅ You’re matched with:
+“The Creative Recharge Space,” “Chill Founders Collective,” and “Sunset Walks SF”
+(based on your vibe, goals & location)
+
+With the option to:
+
+Join right away
+
+Preview more
+
+Save for later
+
+📲 UX Traits from High-End Apps
+Incorporate inspiration from:
+
+App	UX Element
+Bumble BFF	swipeable onboarding, clear intent tags
+Geneva	visual room selection, soft-friendly branding
+Spotify	engaging “Wrapped”-like personalization
+Slowly / Cocoon	emotional tone-setting intro questions
