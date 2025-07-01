@@ -20,6 +20,7 @@ import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { format, parseISO } from "date-fns";
 import { useTheme } from "@/lib/theme-context";
 
@@ -183,8 +184,9 @@ export default function CommunityPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
+    <div className="scroll-wrapper">
+      <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
+        <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Simple Header with Navigation */}
         <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 mb-4">
@@ -386,8 +388,9 @@ export default function CommunityPage() {
               </div>
             </TabsContent>
           </Tabs>
+          <BackToTop />
         </div>
-      </div>
-    </PullToRefresh>
+      </PullToRefresh>
+    </div>
   );
 }
