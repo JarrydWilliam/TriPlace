@@ -182,7 +182,7 @@ const QUIZ_SECTIONS = [
 ];
 
 export default function Onboarding() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { latitude, longitude, locationName } = useGeolocation(user?.id);
   const [currentSection, setCurrentSection] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -218,17 +218,17 @@ export default function Onboarding() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Welcome to TriPlace!",
         description: "Your communities are being personalized based on your responses."
       });
-      // Invalidate user queries to refresh auth state
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.clear(); // Clear all cached data to force refresh
       
-      // Force page refresh to update auth context
-      window.location.href = "/dashboard";
+      // Refresh user data to update auth context
+      await refreshUser();
+      
+      // Navigate to dashboard
+      setLocation("/dashboard");
     },
     onError: (error) => {
       toast({
