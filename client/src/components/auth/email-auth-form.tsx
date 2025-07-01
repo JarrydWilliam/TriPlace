@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { signInWithEmail, signUpWithEmail } from "@/lib/firebase";
+import { useLocation } from "wouter";
 
 interface EmailAuthFormProps {
   mode: "signin" | "signup";
@@ -18,6 +19,7 @@ export function EmailAuthForm({ mode, onModeChange, onBack }: EmailAuthFormProps
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [, navigate] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +29,8 @@ export function EmailAuthForm({ mode, onModeChange, onBack }: EmailAuthFormProps
     try {
       if (mode === "signup") {
         await signUpWithEmail(email, password);
-        // Show success message and redirect to onboarding
-        alert("Account created successfully! Please check your email for verification.");
+        // Redirect to profile setup after successful sign-up
+        navigate("/profile-setup");
       } else {
         await signInWithEmail(email, password);
       }

@@ -7,9 +7,10 @@ interface GeolocationState {
   loading: boolean;
   source: 'gps' | 'ip' | null;
   locationName: string | null;
+  warning?: string | null;
 }
 
-export function useGeolocation(userId?: number) {
+export function useGeolocation(userId?: number, onError?: (error: string) => void) {
   const [location, setLocation] = useState<GeolocationState>({
     latitude: null,
     longitude: null,
@@ -17,6 +18,7 @@ export function useGeolocation(userId?: number) {
     loading: true,
     source: null,
     locationName: null,
+    warning: null,
   });
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export function useGeolocation(userId?: number) {
     // Step 1: Try high-accuracy GPS first (mobile-optimized)
     const tryGPSLocation = () => {
       if (!navigator.geolocation) {
-        tryIPLocation();
+        tryIPLocation('Geolocation not supported by browser');
         return;
       }
 
@@ -56,6 +58,7 @@ export function useGeolocation(userId?: number) {
           loading: false,
           source: 'gps',
           locationName,
+          warning: null,
         });
 
         // Update user location in backend for dynamic community matching
@@ -83,7 +86,15 @@ export function useGeolocation(userId?: number) {
       };
 
       const handleError = (error: GeolocationPositionError) => {
-        tryIPLocation();
+        let errorMsg = 'Location access denied. Using approximate location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = 'Location access denied by user.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = 'Location unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          errorMsg = 'Location request timed out.';
+        }
+        tryIPLocation(errorMsg);
       };
 
       // Mobile-optimized GPS settings
@@ -95,7 +106,7 @@ export function useGeolocation(userId?: number) {
     };
 
     // Step 2: IP-based fallback for reliability
-    const tryIPLocation = async () => {
+    const tryIPLocation = async (gpsErrorMsg?: string) => {
       try {
         // Use ipapi.co for IP-based geolocation
         const response = await fetch('https://ipapi.co/json/');
@@ -106,10 +117,11 @@ export function useGeolocation(userId?: number) {
           setLocation({
             latitude: data.latitude,
             longitude: data.longitude,
-            error: hasGPSAttempted ? 'Using approximate location based on IP address' : null,
+            error: null,
             loading: false,
             source: 'ip',
             locationName,
+            warning: gpsErrorMsg || 'Using approximate location based on IP address',
           });
 
           // Update user location in backend for IP-based location
@@ -138,12 +150,14 @@ export function useGeolocation(userId?: number) {
           throw new Error('IP location service unavailable');
         }
       } catch (ipError) {
-        setLocation(prev => ({
+        setLocation((prev: GeolocationState) => ({
           ...prev,
           error: 'Location services unavailable. Please enable location access for better recommendations.',
           loading: false,
           locationName: null,
+          warning: null,
         }));
+        if (onError) onError('Location services unavailable. Please enable location access.');
       }
     };
 

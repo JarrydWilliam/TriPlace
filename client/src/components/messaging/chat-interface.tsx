@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message, User } from "@shared/schema";
-import { Send, Search } from "lucide-react";
+import { Send, Search, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -122,6 +122,8 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
   const [messageInput, setMessageInput] = useState("");
   const { user: currentUser } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -130,6 +132,29 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Show/hide back to top button on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!scrollAreaRef.current) return;
+      setShowBackToTop(scrollAreaRef.current.scrollTop > 400);
+    };
+    const container = scrollAreaRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
+  const handleBackToTop = () => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +197,11 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4 bg-gray-900 dark:bg-gray-900">
+      <div
+        ref={scrollAreaRef}
+        className="flex-1 p-4 bg-gray-900 dark:bg-gray-900 overflow-y-auto relative"
+        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="space-y-1">
           {messages.map((message) => (
             <MessageBubble
@@ -184,7 +213,17 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+        {showBackToTop && (
+          <button
+            onClick={handleBackToTop}
+            className="fixed bottom-6 right-6 z-50 bg-primary text-white rounded-full shadow-lg p-3 flex items-center justify-center hover:bg-primary/90 transition-all"
+            aria-label="Back to Top"
+            style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
+          >
+            <ChevronUp className="w-6 h-6" />
+          </button>
+        )}
+      </div>
 
       {/* Message Input */}
       <div className="p-4 bg-gray-800 border-t border-gray-700 dark:bg-gray-800 dark:border-gray-700">
