@@ -1,6 +1,28 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// Import vite utilities - conditionally loaded based on environment
+let setupVite: any, serveStatic: any, log: any;
+
+try {
+  const viteModule = require("./vite");
+  setupVite = viteModule.setupVite;
+  serveStatic = viteModule.serveStatic;
+  log = viteModule.log;
+} catch (error) {
+  // Fallback implementations for production
+  setupVite = async (app: any, server: any) => {};
+  serveStatic = (app: any) => {
+    const path = require("path");
+    app.use(require("express").static(path.resolve("dist/public")));
+    app.get("*", (req: any, res: any) => {
+      res.sendFile(path.resolve("dist/public/index.html"));
+    });
+  };
+  log = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`${timestamp} [express] ${message}`);
+  };
+}
 
 // Load environment variables
 if (process.env.NODE_ENV !== 'production') {

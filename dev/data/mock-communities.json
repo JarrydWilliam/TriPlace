@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Fitness and Wellness Collective",
+    "description": "A supportive community focused on holistic health, fitness routines, and mental wellness practices. Share workout tips, meditation techniques, and healthy lifestyle habits.",
+    "category": "wellness", 
+    "memberCount": 25,
+    "location": "New York, NY",
+    "isActive": true
+  },
+  {
+    "name": "Tech Innovation Hub",
+    "description": "Connect with developers, entrepreneurs, and tech enthusiasts building the future. Discuss cutting-edge technologies, startup ideas, and coding best practices.",
+    "category": "tech",
+    "memberCount": 42,
+    "location": "San Francisco, CA", 
+    "isActive": true
+  },
+  {
+    "name": "Creative Arts Circle",
+    "description": "Artists, musicians, and creative minds sharing inspiration and collaboration opportunities. Showcase your work and find creative partners.",
+    "category": "arts",
+    "memberCount": 18,
+    "location": "Los Angeles, CA",
+    "isActive": true
+  },
+  {
+    "name": "Sustainable Living Network",
+    "description": "Environmental enthusiasts promoting sustainable practices and eco-friendly living. Share tips on reducing carbon footprint and green innovations.",
+    "category": "environment",
+    "memberCount": 31,
+    "location": "Portland, OR",
+    "isActive": true
+  },
+  {
+    "name": "Food & Culture Explorers",
+    "description": "Culinary adventurers exploring diverse cuisines and cultural traditions. Share recipes, restaurant recommendations, and food experiences.",
+    "category": "food",
+    "memberCount": 28,
+    "location": "Austin, TX",
+    "isActive": true
+  },
+  {
+    "name": "Community Builders Network",
+    "description": "Social organizers and community leaders working to strengthen local connections. Plan events, coordinate volunteer efforts, and build stronger neighborhoods.",
+    "category": "social",
+    "memberCount": 22,
+    "location": "Various Locations",
+    "isActive": true
+  }
+]

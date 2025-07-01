@@ -1,0 +1,68 @@
+[
+  {
+    "title": "Morning Yoga & Mindfulness Session",
+    "description": "Start your day with gentle yoga flows and guided meditation practice. Perfect for all skill levels.",
+    "organizer": "Wellness Collective",
+    "date": "2025-01-03T07:00:00Z",
+    "location": "Central Park Great Lawn",
+    "address": "Central Park West & 81st St, New York, NY 10024",
+    "category": "wellness",
+    "price": 0,
+    "isGlobal": false
+  },
+  {
+    "title": "AI & Machine Learning Workshop",
+    "description": "Hands-on workshop covering the fundamentals of AI and practical ML applications for beginners.",
+    "organizer": "Tech Innovation Hub",
+    "date": "2025-01-05T14:00:00Z",
+    "location": "TechSpace SF",
+    "address": "995 Market St, San Francisco, CA 94103",
+    "category": "tech",
+    "price": 25,
+    "isGlobal": false
+  },
+  {
+    "title": "Local Artist Showcase & Gallery Walk",
+    "description": "Discover emerging talent and connect with the local art community. Featured artists will present their latest works.",
+    "organizer": "Creative Arts Circle",
+    "date": "2025-01-07T18:00:00Z",
+    "location": "Arts District Gallery",
+    "address": "634 Mateo St, Los Angeles, CA 90021",
+    "category": "arts",
+    "price": 15,
+    "isGlobal": false
+  },
+  {
+    "title": "Sustainable Living Workshop",
+    "description": "Learn practical tips for reducing your environmental footprint through sustainable daily practices.",
+    "organizer": "Eco Advocates",
+    "date": "2025-01-08T13:00:00Z",
+    "location": "Community Center Portland",
+    "address": "1515 SW Morrison St, Portland, OR 97205",
+    "category": "environment",
+    "price": 10,
+    "isGlobal": false
+  },
+  {
+    "title": "Food Truck Festival & Cultural Exchange",
+    "description": "Explore diverse cuisines from around the world while connecting with fellow food enthusiasts.",
+    "organizer": "Food Culture Network",
+    "date": "2025-01-10T11:00:00Z",
+    "location": "Rainey Street District",
+    "address": "90 Rainey St, Austin, TX 78701",
+    "category": "food",
+    "price": 5,
+    "isGlobal": false
+  },
+  {
+    "title": "Community Building & Networking Meetup",
+    "description": "Connect with local organizers and community leaders to strengthen neighborhood bonds.",
+    "organizer": "Community Builders",
+    "date": "2025-01-12T16:00:00Z",
+    "location": "Public Library Meeting Room",
+    "address": "Various Locations",
+    "category": "social",
+    "price": 0,
+    "isGlobal": false
+  }
+]
