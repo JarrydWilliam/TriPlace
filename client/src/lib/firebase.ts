@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
 import { ERROR_MESSAGES } from "./production-config";
 
 // Firebase configuration with provided credentials
@@ -50,51 +50,5 @@ export const signOutUser = async () => {
     await signOut(auth);
   } catch (error) {
     throw new Error('Unable to sign out. Please try again.');
-  }
-};
-
-export const signInWithEmail = async (email: string, password: string) => {
-  try {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    return result;
-  } catch (error: any) {
-    // Handle specific Firebase auth errors
-    switch (error.code) {
-      case 'auth/user-not-found':
-        throw new Error('No account found with this email. Please sign up first.');
-      case 'auth/wrong-password':
-        throw new Error('Incorrect password. Please try again.');
-      case 'auth/invalid-email':
-        throw new Error('Please enter a valid email address.');
-      case 'auth/too-many-requests':
-        throw new Error('Too many failed attempts. Please try again later.');
-      case 'auth/network-request-failed':
-        throw new Error(ERROR_MESSAGES.NETWORK);
-      default:
-        throw new Error('Sign-in failed. Please check your credentials and try again.');
-    }
-  }
-};
-
-export const signUpWithEmail = async (email: string, password: string) => {
-  try {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    // Send email verification
-    await sendEmailVerification(result.user);
-    return result;
-  } catch (error: any) {
-    // Handle specific Firebase auth errors
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        throw new Error('An account with this email already exists. Please sign in instead.');
-      case 'auth/weak-password':
-        throw new Error('Password should be at least 6 characters long.');
-      case 'auth/invalid-email':
-        throw new Error('Please enter a valid email address.');
-      case 'auth/network-request-failed':
-        throw new Error(ERROR_MESSAGES.NETWORK);
-      default:
-        throw new Error('Sign-up failed. Please try again.');
-    }
   }
 };

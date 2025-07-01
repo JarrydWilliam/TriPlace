@@ -31,6 +31,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
+    try {
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
@@ -428,7 +441,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
+  // Test OpenAI integration
+  app.post("/api/test-openai", async (req, res) => {
+    try {
+      console.log("Testing OpenAI integration...");
+      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.json({ success: false, error: "No API key found", hasKey: false });
+      }
+      
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
+        max_tokens: 10
+      });
+      
+      const content = response.choices[0]?.message?.content;
+      res.json({ success: true, response: content, hasKey: true });
+    } catch (error: any) {
+      console.error("OpenAI test failed:", error.message);
+      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
+    }
+  });
 
   app.get("/api/users/:id/events", async (req, res) => {
     try {
@@ -603,127 +641,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Community not found" });
       }
       
-      const latitude = parseFloat(req.query.latitude as string);
-      const longitude = parseFloat(req.query.longitude as string);
+      // Get events that match this community's category and are recent
+      const events = await storage.getEventsByCategory(community.category);
+      const recentEvents = events.filter(event => 
+        new Date(event.date) >= new Date() && // Future events only
+        new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
+      );
       
-      let events: any[] = [];
-      
-      if (latitude && longitude) {
-        try {
-          // Use web scraping to get events for this community
-          const scrapedEvents = await eventScraper.scrapeEventsForCommunity(community, { lat: latitude, lon: longitude });
-          
-          // Convert scraped events to Event format
-          events = scrapedEvents.map(scrapedEvent => ({
-            id: Math.random() * 1000000, // Temporary ID for scraped events
-            title: scrapedEvent.title,
-            description: scrapedEvent.description,
-            organizer: scrapedEvent.organizerName || 'Event Organizer',
-            date: scrapedEvent.date,
-            location: scrapedEvent.location,
-            address: scrapedEvent.location,
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-            category: scrapedEvent.category,
-            maxAttendees: scrapedEvent.attendeeCount || 50,
-            price: (scrapedEvent.price || 0).toString(),
-            sourceUrl: scrapedEvent.sourceUrl,
-            isScraped: true
-          }));
-        } catch (scrapingError) {
-          console.error('Web scraping failed, falling back to database events:', scrapingError);
-        }
-      }
-      
-      // Fallback to database events if web scraping failed or returned no events
-      if (events.length === 0) {
-        const dbEvents = await storage.getEventsByCategory(community.category);
-        const recentEvents = dbEvents.filter(event => 
-          new Date(event.date) >= new Date() && // Future events only
-          new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
-        );
-        
-        events = recentEvents.map(event => ({
-          ...event,
-          isScraped: false
-        }));
-      }
-      
-      res.json(events);
+      res.json(recentEvents);
     } catch (error) {
       console.error('Error fetching scraped events:', error);
       res.status(500).json({ message: "Failed to fetch events" });
-    }
-  });
-
-  // Get live member count for a community
-  app.get("/api/communities/:id/live-members-count", async (req, res) => {
-    try {
-      const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ message: "Invalid community ID" });
-      }
-      
-      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
-      const liveMembers = membersWithStatus.filter(member => member.isOnline);
-      
-      res.json({
-        totalMembers: membersWithStatus.length,
-        liveMembers: liveMembers.length,
-        onlineMembers: liveMembers
-      });
-    } catch (error) {
-      console.error("Error fetching live member count:", error);
-      res.status(500).json({ message: "Failed to fetch member count" });
-    }
-  });
-
-  // API routes for real-time member detection
-  app.get("/api/communities/:id/members/live", async (req, res) => {
-    try {
-      const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ message: "Invalid community ID" });
-      }
-      
-      console.log(`Fetching live members for community ${communityId}`);
-      
-      // Check if community exists
-      const community = await storage.getCommunity(communityId);
-      if (!community) {
-        console.log(`Community ${communityId} not found`);
-        return res.status(404).json({ message: "Community not found" });
-      }
-      
-      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
-      console.log(`Found ${membersWithStatus.length} members for community ${communityId}`);
-      
-      // Always return a valid response structure, even with no members
-      const liveMembers = membersWithStatus.filter(member => member.isOnline);
-      const offlineMembers = membersWithStatus.filter(member => !member.isOnline);
-      
-      const response = {
-        online: liveMembers || [],
-        offline: offlineMembers || [],
-        totalLive: liveMembers.length || 0,
-        totalMembers: membersWithStatus.length || 0,
-        communityId: communityId,
-        communityName: community.name
-      };
-      
-      console.log(`Returning ${liveMembers.length} online and ${offlineMembers.length} offline members`);
-      res.json(response);
-    } catch (error) {
-      console.error("Error fetching live community members:", error);
-      // Return empty response instead of error for better UX
-      res.json({
-        online: [],
-        offline: [],
-        totalLive: 0,
-        totalMembers: 0,
-        communityId: parseInt(req.params.id),
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 
@@ -1015,6 +943,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error triggering community refresh:", error);
       res.status(500).json({ message: "Failed to trigger community refresh" });
+    }
+  });
+
+  // API routes for real-time member detection
+  app.get("/api/communities/:id/members/live", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
+      
+      // Only return live members (online within last 15 minutes)
+      const liveMembers = membersWithStatus.filter(member => member.isOnline);
+      
+      res.json({
+        online: liveMembers,
+        offline: membersWithStatus.filter(member => !member.isOnline),
+        totalLive: liveMembers.length
+      });
+    } catch (error) {
+      console.error("Error fetching live community members:", error);
+      res.status(500).json({ message: "Failed to fetch live members" });
     }
   });
 

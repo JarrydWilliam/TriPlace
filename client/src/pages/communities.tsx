@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Users, MapPin, Calendar, Sparkles, Sun, Moon, ChevronUp } from "lucide-react";
+import { ArrowLeft, Users, MapPin, Calendar, Sparkles, Sun, Moon } from "lucide-react";
 import { Community, Event } from "@shared/schema";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,8 +17,6 @@ export default function CommunitiesPage() {
   const { latitude, longitude } = useGeolocation(user?.id);
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -28,62 +26,13 @@ export default function CommunitiesPage() {
     ]);
   };
 
-  // Show/hide back to top button on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!scrollContainerRef.current) return;
-      setShowBackToTop(scrollContainerRef.current.scrollTop > 400);
-    };
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", handleScroll);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
-
-  const handleBackToTop = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
   // Fetch all communities
   const { data: allCommunities, isLoading: communitiesLoading } = useQuery({
     queryKey: ["/api/communities"],
     queryFn: async () => {
       const response = await fetch("/api/communities");
       if (!response.ok) throw new Error("Failed to fetch communities");
-      const communities = await response.json();
-      
-      // Fetch live member counts for each community
-      const communitiesWithLiveCounts = await Promise.all(
-        communities.map(async (community: Community) => {
-          try {
-            const memberCountResponse = await fetch(`/api/communities/${community.id}/live-members-count`);
-            if (memberCountResponse.ok) {
-              const memberData = await memberCountResponse.json();
-              return {
-                ...community,
-                liveMemberCount: memberData.liveMembers,
-                totalMemberCount: memberData.totalMembers
-              };
-            }
-          } catch (error) {
-            console.error(`Failed to fetch member count for community ${community.id}:`, error);
-          }
-          return {
-            ...community,
-            liveMemberCount: 0,
-            totalMemberCount: community.memberCount || 0
-          };
-        })
-      );
-      
-      return communitiesWithLiveCounts;
+      return response.json();
     }
   });
 
@@ -138,11 +87,7 @@ export default function CommunitiesPage() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div
-        ref={scrollContainerRef}
-        className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto overflow-y-auto min-h-screen relative"
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Header with Back Button and Theme Toggle */}
         <div className="flex items-center justify-between mb-6">
@@ -263,7 +208,7 @@ export default function CommunitiesPage() {
                       <div className="text-right">
                         <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">
                           <Users className="w-3 h-3" />
-                          <span>{community.liveMemberCount} / {community.totalMemberCount}</span>
+                          <span>{community.memberCount || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -300,17 +245,6 @@ export default function CommunitiesPage() {
 
         {/* Smooth scroll fade at bottom */}
         <div className="h-8 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none"></div>
-
-        {showBackToTop && (
-          <button
-            onClick={handleBackToTop}
-            className="fixed bottom-6 right-6 z-50 bg-primary text-white rounded-full shadow-lg p-3 flex items-center justify-center hover:bg-primary/90 transition-all"
-            aria-label="Back to Top"
-            style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
-          >
-            <ChevronUp className="w-6 h-6" />
-          </button>
-        )}
       </div>
     </PullToRefresh>
   );

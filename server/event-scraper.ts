@@ -36,9 +36,7 @@ export class EventScraper {
         stubhubEvents,
         eventfulEvents,
         universeEvents,
-        seatgeekEvents,
-        localEvents,
-        communityCalendarEvents
+        seatgeekEvents
       ] = await Promise.allSettled([
         this.scrapeEventbrite(community, userLocation),
         this.scrapeMeetup(community, userLocation),
@@ -47,9 +45,7 @@ export class EventScraper {
         this.scrapeStubHub(community, userLocation),
         this.scrapeEventful(community, userLocation),
         this.scrapeUniverse(community, userLocation),
-        this.scrapeSeatGeek(community, userLocation),
-        this.scrapeLocalEvents(community, userLocation),
-        this.scrapeCommunityCalendars(community, userLocation)
+        this.scrapeSeatGeek(community, userLocation)
       ]);
 
       // Add successful results
@@ -61,8 +57,6 @@ export class EventScraper {
       if (eventfulEvents.status === 'fulfilled') events.push(...eventfulEvents.value);
       if (universeEvents.status === 'fulfilled') events.push(...universeEvents.value);
       if (seatgeekEvents.status === 'fulfilled') events.push(...seatgeekEvents.value);
-      if (localEvents.status === 'fulfilled') events.push(...localEvents.value);
-      if (communityCalendarEvents.status === 'fulfilled') events.push(...communityCalendarEvents.value);
       
       console.log(`Scraped ${events.length} total events from all sources for ${community.name}`);
       
@@ -422,127 +416,6 @@ export class EventScraper {
       console.error('SeatGeek scraping failed:', error);
       return [];
     }
-  }
-
-  private async scrapeLocalEvents(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
-    try {
-      const searchQuery = this.buildSearchQuery(community);
-      
-      // Try to scrape from local event websites and directories
-      const localSources = [
-        `https://www.eventbrite.com/d/${this.getLocationName(userLocation)}/${searchQuery}/`,
-        `https://www.meetup.com/find/?source=EVENTS&location=${this.getLocationName(userLocation)}&query=${searchQuery}`,
-        `https://www.facebook.com/events/search/?q=${searchQuery}&location=${this.getLocationName(userLocation)}`
-      ];
-
-      const events: ScrapedEvent[] = [];
-      
-      for (const source of localSources) {
-        try {
-          const response = await fetch(source, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-          });
-          
-          if (response.ok) {
-            const html = await response.text();
-            const parsedEvents = this.parseEventsFromHTML(html, community);
-            events.push(...parsedEvents);
-          }
-        } catch (error) {
-          console.log(`Failed to scrape from ${source}:`, error);
-        }
-      }
-      
-      return events;
-    } catch (error) {
-      console.error('Local events scraping failed:', error);
-      return [];
-    }
-  }
-
-  private async scrapeCommunityCalendars(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
-    try {
-      const searchQuery = this.buildSearchQuery(community);
-      const locationName = this.getLocationName(userLocation);
-      
-      // Try to scrape from community calendars and local government sites
-      const calendarSources = [
-        `https://www.${locationName.toLowerCase().replace(/\s+/g, '')}.gov/events`,
-        `https://www.${locationName.toLowerCase().replace(/\s+/g, '')}chamber.com/events`,
-        `https://www.${locationName.toLowerCase().replace(/\s+/g, '')}visitor.com/events`
-      ];
-
-      const events: ScrapedEvent[] = [];
-      
-      for (const source of calendarSources) {
-        try {
-          const response = await fetch(source, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-          });
-          
-          if (response.ok) {
-            const html = await response.text();
-            const parsedEvents = this.parseEventsFromHTML(html, community);
-            events.push(...parsedEvents);
-          }
-        } catch (error) {
-          console.log(`Failed to scrape from ${source}:`, error);
-        }
-      }
-      
-      return events;
-    } catch (error) {
-      console.error('Community calendar scraping failed:', error);
-      return [];
-    }
-  }
-
-  private getLocationName(userLocation: { lat: number, lon: number }): string {
-    // In production, this should use reverse geocoding service
-    // For now, return a generic location name that works with most APIs
-    return 'local';
-  }
-
-  private parseEventsFromHTML(html: string, community: Community): ScrapedEvent[] {
-    const events: ScrapedEvent[] = [];
-    
-    try {
-      // Simple regex-based parsing for common event patterns
-      // This is a basic implementation - in production, use proper HTML parsing
-      
-      // Look for event titles
-      const titleMatches = html.match(/<h[1-6][^>]*>([^<]+(?:event|meetup|workshop|conference|seminar)[^<]*)<\/h[1-6]>/gi);
-      const dateMatches = html.match(/(\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Za-z]+ \d{1,2},? \d{4})/g);
-      const locationMatches = html.match(/(?:at|in|location:?)\s*([^<>\n]+(?:street|avenue|road|plaza|center|park|theater|auditorium)[^<>\n]*)/gi);
-      
-      if (titleMatches && titleMatches.length > 0) {
-        for (let i = 0; i < Math.min(titleMatches.length, 5); i++) {
-          const title = titleMatches[i].replace(/<[^>]*>/g, '').trim();
-          const date = dateMatches && dateMatches[i] ? new Date(dateMatches[i]) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          const location = locationMatches && locationMatches[i] ? locationMatches[i].replace(/(?:at|in|location:?)\s*/i, '').trim() : 'Location TBD';
-          
-          events.push({
-            title: title,
-            description: `Event found for ${community.name}`,
-            date: date,
-            location: location,
-            category: community.category,
-            sourceUrl: '',
-            organizerName: 'Local Organizer',
-            price: 0,
-            attendeeCount: 0
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing HTML for events:', error);
-    }
-    
-    return events;
   }
 
   private getGeoHash(lat: number, lon: number): string {

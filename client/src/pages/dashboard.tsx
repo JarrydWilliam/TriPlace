@@ -11,12 +11,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
@@ -34,8 +35,6 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Listen for ChatGPT community updates from service worker
   useEffect(() => {
@@ -234,29 +233,6 @@ export default function Dashboard() {
     social: "bg-indigo-500"
   };
 
-  // Show/hide back to top button on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!scrollContainerRef.current) return;
-      setShowBackToTop(scrollContainerRef.current.scrollTop > 400);
-    };
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener("scroll", handleScroll);
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
-
-  const handleBackToTop = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
   if (authLoading || locationLoading) {
     return <ComponentLoadingSpinner text="Loading your dashboard..." />;
   }
@@ -267,11 +243,7 @@ export default function Dashboard() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div
-        ref={scrollContainerRef}
-        className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto overflow-y-auto min-h-screen relative"
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Mobile-First User Banner */}
         <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
@@ -752,18 +724,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+
+
           </div>
         </div>
-        {showBackToTop && (
-          <button
-            onClick={handleBackToTop}
-            className="fixed bottom-6 right-6 z-50 bg-primary text-white rounded-full shadow-lg p-3 flex items-center justify-center hover:bg-primary/90 transition-all"
-            aria-label="Back to Top"
-            style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
-          >
-            <ChevronUp className="w-6 h-6" />
-          </button>
-        )}
       </div>
     </PullToRefresh>
   );

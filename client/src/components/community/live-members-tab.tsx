@@ -26,25 +26,9 @@ interface LiveMembersTabProps {
 export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
   const { memberUpdates } = useWebSocket();
   
-  const { data: membersData, isLoading, error, refetch } = useQuery<LiveMembersResponse>({
+  const { data: membersData, isLoading, refetch } = useQuery<LiveMembersResponse>({
     queryKey: ['/api/communities', communityId, 'members', 'live'],
-    queryFn: async () => {
-      console.log('Fetching live members for community:', communityId);
-      const response = await fetch(`/api/communities/${communityId}/members/live`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch live members:', response.status, errorText);
-        throw new Error(`Failed to fetch live members: ${response.status} ${errorText}`);
-      }
-      const data = await response.json();
-      console.log('Live members data received:', data);
-      return data;
-    },
     refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-    retryDelay: 1000,
-    // Don't treat empty member lists as errors
-    retryOnMount: false,
   });
 
   // Apply real-time updates from WebSocket
@@ -96,34 +80,8 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
     );
   }
 
-  // Only show error for actual network/database errors, not empty member lists
-  if (error && !membersData) {
-    return (
-      <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-        <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-            <Users className="w-8 h-8 text-red-500 dark:text-red-400" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2 text-red-600 dark:text-red-400">Error Loading Members</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {error instanceof Error ? error.message : 'Failed to load community members'}
-          </p>
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            size="sm"
-            className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-900/20"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   const onlineMembers = updatedMembers?.online || [];
   const offlineMembers = updatedMembers?.offline || [];
-  const totalMembers = (updatedMembers?.online?.length || 0) + (updatedMembers?.offline?.length || 0);
 
   return (
     <div className="responsive-padding space-y-6 max-h-[70vh] overflow-y-auto">
@@ -225,29 +183,11 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
       )}
 
       {/* Empty State */}
-      {totalMembers === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
-            <Users className="w-10 h-10 text-blue-500 dark:text-blue-400" />
-          </div>
-          <h3 className="font-semibold text-lg mb-2 text-gray-700 dark:text-gray-300">No Members Yet</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-3">
-            This community is waiting for its first members to join!
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500">
-            Members will appear here once they join the community
-          </p>
-          <div className="mt-6 flex justify-center">
-            <Button
-              onClick={() => refetch()}
-              variant="outline"
-              size="sm"
-              className="text-blue-600 border-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-900/20"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
+      {onlineMembers.length === 0 && offlineMembers.length === 0 && (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>No members found in this community</p>
+          <p className="text-sm mt-1">Members will appear here when they join</p>
         </div>
       )}
     </div>

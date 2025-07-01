@@ -1,12 +1,11 @@
-import React from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { ThemeProvider } from "@/lib/theme-context";
-import { ErrorBoundary } from "@/lib/error-boundary";
+// import { ThemeProvider } from "@/lib/theme-context";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -23,7 +22,7 @@ import CommunitySettings from "@/pages/settings/community";
 import SecuritySettings from "@/pages/settings/security";
 import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
-// import { AppUpdater } from "@/components/ui/app-updater";
+import { AppUpdater } from "@/components/ui/app-updater";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -79,16 +78,15 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </QueryClientProvider>
+          <TooltipProvider>
+            <Toaster />
+            <AppUpdater />
+            <Router />
+          </TooltipProvider>
         </AuthProvider>
-      </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

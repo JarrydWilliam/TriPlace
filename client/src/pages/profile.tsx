@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { MapPin, Calendar, Edit, Save, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -40,9 +40,6 @@ export default function Profile() {
     bio: "",
     location: "",
   });
-  const [avatar, setAvatar] = useState<string | undefined>(currentUser?.avatar);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userId || userId === currentUser?.id?.toString();
@@ -77,29 +74,14 @@ export default function Profile() {
 
   // Update user profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: typeof editForm & { avatar?: string }) => {
+    mutationFn: async (updates: typeof editForm) => {
       if (!currentUser) throw new Error("No user found");
-      let avatarUrl = avatar;
-      // If a new avatar file is selected, upload it
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append("avatar", avatarFile);
-        const uploadRes = await fetch(`/api/users/${currentUser.id}/avatar`, {
-          method: "POST",
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const data = await uploadRes.json();
-          avatarUrl = data.avatarUrl;
-        }
-      }
-      const response = await apiRequest('PATCH', `/api/users/${currentUser.id}`, { ...updates, avatar: avatarUrl });
+      const response = await apiRequest('PATCH', `/api/users/${currentUser.id}`, updates);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       setIsEditing(false);
-      setAvatarFile(null);
       toast({
         title: "Profile updated!",
         description: "Your profile has been successfully updated.",
@@ -114,18 +96,6 @@ export default function Profile() {
     },
   });
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setAvatar(ev.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleEditClick = () => {
     if (user) {
       setEditForm({
@@ -133,14 +103,12 @@ export default function Profile() {
         bio: user.bio || "",
         location: user.location || "",
       });
-      setAvatar(user.avatar);
-      setAvatarFile(null);
       setIsEditing(true);
     }
   };
 
   const handleSave = () => {
-    updateProfileMutation.mutate({ ...editForm, avatar });
+    updateProfileMutation.mutate(editForm);
   };
 
   const handleCancel = () => {
@@ -179,26 +147,12 @@ export default function Profile() {
             <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={avatar || user.avatar || undefined} alt={editForm.name || user.name} />
-                      <AvatarFallback className="bg-primary text-white text-2xl">
-                        {(editForm.name || user.name).charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {isEditing && (
-                      <label className="block mt-2">
-                        <span className="text-sm text-gray-300">Profile Picture (optional)</span>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="mt-1"
-                          ref={fileInputRef}
-                        />
-                      </label>
-                    )}
-                  </div>
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                    <AvatarFallback className="bg-primary text-white text-2xl">
+                      {user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   
                   <div className="flex-1">
                     {isEditing ? (
