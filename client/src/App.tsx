@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Onboarding from "@/pages/onboarding";
+import ProfileSetup from "@/pages/profile-setup";
 import Profile from "@/pages/profile";
 import Messaging from "@/pages/messaging";
 import Community from "@/pages/community";
@@ -31,11 +32,15 @@ function Router() {
   useEffect(() => {
     if (!loading && firebaseUser && user) {
       const needsOnboarding = !user.onboardingCompleted;
-      const isOnOnboardingPage = location === '/onboarding';
+      const needsProfileSetup = !user.name || user.name === user.email?.split('@')[0];
+      const isGoogleUser = firebaseUser.providerId === 'google.com' || firebaseUser.providerData.some(p => p.providerId === 'google.com');
       
-      if (needsOnboarding && !isOnOnboardingPage) {
+      // Email users need profile setup if they don't have a proper name
+      if (!isGoogleUser && needsProfileSetup && location !== '/profile-setup') {
+        setLocation('/profile-setup');
+      } else if (needsOnboarding && location !== '/onboarding' && location !== '/profile-setup') {
         setLocation('/onboarding');
-      } else if (!needsOnboarding && isOnOnboardingPage) {
+      } else if (!needsOnboarding && !needsProfileSetup && (location === '/onboarding' || location === '/profile-setup')) {
         setLocation('/dashboard');
       }
     }
@@ -54,6 +59,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
+      <Route path="/profile-setup" component={ProfileSetup} />
       <Route path="/profile" component={Profile} />
       <Route path="/profile/:userId" component={Profile} />
       <Route path="/messaging" component={Messaging} />

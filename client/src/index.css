@@ -132,6 +132,74 @@ body::-webkit-scrollbar {
   padding-right: env(safe-area-inset-right, 0);
 }
 
+/* Enhanced mobile scrolling and touch optimization */
+.mobile-page-container {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+  transform: translateZ(0); /* Hardware acceleration */
+  will-change: scroll-position;
+}
+
+/* Prevent scroll lock issues */
+body, html {
+  position: relative;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Enhanced button accessibility for mobile */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix viewport and layout overflow issues */
+.viewport-container {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .mobile-page-container {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix for iOS Safari bounce effect */
+  .no-bounce {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Enhanced safe area handling */
+.safe-area-full {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Button positioning fixes for mobile */
+.mobile-button-container {
+  padding: env(safe-area-inset-bottom, 16px) env(safe-area-inset-right, 16px) 16px env(safe-area-inset-left, 16px);
+}
+
+/* Ensure content doesn't go behind notch */
+.content-safe {
+  margin-top: env(safe-area-inset-top, 0);
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Container width system for different screen sizes */
 .container-responsive {
   width: 100%;
