@@ -1025,8 +1025,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         personalityTraits,
         availability: Array.isArray(availability) ? availability : [availability],
         location: location || "",
-        latitude: latitude ? parseFloat(latitude) : null,
-        longitude: longitude ? parseFloat(longitude) : null,
+        latitude: latitude ? parseFloat(latitude).toString() : null,
+        longitude: longitude ? parseFloat(longitude).toString() : null,
         onboardingCompleted: true
       });
 
