@@ -314,9 +314,10 @@ export default function Onboarding() {
   }
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="mobile-page-container min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="scroll-wrapper">
+      <PullToRefresh onRefresh={handleRefresh} className="scroll-container">
+        <div className="scroll-content mobile-page-container min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="container mx-auto px-4 py-8 max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <Logo size="lg" className="mx-auto mb-4" />
@@ -446,9 +447,10 @@ export default function Onboarding() {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
+          </div>
         </div>
-      </div>
-      <BackToTop />
-    </PullToRefresh>
+        <BackToTop />
+      </PullToRefresh>
+    </div>
   );
 }
