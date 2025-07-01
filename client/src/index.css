@@ -567,6 +567,24 @@ button, [role="button"], input, textarea, select, a {
     .ring-blue-500 { @apply ring-orange-500; }
     .ring-indigo-500 { @apply ring-orange-500; }
     .focus\\:ring-blue-500:focus { @apply focus:ring-orange-500; }
+    
+    /* Gradient overrides for light mode */
+    .from-purple-600 { @apply from-orange-500; }
+    .to-blue-600 { @apply to-yellow-500; }
+    .bg-purple-600 { @apply bg-orange-500; }
+    .hover\\:bg-purple-700:hover { @apply hover:bg-orange-600; }
+    
+    /* Additional purple/blue to orange/yellow conversions */
+    .text-purple-600 { @apply text-orange-600; }
+    .text-blue-600 { @apply text-orange-600; }
+    .border-purple-600 { @apply border-orange-600; }
+    .border-blue-600 { @apply border-orange-600; }
+    
+    /* Chart and data visualization colors */
+    .fill-purple-600 { @apply fill-orange-600; }
+    .fill-blue-600 { @apply fill-orange-600; }
+    .stroke-purple-600 { @apply stroke-orange-600; }
+    .stroke-blue-600 { @apply stroke-orange-600; }
   }
 
   h1, h2, h3, h4, h5, h6 {

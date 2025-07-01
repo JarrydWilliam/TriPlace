@@ -248,7 +248,7 @@ export default function Dashboard() {
         <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Mobile-First User Banner */}
-        <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0">
+        <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-orange-500 to-yellow-500 dark:from-purple-600 dark:to-blue-600 text-white border-0">
           <CardContent className="responsive-padding">
             {/* Mobile Layout - Stack vertically on small screens */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
@@ -397,7 +397,7 @@ export default function Dashboard() {
                 </CardTitle>
                 <Button 
                   size="sm" 
-                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
+                  className="bg-orange-500 hover:bg-orange-600 dark:bg-purple-600 dark:hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
                   onClick={() => setLocation("/create-event")}
                 >
                   <Plus className="w-4 h-4 mr-1" />
