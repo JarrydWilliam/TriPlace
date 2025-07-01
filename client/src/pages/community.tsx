@@ -233,26 +233,6 @@ export default function CommunityPage() {
 
             {/* Chat Tab - Instagram-style Messaging */}
             <TabsContent value="chat" className="mt-0 h-[70vh] flex flex-col">
-              {/* Chat Header with Community Status */}
-              <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-                        {community.name.charAt(0)}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{community.name}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{community.memberCount} members online</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    Active
-                  </Badge>
-                </div>
-              </div>
 
               {/* Messages Container with Scroll */}
               <div className="flex-1 overflow-y-auto responsive-padding space-y-4 bg-gray-50 dark:bg-gray-900">
