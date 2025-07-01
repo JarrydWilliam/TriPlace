@@ -367,39 +367,62 @@ button, [role="button"], input, textarea, select, a {
 }
 
 :root {
-  --background: hsl(35, 40%, 96%);
-  --foreground: hsl(25, 85%, 15%);
-  --muted: hsl(40, 50%, 88%);
-  --muted-foreground: hsl(30, 25%, 45%);
-  --popover: hsl(32, 45%, 94%);
-  --popover-foreground: hsl(25, 85%, 15%);
-  --card: hsl(38, 55%, 92%);
-  --card-foreground: hsl(25, 85%, 18%);
-  --border: hsl(42, 35%, 82%);
-  --input: hsl(42, 35%, 85%);
-  --primary: hsl(268, 83%, 58%);
-  --primary-foreground: hsl(35, 40%, 96%);
-  --secondary: hsl(45, 60%, 80%);
-  --secondary-foreground: hsl(25, 85%, 20%);
-  --accent: hsl(50, 80%, 75%);
-  --accent-foreground: hsl(25, 85%, 20%);
-  --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(35, 40%, 96%);
-  --ring: hsl(268, 83%, 58%);
+  /* Warm welcome background - soft cream/ivory */
+  --background: hsl(50, 80%, 98%);
+  --foreground: hsl(20, 95%, 12%);
+  
+  /* Muted elements - warm beige tones */
+  --muted: hsl(45, 65%, 90%);
+  --muted-foreground: hsl(25, 55%, 35%);
+  
+  /* Popovers - light cream */
+  --popover: hsl(48, 70%, 96%);
+  --popover-foreground: hsl(20, 95%, 12%);
+  
+  /* Cards - soft peach/cream */
+  --card: hsl(40, 75%, 94%);
+  --card-foreground: hsl(20, 90%, 15%);
+  
+  /* Borders - warm golden tones */
+  --border: hsl(35, 60%, 80%);
+  --input: hsl(35, 55%, 85%);
+  
+  /* Primary - vibrant orange accent */
+  --primary: hsl(25, 95%, 55%);
+  --primary-foreground: hsl(50, 80%, 98%);
+  
+  /* Secondary - golden yellow */
+  --secondary: hsl(45, 85%, 70%);
+  --secondary-foreground: hsl(20, 90%, 20%);
+  
+  /* Accent - bright sunny yellow */
+  --accent: hsl(55, 90%, 65%);
+  --accent-foreground: hsl(20, 95%, 15%);
+  
+  /* Destructive - warm red-orange */
+  --destructive: hsl(10, 85%, 55%);
+  --destructive-foreground: hsl(50, 80%, 98%);
+  
+  /* Ring focus - orange accent */
+  --ring: hsl(25, 95%, 55%);
   --radius: 0.5rem;
-  --chart-1: hsl(15, 85%, 65%);
-  --chart-2: hsl(35, 75%, 60%);
-  --chart-3: hsl(55, 70%, 55%);
-  --chart-4: hsl(25, 90%, 70%);
-  --chart-5: hsl(45, 95%, 65%);
-  --sidebar-background: hsl(36, 50%, 90%);
-  --sidebar-foreground: hsl(25, 85%, 25%);
-  --sidebar-primary: hsl(268, 83%, 58%);
-  --sidebar-primary-foreground: hsl(35, 40%, 96%);
-  --sidebar-accent: hsl(45, 60%, 80%);
-  --sidebar-accent-foreground: hsl(25, 85%, 20%);
-  --sidebar-border: hsl(42, 35%, 82%);
-  --sidebar-ring: hsl(42, 35%, 85%);
+  
+  /* Charts - warm spectrum */
+  --chart-1: hsl(15, 90%, 60%);
+  --chart-2: hsl(30, 85%, 65%);
+  --chart-3: hsl(45, 80%, 60%);
+  --chart-4: hsl(55, 75%, 55%);
+  --chart-5: hsl(35, 95%, 70%);
+  
+  /* Sidebar - warm cream tones */
+  --sidebar-background: hsl(42, 70%, 92%);
+  --sidebar-foreground: hsl(20, 90%, 20%);
+  --sidebar-primary: hsl(25, 95%, 55%);
+  --sidebar-primary-foreground: hsl(50, 80%, 98%);
+  --sidebar-accent: hsl(45, 80%, 75%);
+  --sidebar-accent-foreground: hsl(20, 90%, 20%);
+  --sidebar-border: hsl(35, 60%, 80%);
+  --sidebar-ring: hsl(35, 55%, 85%);
 }
 
 .dark {
@@ -445,6 +468,105 @@ button, [role="button"], input, textarea, select, a {
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  /* Light mode warm color overrides for all components */
+  html:not(.dark) {
+    /* Message bubbles and chat elements */
+    .bg-blue-100 { @apply bg-orange-100; }
+    .bg-blue-50 { @apply bg-orange-50; }
+    .text-blue-600 { @apply text-orange-600; }
+    .text-blue-700 { @apply text-orange-700; }
+    .border-blue-200 { @apply border-orange-200; }
+    
+    /* Gray elements to warm tones */
+    .bg-gray-50 { @apply bg-orange-50; }
+    .bg-gray-100 { @apply bg-orange-100; }
+    .bg-gray-200 { @apply bg-orange-200; }
+    .text-gray-600 { @apply text-orange-600; }
+    .text-gray-700 { @apply text-orange-700; }
+    .text-gray-800 { @apply text-orange-800; }
+    .text-gray-900 { @apply text-orange-900; }
+    .border-gray-200 { @apply border-orange-200; }
+    .border-gray-300 { @apply border-orange-300; }
+    
+    /* Success states to warm greens */
+    .bg-green-100 { @apply bg-yellow-100; }
+    .text-green-600 { @apply text-yellow-600; }
+    .text-green-700 { @apply text-yellow-700; }
+    
+    /* Warning states to warm oranges */
+    .bg-yellow-100 { @apply bg-orange-100; }
+    .text-yellow-600 { @apply text-orange-600; }
+    
+    /* Purple accents to warm oranges */
+    .bg-purple-100 { @apply bg-orange-100; }
+    .text-purple-600 { @apply text-orange-600; }
+    .border-purple-200 { @apply border-orange-200; }
+    
+    /* Neutral backgrounds to cream */
+    .bg-white { background-color: hsl(50, 80%, 98%) !important; }
+    .bg-slate-50 { @apply bg-orange-50; }
+    .bg-slate-100 { @apply bg-orange-100; }
+    
+    /* Form elements */
+    input, textarea, select {
+      background-color: hsl(48, 60%, 95%) !important;
+      border-color: hsl(35, 60%, 80%) !important;
+      color: hsl(20, 95%, 12%) !important;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      border-color: hsl(25, 95%, 55%) !important;
+      box-shadow: 0 0 0 2px hsl(25, 95%, 55%, 0.2) !important;
+    }
+    
+    /* Buttons and interactive elements */
+    .hover\\:bg-gray-100:hover { @apply hover:bg-orange-100; }
+    .hover\\:bg-gray-200:hover { @apply hover:bg-orange-200; }
+    .hover\\:bg-blue-50:hover { @apply hover:bg-orange-50; }
+    .hover\\:text-gray-900:hover { @apply hover:text-orange-900; }
+    
+    /* Badges and status indicators */
+    .bg-indigo-100 { @apply bg-orange-100; }
+    .text-indigo-600 { @apply text-orange-600; }
+    .bg-emerald-100 { @apply bg-yellow-100; }
+    .text-emerald-600 { @apply text-yellow-600; }
+    
+    /* Links and accents */
+    a:not(.no-color-override) { color: hsl(25, 95%, 45%) !important; }
+    a:hover:not(.no-color-override) { color: hsl(25, 95%, 35%) !important; }
+    
+    /* Icons and SVG elements */
+    .text-blue-500 { @apply text-orange-500; }
+    .text-purple-500 { @apply text-orange-500; }
+    .text-indigo-500 { @apply text-orange-500; }
+    
+    /* Progress bars and indicators */
+    .bg-blue-500 { @apply bg-orange-500; }
+    .bg-indigo-500 { @apply bg-orange-500; }
+    .bg-purple-500 { @apply bg-orange-500; }
+    
+    /* Borders for cards and containers */
+    .border-slate-200 { @apply border-orange-200; }
+    .border-stone-200 { @apply border-orange-200; }
+    .border-neutral-200 { @apply border-orange-200; }
+    
+    /* Dropdown and menu backgrounds */
+    .bg-slate-800 { @apply bg-orange-800; }
+    .bg-gray-800 { @apply bg-orange-800; }
+    .bg-gray-900 { @apply bg-orange-900; }
+    
+    /* Text colors for various states */
+    .text-slate-600 { @apply text-orange-600; }
+    .text-slate-700 { @apply text-orange-700; }
+    .text-stone-600 { @apply text-orange-600; }
+    .text-neutral-600 { @apply text-orange-600; }
+    
+    /* Ring and focus states */
+    .ring-blue-500 { @apply ring-orange-500; }
+    .ring-indigo-500 { @apply ring-orange-500; }
+    .focus\\:ring-blue-500:focus { @apply focus:ring-orange-500; }
   }
 
   h1, h2, h3, h4, h5, h6 {
