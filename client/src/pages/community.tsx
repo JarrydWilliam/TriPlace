@@ -186,51 +186,27 @@ export default function CommunityPage() {
     <PullToRefresh onRefresh={handleRefresh} className="mobile-page-container bg-gray-50 dark:bg-gray-900">
       <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
-        {/* Clean Header with Back Button and Community Title */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4 sm:mb-6">
-          <div className="responsive-padding border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="p-2">
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleTheme}
-                  className="p-2"
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        {/* Simple Header with Navigation */}
+        <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="p-2">
+                  <ArrowLeft className="w-4 h-4" />
                 </Button>
-                <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Details</span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${isDetailsOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4 space-y-3">
-                    <p className="text-gray-600 dark:text-gray-400">{community.description}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{community.memberCount} members</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4" />
-                        <span>{community.category}</span>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
+              </Link>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{community.name}</h1>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="p-2"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
           </div>
+        </div>
 
           {/* Tab Navigation */}
           <Tabs defaultValue="chat" className="w-full">

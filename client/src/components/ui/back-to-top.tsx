@@ -23,6 +23,11 @@ export function BackToTop({
     if (containerSelector) {
       return document.querySelector(containerSelector);
     }
+    // Try to find scroll-container first, then fallback to window
+    const scrollContainer = document.querySelector('.scroll-container');
+    if (scrollContainer) {
+      return scrollContainer;
+    }
     return window;
   }, [containerSelector]);
 
