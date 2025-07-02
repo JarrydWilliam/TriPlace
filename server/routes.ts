@@ -577,25 +577,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const userCommunities = await storage.getUserCommunities(userId);
       const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
       
-      let totalEventsAdded = 0;
-      
-      // Automatically populate events for all user's communities
-      for (const community of userCommunities) {
-        try {
-          const events = await eventScraper.populateCommunityEvents(community, userLocation);
-          totalEventsAdded += events.length;
-        } catch (error) {
-          console.error(`Error populating events for community ${community.name}:`, error);
-        }
-      }
+      // Use new web scraper system for comprehensive event discovery
+      const result = await eventScraper.scrapeEventsWithWebScraping(userLocation);
       
       res.json({ 
-        message: `Auto-populated ${totalEventsAdded} events across ${userCommunities.length} communities`,
-        eventsAdded: totalEventsAdded,
-        communitiesProcessed: userCommunities.length
+        message: `Auto-populated ${result.totalEvents} events across ${result.communitiesUpdated} communities using web scraping`,
+        eventsAdded: result.totalEvents,
+        communitiesProcessed: result.communitiesUpdated,
+        errors: result.errors
       });
     } catch (error) {
       console.error('Error auto-populating events:', error);
@@ -654,6 +645,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching scraped events:', error);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // New comprehensive web scraping endpoints
+  app.post("/api/web-scrape/trigger-all", async (req, res) => {
+    try {
+      const { latitude, longitude } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "User location required" });
+      }
+
+      const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
+      const result = await eventScrapingScheduler.triggerManualScraping(userLocation);
+
+      res.json({
+        message: "Web scraping completed successfully",
+        ...result
+      });
+    } catch (error) {
+      console.error('Manual web scraping error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to trigger web scraping" });
+    }
+  });
+
+  app.get("/api/web-scrape/status", async (req, res) => {
+    try {
+      const status = await eventScrapingScheduler.getScrapingStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Web scraping status error:', error);
+      res.status(500).json({ message: "Failed to get scraping status" });
+    }
+  });
+
+  app.post("/api/web-scrape/community/:id", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { latitude, longitude } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "User location required" });
+      }
+
+      const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
+      const eventCount = await eventScraperOrchestrator.triggerManualScrape(communityId, userLocation);
+
+      res.json({
+        message: `Successfully scraped ${eventCount} events for community`,
+        eventCount
+      });
+    } catch (error) {
+      console.error('Community web scraping error:', error);
+      res.status(500).json({ message: "Failed to scrape events for community" });
     }
   });
 
@@ -1105,6 +1150,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   }, 5 * 60 * 1000);
+
+  // Initialize event scraping scheduler
+  console.log('Initializing event scraping scheduler...');
+  eventScrapingScheduler.startScheduling();
 
   return httpServer;
 }
