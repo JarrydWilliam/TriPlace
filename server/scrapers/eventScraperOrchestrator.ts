@@ -87,7 +87,24 @@ export class EventScraperOrchestrator {
     
     console.log(`Scraping with keywords: ${keywords.join(', ')}`);
 
-    // Scrape from all sources in parallel
+    // Try simplified scraper first (works without browser dependencies)
+    console.log('Starting simplified scraper...');
+    try {
+      const simplifiedEvents = await this.simplifiedScraper.scrapeEvents(location, keywords);
+      allEvents.push(...simplifiedEvents);
+      console.log(`Simplified scraper found ${simplifiedEvents.length} events`);
+    } catch (error) {
+      console.error('Simplified scraper failed:', error);
+    }
+
+    // If we have enough events from simplified scraper, return those
+    if (allEvents.length > 0) {
+      console.log(`Using ${allEvents.length} events from simplified scraper`);
+      return allEvents;
+    }
+
+    // Fallback to browser-based scrapers if simplified scraper fails
+    console.log('Falling back to browser-based scrapers...');
     const scrapingPromises = [
       this.eventbriteScraper.scrapeEvents(location, keywords).catch(error => {
         console.error('Eventbrite scraping failed:', error);
