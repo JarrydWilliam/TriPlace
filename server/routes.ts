@@ -5,6 +5,8 @@ import { storage } from "./storage";
 import { eventScraper } from "./event-scraper";
 import { communityRefreshService } from "./community-refresh";
 import { communityUpdateNotifier } from "./community-update-notifier";
+import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
+import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
 

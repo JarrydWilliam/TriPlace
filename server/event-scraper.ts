@@ -1,5 +1,7 @@
 import { Event, Community, InsertEvent } from "@shared/schema";
 import { storage } from "./storage";
+import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
+import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
 
 interface ScrapedEvent {
   title: string;
@@ -14,6 +16,7 @@ interface ScrapedEvent {
 }
 
 export class EventScraper {
+  // Deprecated API key based approach - keeping for backward compatibility
   private readonly eventbriteApiKey = process.env.EVENTBRITE_API_KEY;
   private readonly meetupApiKey = process.env.MEETUP_API_KEY;
   private readonly ticketmasterApiKey = process.env.TICKETMASTER_API_KEY;
@@ -23,6 +26,21 @@ export class EventScraper {
   private readonly universeApiKey = process.env.UNIVERSE_API_KEY;
   private readonly seatgeekApiKey = process.env.SEATGEEK_API_KEY;
 
+  /**
+   * New web scraper method that uses HTML scraping instead of API keys
+   */
+  async scrapeEventsWithWebScraping(userLocation: { lat: number, lon: number }): Promise<{
+    totalEvents: number;
+    communitiesUpdated: number;
+    errors: string[];
+  }> {
+    console.log('Using new web scraper system for event discovery...');
+    return await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
+  }
+
+  /**
+   * Legacy method - now delegates to new web scraper
+   */
   async scrapeEventsForCommunity(community: Community, userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     

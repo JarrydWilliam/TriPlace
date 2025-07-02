@@ -197,16 +197,13 @@ export class EventScraperOrchestrator {
           const insertEvent: InsertEvent = {
             title: scrapedEvent.title,
             description: scrapedEvent.description,
+            organizer: scrapedEvent.organizerName || 'External Event',
             date: scrapedEvent.date,
             location: scrapedEvent.location,
             address: scrapedEvent.location, // Use location as address fallback
             category: scrapedEvent.category,
-            price: scrapedEvent.price || 0,
-            organizerName: scrapedEvent.organizerName || 'External Event',
-            isGlobal: false,
-            communityId: communityId.toString(),
-            sourceUrl: scrapedEvent.sourceUrl,
-            attendeeCount: scrapedEvent.attendeeCount
+            price: (scrapedEvent.price || 0).toString(),
+            isGlobal: false
           };
           
           await storage.createEvent(insertEvent);
@@ -258,7 +255,7 @@ export class EventScraperOrchestrator {
    */
   async triggerManualScrape(communityId: number, userLocation: { lat: number, lon: number }): Promise<number> {
     try {
-      const community = await storage.getCommunityById(communityId);
+      const community = await storage.getCommunity(communityId);
       if (!community) {
         throw new Error(`Community ${communityId} not found`);
       }

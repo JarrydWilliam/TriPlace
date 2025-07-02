@@ -111,11 +111,11 @@ export class EventScrapingScheduler {
     totalEvents: number;
     totalCommunities: number;
   }> {
-    const communities = await storage.getCommunities();
+    const communities = await storage.getAllCommunities();
     
     let totalEvents = 0;
     for (const community of communities) {
-      const events = await storage.getEventsForCommunity(community.id);
+      const events = await storage.getCommunityEvents(community.id);
       totalEvents += events.length;
     }
 
