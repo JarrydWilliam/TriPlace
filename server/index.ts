@@ -7,12 +7,8 @@ if (process.env.NODE_ENV !== 'production') {
   try {
     const dotenv = require('dotenv');
     const result = dotenv.config();
-    if (!process.env.OPENAI_API_KEY) {
-      // Fallback: set the key directly
-      process.env.OPENAI_API_KEY = "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";
-    }
   } catch (error) {
-    process.env.OPENAI_API_KEY = "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";
+    console.warn('Failed to load .env file:', error);
   }
 }
 
