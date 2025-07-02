@@ -22,7 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { BackToTop } from "@/components/ui/back-to-top";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { useTheme } from "@/lib/theme-context";
 
 // Helper function to format name as "First Name + Last Initial"
@@ -38,6 +38,202 @@ const formatDisplayName = (fullName: string | null | undefined): string => {
   const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
   return `${firstName} ${lastInitial}.`;
 };
+
+// Events Display Component
+interface EventsDisplayProps {
+  communityId: number;
+}
+
+function EventsDisplay({ communityId }: EventsDisplayProps) {
+  const { toast } = useToast();
+  const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
+
+  const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
+    queryKey: ["/api/communities", communityId, "events"],
+    queryFn: async () => {
+      const response = await fetch(`/api/communities/${communityId}/events`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      return response.json();
+    },
+  });
+
+  const handleJoinEvent = async (eventId: number, eventTitle: string) => {
+    try {
+      setJoiningEventId(eventId);
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ eventId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to join event');
+      }
+
+      toast({
+        title: "Event Joined!",
+        description: `You've successfully joined "${eventTitle}". Check your dashboard calendar.`,
+      });
+
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to join event. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setJoiningEventId(null);
+    }
+  };
+
+  const formatEventDate = (dateString: string) => {
+    const date = parseISO(dateString);
+    const now = new Date();
+    if (isToday(date)) {
+      return `Today, ${format(date, 'h:mm a')}`;
+    } else if (isTomorrow(date)) {
+      return `Tomorrow, ${format(date, 'h:mm a')}`;
+    } else {
+      return format(date, 'MMM d, yyyy • h:mm a');
+    }
+  };
+
+  const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    if (numPrice === 0) {
+      return "Free";
+    }
+    return `$${numPrice}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="responsive-padding space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-3 bg-muted rounded w-1/2"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-16 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="responsive-padding text-center py-12">
+        <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
+        <p className="text-muted-foreground mb-4">
+          We're continuously discovering new events for this community.
+          <br />
+          Check back soon for upcoming activities!
+        </p>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          className="gap-2"
+        >
+          <Calendar className="h-4 w-4" />
+          Refresh Events
+        </Button>
+      </div>
+    );
+  }
+
+  // Group events by date
+  const eventsByDate = events.reduce((acc, event) => {
+    const dateStr = typeof event.date === 'string' ? event.date : event.date.toISOString();
+    const date = format(parseISO(dateStr), 'yyyy-MM-dd');
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(event);
+    return acc;
+  }, {} as Record<string, Event[]>);
+
+  const sortedDates = Object.keys(eventsByDate).sort();
+
+  return (
+    <div className="responsive-padding space-y-6 max-h-[70vh] overflow-y-auto">
+      {sortedDates.map((date) => (
+        <div key={date} className="space-y-3">
+          <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+            {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+          </h3>
+          {eventsByDate[date].map((event) => (
+            <Card key={event.id} className="border border-border hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="text-lg font-semibold text-foreground truncate pr-2">
+                        {event.title}
+                      </h4>
+                      <Badge variant="secondary" className="flex-shrink-0">
+                        {formatPrice(event.price ?? "0")}
+                      </Badge>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {event.description}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatEventDate(typeof event.date === 'string' ? event.date : event.date.toISOString())}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>by {event.organizer}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => handleJoinEvent(event.id, event.title)}
+                    disabled={joiningEventId === event.id}
+                    className="flex-shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md font-medium transition-colors"
+                    size="sm"
+                  >
+                    {joiningEventId === event.id ? (
+                      <>
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                        Joining...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-3 w-3 mr-2" />
+                        Join Event
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function CommunityPage() {
   const { communityId } = useParams<{ communityId: string }>();
@@ -361,13 +557,7 @@ export default function CommunityPage() {
 
             {/* Events Tab */}
             <TabsContent value="events" className="mt-0">
-              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 mx-auto mb-3 text-primary" />
-                  <h3 className="text-lg font-semibold mb-2">Community Events</h3>
-                  <p className="text-muted-foreground">Events will display here once the component loads properly.</p>
-                </div>
-              </div>
+              <EventsDisplay communityId={communityId ? parseInt(communityId) : 0} />
             </TabsContent>
 
             {/* Members Tab */}
