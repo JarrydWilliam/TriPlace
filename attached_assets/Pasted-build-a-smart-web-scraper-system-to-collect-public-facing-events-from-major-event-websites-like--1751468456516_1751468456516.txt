@@ -1,0 +1,109 @@
+build a smart web scraper system to collect public-facing events from major event websites like:
+
+✅ Meetup
+
+✅ Eventbrite
+
+✅ Ticketmaster
+
+✅ Facebook Events (limited scraping possible)
+
+✅ *Local event blogs, university calendars, city websites, etc.
+
+And then automatically populate your community’s Events tab, based on your criteria such as:
+
+🔧 How It Works (System Overview)
+1. Source Scrapers (Modular Bots)
+Each site has its own scraper script, built using:
+
+Puppeteer, Playwright (for dynamic pages)
+
+Cheerio, axios (for static HTML)
+
+BeautifulSoup (for Python)
+
+Each scraper extracts:
+
+Title
+
+Date/Time
+
+Location
+
+Tags / Categories
+
+Event link
+
+Image
+
+Organizer info (if possible)
+
+✅ We make them modular, so each website has its own handler and you can easily plug new ones in.
+
+2. Filter Engine
+Before inserting into your database, the system checks:
+
+✅ Event location matches the user’s community geo
+
+✅ Category/tags match the community topic
+
+✅ Time is upcoming
+
+✅ Not already in DB (use hash/ID to deduplicate)
+
+Optional:
+
+🧠 AI scoring (e.g., GPT or embedding match) to boost relevance.
+
+3. Backend Ingest & Mapping
+Once filtered:
+
+Events are stored in your DB (e.g., PostgreSQL)
+
+Linked to the correct Community ID based on:
+
+Location
+
+Topic/hobby tags
+
+Partner/pinned status
+
+4. Display in Events Tab
+Your frontend queries the /api/events?communityId=xyz endpoint to render events per community tab.
+
+⚙️ Example Architecture
+pgsql
+Copy
+Edit
+scrapers/
+├── meetupScraper.js
+├── ticketmasterScraper.js
+├── eventbriteScraper.js
+└── localCalendars.js
+
+filters/
+└── matchCommunityCriteria.js
+
+db/
+└── insertEvents.js
+
+server/
+└── api/
+    └── events.js  <-- handles fetching for each community
+
+utils/
+└── geolocation.js
+└── dedupe.js
+✅ Benefits
+Fully automated — no user input needed
+
+Dynamic and constantly updating
+
+Highly relevant (based on tags, location, date)
+
+⚠️ Legal & Ethical Note
+Only public data should be scraped (visible without login)
+
+Always respect robots.txt and avoid overloading servers
+
+For commercial use, consider APIs where possible (like Eventbrite’s)
