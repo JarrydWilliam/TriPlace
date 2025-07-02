@@ -22,7 +22,7 @@ export function useCommunityUpdates() {
           const status: CommunityUpdateStatus = await response.json();
           
           if (status.hasUpdates) {
-            console.log('Community updates available:', status.message);
+
             setUpdateAvailable(true);
             
             // Invalidate all community-related queries

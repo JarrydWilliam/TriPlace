@@ -74,7 +74,7 @@ export function useGeolocation(userId?: number) {
             if (!response.ok) {
               console.error('Failed to update user location:', response.status);
             } else {
-              console.log('Location updated successfully for user:', userId);
+
             }
           } catch (error) {
             console.error('Error updating user location:', error);
@@ -128,7 +128,7 @@ export function useGeolocation(userId?: number) {
               if (!response.ok) {
                 console.error('Failed to update IP location:', response.status);
               } else {
-                console.log('IP location updated successfully for user:', userId);
+
               }
             } catch (error) {
               console.error('Error updating IP location:', error);
