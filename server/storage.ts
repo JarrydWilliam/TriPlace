@@ -521,8 +521,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
-    // Case-insensitive category matching to handle variations like "creative-arts" vs "Creative-Arts"
-    return await db.select().from(events).where(sql`LOWER(${events.category}) = LOWER(${category})`);
+    return await db.select().from(events).where(eq(events.category, category));
   }
 
   async getUpcomingEvents(): Promise<Event[]> {

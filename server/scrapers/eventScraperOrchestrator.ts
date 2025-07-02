@@ -1,7 +1,6 @@
 import { EventbriteScraper } from './eventbriteScraper';
 import { MeetupScraper } from './meetupScraper';
 import { TicketmasterScraper } from './ticketmasterScraper';
-import { SimplifiedEventScraper } from './simplifiedEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
 import { GeolocationUtils } from '../utils/geolocation';
@@ -13,7 +12,6 @@ export class EventScraperOrchestrator {
   private eventbriteScraper = new EventbriteScraper();
   private meetupScraper = new MeetupScraper();
   private ticketmasterScraper = new TicketmasterScraper();
-  private simplifiedScraper = new SimplifiedEventScraper();
   private communityMatcher = new CommunityMatcher();
 
   /**
@@ -87,24 +85,7 @@ export class EventScraperOrchestrator {
     
     console.log(`Scraping with keywords: ${keywords.join(', ')}`);
 
-    // Try simplified scraper first (works without browser dependencies)
-    console.log('Starting simplified scraper...');
-    try {
-      const simplifiedEvents = await this.simplifiedScraper.scrapeEvents(location, keywords);
-      allEvents.push(...simplifiedEvents);
-      console.log(`Simplified scraper found ${simplifiedEvents.length} events`);
-    } catch (error) {
-      console.error('Simplified scraper failed:', error);
-    }
-
-    // If we have enough events from simplified scraper, return those
-    if (allEvents.length > 0) {
-      console.log(`Using ${allEvents.length} events from simplified scraper`);
-      return allEvents;
-    }
-
-    // Fallback to browser-based scrapers if simplified scraper fails
-    console.log('Falling back to browser-based scrapers...');
+    // Scrape from all sources in parallel
     const scrapingPromises = [
       this.eventbriteScraper.scrapeEvents(location, keywords).catch(error => {
         console.error('Eventbrite scraping failed:', error);
