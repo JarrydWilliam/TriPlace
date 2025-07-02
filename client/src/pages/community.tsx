@@ -361,7 +361,13 @@ export default function CommunityPage() {
 
             {/* Events Tab */}
             <TabsContent value="events" className="mt-0">
-              <ScrapedEventsTab communityId={communityId ? parseInt(communityId) : 0} />
+              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 text-primary" />
+                  <h3 className="text-lg font-semibold mb-2">Community Events</h3>
+                  <p className="text-muted-foreground">Events will display here once the component loads properly.</p>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Members Tab */}
