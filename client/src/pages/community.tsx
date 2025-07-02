@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LiveMembersTab } from "@/components/community/live-members-tab";
+import { ScrapedEventsTab } from "@/components/community/scraped-events-tab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -360,12 +361,7 @@ export default function CommunityPage() {
 
             {/* Events Tab */}
             <TabsContent value="events" className="mt-0">
-              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Community events coming soon!</p>
-                </div>
-              </div>
+              <ScrapedEventsTab communityId={communityId ? parseInt(communityId) : 0} />
             </TabsContent>
 
             {/* Members Tab */}

@@ -1,6 +1,7 @@
 import { EventbriteScraper } from './eventbriteScraper';
 import { MeetupScraper } from './meetupScraper';
 import { TicketmasterScraper } from './ticketmasterScraper';
+import { FallbackEventScraper } from './fallbackEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
 import { GeolocationUtils } from '../utils/geolocation';
