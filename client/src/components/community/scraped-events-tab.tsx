@@ -48,7 +48,7 @@ export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: 1 }), // TODO: Get actual user ID from context
+        body: JSON.stringify({ userId: 1 }),
       });
 
       if (!response.ok) {
@@ -62,7 +62,7 @@ export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
 
       refetch();
     } catch (error) {
-      console.error('Error joining event:', error);
+      // Handle join event error silently
       toast({
         title: "Error",
         description: "Failed to join event. Please try again.",

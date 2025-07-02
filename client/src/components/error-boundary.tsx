@@ -73,10 +73,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               >
                 Go Home
               </Button>
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {this.state.error && (
                 <details className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <summary className="cursor-pointer text-sm font-medium">
-                    Error Details (Development)
+                    Error Details
                   </summary>
                   <pre className="mt-2 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">
                     {this.state.error.toString()}

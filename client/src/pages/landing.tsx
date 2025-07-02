@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { PWAInstall } from "@/components/ui/pwa-install";
+import { BackToTop } from "@/components/ui/back-to-top";
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -113,6 +114,7 @@ export default function Landing() {
       
       {/* PWA Installation Prompt */}
       <PWAInstall />
+      <BackToTop />
     </section>
   );
 }

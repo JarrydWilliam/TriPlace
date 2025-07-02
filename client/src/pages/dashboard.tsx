@@ -18,7 +18,7 @@ import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation as useRouterLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
@@ -36,7 +36,7 @@ export default function Dashboard() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [, setRouterLocation] = useRouterLocation();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
@@ -128,10 +128,10 @@ export default function Dashboard() {
 
   // Fetch trending events in user's area
   const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
-    queryKey: ["/api/events/trending", location?.latitude, location?.longitude],
-    enabled: !!location?.latitude && !!location?.longitude,
+    queryKey: ["/api/events/trending", latitude, longitude],
+    enabled: !!latitude && !!longitude,
     queryFn: async () => {
-      const response = await fetch(`/api/events/trending?latitude=${location?.latitude}&longitude=${location?.longitude}&radius=50`);
+      const response = await fetch(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`);
       if (!response.ok) throw new Error('Failed to fetch trending events');
       return response.json();
     }
@@ -427,7 +427,7 @@ export default function Dashboard() {
                         className="bg-orange-500 hover:bg-orange-600 dark:bg-purple-600 dark:hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setLocation("/create-event");
+                          setRouterLocation("/create-event");
                         }}
                       >
                         <Plus className="w-4 h-4 mr-1" />
@@ -752,7 +752,7 @@ export default function Dashboard() {
           </div>
         </div>
         </div>
-        <BackToTop containerSelector=".scroll-container" />
+        <BackToTop />
       </PullToRefresh>
 
       {/* Event Details Modal */}
