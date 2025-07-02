@@ -161,7 +161,7 @@ export class CommunityMatcher {
       word.length > 2 && !stopWords.includes(word)
     );
     
-    return [...new Set(words)]; // Remove duplicates
+    return Array.from(new Set(words)); // Remove duplicates
   }
 
   /**
