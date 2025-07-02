@@ -210,7 +210,6 @@ Respond with valid JSON containing exactly 5 communities:
     userLocation?: { lat: number, lon: number }
   ): Promise<CommunityRecommendation[]> {
     if (!openai) {
-      console.error('OpenAI client not initialized - using fallback matching');
       return this.fallbackMatching(user, availableCommunities);
     }
 
@@ -339,7 +338,6 @@ Only include 70%+ matches.
         .filter(Boolean);
 
     } catch (error: any) {
-      console.error('AI matching failed:', error.message);
       return this.fallbackMatching(user, availableCommunities);
     }
   }
