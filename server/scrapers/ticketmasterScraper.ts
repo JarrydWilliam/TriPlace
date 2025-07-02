@@ -5,7 +5,7 @@ import { ScrapedEvent } from '../types/scraperTypes';
 export class TicketmasterScraper {
   private readonly baseUrl = 'https://www.ticketmaster.com';
 
-  async scrapeEvents(location: string, keywords: string[], radius: number = 25): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     
     try {

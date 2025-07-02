@@ -3,7 +3,7 @@ import { ScrapedEvent } from '../types/scraperTypes';
 
 export class InstagramScraper {
   
-  async scrapeEvents(searchQuery: string, location: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
+  async scrapeEvents(searchQuery: string, location: { lat: number, lon: number }, radius: number = 50): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     
     try {

@@ -7,11 +7,11 @@ export class LocalEventsScraper {
   /**
    * Scrape local events from multiple sources within 50-mile radius
    */
-  async scrapeLocalEvents(location: { lat: number, lon: number }, keywords: string[]): Promise<ScrapedEvent[]> {
+  async scrapeLocalEvents(location: { lat: number, lon: number }, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     const locationName = await this.getLocationName(location);
     
-    console.log(`Scraping local events within 50 miles of ${locationName}...`);
+    console.log(`Scraping local events within ${radius} miles of ${locationName}...`);
 
     // Scrape from multiple local event sources
     const scrapingPromises = [

@@ -3,6 +3,7 @@ import { MeetupScraper } from './meetupScraper';
 import { TicketmasterScraper } from './ticketmasterScraper';
 import { InstagramScraper } from './instagramScraper';
 import { LocalEventsScraper } from './localEventsScraper';
+import { SeatGeekScraper } from './seatgeekScraper';
 import { FallbackEventScraper } from './fallbackEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
@@ -17,6 +18,7 @@ export class EventScraperOrchestrator {
   private ticketmasterScraper = new TicketmasterScraper();
   private instagramScraper = new InstagramScraper();
   private localEventsScraper = new LocalEventsScraper();
+  private seatgeekScraper = new SeatGeekScraper();
   private fallbackScraper = new FallbackEventScraper();
   private communityMatcher = new CommunityMatcher();
 
@@ -88,27 +90,32 @@ export class EventScraperOrchestrator {
     
     console.log(`Scraping events within 50 miles of ${location}...`);
 
-    // Scrape from all sources in parallel
+    // Scrape from all sources in parallel with 50-mile radius enforcement
+    const RADIUS_MILES = 50;
     const scrapingPromises = [
-      this.eventbriteScraper.scrapeEvents(location, keywords).catch(error => {
+      this.eventbriteScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
         console.error('Eventbrite scraper error:', error);
         return [];
       }),
-      this.meetupScraper.scrapeEvents(location, keywords).catch(error => {
+      this.meetupScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
         console.error('Meetup scraper error:', error);
         return [];
       }),
-      this.ticketmasterScraper.scrapeEvents(location, keywords).catch(error => {
+      this.ticketmasterScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
         console.error('Ticketmaster scraper error:', error);
         return [];
       }),
+      this.seatgeekScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+        console.error('SeatGeek scraper error:', error);
+        return [];
+      }),
       // Add Instagram scraping
-      this.instagramScraper.scrapeEvents(keywords.join(' '), userLocation).catch(error => {
+      this.instagramScraper.scrapeEvents(keywords.join(' '), userLocation, RADIUS_MILES).catch(error => {
         console.error('Instagram scraper error:', error);
         return [];
       }),
       // Add Local events scraping
-      this.localEventsScraper.scrapeLocalEvents(userLocation, keywords).catch(error => {
+      this.localEventsScraper.scrapeLocalEvents(userLocation, keywords, RADIUS_MILES).catch(error => {
         console.error('Local events scraper error:', error);
         return [];
       })

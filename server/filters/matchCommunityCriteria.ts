@@ -130,6 +130,7 @@ export class CommunityMatcher {
       'eventbrite': 0.9,
       'meetup': 0.95,
       'ticketmaster': 0.85,
+      'seatgeek': 0.85,
       'facebook': 0.7,
       'instagram': 0.6,
       'local': 0.8

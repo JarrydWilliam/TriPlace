@@ -6,7 +6,7 @@ export class EventbriteScraper {
   private readonly baseUrl = 'https://www.eventbrite.com';
   private readonly searchUrl = 'https://www.eventbrite.com/d';
 
-  async scrapeEvents(location: string, keywords: string[], radius: number = 25): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
     
     try {
