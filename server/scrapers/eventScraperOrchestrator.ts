@@ -1,6 +1,7 @@
 import { EventbriteScraper } from './eventbriteScraper';
 import { MeetupScraper } from './meetupScraper';
 import { TicketmasterScraper } from './ticketmasterScraper';
+import { SimplifiedEventScraper } from './simplifiedEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
 import { GeolocationUtils } from '../utils/geolocation';
@@ -12,6 +13,7 @@ export class EventScraperOrchestrator {
   private eventbriteScraper = new EventbriteScraper();
   private meetupScraper = new MeetupScraper();
   private ticketmasterScraper = new TicketmasterScraper();
+  private simplifiedScraper = new SimplifiedEventScraper();
   private communityMatcher = new CommunityMatcher();
 
   /**
