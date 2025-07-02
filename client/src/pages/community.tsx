@@ -244,6 +244,7 @@ export default function CommunityPage() {
   const { theme, toggleTheme } = useTheme();
   const [newMessage, setNewMessage] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("chat");
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -403,28 +404,57 @@ export default function CommunityPage() {
           </div>
 
           {/* Tab Navigation */}
-          <Tabs defaultValue="chat" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 rounded-none bg-transparent">
-              <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+          <div className="w-full">
+            <div className="grid w-full grid-cols-4 rounded-none bg-transparent border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setActiveTab("chat")}
+                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
+                  activeTab === "chat" 
+                    ? "border-primary text-primary" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat
-              </TabsTrigger>
-              <TabsTrigger value="events" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              </button>
+              <button
+                onClick={() => setActiveTab("events")}
+                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
+                  activeTab === "events" 
+                    ? "border-primary text-primary" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 <Calendar className="w-4 h-4 mr-2" />
                 Events
-              </TabsTrigger>
-              <TabsTrigger value="members" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              </button>
+              <button
+                onClick={() => setActiveTab("members")}
+                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
+                  activeTab === "members" 
+                    ? "border-primary text-primary" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 <Users className="w-4 h-4 mr-2" />
                 Members
-              </TabsTrigger>
-              <TabsTrigger value="kudos" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+              </button>
+              <button
+                onClick={() => setActiveTab("kudos")}
+                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
+                  activeTab === "kudos" 
+                    ? "border-primary text-primary" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 <Award className="w-4 h-4 mr-2" />
                 Kudos
-              </TabsTrigger>
-            </TabsList>
+              </button>
+            </div>
 
-            {/* Chat Tab - Instagram-style Messaging */}
-            <TabsContent value="chat" className="mt-0 h-[70vh] flex flex-col">
+            {/* Conditionally render active tab content */}
+            {activeTab === "chat" && (
+            <div className="mt-0 h-[70vh] flex flex-col">
               {/* Chat Header with Community Status */}
               <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
                 <div className="flex items-center justify-between">
@@ -553,28 +583,35 @@ export default function CommunityPage() {
                   Press Enter to send • Shift+Enter for new line
                 </div>
               </div>
-            </TabsContent>
+            </div>
+            )}
 
             {/* Events Tab */}
-            <TabsContent value="events" className="mt-0">
-              <EventsDisplay communityId={communityId ? parseInt(communityId) : 0} />
-            </TabsContent>
+            {activeTab === "events" && (
+              <div className="mt-0">
+                <EventsDisplay communityId={communityId ? parseInt(communityId) : 0} />
+              </div>
+            )}
 
             {/* Members Tab */}
-            <TabsContent value="members" className="mt-0">
-              <LiveMembersTab communityId={communityId ? parseInt(communityId) : 0} />
-            </TabsContent>
+            {activeTab === "members" && (
+              <div className="mt-0">
+                <LiveMembersTab communityId={communityId ? parseInt(communityId) : 0} />
+              </div>
+            )}
 
             {/* Kudos Tab */}
-            <TabsContent value="kudos" className="mt-0">
-              <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Community kudos and achievements coming soon!</p>
+            {activeTab === "kudos" && (
+              <div className="mt-0">
+                <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>Community kudos and achievements coming soon!</p>
+                  </div>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
           <BackToTop />
         </div>
       </PullToRefresh>
