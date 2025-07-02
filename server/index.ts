@@ -5,8 +5,8 @@ import { setupVite, serveStatic, log } from "./vite";
 // Load environment variables
 if (process.env.NODE_ENV !== 'production') {
   try {
-    const dotenv = require('dotenv');
-    const result = dotenv.config();
+    const { config } = await import('dotenv');
+    config();
   } catch (error) {
     console.warn('Failed to load .env file:', error);
   }
