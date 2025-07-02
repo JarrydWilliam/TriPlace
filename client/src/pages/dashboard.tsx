@@ -24,6 +24,7 @@ import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { PWAInstall } from "@/components/ui/pwa-install";
 
 import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
@@ -256,9 +257,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="scroll-wrapper">
-      <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
-        <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
+    <div className="mobile-page-container">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="bg-gray-50 dark:bg-gray-900 container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto min-h-screen">
         
         {/* Mobile-First User Banner */}
         <Card className="mb-4 sm:mb-6 bg-gradient-to-r from-orange-500 to-yellow-500 dark:from-purple-600 dark:to-blue-600 text-white border-0">
@@ -764,6 +765,9 @@ export default function Dashboard() {
           setSelectedEvent(null);
         }}
       />
+
+      {/* PWA Installation Prompt */}
+      <PWAInstall />
     </div>
   );
 }

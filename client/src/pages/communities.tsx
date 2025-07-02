@@ -93,9 +93,10 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="scroll-wrapper">
-      <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
-        <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
+    <div className="mobile-page-container">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+          <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
         
         {/* Header with Back Button and Theme Toggle */}
         <div className="flex items-center justify-between mb-6">
@@ -253,6 +254,7 @@ export default function CommunitiesPage() {
 
         {/* Smooth scroll fade at bottom */}
         <div className="h-8 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none"></div>
+        </div>
         </div>
 
       </PullToRefresh>

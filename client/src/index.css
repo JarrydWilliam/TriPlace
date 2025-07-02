@@ -32,12 +32,8 @@ body {
 .mobile-page-container {
   width: 100%;
   min-height: 100vh;
-  height: 100vh;
-  overflow-y: auto;
   overflow-x: hidden;
   position: relative;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
 }
 
 /* Mobile scroll wrapper for content areas */

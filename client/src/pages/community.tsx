@@ -418,9 +418,10 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="scroll-wrapper">
-      <PullToRefresh onRefresh={handleRefresh} className="scroll-container mobile-page-container bg-gray-50 dark:bg-gray-900">
-        <div className="scroll-content container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
+    <div className="mobile-page-container">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+          <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
 
           {/* Minimal Navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -649,6 +650,7 @@ export default function CommunityPage() {
             )}
           </div>
 
+          </div>
         </div>
       </PullToRefresh>
     </div>
