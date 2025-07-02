@@ -1,0 +1,28 @@
+# Exclude development files and folders from deployment
+dev/
+attached_assets/
+.cache/
+.local/
+.config/
+.upm/
+node_modules/.cache/
+*.log
+*.tmp
+.env.local
+.env.development
+webview.html
+mobile-webview-package.json
+WEBVIEW-DEPLOYMENT.md
+
+# Keep production files only
+!server/
+!client/
+!shared/
+!dist/
+!package.json
+!package-lock.json
+!drizzle.config.ts
+!tailwind.config.ts
+!vite.config.ts
+!tsconfig.json
+!replit.md
