@@ -37,25 +37,62 @@ export class SimplifiedEventScraper {
     const events: ScrapedEvent[] = [];
     const eventTemplates = this.getEventTemplates();
     
-    for (const keyword of keywords) {
-      // Find relevant templates for this keyword
+    // Extract actual community categories from keywords (categories are usually in kebab-case)
+    const communityCategories = keywords.filter(keyword => 
+      keyword.includes('-') || 
+      ['fitness', 'wellness', 'creative', 'arts', 'tech', 'innovation', 'learning', 'education', 'startup', 'social', 'impact', 'music', 'outdoors', 'mental', 'mindfulness'].includes(keyword.toLowerCase())
+    );
+    
+    for (const category of communityCategories) {
+      // Find relevant templates for this category
       const relevantTemplates = eventTemplates.filter(template => 
         template.categories.some(cat => 
-          keyword.toLowerCase().includes(cat) || 
-          cat.includes(keyword.toLowerCase())
+          category.toLowerCase().includes(cat) || 
+          cat.includes(category.toLowerCase()) ||
+          this.categoryMatches(category, cat)
         )
       );
       
-      // Generate 1-3 events for each relevant template
-      const templatesToUse = relevantTemplates.slice(0, 2);
+      // Generate 1-2 events for each relevant template
+      const templatesToUse = relevantTemplates.slice(0, 1);
       
       for (const template of templatesToUse) {
-        const event = this.createEventFromTemplate(template, location, keyword);
+        const event = this.createEventFromTemplate(template, location, category);
         events.push(event);
       }
     }
     
     return events.slice(0, 15); // Limit to 15 events total
+  }
+
+  /**
+   * Check if category matches template category
+   */
+  private categoryMatches(communityCategory: string, templateCategory: string): boolean {
+    const categoryMappings = {
+      'creative-arts': ['creative', 'art', 'arts', 'music', 'design'],
+      'Creative-Arts': ['creative', 'art', 'arts', 'music', 'design'],
+      'fitness-wellness': ['fitness', 'wellness', 'health', 'yoga'],
+      'Fitness-Wellness': ['fitness', 'wellness', 'health', 'yoga'],
+      'tech-innovation': ['tech', 'technology', 'innovation', 'startup'],
+      'Tech-Innovation': ['tech', 'technology', 'innovation', 'startup'],
+      'learning-education': ['learning', 'education', 'workshop', 'seminar'],
+      'Learning-Education': ['learning', 'education', 'workshop', 'seminar'],
+      'startup-builders': ['startup', 'business', 'entrepreneur', 'networking'],
+      'Startup-Builders': ['startup', 'business', 'entrepreneur', 'networking'],
+      'social-impact': ['social', 'community', 'volunteer', 'impact'],
+      'Social-Impact': ['social', 'community', 'volunteer', 'impact'],
+      'mental-wellness': ['mental', 'wellness', 'mindfulness', 'meditation'],
+      'Mental-Wellness': ['mental', 'wellness', 'mindfulness', 'meditation'],
+      'outdoors-adventure': ['outdoor', 'hiking', 'nature', 'adventure'],
+      'Outdoors-Adventure': ['outdoor', 'hiking', 'nature', 'adventure']
+    };
+    
+    const mappedCategories = categoryMappings[communityCategory as keyof typeof categoryMappings] || [];
+    return mappedCategories.some(mapped => 
+      mapped.includes(templateCategory.toLowerCase()) || 
+      templateCategory.toLowerCase().includes(mapped)
+    );
   }
 
   /**
