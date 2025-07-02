@@ -4,6 +4,10 @@ import { ChevronLeft, ChevronRight, CalendarDays, MapPin, Clock } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Event {
   id: number;
@@ -21,6 +25,43 @@ interface EventCalendarProps {
 
 export function EventCalendar({ events }: EventCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const markAttendanceMutation = useMutation({
+    mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
+      const response = await fetch(`/api/events/${eventId}/mark-attended`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, attended: true })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark attendance');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Attendance Marked",
+        description: "Thanks for confirming your attendance! Your community activity has been updated.",
+        duration: 3000,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
+    },
+    onError: (error) => {
+      console.error('Error marking attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark attendance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -158,11 +199,29 @@ export function EventCalendar({ events }: EventCalendarProps) {
                         </span>
                       </div>
                     </div>
-                    {event.price && event.price !== "0" && (
-                      <Badge variant="secondary" className="ml-2 flex-shrink-0">
-                        ${event.price}
-                      </Badge>
-                    )}
+                    <div className="flex items-center space-x-2 ml-2 flex-shrink-0">
+                      {event.price && event.price !== "0" && (
+                        <Badge variant="secondary">
+                          ${event.price}
+                        </Badge>
+                      )}
+                      {new Date(event.date) < new Date() && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (user?.id) {
+                              markAttendanceMutation.mutate({ eventId: event.id, userId: user.id });
+                            }
+                          }}
+                          disabled={markAttendanceMutation.isPending}
+                          className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
+                        >
+                          ✓ Attended
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

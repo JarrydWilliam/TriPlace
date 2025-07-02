@@ -25,6 +25,7 @@ import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { BackToTop } from "@/components/ui/back-to-top";
+import { EventCalendar } from "@/components/ui/event-calendar";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -412,67 +413,7 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {Array.isArray(userJoinedEvents) && userJoinedEvents.slice(0, 5).map((event: Event, index: number) => {
-                      const communityColor = communityColors[event.category as keyof typeof communityColors] || "bg-gray-500";
-                      return (
-                        <div 
-                          key={`dashboard-event-${event.id}-${event.title?.slice(0, 10)}-${index}`} 
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
-                          onClick={() => setSelectedEventId(event.id)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-3 h-3 rounded-full ${communityColor}`} />
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">{event.title}</h3>
-                              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Clock className="w-4 h-4" />
-                                <span>{new Date(event.date).toLocaleDateString()}</span>
-                                <span>•</span>
-                                <span>{event.location}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {event.price && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                ${event.price}
-                              </Badge>
-                            )}
-                            {/* Show attendance button for past events */}
-                            {new Date(event.date) < new Date() ? (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (user?.id) {
-                                    markAttendanceMutation.mutate({ eventId: event.id, userId: user.id });
-                                  }
-                                }}
-                                disabled={markAttendanceMutation.isPending}
-                                className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                              >
-                                ✓ Attended
-                              </Button>
-                            ) : (
-                              <Button size="sm" variant="ghost">
-                                👏 Kudos
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {(!Array.isArray(userJoinedEvents) || userJoinedEvents.length === 0) && (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <CalendarDays className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No joined events</p>
-                        <p className="text-sm">Join events from your communities to see them here!</p>
-                      </div>
-                    )}
-                  </div>
+                  <EventCalendar events={userJoinedEvents || []} />
                 )}
               </CardContent>
             </Card>
