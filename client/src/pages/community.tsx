@@ -46,6 +46,8 @@ interface EventsDisplayProps {
 
 function EventsDisplay({ communityId }: EventsDisplayProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
 
   const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
@@ -60,6 +62,15 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   });
 
   const handleJoinEvent = async (eventId: number, eventTitle: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to join events.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setJoiningEventId(eventId);
       const response = await fetch(`/api/events/${eventId}/register`, {
@@ -67,11 +78,15 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ eventId })
+        body: JSON.stringify({ 
+          userId: user.id,
+          status: "going"
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to join event');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to join event');
       }
 
       toast({
@@ -79,11 +94,16 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
         description: `You've successfully joined "${eventTitle}". Check your dashboard calendar.`,
       });
 
+      // Invalidate both community events and user events queries
+      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user.id, "events"] });
+      
       refetch();
     } catch (error) {
+      console.error('Error joining event:', error);
       toast({
         title: "Error",
-        description: "Failed to join event. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to join event. Please try again.",
         variant: "destructive",
       });
     } finally {
