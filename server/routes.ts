@@ -178,8 +178,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await storage.joinCommunityWithRotation(userId, communityId);
+      
+      // If a community was dropped, add it back to recommendations pool
+      if (result.dropped) {
+        // Trigger recommendation refresh to include the dropped community
+        await storage.refreshUserRecommendations(userId);
+      }
+      
       res.status(201).json(result);
     } catch (error) {
+      console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -940,6 +948,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching global events:", error);
       res.status(500).json({ message: "Failed to fetch global events" });
+    }
+  });
+
+  // Trending events based on user joins in area
+  app.get("/api/events/trending", async (req, res) => {
+    try {
+      const { latitude, longitude, radius = 50 } = req.query;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "User location required for trending events" });
+      }
+      
+      const userLocation = { lat: parseFloat(latitude as string), lon: parseFloat(longitude as string) };
+      const trendingEvents = await storage.getTrendingEventsByLocation(userLocation, parseInt(radius as string));
+      
+      res.json(trendingEvents);
+    } catch (error) {
+      console.error("Error fetching trending events:", error);
+      res.status(500).json({ message: "Failed to fetch trending events" });
     }
   });
 

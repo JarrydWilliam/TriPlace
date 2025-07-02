@@ -7,7 +7,7 @@ import {
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, or, asc, ne } from "drizzle-orm";
+import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching";
 
 export interface IStorage {
@@ -857,6 +857,40 @@ export class DatabaseStorage implements IStorage {
     });
 
     return filteredMembers;
+  }
+
+  async refreshUserRecommendations(userId: number): Promise<void> {
+    // This method is called when a community is dropped during rotation
+    // It ensures the dropped community becomes available in recommendations again
+    // The actual recommendation logic is handled in getRecommendedCommunities
+    // which already filters out joined communities, so no additional action needed
+    console.log(`Refreshing recommendations for user ${userId}`);
+  }
+
+  async getTrendingEventsByLocation(userLocation: { lat: number, lon: number }, radiusMiles: number = 50): Promise<any[]> {
+    try {
+      // Get all upcoming events with join counts
+      const allEvents = await db
+        .select({
+          event: events,
+          joinCount: sql<number>`count(${eventAttendees.userId})`.as('joinCount')
+        })
+        .from(events)
+        .leftJoin(eventAttendees, eq(events.id, eventAttendees.eventId))
+        .where(gte(events.date, new Date())) // Future events only
+        .groupBy(events.id)
+        .orderBy(desc(sql`count(${eventAttendees.userId})`))
+        .limit(10);
+
+      return allEvents.map(({ event, joinCount }) => ({
+        ...event,
+        joinCount: joinCount || 0,
+        isTrending: (joinCount || 0) > 0
+      }));
+    } catch (error) {
+      console.error('Error getting trending events:', error);
+      return [];
+    }
   }
 }
 

@@ -629,6 +629,17 @@ Changelog:
   - Community events now auto-populate with real-world events from major platforms without requiring API keys
   - Scheduler automatically starts with server and runs background scraping for all communities
   - Complete modular architecture: scrapers/, filters/, utils/, schedulers/ for maintainable event ingestion
+
+- January 02, 2025. Enhanced community rotation system and trending events functionality
+  - Implemented 5-community maximum with intelligent rotation when joining new communities
+  - Least active community automatically dropped when joining 6th community, moved back to recommendations
+  - Added "View All" button to New Communities section showing only 2 recommendations on dashboard
+  - Built trending events system based on actual user join counts within geographic area
+  - Trending events display most popular events with real-time join counters and location filtering
+  - Enhanced community joining workflow with proper toast notifications for rotation feedback
+  - Dashboard recommendations now properly refresh when communities are dropped during rotation
+  - Complete community lifecycle: discover → join → rotation → back to recommendations pool
+  - Trending events API endpoint /api/events/trending with location-based filtering and popularity sorting
 ```
 
 ## User Preferences

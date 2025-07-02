@@ -127,6 +127,17 @@ export default function Dashboard() {
     }
   });
 
+  // Fetch trending events in user's area
+  const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
+    queryKey: ["/api/events/trending", location?.latitude, location?.longitude],
+    enabled: !!location?.latitude && !!location?.longitude,
+    queryFn: async () => {
+      const response = await fetch(`/api/events/trending?latitude=${location?.latitude}&longitude=${location?.longitude}&radius=50`);
+      if (!response.ok) throw new Error('Failed to fetch trending events');
+      return response.json();
+    }
+  });
+
   // Mark event attendance
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number, userId: number }) => {
@@ -590,19 +601,58 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 
-                {/* High Match Members */}
+                {/* Trending Events */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🎯 High Match Members</h4>
-                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Building your network</p>
-                    <p className="text-xs">Connect with community members to see matches!</p>
-                  </div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔥 Trending Events</h4>
+                  {trendingLoading ? (
+                    <div className="p-4 text-center">
+                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Finding popular events...</p>
+                    </div>
+                  ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
+                    trendingEvents.slice(0, 3).map((event: any) => (
+                      <div key={event.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <h5 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {event.title}
+                          </h5>
+                          <div className="flex items-center space-x-1">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                            <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                              {event.joinCount} joined
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
+                          {new Date(event.date).toLocaleDateString()} • {event.location || 'Online'}
+                        </p>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full min-h-[44px] text-xs"
+                          onClick={() => window.location.href = `/community/${event.communityId || ''}`}
+                        >
+                          View Event
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      <p className="text-sm">No trending events in your area yet</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* New Communities */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 New Communities</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 New Communities</h4>
+                    <Link href="/communities">
+                      <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        View All
+                      </Button>
+                    </Link>
+                  </div>
                   {recommendationsLoading ? (
                     <div className="p-4 text-center">
                       <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
