@@ -3,7 +3,6 @@ import { ScrapedEvent } from '../types/scraperTypes';
 export class FallbackEventScraper {
   // Generate realistic sample events when web scraping fails
   async generateSampleEvents(location: string, keywords: string[], communityCategory?: string): Promise<ScrapedEvent[]> {
-    console.log(`Generating sample events for ${location} with keywords: ${keywords.join(', ')}`);
     
     const baseEvents: ScrapedEvent[] = [
       {

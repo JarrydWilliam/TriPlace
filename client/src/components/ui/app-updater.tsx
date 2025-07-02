@@ -21,7 +21,6 @@ export function AppUpdater() {
       // Register service worker
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          console.log('[App] Service worker registered');
           setServiceWorkerRegistration(registration);
 
           // Check for updates immediately
@@ -38,7 +37,6 @@ export function AppUpdater() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[App] New service worker installed, update available');
                   setUpdateAvailable(true);
                   toast({
                     title: "Update Available",
@@ -51,7 +49,6 @@ export function AppUpdater() {
 
           // Listen for controller change (when new SW takes control)
           navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('[App] Service worker controller changed, reloading page');
             window.location.reload();
           });
         })
@@ -61,7 +58,6 @@ export function AppUpdater() {
 
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
-        console.log('[App] Message from service worker:', event.data);
         
         if (event.data?.type === 'SW_UPDATED') {
           setUpdateAvailable(true);

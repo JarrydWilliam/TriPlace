@@ -36,13 +36,11 @@ export class EventbriteScraper {
         const searchQuery = `${keyword} events`;
         const url = `${this.searchUrl}/${encodeURIComponent(location)}/${encodeURIComponent(searchQuery)}/?distance=${radius}mi`;
         
-        console.log(`Scraping Eventbrite: ${url}`);
         
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
         
         // Wait for events to load
         await page.waitForSelector('[data-testid="event-card"]', { timeout: 10000 }).catch(() => {
-          console.log('No events found on this page');
         });
         
         const content = await page.content();
@@ -100,7 +98,6 @@ export class EventbriteScraper {
       }
       
       await browser.close();
-      console.log(`Eventbrite scraper found ${events.length} events`);
       
     } catch (error) {
       console.error('Eventbrite scraper error:', error);

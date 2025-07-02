@@ -32,13 +32,11 @@ export class TicketmasterScraper {
       for (const keyword of keywords) {
         const searchUrl = `${this.baseUrl}/search?q=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&radius=${radius}`;
         
-        console.log(`Scraping Ticketmaster: ${searchUrl}`);
         
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
         
         // Wait for search results
         await page.waitForSelector('[data-testid="search-result-card"]', { timeout: 10000 }).catch(() => {
-          console.log('No Ticketmaster events found on this page');
         });
         
         const content = await page.content();
@@ -97,7 +95,6 @@ export class TicketmasterScraper {
       }
       
       await browser.close();
-      console.log(`Ticketmaster scraper found ${events.length} events`);
       
     } catch (error) {
       console.error('Ticketmaster scraper error:', error);

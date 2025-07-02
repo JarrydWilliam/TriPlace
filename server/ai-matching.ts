@@ -63,7 +63,6 @@ export class AIMatchingEngine {
         const state = locationData.principalSubdivision || locationData.countryName || '';
         const actualLocation = state ? `${city}, ${state}` : city;
         locationContext = `Primary location: ${actualLocation} (create communities for this specific area - 50-mile radius preferred, expand to 100 miles if needed)`;
-        console.log(`ChatGPT: Using actual location ${actualLocation} for community generation`);
       } catch (error) {
         console.error('Reverse geocoding failed, using coordinates:', error);
         locationContext = `Primary coordinates: ${userLocation.lat}, ${userLocation.lon} (50-mile radius preferred, expand to 100 miles if needed)`;
@@ -141,7 +140,6 @@ Respond with valid JSON containing exactly 5 communities:
     
     // Ensure exactly 5 communities are returned
     if (communities.length !== 5) {
-      console.warn(`ChatGPT returned ${communities.length} communities instead of 5 - using fallback`);
       return this.generateCommunitiesWithFallback(allUsers, userLocation);
     }
 

@@ -9,12 +9,10 @@ export class EventScrapingScheduler {
    * Start the scheduled event scraping
    */
   startScheduling(): void {
-    console.log('Starting event scraping scheduler...');
     
     // Run every 6 hours: at 12:00 AM, 6:00 AM, 12:00 PM, and 6:00 PM
     cron.schedule('0 */6 * * *', async () => {
       if (this.isRunning) {
-        console.log('Event scraping already in progress, skipping...');
         return;
       }
       
@@ -26,7 +24,6 @@ export class EventScrapingScheduler {
       this.runScheduledScraping();
     }, 30000);
 
-    console.log('Event scraping scheduler started - will run every 6 hours');
   }
 
   /**
@@ -36,7 +33,6 @@ export class EventScrapingScheduler {
     this.isRunning = true;
     
     try {
-      console.log('Starting scheduled event scraping...');
       
       // Get all users with communities
       const users = await storage.getAllUsers();
@@ -45,7 +41,6 @@ export class EventScrapingScheduler {
       );
 
       if (usersWithLocation.length === 0) {
-        console.log('No users with location data found for event scraping');
         return;
       }
 
@@ -59,7 +54,6 @@ export class EventScrapingScheduler {
 
       const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
       
-      console.log(`Scheduled scraping completed: ${result.totalEvents} events across ${result.communitiesUpdated} communities`);
       
       if (result.errors.length > 0) {
         console.error('Scraping errors:', result.errors);
@@ -88,7 +82,6 @@ export class EventScrapingScheduler {
     
     try {
       const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
-      console.log(`Manual scraping completed: ${result.totalEvents} events across ${result.communitiesUpdated} communities`);
       return result;
     } finally {
       this.isRunning = false;

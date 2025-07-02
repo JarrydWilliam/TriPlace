@@ -4,14 +4,12 @@ import { User } from '@shared/schema';
 
 export class CommunityRefreshService {
   async regenerateAllUserCommunities(): Promise<void> {
-    console.log('Community Refresh: Starting global community regeneration');
     
     try {
       // Get all users with location data
       const users = await storage.getAllUsers();
       const usersWithLocation = users.filter(user => user.latitude && user.longitude);
       
-      console.log(`Community Refresh: Found ${usersWithLocation.length} users with location data`);
       
       // Process users in batches to avoid overwhelming the system
       const batchSize = 5;
@@ -20,7 +18,6 @@ export class CommunityRefreshService {
         
         await Promise.all(batch.map(async (user) => {
           try {
-            console.log(`Community Refresh: Processing communities for ${user.name} (${user.id})`);
             
             // Clear existing community memberships for fresh matching
             await storage.clearUserCommunities(user.id);
@@ -32,13 +29,11 @@ export class CommunityRefreshService {
             for (const community of matchedCommunities) {
               try {
                 await storage.joinCommunity(user.id, community.id);
-                console.log(`Community Refresh: Joined ${user.name} to "${community.name}"`);
               } catch (joinError) {
                 console.error(`Community Refresh: Failed to join ${user.name} to "${community.name}":`, joinError);
               }
             }
             
-            console.log(`Community Refresh: Completed for ${user.name} - joined ${matchedCommunities.length} communities`);
           } catch (error) {
             console.error(`Community Refresh: Failed for user ${user.id}:`, error);
           }
@@ -50,7 +45,6 @@ export class CommunityRefreshService {
         }
       }
       
-      console.log('Community Refresh: Global regeneration complete');
       
       // Notify all connected clients about the update
       this.notifyAllClients();
@@ -63,11 +57,9 @@ export class CommunityRefreshService {
   
   private notifyAllClients(): void {
     // This will be picked up by the service worker messaging system
-    console.log('Community Refresh: Broadcasting update to all PWA clients');
   }
   
   async refreshUserCommunities(userId: number): Promise<void> {
-    console.log(`Community Refresh: Refreshing communities for user ${userId}`);
     
     try {
       // Clear existing communities for this user
@@ -83,13 +75,11 @@ export class CommunityRefreshService {
       for (const community of matchedCommunities) {
         try {
           await storage.joinCommunity(userId, community.id);
-          console.log(`Community Refresh: Joined user ${userId} to "${community.name}"`);
         } catch (joinError) {
           console.error(`Community Refresh: Failed to join user ${userId} to "${community.name}":`, joinError);
         }
       }
       
-      console.log(`Community Refresh: Completed refresh for user ${userId} - joined ${matchedCommunities.length} communities`);
     } catch (error) {
       console.error(`Community Refresh: Failed to refresh user ${userId}:`, error);
       throw error;

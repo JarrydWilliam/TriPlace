@@ -33,13 +33,11 @@ export class MeetupScraper {
       for (const keyword of keywords) {
         const searchUrl = `${this.baseUrl}/find/events/?keywords=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&distance=${radius}`;
         
-        console.log(`Scraping Meetup: ${searchUrl}`);
         
         await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
         
         // Wait for events to load
         await page.waitForSelector('[data-testid="event-card-wrapper"]', { timeout: 10000 }).catch(() => {
-          console.log('No Meetup events found on this page');
         });
         
         const content = await page.content();
@@ -96,7 +94,6 @@ export class MeetupScraper {
       }
       
       await browser.close();
-      console.log(`Meetup scraper found ${events.length} events`);
       
     } catch (error) {
       console.error('Meetup scraper error:', error);

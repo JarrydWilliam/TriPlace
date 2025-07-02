@@ -7,14 +7,11 @@ if (process.env.NODE_ENV !== 'production') {
   try {
     const dotenv = require('dotenv');
     const result = dotenv.config();
-    console.log('Environment variables loaded. OpenAI key available:', !!process.env.OPENAI_API_KEY);
     if (!process.env.OPENAI_API_KEY) {
       // Fallback: set the key directly
       process.env.OPENAI_API_KEY = "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";
-      console.log('OpenAI API key set directly');
     }
   } catch (error) {
-    console.log('Dotenv not available, setting key directly');
     process.env.OPENAI_API_KEY = "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";
   }
 }

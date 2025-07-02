@@ -123,10 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
       const userIdNum = userId ? parseInt(userId) : undefined;
       
-      console.log('ChatGPT Discovery: Recommended communities request - interests:', interestsArray, 'userId:', userIdNum, 'location:', userLocation);
       
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
-      console.log('ChatGPT Discovery: Generated communities found:', communities.length);
       
       // Add cache headers to ensure fresh data for PWA users
       res.set({
@@ -454,8 +452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test OpenAI integration
   app.post("/api/test-openai", async (req, res) => {
     try {
-      console.log("Testing OpenAI integration...");
-      console.log("OPENAI_API_KEY exists:", !!process.env.OPENAI_API_KEY);
       
       if (!process.env.OPENAI_API_KEY) {
         return res.json({ success: false, error: "No API key found", hasKey: false });
@@ -1051,7 +1047,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Community database refresh endpoints
   app.post("/api/admin/refresh-all-communities", async (req, res) => {
     try {
-      console.log("Admin: Starting global community refresh");
       await communityRefreshService.regenerateAllUserCommunities();
       
       res.json({ 
@@ -1071,7 +1066,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      console.log(`Admin: Refreshing communities for user ${userId}`);
       await communityRefreshService.refreshUserCommunities(userId);
       
       res.json({ 
@@ -1105,7 +1099,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trigger global community database refresh
   app.post("/api/community-updates/refresh", async (req, res) => {
     try {
-      console.log("Community Update: Triggering global refresh");
       await communityUpdateNotifier.triggerGlobalCommunityRefresh();
       
       res.json({ 
@@ -1282,7 +1275,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }, 5 * 60 * 1000);
 
   // Initialize event scraping scheduler
-  console.log('Initializing event scraping scheduler...');
   eventScrapingScheduler.startScheduling();
 
   return httpServer;

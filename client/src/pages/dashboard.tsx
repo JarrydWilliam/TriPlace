@@ -43,7 +43,6 @@ export default function Dashboard() {
   // Listen for ChatGPT community updates from service worker
   useEffect(() => {
     const handleChatGPTCommunityUpdate = () => {
-      console.log('Dashboard: Received ChatGPT community update notification');
       queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
     };
 
@@ -413,7 +412,7 @@ export default function Dashboard() {
                           <CalendarDays className="w-5 h-5" />
                           <span>Event Calendar</span>
                           <Badge variant="secondary" className="ml-2">
-                            {(userJoinedEvents || []).filter(event => {
+                            {(userJoinedEvents || []).filter((event: any) => {
                               const eventDate = new Date(event.date);
                               const now = new Date();
                               return eventDate.getMonth() === now.getMonth() && 

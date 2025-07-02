@@ -33,7 +33,6 @@ export class EventScraperOrchestrator {
       const communities = await storage.getAllCommunities();
       const locationName = await this.getLocationName(userLocation);
 
-      console.log(`Starting event scraping for ${communities.length} communities near ${locationName}`);
 
       // Extract unique keywords from all communities
       const allKeywords = this.extractCommunityKeywords(communities);
@@ -42,7 +41,6 @@ export class EventScraperOrchestrator {
       const allScrapedEvents = await this.scrapeFromAllSources(locationName, allKeywords);
       
       if (allScrapedEvents.length === 0) {
-        console.log('No events found from web scraping sources, using fallback event generator');
         const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords);
         allScrapedEvents.push(...fallbackEvents);
       }
@@ -52,18 +50,15 @@ export class EventScraperOrchestrator {
       
       // Match events to communities
       const communityMatches = this.communityMatcher.matchEventsTocommunities(processedEvents, communities);
-      console.log(`Community matcher found ${communityMatches.length} community matches`);
       
       // Save events to database for each community
       for (const match of communityMatches) {
-        console.log(`Processing match for community ${match.communityId} with ${match.events.length} events`);
         try {
           const savedCount = await this.saveEventsForCommunity(match.communityId, match.events);
           totalEvents += savedCount;
           if (savedCount > 0) {
             communitiesUpdated++;
           }
-          console.log(`Saved ${savedCount} events for community ${match.communityId}`);
         } catch (error) {
           const errorMsg = `Failed to save events for community ${match.communityId}: ${error}`;
           errors.push(errorMsg);
@@ -71,7 +66,6 @@ export class EventScraperOrchestrator {
         }
       }
 
-      console.log(`Event scraping completed: ${totalEvents} total events across ${communitiesUpdated} communities`);
 
     } catch (error) {
       const errorMsg = `Event scraping orchestration failed: ${error}`;
@@ -88,7 +82,6 @@ export class EventScraperOrchestrator {
   private async scrapeFromAllSources(location: string, keywords: string[]): Promise<ScrapedEvent[]> {
     const allEvents: ScrapedEvent[] = [];
     
-    console.log(`Scraping with keywords: ${keywords.join(', ')}`);
 
     // Scrape from all sources in parallel
     const scrapingPromises = [
@@ -114,7 +107,6 @@ export class EventScraperOrchestrator {
       }
     }
 
-    console.log(`Scraped ${allEvents.length} total events from all sources`);
     return allEvents;
   }
 
@@ -122,19 +114,15 @@ export class EventScraperOrchestrator {
    * Process and filter scraped events
    */
   private async processScrapedEvents(events: ScrapedEvent[], userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
-    console.log(`Processing ${events.length} scraped events`);
     
     // Remove duplicates
     const uniqueEvents = DeduplicationUtils.deduplicateEvents(events);
-    console.log(`After deduplication: ${uniqueEvents.length} events`);
     
     // Filter upcoming events only
     const upcomingEvents = this.communityMatcher.filterUpcomingEvents(uniqueEvents);
-    console.log(`After filtering upcoming: ${upcomingEvents.length} events`);
     
     // Filter by location proximity (40km radius)
     const nearbyEvents = this.communityMatcher.filterByLocation(upcomingEvents, userLocation, 40);
-    console.log(`After location filtering: ${nearbyEvents.length} events`);
     
     return nearbyEvents;
   }
@@ -189,7 +177,6 @@ export class EventScraperOrchestrator {
   private async saveEventsForCommunity(communityId: number, events: ScrapedEvent[]): Promise<number> {
     let savedCount = 0;
     
-    console.log(`Attempting to save ${events.length} events for community ${communityId}`);
     
     for (const scrapedEvent of events) {
       try {
@@ -214,19 +201,15 @@ export class EventScraperOrchestrator {
             isGlobal: false
           };
           
-          console.log(`Creating event: ${insertEvent.title} for community ${communityId}`);
           const createdEvent = await storage.createEvent(insertEvent);
-          console.log(`Successfully created event with ID: ${createdEvent.id}`);
           savedCount++;
         } else {
-          console.log(`Skipping duplicate event: ${scrapedEvent.title}`);
         }
       } catch (error) {
         console.error(`Error saving event "${scrapedEvent.title}" for community ${communityId}:`, error);
       }
     }
     
-    console.log(`Successfully saved ${savedCount} events for community ${communityId}`);
     return savedCount;
   }
 
