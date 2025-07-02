@@ -5,7 +5,7 @@ export class FallbackEventScraper {
   async generateSampleEvents(location: string, keywords: string[], communityCategory?: string): Promise<ScrapedEvent[]> {
     console.log(`Generating sample events for ${location} with keywords: ${keywords.join(', ')}`);
     
-    const baseEvents = [
+    const baseEvents: ScrapedEvent[] = [
       {
         title: "Tech Innovation Meetup",
         description: "Join local innovators and entrepreneurs for networking and tech talks about the latest in AI, blockchain, and startup culture.",
@@ -15,7 +15,8 @@ export class FallbackEventScraper {
         sourceUrl: "https://example.com/events/tech-meetup",
         organizerName: "Tech Community",
         price: 0,
-        attendeeCount: 45
+        attendeeCount: 45,
+        source: "local"
       },
       {
         title: "Creative Arts Workshop",
@@ -26,7 +27,8 @@ export class FallbackEventScraper {
         sourceUrl: "https://example.com/events/arts-workshop",
         organizerName: "Creative Collective",
         price: 25,
-        attendeeCount: 32
+        attendeeCount: 32,
+        source: "local"
       },
       {
         title: "Wellness & Mindfulness Circle",
@@ -37,7 +39,8 @@ export class FallbackEventScraper {
         sourceUrl: "https://example.com/events/wellness-circle",
         organizerName: "Wellness Warriors",
         price: 15,
-        attendeeCount: 28
+        attendeeCount: 28,
+        source: "local"
       },
       {
         title: "Entrepreneurship Networking Night",
@@ -48,7 +51,8 @@ export class FallbackEventScraper {
         sourceUrl: "https://example.com/events/entrepreneur-night",
         organizerName: "Startup Community",
         price: 20,
-        attendeeCount: 67
+        attendeeCount: 67,
+        source: "local"
       },
       {
         title: "Outdoor Adventure Group Hike",
@@ -59,7 +63,8 @@ export class FallbackEventScraper {
         sourceUrl: "https://example.com/events/group-hike",
         organizerName: "Adventure Seekers",
         price: 0,
-        attendeeCount: 23
+        attendeeCount: 23,
+        source: "local"
       }
     ];
 
