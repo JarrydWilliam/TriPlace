@@ -1,6 +1,6 @@
-const CACHE_NAME = 'triplace-v1.0.0';
-const STATIC_CACHE = 'triplace-static-v1.0.0';
-const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.0';
+const CACHE_NAME = 'triplace-v1.0.1';
+const STATIC_CACHE = 'triplace-static-v1.0.1';
+const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.1';
 
 // Community discovery API endpoints that should always be fresh for ChatGPT updates
 const CHATGPT_DISCOVERY_ENDPOINTS = [
@@ -12,7 +12,20 @@ const CHATGPT_DISCOVERY_ENDPOINTS = [
 // Install event - cache static files
 self.addEventListener('install', (event) => {
   console.log('TriPlace Service Worker: Installing with ChatGPT discovery support...');
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    Promise.all([
+      self.skipWaiting(),
+      // Notify clients that an update is available
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'UPDATE_AVAILABLE',
+            message: 'New version available'
+          });
+        });
+      })
+    ])
+  );
 });
 
 // Activate event - claim clients immediately for PWA updates
@@ -124,6 +137,14 @@ self.addEventListener('message', (event) => {
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CHECK_FOR_UPDATES') {
+    // Force update check by notifying about new version
+    event.ports[0].postMessage({
+      type: 'UPDATE_AVAILABLE',
+      message: 'Checking for updates...'
+    });
   }
 });
 

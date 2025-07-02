@@ -25,6 +25,7 @@ import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
+import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -120,6 +121,7 @@ function App() {
               <GlobalScrollWrapper>
                 <Toaster />
                 <AppUpdater />
+                <PwaUpdateChecker />
                 <Router />
               </GlobalScrollWrapper>
             </TooltipProvider>
