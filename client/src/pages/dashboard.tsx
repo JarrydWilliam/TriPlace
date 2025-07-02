@@ -404,37 +404,60 @@ export default function Dashboard() {
           {/* Event Calendar Widget */}
           <div className="lg:col-span-2">
             <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white flex items-center space-x-2">
-                  <CalendarDays className="w-5 h-5" />
-                  <span>Event Calendar</span>
-                </CardTitle>
-                <Button 
-                  size="sm" 
-                  className="bg-orange-500 hover:bg-orange-600 dark:bg-purple-600 dark:hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
-                  onClick={() => setLocation("/create-event")}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Partner Event Creation
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {eventsLoading ? (
-                  <div className="animate-pulse space-y-3">
-                    {['event-1', 'event-2', 'event-3'].map(loadingId => (
-                      <div key={`loading-${loadingId}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                    ))}
-                  </div>
-                ) : (
-                  <EventCalendar 
-                    events={userJoinedEvents || []} 
-                    onEventClick={(event) => {
-                      setSelectedEvent(event);
-                      setIsEventModalOpen(true);
-                    }}
-                  />
-                )}
-              </CardContent>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                      <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white flex items-center justify-between w-full sm:w-auto">
+                        <div className="flex items-center space-x-2">
+                          <CalendarDays className="w-5 h-5" />
+                          <span>Event Calendar</span>
+                          <Badge variant="secondary" className="ml-2">
+                            {(userJoinedEvents || []).filter(event => {
+                              const eventDate = new Date(event.date);
+                              const now = new Date();
+                              return eventDate.getMonth() === now.getMonth() && 
+                                     eventDate.getFullYear() === now.getFullYear();
+                            }).length} this month
+                          </Badge>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-500 sm:hidden" />
+                      </CardTitle>
+                      <Button 
+                        size="sm" 
+                        className="bg-orange-500 hover:bg-orange-600 dark:bg-purple-600 dark:hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation("/create-event");
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Partner Event Creation
+                      </Button>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block absolute right-4 top-1/2 transform -translate-y-1/2" />
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    {eventsLoading ? (
+                      <div className="animate-pulse space-y-3">
+                        {['event-1', 'event-2', 'event-3'].map(loadingId => (
+                          <div key={`loading-${loadingId}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
+                        ))}
+                      </div>
+                    ) : (
+                      <EventCalendar 
+                        events={userJoinedEvents || []} 
+                        onEventClick={(event) => {
+                          setSelectedEvent(event);
+                          setIsEventModalOpen(true);
+                        }}
+                      />
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           </div>
 
