@@ -730,7 +730,7 @@ export default function Dashboard() {
           </div>
         </div>
         </div>
-        <BackToTop />
+        <BackToTop containerSelector=".scroll-container" />
       </PullToRefresh>
 
       {/* Event Details Modal */}
