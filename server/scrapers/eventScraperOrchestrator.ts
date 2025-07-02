@@ -1,6 +1,8 @@
 import { EventbriteScraper } from './eventbriteScraper';
 import { MeetupScraper } from './meetupScraper';
 import { TicketmasterScraper } from './ticketmasterScraper';
+import { InstagramScraper } from './instagramScraper';
+import { LocalEventsScraper } from './localEventsScraper';
 import { FallbackEventScraper } from './fallbackEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
@@ -13,6 +15,8 @@ export class EventScraperOrchestrator {
   private eventbriteScraper = new EventbriteScraper();
   private meetupScraper = new MeetupScraper();
   private ticketmasterScraper = new TicketmasterScraper();
+  private instagramScraper = new InstagramScraper();
+  private localEventsScraper = new LocalEventsScraper();
   private fallbackScraper = new FallbackEventScraper();
   private communityMatcher = new CommunityMatcher();
 
@@ -37,8 +41,8 @@ export class EventScraperOrchestrator {
       // Extract unique keywords from all communities
       const allKeywords = this.extractCommunityKeywords(communities);
       
-      // Scrape events from all sources
-      const allScrapedEvents = await this.scrapeFromAllSources(locationName, allKeywords);
+      // Scrape events from all sources within 50-mile radius
+      const allScrapedEvents = await this.scrapeFromAllSources(locationName, allKeywords, userLocation);
       
       if (allScrapedEvents.length === 0) {
         const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords);
@@ -77,24 +81,35 @@ export class EventScraperOrchestrator {
   }
 
   /**
-   * Scrape events from all available sources
+   * Scrape events from all available sources within 50-mile radius
    */
-  private async scrapeFromAllSources(location: string, keywords: string[]): Promise<ScrapedEvent[]> {
+  private async scrapeFromAllSources(location: string, keywords: string[], userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     const allEvents: ScrapedEvent[] = [];
     
+    console.log(`Scraping events within 50 miles of ${location}...`);
 
     // Scrape from all sources in parallel
     const scrapingPromises = [
       this.eventbriteScraper.scrapeEvents(location, keywords).catch(error => {
-        console.error('Eventbrite scraping failed:', error);
+        console.error('Eventbrite scraper error:', error);
         return [];
       }),
       this.meetupScraper.scrapeEvents(location, keywords).catch(error => {
-        console.error('Meetup scraping failed:', error);
+        console.error('Meetup scraper error:', error);
         return [];
       }),
       this.ticketmasterScraper.scrapeEvents(location, keywords).catch(error => {
-        console.error('Ticketmaster scraping failed:', error);
+        console.error('Ticketmaster scraper error:', error);
+        return [];
+      }),
+      // Add Instagram scraping
+      this.instagramScraper.scrapeEvents(keywords.join(' '), userLocation).catch(error => {
+        console.error('Instagram scraper error:', error);
+        return [];
+      }),
+      // Add Local events scraping
+      this.localEventsScraper.scrapeLocalEvents(userLocation, keywords).catch(error => {
+        console.error('Local events scraper error:', error);
         return [];
       })
     ];
@@ -107,11 +122,12 @@ export class EventScraperOrchestrator {
       }
     }
 
+    console.log(`Found ${allEvents.length} total events from all sources`);
     return allEvents;
   }
 
   /**
-   * Process and filter scraped events
+   * Process and filter scraped events within 50-mile radius
    */
   private async processScrapedEvents(events: ScrapedEvent[], userLocation: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     
@@ -121,8 +137,10 @@ export class EventScraperOrchestrator {
     // Filter upcoming events only
     const upcomingEvents = this.communityMatcher.filterUpcomingEvents(uniqueEvents);
     
-    // Filter by location proximity (40km radius)
-    const nearbyEvents = this.communityMatcher.filterByLocation(upcomingEvents, userLocation, 40);
+    // Filter by location proximity (50-mile radius - STRICT ENFORCEMENT)
+    const nearbyEvents = this.communityMatcher.filterByLocation(upcomingEvents, userLocation, 50);
+    
+    console.log(`Filtered to ${nearbyEvents.length} events within 50 miles of user location`);
     
     return nearbyEvents;
   }
@@ -259,7 +277,7 @@ export class EventScraperOrchestrator {
       const locationName = await this.getLocationName(userLocation);
       const keywords = this.getCategoryKeywords(community.category);
       
-      const scrapedEvents = await this.scrapeFromAllSources(locationName, keywords);
+      const scrapedEvents = await this.scrapeFromAllSources(locationName, keywords, userLocation);
       const processedEvents = await this.processScrapedEvents(scrapedEvents, userLocation);
       
       // Filter events relevant to this specific community

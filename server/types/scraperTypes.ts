@@ -8,7 +8,7 @@ export interface ScrapedEvent {
   organizerName?: string | null;
   price?: number | null;
   attendeeCount?: number | null;
-  source: 'eventbrite' | 'meetup' | 'ticketmaster' | 'facebook' | 'local';
+  source: 'eventbrite' | 'meetup' | 'ticketmaster' | 'facebook' | 'instagram' | 'local';
   imageUrl?: string;
   tags?: string[];
 }

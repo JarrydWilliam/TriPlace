@@ -24,8 +24,8 @@ export class CommunityMatcher {
       for (const event of events) {
         const score = this.calculateRelevanceScore(event, community);
         
-        // Only include events with relevance score >= 0.5 (50%)
-        if (score >= 0.5) {
+        // Only include events with relevance score >= 0.7 (70%) - STRICTER MATCHING
+        if (score >= 0.7) {
           matchedEvents.push(event);
           matchScores.push(score);
         }
@@ -131,7 +131,8 @@ export class CommunityMatcher {
       'meetup': 0.95,
       'ticketmaster': 0.85,
       'facebook': 0.7,
-      'local': 0.6
+      'instagram': 0.6,
+      'local': 0.8
     };
 
     return sourceScores[event.source] || 0.5;
@@ -165,17 +166,130 @@ export class CommunityMatcher {
   }
 
   /**
-   * Filter events by geographic proximity
+   * Filter events by geographic proximity (50-mile radius)
    */
-  filterByLocation(events: ScrapedEvent[], userLocation: { lat: number, lon: number }, radiusKm: number = 40): ScrapedEvent[] {
+  filterByLocation(events: ScrapedEvent[], userLocation: { lat: number, lon: number }, radiusMiles: number = 50): ScrapedEvent[] {
     return events.filter(event => {
-      // For now, use simple location string matching
-      // In production, you'd use proper geocoding and distance calculation
+      const eventDistance = this.calculateEventDistance(event, userLocation);
+      
+      // Only include events within the specified radius
+      if (eventDistance <= radiusMiles) {
+        return true;
+      }
+      
+      // Also include events if location contains user's city/state
+      const userLocationName = this.getLocationName(userLocation);
       const eventLocation = event.location.toLowerCase();
       
-      // Basic location filtering - this would be enhanced with actual geocoding
-      return eventLocation.length > 0; // Basic validation
+      return eventLocation.includes(userLocationName.toLowerCase());
     });
+  }
+
+  /**
+   * Calculate distance between user and event location
+   */
+  private calculateEventDistance(event: ScrapedEvent, userLocation: { lat: number, lon: number }): number {
+    // Extract coordinates from event location if possible
+    const eventCoords = this.extractCoordinatesFromLocation(event.location);
+    
+    if (eventCoords) {
+      return this.calculateDistance(userLocation, eventCoords);
+    }
+    
+    // Fallback: estimate distance based on city matching
+    const userCity = this.getLocationName(userLocation);
+    const eventLocation = event.location.toLowerCase();
+    
+    if (eventLocation.includes(userCity.toLowerCase())) {
+      return 0; // Same city
+    }
+    
+    // Return a high value for unknown locations to exclude them
+    return 100; // Miles
+  }
+
+  /**
+   * Extract coordinates from location string
+   */
+  private extractCoordinatesFromLocation(location: string): { lat: number, lon: number } | null {
+    // Major cities coordinate lookup
+    const cityCoordinates: { [key: string]: { lat: number, lon: number } } = {
+      'new york': { lat: 40.7128, lon: -74.0060 },
+      'los angeles': { lat: 34.0522, lon: -118.2437 },
+      'chicago': { lat: 41.8781, lon: -87.6298 },
+      'houston': { lat: 29.7604, lon: -95.3698 },
+      'phoenix': { lat: 33.4484, lon: -112.0740 },
+      'san francisco': { lat: 37.7749, lon: -122.4194 },
+      'seattle': { lat: 47.6062, lon: -122.3321 },
+      'denver': { lat: 39.7392, lon: -104.9903 },
+      'austin': { lat: 30.2672, lon: -97.7431 },
+      'salt lake city': { lat: 40.7608, lon: -111.8910 },
+      'portland': { lat: 45.5152, lon: -122.6784 },
+      'atlanta': { lat: 33.7490, lon: -84.3880 },
+      'miami': { lat: 25.7617, lon: -80.1918 },
+      'boston': { lat: 42.3601, lon: -71.0589 },
+      'washington': { lat: 38.9072, lon: -77.0369 }
+    };
+    
+    const locationLower = location.toLowerCase();
+    
+    for (const [city, coords] of Object.entries(cityCoordinates)) {
+      if (locationLower.includes(city)) {
+        return coords;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Calculate distance between two coordinates in miles
+   */
+  private calculateDistance(point1: { lat: number, lon: number }, point2: { lat: number, lon: number }): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = this.toRadians(point2.lat - point1.lat);
+    const dLon = this.toRadians(point2.lon - point1.lon);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRadians(point1.lat)) * Math.cos(this.toRadians(point2.lat)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return distance;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  private getLocationName(location: { lat: number, lon: number }): string {
+    const majorCities = [
+      { name: 'New York', lat: 40.7128, lon: -74.0060 },
+      { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+      { name: 'Chicago', lat: 41.8781, lon: -87.6298 },
+      { name: 'Houston', lat: 29.7604, lon: -95.3698 },
+      { name: 'Phoenix', lat: 33.4484, lon: -112.0740 },
+      { name: 'San Francisco', lat: 37.7749, lon: -122.4194 },
+      { name: 'Seattle', lat: 47.6062, lon: -122.3321 },
+      { name: 'Denver', lat: 39.7392, lon: -104.9903 },
+      { name: 'Austin', lat: 30.2672, lon: -97.7431 },
+      { name: 'Salt Lake City', lat: 40.7608, lon: -111.8910 }
+    ];
+    
+    let closestCity = 'Unknown Location';
+    let minDistance = Infinity;
+    
+    for (const city of majorCities) {
+      const distance = this.calculateDistance(location, city);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCity = city.name;
+      }
+    }
+    
+    return closestCity;
   }
 
   /**
