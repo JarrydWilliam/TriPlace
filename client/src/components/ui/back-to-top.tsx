@@ -24,7 +24,11 @@ export function BackToTop({
       const container = document.querySelector(containerSelector);
       if (container) return container;
     }
-    // Check for .scroll-container before falling back to window
+    // Check for mobile-page-container first, then scroll-container, then window
+    const mobileContainer = document.querySelector('.mobile-page-container');
+    if (mobileContainer) {
+      return mobileContainer;
+    }
     const scrollContainer = document.querySelector('.scroll-container');
     if (scrollContainer) {
       return scrollContainer;

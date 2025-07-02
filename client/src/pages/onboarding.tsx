@@ -37,7 +37,27 @@ interface QuizAnswers {
   resonateStatement: string;
 }
 
-const QUIZ_SECTIONS = [
+interface QuizOption {
+  value: string;
+  label: string;
+  emoji?: string;
+}
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  subtitle?: string;
+  type: string;
+  maxSelections?: number;
+  minSelections?: number;
+  options: QuizOption[];
+}
+
+const QUIZ_SECTIONS: Array<{
+  title: string;
+  description: string;
+  questions: QuizQuestion[];
+}> = [
   {
     title: "Get to Know You",
     description: "Let's understand what you're looking for",
@@ -247,7 +267,7 @@ export default function Onboarding() {
   };
 
   const currentSectionData = QUIZ_SECTIONS[currentSection];
-  const currentQuestionData = currentSectionData.questions[currentQuestion];
+  const currentQuestionData = currentSectionData.questions[currentQuestion] as QuizQuestion;
   const totalQuestions = QUIZ_SECTIONS.reduce((sum, section) => sum + section.questions.length, 0);
   const completedQuestions = QUIZ_SECTIONS.slice(0, currentSection).reduce((sum, section) => sum + section.questions.length, 0) + currentQuestion;
   const progress = (completedQuestions / totalQuestions) * 100;
@@ -314,9 +334,9 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="scroll-wrapper">
-      <PullToRefresh onRefresh={handleRefresh} className="scroll-container">
-        <div className="scroll-content mobile-page-container min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="mobile-page-container">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
           <div className="container mx-auto px-4 py-8 max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
