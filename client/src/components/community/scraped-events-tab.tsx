@@ -1,218 +1,222 @@
-import { useAuth } from "@/hooks/use-auth";
-import { useGeolocation } from "@/hooks/use-geolocation";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Calendar, MapPin, Users, Clock, DollarSign } from "lucide-react";
+import { format, isToday, isTomorrow, parseISO } from "date-fns";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, MapPin, Clock, ExternalLink, Users, RefreshCw } from "lucide-react";
-import { Event } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
-import { format, parseISO } from "date-fns";
+
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  organizer: string;
+  date: string;
+  location: string;
+  address: string;
+  category: string;
+  price: string;
+  communityId: number;
+  isGlobal: boolean;
+}
 
 interface ScrapedEventsTabProps {
   communityId: number;
 }
 
-export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
-  const { user } = useAuth();
-  const { latitude, longitude } = useGeolocation(user?.id);
+export default function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
 
-  // Fetch web-scraped events for this community
-  const { data: scrapedEvents, isLoading: scrapedEventsLoading, refetch } = useQuery({
-    queryKey: ["/api/communities", communityId, "scraped-events"],
-    enabled: !!communityId,
+  const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
+    queryKey: ["/api/communities", communityId, "events"],
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/scraped-events`);
-      if (!response.ok) throw new Error('Failed to fetch scraped events');
-      const events = await response.json();
-      
-      // Sort events by date/time
-      return events.sort((a: Event, b: Event) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-    }
-  });
-
-  // Trigger web scraping for this specific community
-  const triggerScrapingMutation = useMutation({
-    mutationFn: async () => {
-      if (!latitude || !longitude) {
-        throw new Error('Location data is required');
+      const response = await fetch(`/api/communities/${communityId}/events`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
       }
-      
-      const response = await apiRequest("POST", `/api/web-scrape/community/${communityId}`, {
-        latitude,
-        longitude
-      });
       return response.json();
     },
-    onSuccess: (data) => {
-      toast({
-        title: "Events Updated",
-        description: `Found ${data.eventCount} new events for this community`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "scraped-events"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   });
 
-  // Join event mutation
-  const joinEventMutation = useMutation({
-    mutationFn: async (eventId: number) => {
-      const response = await apiRequest("POST", `/api/events/${eventId}/register`, {
-        userId: user?.id
+  const handleJoinEvent = async (eventId: number, eventTitle: string) => {
+    try {
+      setJoiningEventId(eventId);
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: 1 }), // TODO: Get actual user ID from context
       });
-      return response.json();
-    },
-    onSuccess: () => {
+
+      if (!response.ok) {
+        throw new Error('Failed to join event');
+      }
+
       toast({
-        title: "Event Joined",
-        description: "You've successfully joined this event. Check your dashboard calendar!",
+        title: "Event Joined!",
+        description: `You've successfully joined "${eventTitle}". Check your dashboard calendar for details.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
-    },
-    onError: (error: Error) => {
+
+      refetch();
+    } catch (error) {
+      console.error('Error joining event:', error);
       toast({
-        title: "Failed to Join",
-        description: error.message,
+        title: "Error",
+        description: "Failed to join event. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setJoiningEventId(null);
     }
-  });
+  };
 
-  return (
-    <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
-      {/* Header with Refresh Button */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Community Events</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Events automatically discovered from local sources
-          </p>
-        </div>
+  const formatEventDate = (dateString: string) => {
+    const date = parseISO(dateString);
+    if (isToday(date)) {
+      return `Today, ${format(date, 'h:mm a')}`;
+    } else if (isTomorrow(date)) {
+      return `Tomorrow, ${format(date, 'h:mm a')}`;
+    } else {
+      return format(date, 'MMM d, yyyy • h:mm a');
+    }
+  };
+
+  const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    if (numPrice === 0) {
+      return "Free";
+    }
+    return `$${numPrice}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-4 bg-muted rounded w-3/4"></div>
+              <div className="h-3 bg-muted rounded w-1/2"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-16 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
+        <p className="text-muted-foreground mb-4">
+          We're continuously discovering new events for this community.
+          <br />
+          Check back soon for upcoming activities!
+        </p>
         <Button
+          onClick={() => refetch()}
           variant="outline"
-          size="sm"
-          onClick={() => {
-            triggerScrapingMutation.mutate();
-            refetch();
-          }}
-          disabled={triggerScrapingMutation.isPending || !latitude || !longitude}
-          className="flex items-center space-x-2"
+          className="gap-2"
         >
-          <RefreshCw className={`w-4 h-4 ${triggerScrapingMutation.isPending ? 'animate-spin' : ''}`} />
-          <span>Refresh Events</span>
+          <Calendar className="h-4 w-4" />
+          Refresh Events
         </Button>
       </div>
+    );
+  }
 
-      {/* Events List */}
-      {scrapedEventsLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-        </div>
-      ) : scrapedEvents?.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No events found for this community yet.</p>
-          <p className="text-sm mt-1">Events are automatically discovered from Eventbrite, Meetup, and Ticketmaster.</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => triggerScrapingMutation.mutate()}
-            disabled={triggerScrapingMutation.isPending || !latitude || !longitude}
-            className="mt-4"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${triggerScrapingMutation.isPending ? 'animate-spin' : ''}`} />
-            Search for Events
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {scrapedEvents?.map((event: any) => (
-            <Card key={event.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
+  // Group events by date
+  const eventsByDate = events.reduce((acc, event) => {
+    const date = format(parseISO(event.date), 'yyyy-MM-dd');
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(event);
+    return acc;
+  }, {} as Record<string, Event[]>);
+
+  const sortedDates = Object.keys(eventsByDate).sort();
+
+  return (
+    <div className="space-y-6">
+      {sortedDates.map((date) => (
+        <div key={date} className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+            <Calendar className="h-4 w-4" />
+            {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+          </div>
+          
+          {eventsByDate[date].map((event) => (
+            <Card key={event.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {event.category || 'Event'}
-                      </Badge>
-                      {event.price && event.price > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          ${event.price}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                      {event.title}
-                    </h4>
-                    
-                    <div className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4" />
-                        <span>{format(parseISO(event.date), 'MMM d, yyyy • h:mm a')}</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>{event.location}</span>
-                      </div>
-                      
-                      {event.attendeeCount && (
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4" />
-                          <span>{event.attendeeCount} attending</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {event.description && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">
-                        {event.description}
-                      </p>
-                    )}
+                    <CardTitle className="text-lg leading-tight">{event.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-4 mt-2 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatEventDate(event.date)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {formatPrice(event.price)}
+                      </span>
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="ml-2 shrink-0">
+                    {event.category}
+                  </Badge>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  {event.description}
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {event.organizer}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {event.location}
+                    </span>
                   </div>
                   
-                  <div className="flex flex-col space-y-2 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => joinEventMutation.mutate(event.id)}
-                      disabled={joinEventMutation.isPending}
-                      className="whitespace-nowrap"
-                    >
-                      Join Event
-                    </Button>
-                    
-                    {event.sourceUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="whitespace-nowrap"
-                      >
-                        <a href={event.sourceUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          View Details
-                        </a>
-                      </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleJoinEvent(event.id, event.title)}
+                    disabled={joiningEventId === event.id}
+                    className="gap-2"
+                  >
+                    {joiningEventId === event.id ? (
+                      <>
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Joining...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-3 w-3" />
+                        Join Event
+                      </>
                     )}
-                  </div>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }

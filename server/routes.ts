@@ -622,6 +622,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get community events (primary endpoint)
+  app.get("/api/communities/:id/events", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+      
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+      
+      // Get all events for this community
+      const events = await storage.getCommunityEvents(communityId);
+      const upcomingEvents = events.filter(event => 
+        new Date(event.date) >= new Date() // Future events only
+      );
+      
+      res.json(upcomingEvents);
+    } catch (error) {
+      console.error('Error fetching community events:', error);
+      res.status(500).json({ message: "Failed to fetch community events" });
+    }
+  });
+
   app.get("/api/communities/:id/scraped-events", async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
