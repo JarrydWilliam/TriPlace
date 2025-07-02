@@ -7,7 +7,7 @@ import {
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, or, asc } from "drizzle-orm";
+import { eq, and, desc, sql, or, asc, ne } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching";
 
 export interface IStorage {
@@ -19,7 +19,7 @@ export interface IStorage {
   setUserOnlineStatus(userId: number, isOnline: boolean): Promise<void>;
   updateUserActivity(userId: number): Promise<void>;
   getOnlineUsers(): Promise<User[]>;
-  getCommunityMembersWithStatus(communityId: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]>;
+  getCommunityMembersWithStatus(communityId: number, requestingUserId?: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]>;
   
   getCommunity(id: number): Promise<Community | undefined>;
   getAllCommunities(): Promise<Community[]>;
@@ -507,6 +507,18 @@ export class DatabaseStorage implements IStorage {
     return matches / Math.max(userInterests.length, targetInterests.length);
   }
 
+  private calculateDistance(location1: { lat: number, lon: number }, location2: { lat: number, lon: number }): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (location2.lat - location1.lat) * Math.PI / 180;
+    const dLon = (location2.lon - location1.lon) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(location1.lat * Math.PI / 180) * Math.cos(location2.lat * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in miles
+  }
+
   async getEvent(id: number): Promise<Event | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
     return event || undefined;
@@ -773,20 +785,40 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getCommunityMembersWithStatus(communityId: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]> {
+  async getCommunityMembersWithStatus(communityId: number, requestingUserId?: number): Promise<(User & { isOnline: boolean, lastActiveAt: Date })[]> {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
+    // Get the community to access its category for interest matching
+    const community = await this.getCommunity(communityId);
+    if (!community) return [];
+    
+    // Get requesting user's location for geolocation filtering
+    let requestingUserLocation: { lat: number, lon: number } | null = null;
+    if (requestingUserId) {
+      const requestingUser = await this.getUser(requestingUserId);
+      if (requestingUser?.latitude && requestingUser?.longitude) {
+        requestingUserLocation = {
+          lat: parseFloat(requestingUser.latitude),
+          lon: parseFloat(requestingUser.longitude)
+        };
+      }
+    }
     
     const result = await db
       .select()
       .from(users)
       .innerJoin(communityMembers, eq(users.id, communityMembers.userId))
-      .where(eq(communityMembers.communityId, communityId))
+      .where(and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.isActive, true), // Only active community members
+        eq(users.onboardingCompleted, true) // Must have completed onboarding (real app users)
+      ))
       .orderBy(
         desc(users.isOnline),
         desc(users.lastActiveAt)
       );
 
-    return result.map(({ users: user }) => {
+    let filteredMembers = result.map(({ users: user }) => {
       const lastActive = user.lastActiveAt || new Date();
       const isCurrentlyOnline = Boolean(user.isOnline) && lastActive > fifteenMinutesAgo;
       
@@ -796,6 +828,35 @@ export class DatabaseStorage implements IStorage {
         lastActiveAt: lastActive
       };
     });
+
+    // Filter out users without location data (must have app with location)
+    filteredMembers = filteredMembers.filter(member => 
+      member.latitude && member.longitude
+    );
+
+    // Apply geolocation filtering if requesting user location is available
+    if (requestingUserLocation) {
+      filteredMembers = filteredMembers.filter(member => {
+        const memberLocation = {
+          lat: parseFloat(member.latitude!),
+          lon: parseFloat(member.longitude!)
+        };
+        
+        // Check if member is within 50-100 mile radius
+        const distance = this.calculateDistance(requestingUserLocation!, memberLocation);
+        return distance <= 100; // 100 mile max radius
+      });
+    }
+
+    // Apply 70% interest compatibility requirement
+    const communityInterests = this.getCommunityInterests(community);
+    filteredMembers = filteredMembers.filter(member => {
+      const memberInterests = member.interests || [];
+      const overlapPercentage = this.calculateInterestOverlap(memberInterests, communityInterests);
+      return overlapPercentage >= 70; // 70% minimum compatibility
+    });
+
+    return filteredMembers;
   }
 }
 

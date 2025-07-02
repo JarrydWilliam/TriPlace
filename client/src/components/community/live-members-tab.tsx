@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
+import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,9 +26,20 @@ interface LiveMembersTabProps {
 
 export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
   const { memberUpdates } = useWebSocket();
+  const { user } = useAuth();
   
   const { data: membersData, isLoading, refetch } = useQuery<LiveMembersResponse>({
-    queryKey: ['/api/communities', communityId, 'members', 'live'],
+    queryKey: ['/api/communities', communityId, 'members', 'live', user?.id],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (user?.id) {
+        params.append('userId', user.id.toString());
+      }
+      const response = await fetch(`/api/communities/${communityId}/members/live?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch live members');
+      return response.json();
+    },
+    enabled: !!communityId && !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 

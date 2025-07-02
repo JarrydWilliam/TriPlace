@@ -1096,7 +1096,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/communities/:id/members/live", async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId);
+      const { userId } = req.query;
+      
+      // Pass the requesting user ID for geolocation filtering
+      const requestingUserId = userId ? parseInt(userId as string) : undefined;
+      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId, requestingUserId);
       
       // Only return live members (online within last 15 minutes)
       const liveMembers = membersWithStatus.filter(member => member.isOnline);

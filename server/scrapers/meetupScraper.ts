@@ -11,6 +11,7 @@ export class MeetupScraper {
     try {
       const browser = await puppeteer.launch({
         headless: true,
+        executablePath: '/nix/store/*/bin/chromium',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',

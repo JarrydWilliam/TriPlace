@@ -1,0 +1,40 @@
+Members Tab – Functionality & Specs
+1. Purpose
+To display a real-time (or near real-time) list of members who are currently online or recently active in the selected community.
+2. Data Source
+Uses a backend endpoint (likely via WebSocket or polling) to fetch the list of live/active members for the community.
+Member data is not static; it reflects actual user presence.
+3. Displayed Information
+For each member, the tab typically shows:
+Avatar (profile picture or initials)
+Display Name (username or real name)
+Status (e.g., “Online”, “Active now”, or “Last seen X minutes ago”)
+(Optional) Role (e.g., admin, moderator, member)
+4. UI/UX
+The tab is accessible from the community page, usually as one of several tabs (e.g., Chat, Events, Members).
+Members are listed in a scrollable list, often sorted by online status or recent activity.
+May include a count of currently active members at the top.
+Should update automatically as member presence changes (using WebSocket or polling).
+5. Technical Implementation
+Frontend:
+Uses a hook (e.g., use-live-members.ts) to subscribe to live member updates.
+Renders a list of member cards or rows.
+Backend:
+Provides an endpoint (e.g., /api/community/:id/live-members) that returns the list of active members.
+Tracks user presence, possibly via WebSocket connections or periodic heartbeats.
+6. Edge Cases & Behavior
+If no members are currently active, display a friendly empty state (e.g., “No members are online right now”).
+Handles loading and error states gracefully.
+May show a “last seen” time for recently active members if real-time presence is not available.
+Example User Flow
+User navigates to a community.
+User clicks the “Members” tab.
+The app fetches and displays the list of currently active members.
+As members join/leave or become active/inactive, the list updates in real time.
+Related Files in Your Codebase
+Frontend:
+TriPlace/client/src/components/community/live-members-tab.tsx (main UI for the tab)
+TriPlace/client/src/hooks/use-live-members.ts (fetches/subscribes to live member data)
+Backend:
+TriPlace/server/community-update-notifier.ts (handles presence updates)
+TriPlace/server/routes.ts (defines the API endpoint for live members)
