@@ -3,6 +3,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/ui/logo";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Users, MapPin, Calendar, Sparkles, Sun, Moon } from "lucide-react";
 import { Community, Event } from "@shared/schema";
@@ -81,7 +82,12 @@ export default function CommunitiesPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-pulse">
+            <Logo size="xl" />
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading communities...</p>
+        </div>
       </div>
     );
   }

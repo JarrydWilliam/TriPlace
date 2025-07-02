@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Logo } from '@/components/ui/logo';
 import { Users, Heart, Clock } from 'lucide-react';
 
 interface LiveMember {
@@ -85,7 +86,9 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
     return (
       <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
         <div className="text-center py-8">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <div className="animate-pulse mx-auto mb-3 flex justify-center">
+            <Logo size="md" />
+          </div>
           <p className="text-gray-500 dark:text-gray-400">Loading live members...</p>
         </div>
       </div>
