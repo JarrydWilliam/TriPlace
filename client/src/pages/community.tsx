@@ -639,7 +639,7 @@ export default function CommunityPage() {
             {/* Kudos Tab */}
             {activeTab === "kudos" && (
               <div className="mt-0">
-                <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto scroll-container">
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>Community kudos and achievements coming soon!</p>
