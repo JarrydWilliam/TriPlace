@@ -52,9 +52,11 @@ export class EventScraperOrchestrator {
       
       // Match events to communities
       const communityMatches = this.communityMatcher.matchEventsTocommunities(processedEvents, communities);
+      console.log(`Community matcher found ${communityMatches.length} community matches`);
       
       // Save events to database for each community
       for (const match of communityMatches) {
+        console.log(`Processing match for community ${match.communityId} with ${match.events.length} events`);
         try {
           const savedCount = await this.saveEventsForCommunity(match.communityId, match.events);
           totalEvents += savedCount;
@@ -187,6 +189,8 @@ export class EventScraperOrchestrator {
   private async saveEventsForCommunity(communityId: number, events: ScrapedEvent[]): Promise<number> {
     let savedCount = 0;
     
+    console.log(`Attempting to save ${events.length} events for community ${communityId}`);
+    
     for (const scrapedEvent of events) {
       try {
         // Check if event already exists
@@ -203,21 +207,26 @@ export class EventScraperOrchestrator {
             organizer: scrapedEvent.organizerName || 'External Event',
             date: scrapedEvent.date,
             location: scrapedEvent.location,
-            address: scrapedEvent.location, // Use location as address fallback
+            address: scrapedEvent.location,
             category: scrapedEvent.category,
             price: (scrapedEvent.price || 0).toString(),
             communityId: communityId,
             isGlobal: false
           };
           
-          await storage.createEvent(insertEvent);
+          console.log(`Creating event: ${insertEvent.title} for community ${communityId}`);
+          const createdEvent = await storage.createEvent(insertEvent);
+          console.log(`Successfully created event with ID: ${createdEvent.id}`);
           savedCount++;
+        } else {
+          console.log(`Skipping duplicate event: ${scrapedEvent.title}`);
         }
       } catch (error) {
-        console.error(`Error saving event "${scrapedEvent.title}":`, error);
+        console.error(`Error saving event "${scrapedEvent.title}" for community ${communityId}:`, error);
       }
     }
     
+    console.log(`Successfully saved ${savedCount} events for community ${communityId}`);
     return savedCount;
   }
 

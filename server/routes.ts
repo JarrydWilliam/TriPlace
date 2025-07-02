@@ -702,6 +702,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to populate sample events for a community
+  app.post("/api/communities/:id/populate-sample-events", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ message: "Invalid community ID" });
+      }
+
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ message: "Community not found" });
+      }
+
+      // Create sample events for this community
+      const sampleEvents = [
+        {
+          title: "Tech Innovation Workshop",
+          description: "Join us for an exciting workshop on the latest technology trends and innovations in our local tech community.",
+          organizer: "Tech Community Leaders",
+          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+          location: "Salt Lake City Tech Hub",
+          address: "123 Tech Street, Salt Lake City, UT",
+          category: community.category,
+          price: "0",
+          communityId: communityId,
+          isGlobal: false
+        },
+        {
+          title: "Community Networking Meetup",
+          description: "Connect with like-minded individuals in our community. Perfect for building relationships and sharing ideas.",
+          organizer: "Community Organizers",
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+          location: "Community Center Downtown",
+          address: "456 Community Ave, Salt Lake City, UT",
+          category: community.category,
+          price: "15",
+          communityId: communityId,
+          isGlobal: false
+        },
+        {
+          title: "Weekend Social Gathering",
+          description: "Casual weekend gathering for community members to relax, socialize, and enjoy good company.",
+          organizer: "Social Committee",
+          date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+          location: "Local Park Pavilion",
+          address: "789 Park Lane, Salt Lake City, UT",
+          category: community.category,
+          price: "0",
+          communityId: communityId,
+          isGlobal: false
+        }
+      ];
+
+      let createdEvents = 0;
+      for (const eventData of sampleEvents) {
+        try {
+          await storage.createEvent(eventData);
+          createdEvents++;
+        } catch (error) {
+          console.error(`Error creating sample event:`, error);
+        }
+      }
+
+      res.json({ 
+        message: `Successfully created ${createdEvents} sample events for community ${community.name}`,
+        eventsCreated: createdEvents
+      });
+    } catch (error) {
+      console.error('Error populating sample events:', error);
+      res.status(500).json({ message: "Failed to populate sample events" });
+    }
+  });
+
   // Create community event
   app.post("/api/communities/:id/events", async (req, res) => {
     try {

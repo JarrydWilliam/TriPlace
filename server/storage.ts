@@ -737,7 +737,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommunityEvents(communityId: number): Promise<Event[]> {
-    return await this.getAllEvents();
+    try {
+      const communityEvents = await db.select()
+        .from(events)
+        .where(eq(events.communityId, communityId))
+        .orderBy(asc(events.date));
+      return communityEvents;
+    } catch (error) {
+      console.error('Error getting community events:', error);
+      return [];
+    }
   }
 
   async setUserOnlineStatus(userId: number, isOnline: boolean): Promise<void> {
