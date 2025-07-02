@@ -29,6 +29,10 @@ function Router() {
   const { user, firebaseUser, loading } = useAuth();
   const [location, setLocation] = useLocation();
 
+  // Development bypass for authentication issues
+  const isDevelopment = import.meta.env.DEV;
+  const shouldBypassAuth = isDevelopment && (location.includes('/community/') || location === '/communities');
+
   useEffect(() => {
     if (!loading && firebaseUser && user) {
       const needsOnboarding = !user.onboardingCompleted;
@@ -59,11 +63,22 @@ function Router() {
     }
   }, [user, firebaseUser, loading, location, setLocation]);
 
-  if (loading) {
+  if (loading && !shouldBypassAuth) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-gray-900 dark:text-white">Loading...</div>
       </div>
+    );
+  }
+
+  // Development access for testing community features
+  if (shouldBypassAuth) {
+    return (
+      <Switch>
+        <Route path="/community/:communityId" component={Community} />
+        <Route path="/communities" component={Communities} />
+        <Route component={NotFound} />
+      </Switch>
     );
   }
 

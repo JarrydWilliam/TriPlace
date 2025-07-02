@@ -25,7 +25,7 @@ interface ScrapedEventsTabProps {
   communityId: number;
 }
 
-export default function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
+export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
   const { toast } = useToast();
   const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
 
