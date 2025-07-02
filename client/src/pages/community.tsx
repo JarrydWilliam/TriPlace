@@ -50,7 +50,18 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   const queryClient = useQueryClient();
   const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
 
-  const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
+  // Get user's joined events to filter them out
+  const { data: userJoinedEvents = [] } = useQuery<Event[]>({
+    queryKey: ["/api/users", user?.id, "events"],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const response = await fetch(`/api/users/${user.id}/events`);
+      return response.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: allEvents = [], isLoading, refetch } = useQuery<Event[]>({
     queryKey: ["/api/communities", communityId, "events"],
     queryFn: async () => {
       const response = await fetch(`/api/communities/${communityId}/events`);
@@ -60,6 +71,11 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
       return response.json();
     },
   });
+
+  // Filter out events the user has already joined
+  const events = allEvents.filter(event => 
+    !userJoinedEvents.some(joinedEvent => joinedEvent.id === event.id)
+  );
 
   const handleJoinEvent = async (eventId: number, eventTitle: string) => {
     if (!user?.id) {

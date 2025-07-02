@@ -8,22 +8,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-
-interface Event {
-  id: number;
-  title: string;
-  date: string | Date;
-  location: string;
-  price?: string | null;
-  organizer?: string;
-  category?: string;
-}
+import { Event } from "@shared/schema";
 
 interface EventCalendarProps {
   events: Event[];
+  onEventClick?: (event: Event) => void;
 }
 
-export function EventCalendar({ events }: EventCalendarProps) {
+export function EventCalendar({ events, onEventClick }: EventCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const { user } = useAuth();
   const { toast } = useToast();
@@ -152,6 +144,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                     key={event.id}
                     className="text-xs p-1 rounded bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 transition-colors truncate"
                     title={`${event.title} at ${event.location}`}
+                    onClick={() => onEventClick?.(event)}
                   >
                     {event.title}
                   </div>
@@ -167,68 +160,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
         })}
       </div>
 
-      {/* Upcoming Events List */}
-      <div className="space-y-3">
-        <h4 className="text-md font-semibold text-foreground">Upcoming Events</h4>
-        {events
-          .filter(event => new Date(event.date) >= new Date())
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .slice(0, 5)
-          .map(event => {
-            const eventDate = new Date(event.date);
-            const isToday = isSameDay(eventDate, new Date());
-            
-            return (
-              <Card key={event.id} className={`border transition-colors ${
-                isToday ? 'border-primary bg-primary/5' : 'border-border'
-              }`}>
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-medium text-foreground truncate">
-                        {event.title}
-                      </h5>
-                      <div className="flex items-center space-x-3 mt-1 text-sm text-muted-foreground">
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{format(eventDate, 'MMM d, h:mm a')}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate">{event.location}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 ml-2 flex-shrink-0">
-                      {event.price && event.price !== "0" && (
-                        <Badge variant="secondary">
-                          ${event.price}
-                        </Badge>
-                      )}
-                      {new Date(event.date) < new Date() && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (user?.id) {
-                              markAttendanceMutation.mutate({ eventId: event.id, userId: user.id });
-                            }
-                          }}
-                          disabled={markAttendanceMutation.isPending}
-                          className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
-                        >
-                          ✓ Attended
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        }
-      </div>
+
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { EventCalendar } from "@/components/ui/event-calendar";
+import { EventDetailsModal } from "@/components/ui/event-details-modal";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -36,7 +37,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   // Listen for ChatGPT community updates from service worker
   useEffect(() => {
@@ -413,7 +415,13 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <EventCalendar events={userJoinedEvents || []} />
+                  <EventCalendar 
+                    events={userJoinedEvents || []} 
+                    onEventClick={(event) => {
+                      setSelectedEvent(event);
+                      setIsEventModalOpen(true);
+                    }}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -674,6 +682,16 @@ export default function Dashboard() {
         </div>
         <BackToTop />
       </PullToRefresh>
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        event={selectedEvent}
+        isOpen={isEventModalOpen}
+        onClose={() => {
+          setIsEventModalOpen(false);
+          setSelectedEvent(null);
+        }}
+      />
     </div>
   );
 }
