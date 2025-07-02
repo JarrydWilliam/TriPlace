@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon } from "lucide-react";
 import { Link } from "wouter";
-import { BackToTop } from "@/components/ui/back-to-top";
+
 
 export default function ProfileSettings() {
   const { user } = useAuth();
@@ -258,7 +258,7 @@ export default function ProfileSettings() {
           </div>
         </div>
       </div>
-      <BackToTop />
+
     </div>
   );
 }

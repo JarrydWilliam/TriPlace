@@ -21,7 +21,7 @@ import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-import { BackToTop } from "@/components/ui/back-to-top";
+
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { useTheme } from "@/lib/theme-context";
 
@@ -648,7 +648,7 @@ export default function CommunityPage() {
               </div>
             )}
           </div>
-          <BackToTop />
+
         </div>
       </PullToRefresh>
     </div>

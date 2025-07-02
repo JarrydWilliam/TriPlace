@@ -2,41 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-first base styles - prevent horizontal scroll and overscroll */
-html, body {
-  overflow-x: hidden;
-  overflow-y: auto;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
+/* Global scroll fix - ensure all pages scroll properly */
+html {
   scroll-behavior: smooth;
-  overscroll-behavior: none;
-  -webkit-overscroll-behavior: none;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  overflow-x: hidden;
+  height: 100%;
 }
 
 body {
-  position: relative;
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile */
-}
-
-body::-webkit-scrollbar {
-  display: none;
-}
-
-/* Mobile page container for optimal scrolling */
-.mobile-page-container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
+  height: 100%;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
-  touch-action: pan-y;
+  margin: 0;
+  padding: 0;
+}
+
+/* Main app container - let it scroll naturally */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Mobile page container - simplified for better scrolling */
+.mobile-page-container {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Mobile scroll wrapper for content areas */

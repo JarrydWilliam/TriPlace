@@ -24,6 +24,7 @@ import SecuritySettings from "@/pages/settings/security";
 import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
 import { AppUpdater } from "@/components/ui/app-updater";
+import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -116,9 +117,11 @@ function App() {
         <AuthProvider>
           <ThemeProvider>
             <TooltipProvider>
-              <Toaster />
-              <AppUpdater />
-              <Router />
+              <GlobalScrollWrapper>
+                <Toaster />
+                <AppUpdater />
+                <Router />
+              </GlobalScrollWrapper>
             </TooltipProvider>
           </ThemeProvider>
         </AuthProvider>

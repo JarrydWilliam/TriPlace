@@ -24,7 +24,7 @@ import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-import { BackToTop } from "@/components/ui/back-to-top";
+
 import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
 
@@ -752,7 +752,7 @@ export default function Dashboard() {
           </div>
         </div>
         </div>
-        <BackToTop />
+
       </PullToRefresh>
 
       {/* Event Details Modal */}

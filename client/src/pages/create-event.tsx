@@ -11,7 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Users, Globe, Handshake, AlertTriangle } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
-import { BackToTop } from "@/components/ui/back-to-top";
+
 
 interface EventCreationData {
   title: string;
@@ -420,7 +420,7 @@ export default function CreateEventPage() {
           </CardContent>
         </Card>
       </div>
-      <BackToTop />
+
     </div>
   );
 }

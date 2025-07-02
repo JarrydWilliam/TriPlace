@@ -13,7 +13,7 @@ import { useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-import { BackToTop } from "@/components/ui/back-to-top";
+
 import { useGeolocation } from "@/hooks/use-geolocation";
 
 interface QuizAnswers {
@@ -449,7 +449,7 @@ export default function Onboarding() {
           </div>
           </div>
         </div>
-        <BackToTop />
+
       </PullToRefresh>
     </div>
   );
