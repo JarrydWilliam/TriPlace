@@ -60,6 +60,7 @@ export const events = pgTable("events", {
   latitude: text("latitude"),
   longitude: text("longitude"),
   creatorId: integer("creator_id"),
+  communityId: integer("community_id").references(() => communities.id),
   isGlobal: boolean("is_global").default(false),
   eventType: text("event_type"),
   brandPartnerName: text("brand_partner_name"),

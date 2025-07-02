@@ -634,8 +634,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Community not found" });
       }
       
-      // Get events that match this community's category and are recent
-      const events = await storage.getEventsByCategory(community.category);
+      // Get events specifically associated with this community
+      const events = await storage.getCommunityEvents(communityId);
       const recentEvents = events.filter(event => 
         new Date(event.date) >= new Date() && // Future events only
         new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days

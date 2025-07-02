@@ -206,6 +206,7 @@ export class EventScraperOrchestrator {
             address: scrapedEvent.location, // Use location as address fallback
             category: scrapedEvent.category,
             price: (scrapedEvent.price || 0).toString(),
+            communityId: communityId,
             isGlobal: false
           };
           
