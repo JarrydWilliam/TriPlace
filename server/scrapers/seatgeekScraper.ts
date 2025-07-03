@@ -9,7 +9,7 @@ export class SeatGeekScraper {
     const events: ScrapedEvent[] = [];
     
     try {
-      console.log(`SeatGeek scraper: Searching within ${radius} miles of ${location}`);
+
       
       const browser = await puppeteer.launch({
         headless: true,

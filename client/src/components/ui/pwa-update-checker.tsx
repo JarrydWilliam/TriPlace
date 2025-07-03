@@ -28,7 +28,7 @@ export function PwaUpdateChecker() {
         localStorage.setItem('triplace_app_version', APP_VERSION);
       }
     } catch (error) {
-      console.log('Version check failed:', error);
+
     }
   };
 
