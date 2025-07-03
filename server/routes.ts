@@ -7,6 +7,7 @@ import { communityRefreshService } from "./community-refresh";
 import { communityUpdateNotifier } from "./community-update-notifier";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
+import { SimplifiedAdvancedOrchestrator } from "./scrapers/advanced/simplifiedAdvancedOrchestrator";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -675,6 +676,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching scraped events:', error);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Advanced scraping endpoint for comprehensive event discovery
+  app.post("/api/advanced-scraping/trigger", async (req, res) => {
+    try {
+      const { location, keywords, communityId } = req.body;
+
+      if (!location) {
+        return res.status(400).json({ error: 'Location is required' });
+      }
+
+      const searchKeywords = keywords || [];
+      const orchestrator = new SimplifiedAdvancedOrchestrator();
+
+      // Execute comprehensive advanced scraping
+      const results = await orchestrator.scrapeAllSources(location, searchKeywords);
+
+      // If community ID provided, save events to that community
+      if (communityId) {
+        const community = await storage.getCommunity(communityId);
+        if (community) {
+          // Save relevant events to database
+          for (const event of results.events.slice(0, 10)) {
+            try {
+              await storage.createEvent({
+                title: event.title,
+                description: event.description,
+                date: event.date,
+                location: event.location,
+                category: event.category,
+                isGlobal: false,
+                eventType: 'community-coordinated',
+                createdBy: null // System-created
+              });
+            } catch (error) {
+              // Continue if event already exists
+            }
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          totalEvents: results.totalEvents,
+          events: results.events,
+          sourceBreakdown: results.sourceBreakdown,
+          errors: results.errors,
+          location: location,
+          searchKeywords: searchKeywords
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        error: 'Advanced scraping failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Community-specific advanced scraping
+  app.post("/api/advanced-scraping/community/:communityId", async (req, res) => {
+    try {
+      const { communityId } = req.params;
+      const { location, forceRefresh } = req.body;
+
+      if (!location) {
+        return res.status(400).json({ error: 'Location is required' });
+      }
+
+      const community = await storage.getCommunity(parseInt(communityId));
+      if (!community) {
+        return res.status(404).json({ error: 'Community not found' });
+      }
+
+      // Extract keywords from community
+      const communityKeywords = [
+        community.name.toLowerCase(),
+        community.category.toLowerCase(),
+        ...(community.interests || [])
+      ];
+
+      const orchestrator = new SimplifiedAdvancedOrchestrator();
+      const events = await orchestrator.scrapeForCommunity(location, communityKeywords);
+
+      // Save top events to database if force refresh requested
+      if (forceRefresh) {
+        for (const event of events.slice(0, 8)) {
+          try {
+            await storage.createEvent({
+              title: event.title,
+              description: event.description,
+              date: event.date,
+              location: event.location,
+              category: event.category,
+              isGlobal: false,
+              eventType: 'community-coordinated',
+              createdBy: null
+            });
+          } catch (error) {
+            // Continue if event already exists
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          communityName: community.name,
+          totalEvents: events.length,
+          events: events,
+          keywords: communityKeywords,
+          location: location
+        }
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        error: 'Community scraping failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
