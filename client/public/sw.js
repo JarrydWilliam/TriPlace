@@ -1,6 +1,6 @@
-const CACHE_NAME = 'triplace-v1.0.4';
-const STATIC_CACHE = 'triplace-static-v1.0.4';
-const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.4';
+const CACHE_NAME = 'triplace-v1.0.1';
+const STATIC_CACHE = 'triplace-static-v1.0.1';
+const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.1';
 
 // Community discovery API endpoints that should always be fresh for ChatGPT updates
 const CHATGPT_DISCOVERY_ENDPOINTS = [

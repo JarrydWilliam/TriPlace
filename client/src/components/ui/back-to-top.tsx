@@ -103,29 +103,18 @@ export function BackToTop({
       disabled={isScrolling}
       size="icon"
       className={cn(
-        "fixed bottom-6 right-6 z-[99999] rounded-full shadow-2xl",
-        "bg-orange-500 hover:bg-orange-600 dark:bg-cyan-500 dark:hover:bg-cyan-600",
+        "fixed bottom-6 right-6 z-[9999] rounded-full shadow-xl",
+        "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600",
         "transition-all duration-300 ease-in-out",
-        "h-14 w-14 hover:scale-110 active:scale-95",
+        "h-12 w-12 hover:scale-110 active:scale-95",
         "disabled:opacity-50 disabled:scale-100",
-        "border-2 border-white/30 backdrop-blur-sm",
-        "drop-shadow-lg hover:drop-shadow-xl",
-        "safe-area-inset-bottom safe-area-inset-right",
-        // Ensure visibility in production
-        "block opacity-100 pointer-events-auto",
+        "border border-blue-500/20 backdrop-blur-sm",
         className
       )}
-      style={{
-        // Force visibility with important styles
-        display: 'flex',
-        visibility: 'visible',
-        opacity: 1,
-        zIndex: 99999
-      }}
       aria-label="Back to top"
     >
       <ChevronUp className={cn(
-        "h-6 w-6 text-white transition-transform duration-200 drop-shadow-sm",
+        "h-5 w-5 text-white transition-transform duration-200",
         isScrolling && "animate-pulse"
       )} />
     </Button>

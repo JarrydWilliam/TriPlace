@@ -15,15 +15,9 @@ body {
   height: 100%;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
-  overscroll-behavior-y: none;
   -webkit-overscroll-behavior: none;
-  -webkit-overscroll-behavior-y: none;
   margin: 0;
   padding: 0;
-  /* Prevent all bounce effects */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  touch-action: pan-y;
 }
 
 /* Main app container - let it scroll naturally */
@@ -737,20 +731,13 @@ button, [role="button"], input, textarea, select, a {
 /* Enhanced mobile scroll prevention */
 .mobile-page-container {
   overflow-y: auto;
-  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  -webkit-overscroll-behavior: none;
-  -webkit-overscroll-behavior-y: none;
   height: 100vh;
   height: 100dvh;
   scroll-behavior: smooth;
   position: relative;
   padding-bottom: 20px; /* Prevent bottom scroll stuck */
-  /* Prevent all bounce effects */
-  touch-action: pan-y;
-  -webkit-touch-callout: none;
 }
 
 /* Prevent scroll bounce on iOS and fix stuck scrolling */
@@ -758,36 +745,13 @@ button, [role="button"], input, textarea, select, a {
   .scroll-container, .mobile-page-container {
     scroll-snap-type: none;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-    overscroll-behavior-y: none;
-    -webkit-overscroll-behavior: none;
-    -webkit-overscroll-behavior-y: none;
+    overscroll-behavior-y: contain;
     scrollbar-width: thin;
-    /* Prevent all bounce effects */
-    touch-action: pan-y;
-    -webkit-touch-callout: none;
   }
   
   /* Ensure content has bottom margin to prevent stuck scrolling */
   .scroll-content {
     margin-bottom: env(safe-area-inset-bottom, 20px);
     padding-bottom: 20px;
-  }
-  
-  /* Global overscroll prevention for mobile */
-  body, html, #root {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior: none !important;
-    -webkit-overscroll-behavior-y: none !important;
-    touch-action: pan-y !important;
-  }
-  
-  /* Prevent pull-to-refresh on mobile browsers */
-  .no-pull-refresh {
-    overscroll-behavior: none !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior: none !important;
-    -webkit-overscroll-behavior-y: none !important;
   }
 }

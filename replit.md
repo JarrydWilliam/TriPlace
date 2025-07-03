@@ -707,17 +707,6 @@ Changelog:
   - All scrapers gracefully handle browser availability issues in development environment
   - Production deployment will enable full web scraping functionality with real event discovery
 
-- January 02, 2025. Fixed production overscroll issues and enhanced BackToTop button visibility
-  - Restored weekly challenges display on dashboard with real progress tracking based on user activity
-  - Implemented comprehensive overscroll prevention across all mobile devices and PWA installations
-  - Enhanced CSS with webkit overscroll behavior prevention and global touch-action restrictions
-  - Added HTML meta tags to prevent pull-to-refresh gestures and bounce effects on mobile browsers
-  - Enhanced BackToTop button with increased size (56px), higher z-index (99999), and better visibility
-  - Updated button colors to match theme: orange for light mode, cyan for dark mode
-  - Added forced styling and drop shadows to ensure production visibility across all devices
-  - PWA version updated to 1.0.3 with automatic update distribution to all existing installations
-  - Complete mobile scroll experience optimization ready for production deployment
-
 - January 02, 2025. Implemented comprehensive PWA update system for mobile device synchronization
   - Created PwaUpdateChecker component with version-based update detection and automatic cache clearing
   - Enhanced service worker with updated cache names and proper update notification system
