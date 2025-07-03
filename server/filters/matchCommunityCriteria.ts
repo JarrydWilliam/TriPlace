@@ -131,6 +131,9 @@ export class CommunityMatcher {
       'meetup': 0.95,
       'ticketmaster': 0.85,
       'seatgeek': 0.85,
+      'bandsintown': 0.8,
+      'reddit': 0.65,
+      'google': 0.75,
       'facebook': 0.7,
       'instagram': 0.6,
       'local': 0.8

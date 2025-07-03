@@ -4,6 +4,9 @@ import { TicketmasterScraper } from './ticketmasterScraper';
 import { InstagramScraper } from './instagramScraper';
 import { LocalEventsScraper } from './localEventsScraper';
 import { SeatGeekScraper } from './seatgeekScraper';
+import { BandsintownScraper } from './bandsintownScraper';
+import { RedditEventsScraper } from './redditEventsScraper';
+import { GoogleThingsToDoScraper } from './googleThingsToDoScraper';
 import { FallbackEventScraper } from './fallbackEventScraper';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria';
 import { DeduplicationUtils } from '../utils/dedupe';
@@ -19,6 +22,9 @@ export class EventScraperOrchestrator {
   private instagramScraper = new InstagramScraper();
   private localEventsScraper = new LocalEventsScraper();
   private seatgeekScraper = new SeatGeekScraper();
+  private bandsintownScraper = new BandsintownScraper();
+  private redditEventsScraper = new RedditEventsScraper();
+  private googleThingsToDoScraper = new GoogleThingsToDoScraper();
   private fallbackScraper = new FallbackEventScraper();
   private communityMatcher = new CommunityMatcher();
 
@@ -117,6 +123,21 @@ export class EventScraperOrchestrator {
       // Add Local events scraping
       this.localEventsScraper.scrapeLocalEvents(userLocation, keywords, RADIUS_MILES).catch(error => {
         console.error('Local events scraper error:', error);
+        return [];
+      }),
+      // Add Bandsintown scraping
+      this.bandsintownScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+        console.error('Bandsintown scraper error:', error);
+        return [];
+      }),
+      // Add Reddit events scraping
+      this.redditEventsScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+        console.error('Reddit scraper error:', error);
+        return [];
+      }),
+      // Add Google Things to Do scraping
+      this.googleThingsToDoScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+        console.error('Google Things to Do scraper error:', error);
         return [];
       })
     ];
