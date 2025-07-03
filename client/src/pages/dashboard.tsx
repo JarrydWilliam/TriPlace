@@ -262,9 +262,9 @@ export default function Dashboard() {
     {
       id: "join-communities",
       title: "Join 2 new communities",
-      current: Array.isArray(userCommunities) ? Math.min(userCommunities.length, 2) : 0,
+      current: Array.isArray(userActiveCommunities) ? Math.min(userActiveCommunities.length, 2) : 0,
       target: 2,
-      progress: Array.isArray(userCommunities) ? Math.min(100, (userCommunities.length / 2) * 100) : 0
+      progress: Array.isArray(userActiveCommunities) ? Math.min(100, (userActiveCommunities.length / 2) * 100) : 0
     }
   ];
 
