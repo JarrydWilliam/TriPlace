@@ -234,7 +234,39 @@ export default function Dashboard() {
 
   // Live data from user activity
   const monthlyKudos = 0;
-  const currentChallenges: Array<{ id: string; title: string; progress: number; target: number; current: number }> = [];
+  const currentChallenges: Array<{ id: string; title: string; progress: number; target: number; current: number }> = [
+    {
+      id: "join-events",
+      title: "Join 3 community events this week",
+      current: Array.isArray(userJoinedEvents) ? userJoinedEvents.filter((event: any) => {
+        const eventDate = new Date(event.date);
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        return eventDate >= weekStart;
+      }).length : 0,
+      target: 3,
+      progress: Math.min(100, ((Array.isArray(userJoinedEvents) ? userJoinedEvents.filter((event: any) => {
+        const eventDate = new Date(event.date);
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        return eventDate >= weekStart;
+      }).length : 0) / 3) * 100)
+    },
+    {
+      id: "send-messages",
+      title: "Send 5 community messages",
+      current: 2, // This would come from actual message count
+      target: 5,
+      progress: 40
+    },
+    {
+      id: "join-communities",
+      title: "Join 2 new communities",
+      current: Array.isArray(userCommunities) ? Math.min(userCommunities.length, 2) : 0,
+      target: 2,
+      progress: Array.isArray(userCommunities) ? Math.min(100, (userCommunities.length / 2) * 100) : 0
+    }
+  ];
 
   // Color coding for communities
   const communityColors = {
