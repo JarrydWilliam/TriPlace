@@ -895,6 +895,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Attendance marked successfully",
         attendance: attendance
       });
+
+      // Trigger AI learning
+      import("./agent/agent-runner").then(({ agentRunner }) => {
+        agentRunner.runAgentForUser(parseInt(userId)).catch(err => console.error("[Agent] Trigger failed:", err));
+      });
     } catch (error) {
       console.error("Error marking attendance:", error);
       res.status(500).json({ message: "Failed to mark attendance" });
@@ -999,6 +1004,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const message = await storage.sendCommunityMessage(messageData);
       res.status(201).json(message);
+
+      // Trigger AI learning
+      import("./agent/agent-runner").then(({ agentRunner }) => {
+        agentRunner.runAgentForUser(parseInt(senderId)).catch(err => console.error("[Agent] Trigger failed:", err));
+      });
     } catch (error) {
       console.error("Error sending community message:", error);
       res.status(500).json({ message: "Failed to send message" });
@@ -1276,6 +1286,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize event scraping scheduler
   eventScrapingScheduler.startScheduling();
+
+  // ── Posts ──────────────────────────────────────────────────────────────────
+
+  app.get("/api/communities/:id/posts", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const posts = await storage.getCommunityPosts(communityId);
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get posts" });
+    }
+  });
+
+  app.post("/api/communities/:id/posts", async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      const { authorId, content } = req.body;
+      if (!authorId || !content) {
+        return res.status(400).json({ message: "authorId and content required" });
+      }
+
+      // Simple Rate Limit (Bot Defense)
+      const now = Date.now();
+      const lastPostKey = `post_cooldown_${authorId}`;
+      // @ts-ignore global map for simplicity in this file scope
+      if (!global.rateLimits) global.rateLimits = new Map();
+      // @ts-ignore
+      const lastPost = global.rateLimits.get(lastPostKey) || 0;
+      
+      if (now - lastPost < 5000) { // 5 seconds
+        return res.status(429).json({ message: "You are posting too fast. Chill for a sec." });
+      }
+      // @ts-ignore
+      global.rateLimits.set(lastPostKey, now);
+
+      // AI Moderation Check
+      const { moderator } = await import("./agent/moderator");
+      const safetyCheck = await moderator.checkContentSafety(String(content));
+      
+      if (!safetyCheck.safe) {
+        return res.status(400).json({ 
+          message: "Post rejected entirely for safety reasons.",
+          reason: safetyCheck.reason 
+        });
+      }
+
+      const post = await storage.createPost(communityId, parseInt(authorId), String(content));
+      res.status(201).json(post);
+
+      // Trigger AI learning
+      import("./agent/agent-runner").then(({ agentRunner }) => {
+        agentRunner.runAgentForUser(parseInt(authorId)).catch(err => console.error("[Agent] Trigger failed:", err));
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.post("/api/posts/:id/kudos", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { giverId } = req.body;
+      if (!giverId) return res.status(400).json({ message: "giverId required" });
+      const result = await storage.givePostKudos(postId, parseInt(giverId));
+      res.json(result);
+
+      // Trigger AI learning
+      import("./agent/agent-runner").then(({ agentRunner }) => {
+        agentRunner.runAgentForUser(parseInt(giverId)).catch(err => console.error("[Agent] Trigger failed:", err));
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to give post kudos" });
+    }
+  });
+
+  // ── Streaks ────────────────────────────────────────────────────────────────
+
+  app.get("/api/users/:id/streak", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const streak = await storage.getStreak(userId);
+      res.json(streak);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get streak" });
+    }
+  });
+
+  app.post("/api/users/:id/checkin", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const streak = await storage.checkin(userId);
+      res.json(streak);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to checkin" });
+    }
+  });
+
+  // ── Agent ──────────────────────────────────────────────────────────────────
+
+  app.get("/api/users/:id/agent-insights", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const insights = await storage.getAgentInsights(userId);
+      res.json(insights);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get agent insights" });
+    }
+  });
+
+  app.post("/api/agent/run/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { runAgentForUser } = await import("./agent/agent-runner");
+      const result = await runAgentForUser(userId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Agent run failed" });
+    }
+  });
+
+  app.get("/api/agent/status/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const run = await storage.getLatestAgentRun(userId);
+      res.json(run ?? { status: "never_run" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get agent status" });
+    }
+  });
 
   return httpServer;
 }

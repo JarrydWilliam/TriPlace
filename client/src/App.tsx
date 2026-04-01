@@ -1,4 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
+import { AnimatePresence } from "framer-motion";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,9 +24,14 @@ import CommunitySettings from "@/pages/settings/community";
 import SecuritySettings from "@/pages/settings/security";
 import SupportSettings from "@/pages/settings/support";
 import NotFound from "@/pages/not-found";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
+import { BackToTop } from "@/components/ui/back-to-top";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -85,7 +91,8 @@ function Router() {
   }
 
   return (
-    <Switch>
+    <AnimatePresence mode="wait">
+      <Switch>
       <Route path="/" component={Landing} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
@@ -105,9 +112,14 @@ function Router() {
       <Route path="/discover" component={Dashboard} />
       <Route path="/communities" component={Communities} />
       <Route path="/kudos" component={Dashboard} />
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
-    </Switch>
+      </Switch>
+    </AnimatePresence>
   );
 }
 
@@ -115,18 +127,22 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ThemeProvider>
-            <TooltipProvider>
-              <GlobalScrollWrapper>
-                <Toaster />
-                <AppUpdater />
-                <PwaUpdateChecker />
-                <Router />
-              </GlobalScrollWrapper>
-            </TooltipProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        {/* Force Dark Mode for High-End Feel */}
+        <div className="dark min-h-screen bg-background text-foreground antialiased selection:bg-primary/30">
+          <AuthProvider>
+            <ThemeProvider defaultTheme="dark" storageKey="triplace-theme">
+              <TooltipProvider>
+                <GlobalScrollWrapper>
+                  <Toaster />
+                  <AppUpdater />
+                  <PwaUpdateChecker />
+                  <BackToTop />
+                  <Router />
+                </GlobalScrollWrapper>
+              </TooltipProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </div>
       </QueryClientProvider>
     </ErrorBoundary>
   );

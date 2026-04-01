@@ -854,15 +854,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async refreshUserRecommendations(userId: number): Promise<void> {
-    // This method is called when a community is dropped during rotation
-    // It ensures the dropped community becomes available in recommendations again
-    // The actual recommendation logic is handled in getRecommendedCommunities
-    // which already filters out joined communities, so no additional action needed
+    // Called when agent discovers new interests — forces next recommendation fetch to re-run AI matching
+    // The actual recommendation logic in getRecommendedCommunities already re-runs dynamically
+    // so clearing any server-side cache is sufficient here (currently no caching layer)
+    console.log(`[Storage] Refreshing recommendations for user ${userId}`);
   }
 
   async getTrendingEventsByLocation(userLocation: { lat: number, lon: number }, radiusMiles: number = 50): Promise<any[]> {
     try {
-      // Get all upcoming events with join counts
       const allEvents = await db
         .select({
           event: events,
@@ -870,7 +869,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(events)
         .leftJoin(eventAttendees, eq(events.id, eventAttendees.eventId))
-        .where(gte(events.date, new Date())) // Future events only
+        .where(gte(events.date, new Date()))
         .groupBy(events.id)
         .orderBy(desc(sql`count(${eventAttendees.userId})`))
         .limit(10);
@@ -884,6 +883,141 @@ export class DatabaseStorage implements IStorage {
       console.error('Error getting trending events:', error);
       return [];
     }
+  }
+
+  // ── Posts ──────────────────────────────────────────────────────────────────
+
+  async getCommunityPosts(communityId: number): Promise<any[]> {
+    const { posts, postKudos, users } = await import("@shared/schema");
+    const result = await db
+      .select({
+        id: posts.id,
+        communityId: posts.communityId,
+        content: posts.content,
+        kudosCount: posts.kudosCount,
+        replyCount: posts.replyCount,
+        createdAt: posts.createdAt,
+        authorId: posts.authorId,
+        authorName: users.name,
+        authorAvatar: users.avatar,
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.authorId, users.id))
+      .where(eq(posts.communityId, communityId))
+      .orderBy(desc(posts.createdAt))
+      .limit(50);
+    return result;
+  }
+
+  async createPost(communityId: number, authorId: number, content: string): Promise<any> {
+    const { posts } = await import("@shared/schema");
+    const [post] = await db
+      .insert(posts)
+      .values({ communityId, authorId, content })
+      .returning();
+    return post;
+  }
+
+  async givePostKudos(postId: number, giverId: number): Promise<{ success: boolean; newCount: number; alreadyGiven: boolean }> {
+    const { postKudos, posts } = await import("@shared/schema");
+
+    // Idempotency check
+    const existing = await db
+      .select()
+      .from(postKudos)
+      .where(and(eq(postKudos.postId, postId), eq(postKudos.giverId, giverId)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+      return { success: false, alreadyGiven: true, newCount: post?.kudosCount ?? 0 };
+    }
+
+    // Insert kudos record
+    await db.insert(postKudos).values({ postId, giverId });
+
+    // Increment counter
+    const [updated] = await db
+      .update(posts)
+      .set({ kudosCount: sql`${posts.kudosCount} + 1` })
+      .where(eq(posts.id, postId))
+      .returning();
+
+    return { success: true, alreadyGiven: false, newCount: updated.kudosCount ?? 0 };
+  }
+
+  // ── Streaks ────────────────────────────────────────────────────────────────
+
+  async getStreak(userId: number): Promise<any> {
+    const { streaks } = await import("@shared/schema");
+    const [streak] = await db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1);
+    return streak ?? { userId, currentStreak: 0, bestStreak: 0, totalCheckins: 0, lastCheckinDate: null };
+  }
+
+  async checkin(userId: number): Promise<any> {
+    const { streaks } = await import("@shared/schema");
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const [existing] = await db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1);
+
+    if (!existing) {
+      // First ever check-in
+      const [created] = await db
+        .insert(streaks)
+        .values({ userId, currentStreak: 1, bestStreak: 1, lastCheckinDate: today, totalCheckins: 1 })
+        .returning();
+      return created;
+    }
+
+    if (existing.lastCheckinDate === today) {
+      // Already checked in today
+      return existing;
+    }
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const isConsecutive = existing.lastCheckinDate === yesterday;
+
+    const newStreak = isConsecutive ? (existing.currentStreak ?? 0) + 1 : 1;
+    const newBest = Math.max(existing.bestStreak ?? 0, newStreak);
+
+    const [updated] = await db
+      .update(streaks)
+      .set({
+        currentStreak: newStreak,
+        bestStreak: newBest,
+        lastCheckinDate: today,
+        totalCheckins: sql`${streaks.totalCheckins} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(streaks.userId, userId))
+      .returning();
+
+    return updated;
+  }
+
+  // ── Agent Runs ─────────────────────────────────────────────────────────────
+
+  async getLatestAgentRun(userId: number): Promise<any> {
+    const { agentRuns } = await import("@shared/schema");
+    const [run] = await db
+      .select()
+      .from(agentRuns)
+      .where(eq(agentRuns.userId, userId))
+      .orderBy(desc(agentRuns.runAt))
+      .limit(1);
+    return run ?? null;
+  }
+
+  async getAgentInsights(userId: number): Promise<any> {
+    const user = await this.getUser(userId);
+    const agentRun = await this.getLatestAgentRun(userId);
+    return {
+      inferred: (user?.agentInferredInterests as any)?.tags ?? [],
+      lastRunAt: agentRun?.runAt ?? null,
+      trending: agentRun?.trendingTopics ?? [],
+      recommendedEvents: agentRun?.recommendedEvents ?? [],
+      interestsDelta: agentRun?.interestsDelta ?? { added: [], removed: [] },
+    };
   }
 }
 

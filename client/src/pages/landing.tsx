@@ -60,9 +60,9 @@ export default function Landing() {
             <span className="text-2xl font-bold text-white">TriPlace</span>
           </div>
           <nav className="hidden md:flex space-x-8">
-            <a href="#features" className="text-gray-300 hover:text-primary transition-colors">Features</a>
-            <a href="#community" className="text-gray-300 hover:text-primary transition-colors">Community</a>
-            <a href="#events" className="text-gray-300 hover:text-primary transition-colors">Events</a>
+            <a href="#features" className="text-white/70 hover:text-white transition-colors">Features</a>
+            <a href="#community" className="text-white/70 hover:text-white transition-colors">Community</a>
+            <a href="#events" className="text-white/70 hover:text-white transition-colors">Events</a>
           </nav>
         </header>
 
@@ -72,7 +72,7 @@ export default function Landing() {
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
               Your Digital<br />Third Place
             </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-white/80 mb-12 max-w-2xl mx-auto">
               Where genuine connection, shared passions, and meaningful community are always just around the corner.
             </p>
             
@@ -88,26 +88,26 @@ export default function Landing() {
 
         {/* Feature Preview */}
         <div className="grid md:grid-cols-3 gap-6 mt-16">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 text-center border border-gray-700">
-            <div className="w-12 h-12 bg-accent rounded-xl mx-auto mb-4 flex items-center justify-center">
-              <Users className="text-white h-6 w-6" />
+          <div className="glass-card rounded-xl p-6 text-center">
+            <div className="w-12 h-12 bg-accent/20 rounded-xl mx-auto mb-4 flex items-center justify-center border border-accent/20">
+              <Users className="text-accent h-6 w-6" />
             </div>
             <h3 className="font-semibold mb-2 text-white">Find Communities</h3>
-            <p className="text-gray-400 text-sm">Join interest-based groups near you</p>
+            <p className="text-white/60 text-sm">Join interest-based groups near you</p>
           </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 text-center border border-gray-700">
-            <div className="w-12 h-12 bg-secondary rounded-xl mx-auto mb-4 flex items-center justify-center">
-              <Calendar className="text-white h-6 w-6" />
+          <div className="glass-card rounded-xl p-6 text-center">
+            <div className="w-12 h-12 bg-secondary/20 rounded-xl mx-auto mb-4 flex items-center justify-center border border-secondary/20">
+              <Calendar className="text-secondary h-6 w-6" />
             </div>
             <h3 className="font-semibold mb-2 text-white">Discover Events</h3>
-            <p className="text-gray-400 text-sm">Local events within 50 miles</p>
+            <p className="text-white/60 text-sm">Local events within 50 miles</p>
           </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 text-center border border-gray-700">
-            <div className="w-12 h-12 bg-primary rounded-xl mx-auto mb-4 flex items-center justify-center">
-              <Heart className="text-white h-6 w-6" />
+          <div className="glass-card rounded-xl p-6 text-center">
+            <div className="w-12 h-12 bg-primary/20 rounded-xl mx-auto mb-4 flex items-center justify-center border border-primary/20">
+              <Heart className="text-primary h-6 w-6" />
             </div>
             <h3 className="font-semibold mb-2 text-white">Give Kudos</h3>
-            <p className="text-gray-400 text-sm">Appreciate community members</p>
+            <p className="text-white/60 text-sm">Appreciate community members</p>
           </div>
         </div>
       </div>

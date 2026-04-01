@@ -1,39 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
-import { ComponentLoadingSpinner } from "@/components/loading-spinner";
-import { PullToRefresh } from "@/components/ui/pull-to-refresh";
-
 import { useGeolocation } from "@/hooks/use-geolocation";
 
+// Types
 interface QuizAnswers {
-  // Section 1: Get to Know You
   hopingToFind: string[];
   communityFeel: string;
   personalityVibe: string;
-  
-  // Section 2: Interests & Passions
   interestSpaces: string[];
-  
-  // Section 3: Time & Energy
   activityLevel: string;
   availability: string[];
-  
-  // Section 4: Location & Matching
   location: string;
   digitalOnly: string;
-  
-  // Section 5: Values Layer
   resonateStatement: string;
 }
 
@@ -41,171 +29,84 @@ interface QuizOption {
   value: string;
   label: string;
   emoji?: string;
+  description?: string;
 }
 
 interface QuizQuestion {
-  id: string;
+  id: keyof QuizAnswers;
   question: string;
-  subtitle?: string;
-  type: string;
+  subtitle: string;
+  type: "single" | "multiple";
   maxSelections?: number;
-  minSelections?: number;
   options: QuizOption[];
 }
 
-const QUIZ_SECTIONS: Array<{
-  title: string;
-  description: string;
-  questions: QuizQuestion[];
-}> = [
+// ------------------------------------------------------------------
+// DATA: The "High-End" Content
+// ------------------------------------------------------------------
+const QUIZ_SECTIONS: QuizQuestion[] = [
   {
-    title: "Get to Know You",
-    description: "Let's understand what you're looking for",
-    questions: [
-      {
-        id: "hopingToFind",
-        question: "What are you hoping to find here?",
-        subtitle: "Choose up to 3",
-        type: "multiple",
-        maxSelections: 3,
-        options: [
-          { value: "real-friendships", label: "Real friendships", emoji: "👯‍♀️" },
-          { value: "thoughtful-convos", label: "Safe, thoughtful convos", emoji: "💬" },
-          { value: "local-events", label: "Local events & hangouts", emoji: "🎉" },
-          { value: "collaborators", label: "Collaborators or builders", emoji: "🤝" },
-          { value: "personal-growth", label: "Personal growth or support", emoji: "✨" },
-          { value: "chill-place", label: "Chill place to check in", emoji: "🌱" }
-        ]
-      },
-      {
-        id: "communityFeel",
-        question: "How do you want to feel in a community?",
-        subtitle: "One pick - sets tone of community matching",
-        type: "single",
-        options: [
-          { value: "seen-supported", label: "Seen & supported" },
-          { value: "inspired-challenged", label: "Inspired & challenged" },
-          { value: "comfortable-being-me", label: "Comfortable just being me" },
-          { value: "energized-excited", label: "Energized & excited" },
-          { value: "curious-open", label: "Curious & open" }
-        ]
-      },
-      {
-        id: "personalityVibe",
-        question: "What's your vibe IRL?",
-        subtitle: "Helps match personality dynamics",
-        type: "single",
-        options: [
-          { value: "low-key-introverted", label: "Low-key / introverted", emoji: "🧘‍♂️" },
-          { value: "creative-open", label: "Creative / open-minded", emoji: "🦄" },
-          { value: "driven-ambitious", label: "Driven / ambitious", emoji: "📈" },
-          { value: "warm-social", label: "Warm / social", emoji: "🤗" },
-          { value: "light-hearted", label: "Light-hearted / funny", emoji: "😂" },
-          { value: "deep-thinker", label: "Deep thinker", emoji: "🤓" }
-        ]
-      }
+    id: "hopingToFind",
+    question: "What brings you to TriPlace?",
+    subtitle: "Select up to 3 that resonate most.",
+    type: "multiple",
+    maxSelections: 3,
+    options: [
+      { value: "real-friendships", label: "Real Connection", emoji: "🤝", description: "Genuine friendships beyond the screen" },
+      { value: "local-events", label: "Local Happenings", emoji: "🎉", description: "Events, pop-ups, and gatherings" },
+      { value: "thoughtful-convos", label: "Deep Conversation", emoji: "💬", description: "Meaningful discourse, no small talk" },
+      { value: "collaborators", label: "Collaboration", emoji: "⚡", description: "Finding people to build with" },
+      { value: "personal-growth", label: "Growth", emoji: "🌱", description: "Support for your personal journey" },
+      { value: "chill-place", label: "Just Chilling", emoji: "☕", description: "A low-pressure third place" }
     ]
   },
   {
-    title: "Interests & Passions",
-    description: "Pick spaces you'd vibe in",
-    questions: [
-      {
-        id: "interestSpaces",
-        question: "Pick a few spaces you'd vibe in",
-        subtitle: "Choose 3-6 max",
-        type: "multiple",
-        maxSelections: 6,
-        minSelections: 3,
-        options: [
-          { value: "ai-tech", label: "AI & Tech", emoji: "🔬" },
-          { value: "art-design", label: "Art & Design", emoji: "🎨" },
-          { value: "startup-builders", label: "Startup Builders", emoji: "💻" },
-          { value: "mental-wellness", label: "Mental Wellness", emoji: "🧠" },
-          { value: "social-impact", label: "Social Impact", emoji: "🌎" },
-          { value: "mindfulness", label: "Mindfulness", emoji: "🧘" },
-          { value: "music-scenes", label: "Music Scenes", emoji: "🎶" },
-          { value: "bookworms", label: "Bookworms", emoji: "📚" },
-          { value: "lgbtq-spaces", label: "LGBTQ+ spaces", emoji: "🏳️‍🌈" },
-          { value: "outdoors-adventure", label: "Outdoors & Adventure", emoji: "🥾" },
-          { value: "gaming", label: "Gaming", emoji: "🎮" },
-          { value: "cooking-culture", label: "Cooking & Culture", emoji: "🍳" },
-          { value: "students-learners", label: "Students & Learners", emoji: "🧑‍🎓" },
-          { value: "parents-families", label: "Parents & Families", emoji: "👶" }
-        ]
-      }
+    id: "interestSpaces",
+    question: "Where do you vibe?",
+    subtitle: "Pick 3-5 scenes that light you up.",
+    type: "multiple",
+    maxSelections: 5,
+    options: [
+      { value: "ai-tech", label: "Future Tech", emoji: "🤖" },
+      { value: "art-design", label: "Creative Arts", emoji: "🎨" },
+      { value: "outdoors-adventure", label: "Wild & Free", emoji: "🌲" },
+      { value: "mindfulness", label: "Mindfulness", emoji: "🧘" },
+      { value: "music-scenes", label: "Music Culture", emoji: "🎵" },
+      { value: "bookworms", label: "Literature", emoji: "📚" },
+      { value: "startup-builders", label: "Founders", emoji: "🚀" },
+      { value: "social-impact", label: "Change Makers", emoji: "🌍" },
+      { value: "gaming", label: "Gaming", emoji: "🎮" },
+      { value: "cooking", label: "Culinary", emoji: "🍳" }
     ]
   },
   {
-    title: "Time & Energy",
-    description: "Filter by activity level & availability",
-    questions: [
-      {
-        id: "activityLevel",
-        question: "How active do you want your communities to be?",
-        type: "single",
-        options: [
-          { value: "super-active", label: "Super active — daily convos", emoji: "🔥" },
-          { value: "just-enough", label: "Just enough — a few posts a week", emoji: "💬" },
-          { value: "chill-pace", label: "Chill pace — low volume", emoji: "🧘" },
-          { value: "mostly-browsing", label: "Mostly browsing for now", emoji: "👀" }
-        ]
-      },
-      {
-        id: "availability",
-        question: "When are you usually around?",
-        type: "multiple",
-        options: [
-          { value: "weekday-evenings", label: "Weekday evenings" },
-          { value: "weekends", label: "Weekends" },
-          { value: "early-mornings", label: "Early mornings" },
-          { value: "late-nights", label: "Late nights" },
-          { value: "random", label: "Randomly / no set time" }
-        ]
-      }
+    id: "communityFeel",
+    question: "What's your ideal atmosphere?",
+    subtitle: "This helps us match the right energy.",
+    type: "single",
+    options: [
+      { value: "seen-supported", label: "Warm & Supportive", emoji: "🤗", description: "A safe space to land" },
+      { value: "inspired-challenged", label: "High Energy & Growth", emoji: "🔥", description: "Pushing boundaries together" },
+      { value: "curious-open", label: "Curious & Exploratory", emoji: "🔭", description: "Always learning something new" },
+      { value: "chill-lowkey", label: "Laid Back", emoji: "🍃", description: "Low pressure, good vibes" }
     ]
   },
   {
-    title: "Location & Matching",
-    description: "Where you want to connect",
-    questions: [
-      {
-        id: "digitalOnly",
-        question: "Are you open to digital-only spaces too?",
-        type: "single",
-        options: [
-          { value: "yes-anywhere", label: "Yes, anywhere with my vibe" },
-          { value: "local-only", label: "Local only" },
-          { value: "both", label: "Both" }
-        ]
-      }
-    ]
-  },
-  {
-    title: "Values Layer",
-    description: "Optional but helps with deep matching",
-    questions: [
-      {
-        id: "resonateStatement",
-        question: "Which statement resonates most with you?",
-        type: "single",
-        options: [
-          { value: "grow-explore", label: "I want to grow and explore new parts of myself." },
-          { value: "feel-understood", label: "I need a space to feel understood." },
-          { value: "find-people", label: "I'm excited to find people who get me." },
-          { value: "building-something", label: "I'm building something and want others on the path." },
-          { value: "chill-friends", label: "I'm just here to chill and maybe make a friend or two." }
-        ]
-      }
-    ]
+    id: "location",
+    question: "Where are you based?",
+    subtitle: "To find local gems around you.",
+    type: "single", // Special case handled in render
+    options: [] // Populated dynamically or handled via input
   }
 ];
 
 export default function Onboarding() {
   const { user, refreshUser } = useAuth();
   const { latitude, longitude, locationName } = useGeolocation(user?.id);
-  const [currentSection, setCurrentSection] = useState(0);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({
     hopingToFind: [],
     communityFeel: "",
@@ -217,260 +118,229 @@ export default function Onboarding() {
     digitalOnly: "",
     resonateStatement: ""
   });
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Set location when geolocation is available
+  // Auto-detect location for that step
   useEffect(() => {
     if (locationName && !answers.location) {
       setAnswers(prev => ({ ...prev, location: locationName }));
     }
-  }, [locationName, answers.location]);
+  }, [locationName]);
 
   const submitQuizMutation = useMutation({
-    mutationFn: async (quizData: QuizAnswers) => {
-      const response = await apiRequest("POST", "/api/onboarding/complete", {
-        ...quizData,
+    mutationFn: async (data: QuizAnswers) => {
+      const res = await apiRequest("POST", "/api/onboarding/complete", {
+        ...data,
         latitude,
         longitude,
         userId: user?.id
       });
-      return response.json();
+      return res.json();
     },
     onSuccess: async () => {
-      toast({
-        title: "Welcome to TriPlace!",
-        description: "Your communities are being personalized based on your responses."
-      });
-      
-      // Refresh user data to update auth context
       await refreshUser();
-      
-      // Navigate to dashboard
       setLocation("/dashboard");
-    },
-    onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to complete onboarding. Please try again.",
+        title: "Profile Created",
+        description: "Welcome to your new third place.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Something went wrong",
+        description: "Please try again.",
         variant: "destructive"
       });
     }
   });
 
-  const handleAnswer = (questionId: string, value: string | string[]) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
-  };
+  const handleSelect = (value: string) => {
+    const question = QUIZ_SECTIONS[step];
+    
+    if (question.id === "location") return; // Handled separately
 
-  const currentSectionData = QUIZ_SECTIONS[currentSection];
-  const currentQuestionData = currentSectionData.questions[currentQuestion] as QuizQuestion;
-  const totalQuestions = QUIZ_SECTIONS.reduce((sum, section) => sum + section.questions.length, 0);
-  const completedQuestions = QUIZ_SECTIONS.slice(0, currentSection).reduce((sum, section) => sum + section.questions.length, 0) + currentQuestion;
-  const progress = (completedQuestions / totalQuestions) * 100;
-
-  const canProceed = () => {
-    const answer = answers[currentQuestionData.id as keyof QuizAnswers];
-    if (currentQuestionData.type === "multiple") {
-      const arrayAnswer = answer as string[];
-      const minSelections = currentQuestionData.minSelections || 1;
-      const maxSelections = currentQuestionData.maxSelections || Infinity;
-      return arrayAnswer.length >= minSelections && arrayAnswer.length <= maxSelections;
+    if (question.type === "single") {
+      setAnswers(prev => ({ ...prev, [question.id]: value }));
+      // Auto-advance for single select after a brief pause for effect
+      setTimeout(() => handleNext(), 250);
+    } else {
+      setAnswers(prev => {
+        const current = (prev[question.id] as string[]) || [];
+        if (current.includes(value)) {
+          return { ...prev, [question.id]: current.filter(v => v !== value) };
+        }
+        if (question.maxSelections && current.length >= question.maxSelections) {
+          return prev;
+        }
+        return { ...prev, [question.id]: [...current, value] };
+      });
     }
-    return answer && answer !== "";
   };
 
   const handleNext = () => {
-    if (currentQuestion < currentSectionData.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else if (currentSection < QUIZ_SECTIONS.length - 1) {
-      setCurrentSection(currentSection + 1);
-      setCurrentQuestion(0);
+    if (step < QUIZ_SECTIONS.length - 1) {
+      setStep(step + 1);
     } else {
-      // Complete quiz
       submitQuizMutation.mutate(answers);
     }
   };
 
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    } else if (currentSection > 0) {
-      setCurrentSection(currentSection - 1);
-      setCurrentQuestion(QUIZ_SECTIONS[currentSection - 1].questions.length - 1);
-    }
+  const handleBack = () => {
+    if (step > 0) setStep(step - 1);
   };
 
-  const isFirstQuestion = currentSection === 0 && currentQuestion === 0;
-  const isLastQuestion = currentSection === QUIZ_SECTIONS.length - 1 && 
-                         currentQuestion === currentSectionData.questions.length - 1;
-
-  const handleRefresh = async () => {
-    // Reset to beginning
-    setCurrentSection(0);
-    setCurrentQuestion(0);
-    setAnswers({
-      hopingToFind: [],
-      communityFeel: "",
-      personalityVibe: "",
-      interestSpaces: [],
-      activityLevel: "",
-      availability: [],
-      location: locationName || "",
-      digitalOnly: "",
-      resonateStatement: ""
-    });
+  // Helper to check if current step is valid to proceed
+  const canProceed = () => {
+    const q = QUIZ_SECTIONS[step];
+    if (q.id === "location") return !!answers.location;
+    
+    const ans = answers[q.id];
+    if (Array.isArray(ans)) return ans.length > 0;
+    return !!ans;
   };
 
-  if (submitQuizMutation.isPending) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <ComponentLoadingSpinner />
-      </div>
-    );
-  }
+  const progress = ((step + 1) / QUIZ_SECTIONS.length) * 100;
+  const currentQ = QUIZ_SECTIONS[step];
 
   return (
-    <div className="mobile-page-container">
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container mx-auto px-4 py-8 max-w-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Logo size="lg" className="mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Let's find your digital third place
+    <div className="min-h-screen w-full bg-black text-white overflow-hidden relative flex flex-col items-center justify-center">
+      {/* Background Ambience */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-black to-black z-0" />
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/10 to-transparent opacity-50 z-0 pointer-events-none" />
+
+      {/* Header */}
+      <div className="absolute top-0 w-full p-6 flex justify-between items-center z-20">
+        <Logo size="sm" />
+        <div className="w-32">
+          <Progress value={progress} className="h-1 bg-white/10" />
+        </div>
+      </div>
+
+      {/* Main Content Card */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="w-full max-w-lg px-6 z-10"
+        >
+          <div className="mb-8 text-center space-y-2">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              className="inline-flex items-center justify-center p-2 bg-white/5 rounded-full mb-4 border border-white/10"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400 mr-2" />
+              <span className="text-xs font-medium text-purple-200 uppercase tracking-widest">
+                Step {step + 1} of {QUIZ_SECTIONS.length}
+              </span>
+            </motion.div>
+            
+            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+              {currentQ.question}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {currentSectionData.description}
-            </p>
+            <p className="text-lg text-white/50">{currentQ.subtitle}</p>
           </div>
 
-          {/* Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Section {currentSection + 1} of {QUIZ_SECTIONS.length}
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {Math.round(progress)}% complete
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
+          {/* Options Grid */}
+          <div className="grid grid-cols-1 gap-3 mb-8">
+            {currentQ.id === "location" ? (
+              // Special Location Input
+              <div className="glass-card p-6 rounded-xl border border-white/10 text-center space-y-4">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
+                  <MapPin className="w-8 h-8 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">
+                    {locationName || "Detecting location..."}
+                  </h3>
+                  <p className="text-sm text-white/40 mt-1">
+                    We use this to find communities near you.
+                  </p>
+                </div>
+                {!locationName && (
+                  <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
+                    Enter Manually
+                  </Button>
+                )}
+              </div>
+            ) : (
+              // Standard Options
+              currentQ.options.map((option) => {
+                const isSelected = Array.isArray(answers[currentQ.id])
+                  ? (answers[currentQ.id] as string[]).includes(option.value)
+                  : answers[currentQ.id] === option.value;
 
-          {/* Question Card */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">
-                {currentQuestionData.question}
-              </CardTitle>
-              {currentQuestionData.subtitle && (
-                <CardDescription>
-                  {currentQuestionData.subtitle}
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {currentQuestionData.options.map((option) => {
-                  const isSelected = currentQuestionData.type === "multiple" 
-                    ? (answers[currentQuestionData.id as keyof QuizAnswers] as string[])?.includes(option.value)
-                    : answers[currentQuestionData.id as keyof QuizAnswers] === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        if (currentQuestionData.type === "multiple") {
-                          const currentValues = (answers[currentQuestionData.id as keyof QuizAnswers] as string[]) || [];
-                          let newValues;
-                          if (isSelected) {
-                            newValues = currentValues.filter(v => v !== option.value);
-                          } else {
-                            const maxSelections = currentQuestionData.maxSelections || Infinity;
-                            if (currentValues.length < maxSelections) {
-                              newValues = [...currentValues, option.value];
-                            } else {
-                              return; // Don't add if at max
-                            }
-                          }
-                          handleAnswer(currentQuestionData.id, newValues);
-                        } else {
-                          handleAnswer(currentQuestionData.id, option.value);
-                        }
-                      }}
-                      className={`w-full p-4 text-left border-2 rounded-lg transition-all duration-200 ${
-                        isSelected
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        {option.emoji && (
-                          <span className="text-2xl">{option.emoji}</span>
-                        )}
-                        <span className="text-gray-900 dark:text-white font-medium">
+                return (
+                  <motion.button
+                    key={option.value}
+                    whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelect(option.value)}
+                    className={`
+                      group relative w-full p-4 rounded-xl text-left transition-all duration-200 border
+                      flex items-center space-x-4
+                      ${isSelected 
+                        ? "bg-white/10 border-primary/50 shadow-[0_0_15px_rgba(124,58,237,0.3)]" 
+                        : "bg-white/5 border-white/5 hover:border-white/10"
+                      }
+                    `}
+                  >
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center text-lg
+                      transition-colors duration-200
+                      ${isSelected ? "bg-primary/20" : "bg-white/5 group-hover:bg-white/10"}
+                    `}>
+                      {option.emoji}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`font-medium ${isSelected ? "text-white" : "text-white/80"}`}>
                           {option.label}
                         </span>
+                        {isSelected && <Check className="w-4 h-4 text-primary" />}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      {option.description && (
+                        <p className="text-xs text-white/40 mt-0.5 group-hover:text-white/60 transition-colors">
+                          {option.description}
+                        </p>
+                      )}
+                    </div>
+                  </motion.button>
+                );
+              })
+            )}
+          </div>
 
-              {/* Location display for location section */}
-              {currentQuestionData.id === "digitalOnly" && locationName && (
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-800 dark:text-blue-200">
-                      Location detected: {locationName}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Selection counter for multi-select */}
-              {currentQuestionData.type === "multiple" && (
-                <div className="mt-4 text-center">
-                  <Badge variant="outline">
-                    {(answers[currentQuestionData.id as keyof QuizAnswers] as string[])?.length || 0} 
-                    {currentQuestionData.maxSelections && ` / ${currentQuestionData.maxSelections}`} selected
-                  </Badge>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Navigation */}
-          <div className="flex justify-between">
+          {/* Controls */}
+          <div className="flex items-center justify-between mt-auto pt-4">
             <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={isFirstQuestion}
-              className="flex items-center space-x-2"
+              variant="ghost"
+              onClick={handleBack}
+              disabled={step === 0}
+              className={`text-white/40 hover:text-white hover:bg-white/5 ${step === 0 ? 'opacity-0' : 'opacity-100'}`}
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Back
             </Button>
 
             <Button
               onClick={handleNext}
-              disabled={!canProceed()}
-              className="flex items-center space-x-2"
+              disabled={!canProceed() || (step === QUIZ_SECTIONS.length - 1 && submitQuizMutation.isPending)}
+              className="bg-white text-black hover:bg-white/90 px-8 rounded-full font-semibold shadow-lg shadow-white/10 transition-all hover:scale-105"
             >
-              <span>{isLastQuestion ? "Complete" : "Next"}</span>
-              <ChevronRight className="w-4 h-4" />
+              {submitQuizMutation.isPending ? (
+                "Creating Profile..."
+              ) : step === QUIZ_SECTIONS.length - 1 ? (
+                "Finish"
+              ) : (
+                <>Next <ChevronRight className="w-4 h-4 ml-2" /></>
+              )}
             </Button>
           </div>
-          </div>
-        </div>
-
-      </PullToRefresh>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

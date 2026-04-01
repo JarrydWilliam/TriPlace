@@ -135,7 +135,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="mobile-page-container bg-gray-900 dark:bg-gray-900">
+    <div className="mobile-page-container">
       <div className="flex min-h-screen">
         <Sidebar />
         
@@ -144,7 +144,7 @@ export default function Profile() {
           
           <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
             {/* Profile Header */}
-            <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="glass-card border-white/10">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
                   <Avatar className="w-24 h-24">
@@ -158,32 +158,32 @@ export default function Profile() {
                     {isEditing ? (
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="name" className="text-white dark:text-white">Name</Label>
+                          <Label htmlFor="name" className="text-white">Name</Label>
                           <Input
                             id="name"
                             value={editForm.name}
                             onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                            className="bg-gray-700 border-gray-600 text-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            className="glass-input bg-white/5 border-white/10 text-white"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="bio" className="text-white dark:text-white">Bio</Label>
+                          <Label htmlFor="bio" className="text-white">Bio</Label>
                           <Textarea
                             id="bio"
                             value={editForm.bio}
                             onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
                             placeholder="Tell us about yourself..."
-                            className="bg-gray-700 border-gray-600 text-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            className="glass-input bg-white/5 border-white/10 text-white min-h-[100px]"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="location" className="text-white dark:text-white">Location</Label>
+                          <Label htmlFor="location" className="text-white">Location</Label>
                           <Input
                             id="location"
                             value={editForm.location}
                             onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
                             placeholder="Your city, state"
-                            className="bg-gray-700 border-gray-600 text-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            className="glass-input bg-white/5 border-white/10 text-white"
                           />
                         </div>
                         <div className="flex space-x-2">
@@ -198,7 +198,7 @@ export default function Profile() {
                           <Button
                             onClick={handleCancel}
                             variant="outline"
-                            className="border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                            className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
                           >
                             <X className="h-4 w-4 mr-2" />
                             Cancel
@@ -208,10 +208,10 @@ export default function Profile() {
                     ) : (
                       <>
                         <h2 className="text-2xl font-bold text-white dark:text-white mb-2">{user.name}</h2>
-                        <p className="text-gray-400 dark:text-gray-400 mb-2">
+                        <p className="text-white/60 mb-2">
                           {user.bio || "No bio available"}
                         </p>
-                        <div className="flex items-center space-x-4 text-sm text-gray-400 dark:text-gray-400 mb-4">
+                        <div className="flex items-center space-x-4 text-sm text-white/50 mb-4">
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-1" />
                             <span>{user.location || "Location not set"}</span>
@@ -240,30 +240,30 @@ export default function Profile() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-4">
-              <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+              <Card className="glass-card border-white/10">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">{userStats.communities}</div>
-                  <div className="text-gray-400 dark:text-gray-400 text-sm">Communities</div>
+                  <div className="text-white/60 text-sm">Communities</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+              <Card className="glass-card border-white/10">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-accent">{userStats.events}</div>
-                  <div className="text-gray-400 dark:text-gray-400 text-sm">Events Attended</div>
+                  <div className="text-white/60 text-sm">Events Attended</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+              <Card className="glass-card border-white/10">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-secondary">{userStats.kudos}</div>
-                  <div className="text-gray-400 dark:text-gray-400 text-sm">Kudos Received</div>
+                  <div className="text-white/60 text-sm">Kudos Received</div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Interests */}
-            <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="glass-card border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-white dark:text-white">My Interests</CardTitle>
+                <CardTitle className="text-xl text-white">My Interests</CardTitle>
               </CardHeader>
               <CardContent>
                 {user.interests && user.interests.length > 0 ? (
@@ -280,7 +280,7 @@ export default function Profile() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-400 dark:text-gray-400">
+                    <p className="text-white/40">
                       No interests added yet. Complete your onboarding to add interests.
                     </p>
                   </div>
@@ -289,9 +289,9 @@ export default function Profile() {
             </Card>
 
             {/* Recent Activity */}
-            <Card className="bg-gray-800 border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="glass-card border-white/10">
               <CardHeader>
-                <CardTitle className="text-xl text-white dark:text-white">Recent Activity</CardTitle>
+                <CardTitle className="text-xl text-white">Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -300,8 +300,8 @@ export default function Profile() {
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="animate-pulse">
                           <div className="border-l-4 border-gray-600 dark:border-gray-600 pl-4 py-2">
-                            <div className="h-4 bg-gray-600 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
-                            <div className="h-3 bg-gray-600 dark:bg-gray-600 rounded w-1/2"></div>
+                            <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-white/10 rounded w-1/2"></div>
                           </div>
                         </div>
                       ))}
@@ -310,27 +310,27 @@ export default function Profile() {
                     <>
                       {userCommunities.slice(0, 3).map((community: any) => (
                         <div key={`community-${community.id}`} className="border-l-4 border-primary pl-4 py-2">
-                          <p className="font-medium text-white dark:text-white">Joined {community.name}</p>
-                          <p className="text-gray-400 dark:text-gray-400 text-sm">Community</p>
+                          <p className="font-medium text-white">Joined {community.name}</p>
+                          <p className="text-white/40 text-sm">Community</p>
                         </div>
                       ))}
                       {userEvents.slice(0, 3).map((event: any) => (
                         <div key={`event-${event.id}`} className="border-l-4 border-accent pl-4 py-2">
-                          <p className="font-medium text-white dark:text-white">Registered for {event.title}</p>
-                          <p className="text-gray-400 dark:text-gray-400 text-sm">Event</p>
+                          <p className="font-medium text-white">Registered for {event.title}</p>
+                          <p className="text-white/40 text-sm">Event</p>
                         </div>
                       ))}
                       {userKudos.slice(0, 2).map((kudos: any) => (
                         <div key={`kudos-${kudos.id}`} className="border-l-4 border-green-500 pl-4 py-2">
-                          <p className="font-medium text-white dark:text-white">Received kudos</p>
-                          <p className="text-gray-400 dark:text-gray-400 text-sm">
+                          <p className="font-medium text-white">Received kudos</p>
+                          <p className="text-white/40 text-sm">
                             {kudos.message || "Thanks for being awesome!"}
                           </p>
                         </div>
                       ))}
                       {userCommunities.length === 0 && userEvents.length === 0 && userKudos.length === 0 && (
                         <div className="text-center py-8">
-                          <p className="text-gray-400 dark:text-gray-400">
+                          <p className="text-white/40">
                             No recent activity. Join communities and attend events to see activity here.
                           </p>
                         </div>

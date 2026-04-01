@@ -1,6 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startAgentScheduler } from "./agent/agent-runner";
+
+// ── AI Agent Groups ──────────────────────────────────────────────────────────
+import { startAgentSupervisor } from "./agent/agent-supervisor";
+import { agentRegistry } from "./agent/agent-registry";
+import { startFeatureGrowthScheduler } from "./agent/feature-growth/feature-orchestrator";
+import { startBugMonitorScheduler } from "./agent/bug-monitor/bug-orchestrator";
+import { startDeploymentScheduler } from "./agent/deployment/deployment-orchestrator";
 
 // Environment variables are handled by Replit in production
 
@@ -40,6 +48,22 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // ── Core intelligence agent (existing) ─────────────────────────────────────
+  startAgentScheduler();
+
+  // ── AI Agent Groups: 24/7 supervisor + three specialized groups ──────────────
+  startAgentSupervisor();                  // Watchdog: restarts crashed agents every 2 min
+  startBugMonitorScheduler(app);           // Group 2: monitors errors every 5 min
+  startFeatureGrowthScheduler(app);        // Group 1: proposes features weekly
+  startDeploymentScheduler(app);           // Group 3: validates App Store readiness weekly
+
+  // Global status endpoint: shows all registered agents
+  app.get("/api/agents/status", (_req, res) => {
+    res.json(agentRegistry.getSummary());
+  });
+
+
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

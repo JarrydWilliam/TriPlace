@@ -17,7 +17,7 @@ export function TopBar() {
   if (!user) return null;
 
   return (
-    <header className="bg-gray-800 border-b border-gray-700 p-4 md:p-6 dark:bg-gray-800 dark:border-gray-700">
+    <header className="glass-panel border-b border-white/10 p-4 md:p-6 sticky top-0 z-30">
       <div className="flex items-center justify-between">
         <div className="flex-1 max-w-md">
           <form onSubmit={handleSearch} className="relative">
@@ -27,7 +27,7 @@ export function TopBar() {
               placeholder="Search events, communities..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-700 border-gray-600 rounded-xl py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:border-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary"
+              className="w-full bg-white/5 border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder-white/40 focus:border-primary glass-input"
             />
           </form>
         </div>
@@ -36,7 +36,7 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="sm"
-            className="relative p-2 text-gray-400 hover:text-white dark:text-gray-400 dark:hover:text-white"
+            className="relative p-2 text-white/60 hover:text-white hover:bg-white/10"
           >
             <Bell className="h-5 w-5" />
             <Badge 

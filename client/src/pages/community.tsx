@@ -21,6 +21,7 @@ import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { CommunityPosts } from "@/components/ui/community-posts";
 
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { useTheme } from "@/lib/theme-context";
@@ -151,13 +152,13 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
     return (
       <div className="responsive-padding space-y-4">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i} className="glass-card animate-pulse">
             <CardHeader>
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-3 bg-muted rounded w-1/2"></div>
+              <div className="h-4 bg-white/10 rounded w-3/4"></div>
+              <div className="h-3 bg-white/10 rounded w-1/2"></div>
             </CardHeader>
             <CardContent>
-              <div className="h-16 bg-muted rounded"></div>
+              <div className="h-16 bg-white/10 rounded"></div>
             </CardContent>
           </Card>
         ))}
@@ -168,9 +169,9 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   if (events.length === 0) {
     return (
       <div className="responsive-padding text-center py-12">
-        <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
-        <p className="text-muted-foreground mb-4">
+        <Calendar className="mx-auto h-12 w-12 text-white/30 mb-4" />
+        <h3 className="text-lg font-semibold mb-2 text-white">No Events Found</h3>
+        <p className="text-white/60 mb-4">
           We're continuously discovering new events for this community.
           <br />
           Check back soon for upcoming activities!
@@ -178,7 +179,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
         <Button
           onClick={() => refetch()}
           variant="outline"
-          className="gap-2"
+          className="gap-2 border-white/10 text-white hover:bg-white/10"
         >
           <Calendar className="h-4 w-4" />
           Refresh Events
@@ -201,31 +202,31 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   const sortedDates = Object.keys(eventsByDate).sort();
 
   return (
-    <div className="responsive-padding space-y-6 max-h-[70vh] overflow-y-auto">
+    <div className="responsive-padding space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
       {sortedDates.map((date) => (
         <div key={date} className="space-y-3">
-          <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+          <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
           </h3>
           {eventsByDate[date].map((event) => (
-            <Card key={event.id} className="border border-border hover:shadow-md transition-shadow">
+            <Card key={event.id} className="glass-card border-white/5 hover:bg-white/10 transition-colors">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-lg font-semibold text-foreground truncate pr-2">
+                      <h4 className="text-lg font-semibold text-white truncate pr-2">
                         {event.title}
                       </h4>
-                      <Badge variant="secondary" className="flex-shrink-0">
+                      <Badge variant="secondary" className="flex-shrink-0 bg-white/10 text-white">
                         {formatPrice(event.price ?? "0")}
                       </Badge>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    <p className="text-sm text-white/70 mb-3 line-clamp-2">
                       {event.description}
                     </p>
                     
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
+                    <div className="flex flex-wrap gap-4 text-sm text-white/50 mb-3">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         <span>{formatEventDate(typeof event.date === 'string' ? event.date : event.date.toISOString())}</span>
@@ -400,7 +401,7 @@ export default function CommunityPage() {
 
   if (authLoading || communityLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center glass-panel">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -408,10 +409,10 @@ export default function CommunityPage() {
 
   if (!community) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center glass-panel">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Community Not Found</h1>
-          <p className="text-gray-600 dark:text-gray-400">The community you're looking for doesn't exist.</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Community Not Found</h1>
+          <p className="text-white/60">The community you're looking for doesn't exist.</p>
         </div>
       </div>
     );
@@ -420,13 +421,14 @@ export default function CommunityPage() {
   return (
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+        {/* Main Glass Layout */}
+        <div className="glass-panel border-0 bg-transparent min-h-screen">
           <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
 
           {/* Minimal Navigation */}
           <div className="flex items-center justify-between mb-4">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="p-2">
+              <Button variant="ghost" size="sm" className="p-2 text-white hover:bg-white/10">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
@@ -434,222 +436,208 @@ export default function CommunityPage() {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2"
+              className="p-2 text-white hover:bg-white/10"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="w-full">
-            <div className="grid w-full grid-cols-4 rounded-none bg-transparent border-b border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setActiveTab("chat")}
-                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
-                  activeTab === "chat" 
-                    ? "border-primary text-primary" 
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Chat
-              </button>
-              <button
-                onClick={() => setActiveTab("events")}
-                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
-                  activeTab === "events" 
-                    ? "border-primary text-primary" 
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Events
-              </button>
-              <button
-                onClick={() => setActiveTab("members")}
-                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
-                  activeTab === "members" 
-                    ? "border-primary text-primary" 
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Members
-              </button>
-              <button
-                onClick={() => setActiveTab("kudos")}
-                className={`flex items-center justify-center py-3 px-4 rounded-none border-b-2 transition-colors ${
-                  activeTab === "kudos" 
-                    ? "border-primary text-primary" 
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Award className="w-4 h-4 mr-2" />
-                Kudos
-              </button>
-            </div>
-
-            {/* Conditionally render active tab content */}
-            {activeTab === "chat" && (
-            <div className="mt-0 h-[70vh] flex flex-col">
-              {/* Chat Header with Community Status */}
-              <div className="responsive-padding border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-                        {community.name.charAt(0)}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{community.name}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{community.memberCount} members online</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    Active
-                  </Badge>
-                </div>
+          {/* Glass Card Container for Content */}
+          <Card className="glass-card border-white/5 overflow-hidden">
+            <div className="w-full">
+              {/* Glass Tabs */}
+              <div className="grid w-full grid-cols-4 rounded-none bg-white/5 border-b border-white/10">
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                    activeTab === "chat" 
+                      ? "border-primary text-primary bg-primary/5" 
+                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Chat</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("events")}
+                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                    activeTab === "events" 
+                      ? "border-primary text-primary bg-primary/5" 
+                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Events</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("members")}
+                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                    activeTab === "members" 
+                      ? "border-primary text-primary bg-primary/5" 
+                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Members</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("posts")}
+                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                    activeTab === "posts" 
+                      ? "border-primary text-primary bg-primary/5" 
+                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Pin className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Board</span>
+                </button>
               </div>
 
-              {/* Messages Container with Scroll */}
-              <div className="flex-1 overflow-y-auto responsive-padding space-y-4 bg-gray-50 dark:bg-gray-900">
-                {messagesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                ) : messages?.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
-                      <MessageCircle className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+              {/* Conditionally render active tab content */}
+              {activeTab === "chat" && (
+              <div className="mt-0 h-[70vh] flex flex-col relative">
+                {/* Chat Header with Community Status */}
+                <div className="responsive-padding border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold shadow-lg">
+                          {community.name.charAt(0)}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1a2e]"></div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">{community.name}</h3>
+                        <p className="text-xs text-white/60">{community.memberCount} members online</p>
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">Welcome to {community.name}!</h3>
-                    <p>Be the first to start the conversation</p>
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 border border-green-500/30">
+                      Active
+                    </Badge>
                   </div>
-                ) : (
-                  messages?.map((message: any) => (
-                    <div key={message.id} className="group">
-                      <div className="flex space-x-3">
-                        <button className="flex-shrink-0 hover:scale-105 transition-transform">
-                          <Avatar className="w-10 h-10 ring-2 ring-white dark:ring-gray-800 shadow-sm">
-                            <AvatarImage src={message.sender?.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-purple-400 via-blue-400 to-cyan-400 text-white font-semibold">
-                              {formatDisplayName(message.sender?.name).charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          {/* Message Bubble */}
-                          <div className="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-md shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-200 group-hover:scale-[1.02]">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                                {formatDisplayName(message.sender?.name)}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {format(parseISO(message.createdAt), 'MMM d, h:mm a')}
-                              </span>
-                            </div>
-                            <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{message.content}</p>
-                            
-                            {/* Message Actions */}
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                              <div className="flex items-center space-x-4">
-                                <button
-                                  onClick={() => resonateMutation.mutate(message.id)}
-                                  className="flex items-center space-x-1.5 text-xs text-gray-500 hover:text-red-500 transition-colors group/resonate"
-                                  disabled={resonateMutation.isPending}
-                                >
-                                  <Heart className="w-4 h-4 group-hover/resonate:scale-110 transition-transform" />
-                                  <span className="font-medium">{message.resonateCount || 0} resonates</span>
-                                </button>
+                </div>
+
+                {/* Messages Container with Custom Scroll */}
+                <div className="flex-1 overflow-y-auto responsive-padding space-y-4 custom-scrollbar">
+                  {messagesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  ) : messages?.length === 0 ? (
+                    <div className="text-center py-12 text-white/40">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+                        <MessageCircle className="w-8 h-8 text-primary/60" />
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2 text-white">Welcome to {community.name}!</h3>
+                      <p>Be the first to start the conversation</p>
+                    </div>
+                  ) : (
+                    messages?.map((message: any) => (
+                      <div key={message.id} className="group">
+                        <div className="flex space-x-3">
+                          <button className="flex-shrink-0 hover:scale-105 transition-transform mt-1">
+                            <Avatar className="w-8 h-8 ring-2 ring-white/10 shadow-sm">
+                              <AvatarImage src={message.sender?.avatar} />
+                              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-xs">
+                                {formatDisplayName(message.sender?.name).charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            {/* Glass Message Bubble */}
+                            <div className="glass-card rounded-2xl rounded-tl-sm p-3 hover:bg-white/10 transition-all duration-200 group-hover:scale-[1.01]">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <span className="font-semibold text-white text-xs">
+                                  {formatDisplayName(message.sender?.name)}
+                                </span>
+                                <span className="text-[10px] text-white/40">
+                                  {format(parseISO(message.createdAt), 'h:mm a')}
+                                </span>
                               </div>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2">
-                                <button className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                                  Reply
-                                </button>
-                                <button className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                                  Share
-                                </button>
+                              <p className="text-white/90 text-sm leading-relaxed">{message.content}</p>
+                              
+                              {/* Message Actions */}
+                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                                <div className="flex items-center space-x-4">
+                                  <button
+                                    onClick={() => resonateMutation.mutate(message.id)}
+                                    className="flex items-center space-x-1.5 text-xs text-white/40 hover:text-red-400 transition-colors group/resonate"
+                                    disabled={resonateMutation.isPending}
+                                  >
+                                    <Heart className={`w-3 h-3 group-hover/resonate:scale-110 transition-transform ${message.resonateCount > 0 ? 'fill-red-400 text-red-400' : ''}`} />
+                                    {message.resonateCount > 0 && <span className="font-medium">{message.resonateCount}</span>}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))
+                  )}
+                </div>
 
-              {/* Enhanced Message Input */}
-              <div className="responsive-padding border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <div className="flex items-end space-x-3 py-3">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Textarea
-                        placeholder={`Message ${community.name}...`}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        className="min-h-[44px] max-h-32 resize-none rounded-2xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                      />
-                      <div className="absolute bottom-2 right-3 text-xs text-gray-400">
-                        {newMessage.length}/500
+                {/* Glass Input Area */}
+                <div className="responsive-padding border-t border-white/10 bg-black/20 backdrop-blur-md">
+                  <div className="flex items-end space-x-2 py-3">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Textarea
+                          placeholder={`Message ${community.name}...`}
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          className="min-h-[44px] max-h-32 resize-none rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/30 focus:ring-2 focus:ring-primary/50 focus:border-transparent pr-12 text-sm glass-input"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage();
+                            }
+                          }}
+                        />
+                        <div className="absolute bottom-2 right-3 text-[10px] text-white/30">
+                          {newMessage.length}/500
+                        </div>
                       </div>
                     </div>
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                      size="sm"
+                      className="min-w-[44px] h-[44px] rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg hover:shadow-primary/25 transition-all duration-200"
+                    >
+                      {sendMessageMutation.isPending ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                    size="sm"
-                    className="min-w-[44px] h-[44px] rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-                  >
-                    {sendMessageMutation.isPending ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 pb-2">
-                  Press Enter to send • Shift+Enter for new line
                 </div>
               </div>
+              )}
+
+              {/* Events Tab */}
+              {activeTab === "events" && (
+                <div className="mt-0">
+                  <EventsDisplay communityId={communityId ? parseInt(communityId) : 0} />
+                </div>
+              )}
+
+              {/* Members Tab */}
+              {activeTab === "members" && (
+                <div className="mt-0">
+                  <LiveMembersTab communityId={communityId ? parseInt(communityId) : 0} />
+                </div>
+              )}
+              
+              {/* Board (Posts) Tab */}
+              {activeTab === "posts" && (
+                <div className="mt-4 responsive-padding max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <CommunityPosts communityId={communityId ? parseInt(communityId) : 0} />
+                </div>
+              )}
             </div>
-            )}
-
-            {/* Events Tab */}
-            {activeTab === "events" && (
-              <div className="mt-0">
-                <EventsDisplay communityId={communityId ? parseInt(communityId) : 0} />
-              </div>
-            )}
-
-            {/* Members Tab */}
-            {activeTab === "members" && (
-              <div className="mt-0">
-                <LiveMembersTab communityId={communityId ? parseInt(communityId) : 0} />
-              </div>
-            )}
-
-            {/* Kudos Tab */}
-            {activeTab === "kudos" && (
-              <div className="mt-0">
-                <div className="responsive-padding space-y-4 max-h-[70vh] overflow-y-auto scroll-container">
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>Community kudos and achievements coming soon!</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
+            </Card>
           </div>
         </div>
       </PullToRefresh>
