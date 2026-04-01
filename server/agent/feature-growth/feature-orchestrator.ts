@@ -18,6 +18,7 @@ import { featureSpecAnalyzer } from "./feature-spec-analyzer";
 import { featureIdeaGenerator } from "./feature-idea-generator";
 import { featureScaffolder } from "./feature-scaffolder";
 import { agentRegistry } from "../agent-registry";
+import { workloadScaler } from "../workload-scaler";
 
 const AGENT_ID = "feature-growth-orchestrator";
 

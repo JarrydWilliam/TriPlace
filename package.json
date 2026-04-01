@@ -11,7 +11,12 @@
     "db:push": "drizzle-kit push",
     "seed:premium": "tsx scripts/seed-premium.ts",
     "agent:deploy-check": "tsx server/agent/deployment/deployment-orchestrator.ts",
-    "agents:status": "curl -s http://localhost:5000/api/agents/status | npx json"
+    "agents:status": "curl -s http://localhost:5000/api/agents/status | npx json",
+    "watchdog": "node scripts/server-watchdog.js",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop triplace",
+    "pm2:logs": "pm2 logs triplace",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

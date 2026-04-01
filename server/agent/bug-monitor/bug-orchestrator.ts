@@ -2,17 +2,21 @@
  * BugOrchestrator — 24/7 bug monitoring scheduler for TriPlace.
  *
  * Schedule: every 5 minutes — checks for new unanalyzed errors and diagnoses them.
+ * Auto-scales by spawning helper agents when the error queue is large (>20 items).
  * Also exposes GET /api/agents/bugs/status for a live error dashboard.
  */
 
 import cron from "node-cron";
 import type { Express } from "express";
 import { errorLogMonitor } from "./error-log-monitor";
-import { bugAnalyzer } from "./bug-analyzer";
+import { bugAnalyzer, analyzeMultipleBugs } from "./bug-analyzer";
 import { autoPatcher } from "./auto-patcher";
 import { agentRegistry } from "../agent-registry";
+import { workloadScaler } from "../workload-scaler";
 
 const AGENT_ID = "bug-monitor-orchestrator";
+const SCALE_THRESHOLD = 20; // spawn helpers when >20 unanalyzed errors
+const MAX_HELPERS = 3;
 
 async function runBugMonitorCycle(): Promise<void> {
   const unanalyzed = errorLogMonitor.getUnanalyzedErrors();
@@ -24,19 +28,43 @@ async function runBugMonitorCycle(): Promise<void> {
   console.log(`[BugMonitor] 🐛 Analyzing ${unanalyzed.length} new error(s)...`);
   agentRegistry.heartbeat(AGENT_ID, { phase: "analyzing", errorCount: unanalyzed.length });
 
-  // Limit to 10 per cycle to control API costs
-  const batch = unanalyzed.slice(0, 10);
+  // ── Auto-scale if queue is large ──────────────────────────────────────────
+  const scaleResult = await workloadScaler.checkAndScale({
+    parentId: AGENT_ID,
+    currentQueueDepth: unanalyzed.length,
+    scaleThreshold: SCALE_THRESHOLD,
+    maxHelpers: MAX_HELPERS,
+    group: "bug-monitor",
+    workItems: unanalyzed,
+    // Each helper gets its own slice and runs the full diagnosis+patch pipeline
+    helperTask: async (slice) => {
+      const diagnoses = await analyzeMultipleBugs(slice);
+      for (const diagnosis of diagnoses) {
+        const error = slice.find(e => e.id === diagnosis.errorId);
+        if (!error) continue;
+        errorLogMonitor.markAnalyzed(error.id);
+        if (diagnosis.confidence === "low" && !diagnosis.safeToAutoPatch) {
+          autoPatcher.escalateCriticalBug(error, `Low confidence: ${diagnosis.diagnosis}`);
+        } else {
+          autoPatcher.recordPatch(error, diagnosis);
+        }
+      }
+    },
+  });
+
+  if (scaleResult.scaled) {
+    console.log(`[BugMonitor] 📈 Spawned ${scaleResult.helpersSpawned} helper agent(s) for overflow work.`);
+  }
+
+  // Parent processes its own slice (first N items up to threshold)
+  const batch = unanalyzed.slice(0, Math.min(10, SCALE_THRESHOLD));
   const diagnoses = await bugAnalyzer.analyzeMultipleBugs(batch);
 
   for (const diagnosis of diagnoses) {
     const error = batch.find(e => e.id === diagnosis.errorId);
     if (!error) continue;
-
-    // Mark as analyzed so we don't process again
     errorLogMonitor.markAnalyzed(error.id);
-
     if (diagnosis.confidence === "low" && !diagnosis.safeToAutoPatch) {
-      // Low-confidence, complex — escalate
       autoPatcher.escalateCriticalBug(error, `Low confidence: ${diagnosis.diagnosis}`);
     } else {
       autoPatcher.recordPatch(error, diagnosis);
@@ -46,6 +74,7 @@ async function runBugMonitorCycle(): Promise<void> {
   agentRegistry.markIdle(AGENT_ID);
   console.log(`[BugMonitor] ✅ Cycle complete. Processed ${diagnoses.length} error(s).`);
 }
+
 
 export function startBugMonitorScheduler(app: Express): void {
   // Register with supervisor
