@@ -7,7 +7,7 @@ export default function Privacy() {
         <div>
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back</Link>
           <h1 className="text-3xl font-bold mt-4 mb-2">Privacy Policy</h1>
-          <p className="text-muted-foreground text-sm">Last updated: February 2026</p>
+          <p className="text-muted-foreground text-sm">Last updated: April 2026</p>
         </div>
 
         <section className="space-y-4 text-sm text-foreground/80 leading-relaxed">
@@ -24,15 +24,19 @@ export default function Privacy() {
             <p>TriPlace uses your device's GPS to show local events and connect you with nearby community members. Location data is only used to personalize your feed and is not shared with third parties for advertising purposes.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">4. Background Agent</h2>
-            <p>Our in-app intelligence agent analyzes your community activity, attended events, and local social activity to update your interest profile and surface new communities. All processing is done on our servers and does not involve sharing your data with third-party AI services.</p>
+            <h2 className="text-lg font-semibold text-foreground mb-2">4. Third-Party AI Services</h2>
+            <p>TriPlace uses OpenAI's API to generate community recommendations and analyze community trends. To do this, anonymized interest data, quiz answers, and general location context (city/region level) may be sent to OpenAI. This data is used solely for generating personalized recommendations and is subject to <a href="https://openai.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">OpenAI's Privacy Policy</a>. We do not send personally identifiable information (such as your name or email) to OpenAI.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">5. Data Retention</h2>
-            <p>We retain your account data for as long as your account is active. You may request deletion of your account and associated data at any time through the Settings page.</p>
+            <h2 className="text-lg font-semibold text-foreground mb-2">5. Background Agent</h2>
+            <p>Our in-app intelligence agent analyzes your community activity, attended events, and local social activity to update your interest profile and surface new communities. This processing uses OpenAI's API as described in Section 4.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">6. Contact</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">6. Data Retention & Deletion</h2>
+            <p>We retain your account data for as long as your account is active. You may request deletion of your account and all associated data at any time through the Settings → Account page. Account deletion is permanent and cannot be undone.</p>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">7. Contact</h2>
             <p>For privacy questions, contact us at <a href="mailto:privacy@triplace.app" className="text-primary hover:underline">privacy@triplace.app</a></p>
           </div>
         </section>
@@ -40,3 +44,4 @@ export default function Privacy() {
     </div>
   );
 }
+

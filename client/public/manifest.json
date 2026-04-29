@@ -1,15 +1,15 @@
 {
   "name": "TriPlace",
   "short_name": "TriPlace",
-  "description": "Your digital third place - connecting communities through shared experiences",
+  "description": "Find your people. Find your place. AI-powered community discovery for real-world connections.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
+  "background_color": "#080612",
   "theme_color": "#ff6b35",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
-  "categories": ["social", "networking", "communities"],
+  "categories": ["social", "lifestyle"],
   "shortcuts": [
     {
       "name": "Dashboard",
@@ -19,10 +19,17 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Communities",
-      "short_name": "Communities",
-      "description": "Browse communities",
-      "url": "/communities",
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "Discover communities",
+      "url": "/discover",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Your messages",
+      "url": "/messages",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
@@ -74,6 +81,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

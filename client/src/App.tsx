@@ -5,9 +5,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { ThemeProvider } from "@/lib/theme-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { useEffect } from "react";
+import { registerForPushNotifications } from "./lib/push-notifications";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Onboarding from "@/pages/onboarding";
@@ -28,6 +28,8 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import Reveal from "@/pages/reveal";
+import Discover from "@/pages/discover";
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
@@ -37,9 +39,7 @@ function Router() {
   const { user, firebaseUser, loading } = useAuth();
   const [location, setLocation] = useLocation();
 
-  // Development bypass for authentication issues
-  const isDevelopment = import.meta.env.DEV;
-  const shouldBypassAuth = isDevelopment && (location.includes('/community/') || location === '/communities');
+
 
   useEffect(() => {
     if (!loading && firebaseUser && user) {
@@ -68,27 +68,24 @@ function Router() {
           setLocation('/dashboard');
         }
       }
+      // Register for push notifications on native devices
+      if (user.onboardingCompleted) {
+        registerForPushNotifications(user.id).catch(console.error);
+      }
     }
   }, [user, firebaseUser, loading, location, setLocation]);
 
-  if (loading && !shouldBypassAuth) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-white">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // Development access for testing community features
-  if (shouldBypassAuth) {
-    return (
-      <Switch>
-        <Route path="/community/:communityId" component={Community} />
-        <Route path="/communities" component={Communities} />
-        <Route component={NotFound} />
-      </Switch>
-    );
-  }
 
   return (
     <AnimatePresence mode="wait">
@@ -109,7 +106,8 @@ function Router() {
       <Route path="/settings/community" component={CommunitySettings} />
       <Route path="/settings/security" component={SecuritySettings} />
       <Route path="/settings/support" component={SupportSettings} />
-      <Route path="/discover" component={Dashboard} />
+      <Route path="/discover" component={Discover} />
+      <Route path="/reveal" component={Reveal} />
       <Route path="/communities" component={Communities} />
       <Route path="/kudos" component={Dashboard} />
       <Route path="/login" component={Login} />

@@ -78,6 +78,9 @@ export const events = pgTable("events", {
   eventType: text("event_type"),
   brandPartnerName: text("brand_partner_name"),
   revenueSharePercentage: integer("revenue_share_percentage").default(7),
+  // Source attribution — events link back to original source, no in-app ticketing
+  sourceUrl: text("source_url"),
+  sourceAttribution: text("source_attribution"), // e.g. "Eventbrite", "Meetup", "City calendar"
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
 });

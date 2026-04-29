@@ -7,22 +7,39 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Shield, Smartphone, Trash2, AlertTriangle, ExternalLink, CheckCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { signOutUser } from "@/lib/firebase";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteAccount = () => {
-    if (deleteConfirmation === 'DELETE') {
-      toast({ title: "Account deletion initiated", description: "You will receive an email with further instructions." });
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'DELETE' || !user?.id) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest('DELETE', `/api/users/${user.id}`);
+      // Sign out of Firebase after DB deletion
+      await signOutUser();
+      await signOut();
+      toast({ title: "Account deleted", description: "Your account and all data have been permanently deleted." });
+      navigate('/');
+    } catch (err) {
+      toast({ title: "Deletion failed", description: "Please try again or contact privacy@triplace.app", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
       setShowDeleteDialog(false);
     }
   };
+
 
   const handleDisconnectGoogle = () => {
     toast({ title: "Google account disconnected", description: "You'll need to sign in again next time." });
@@ -250,9 +267,9 @@ export default function AccountSettings() {
                       <Button 
                         variant="destructive" 
                         onClick={handleDeleteAccount}
-                        disabled={deleteConfirmation !== 'DELETE'}
+                        disabled={deleteConfirmation !== 'DELETE' || isDeleting}
                       >
-                        Delete Account
+                        {isDeleting ? "Deleting..." : "Delete Account"}
                       </Button>
                     </DialogFooter>
                   </DialogContent>

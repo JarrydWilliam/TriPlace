@@ -75,6 +75,9 @@ export interface IStorage {
   
   getUserActivityFeed(userId: number): Promise<ActivityFeedItem[]>;
   addActivityItem(userId: number, type: string, content: any): Promise<ActivityFeedItem>;
+
+  refreshUserRecommendations(userId: number): Promise<void>;
+  deleteUser(userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -134,7 +137,7 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
-      // First generate dynamic communities using ChatGPT based on collective user data
+      // First generate dynamic communities using TriPlace's matching agents
       const dynamicCommunities = await this.generateDynamicCommunities(userId);
       
       // Get user's current communities to exclude them from recommendations
@@ -146,7 +149,7 @@ export class DatabaseStorage implements IStorage {
         !userCommunityIds.includes(community.id)
       );
       
-      // Use ChatGPT AI matching for location-aware communities
+      // Use TriPlace AI matching for location-aware communities
       try {
         const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
         
@@ -1018,6 +1021,52 @@ export class DatabaseStorage implements IStorage {
       recommendedEvents: agentRun?.recommendedEvents ?? [],
       interestsDelta: agentRun?.interestsDelta ?? { added: [], removed: [] },
     };
+  }
+
+  // ── Recommendation Refresh ───────────────────────────────────────────────────
+
+  async refreshUserRecommendations(userId: number): Promise<void> {
+    try {
+      // Invalidate agent-inferred interests so next fetch regenerates communities
+      await db.update(users)
+        .set({ agentInferredInterests: null })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error('Error refreshing user recommendations:', error);
+    }
+  }
+
+  // ── Account Deletion (required by Apple & Google) ────────────────────────────
+
+  async deleteUser(userId: number): Promise<boolean> {
+    try {
+      // Delete in dependency order to avoid FK violations
+      const { agentRuns, streaks, posts, postKudos, postReplies } = await import("@shared/schema");
+
+      await db.delete(activityFeed).where(eq(activityFeed.userId, userId));
+      await db.delete(communityMembers).where(eq(communityMembers.userId, userId));
+      await db.delete(eventAttendees).where(eq(eventAttendees.userId, userId));
+      await db.delete(messages).where(
+        or(eq(messages.senderId, userId), eq(messages.receiverId, userId))
+      );
+      await db.delete(kudos).where(
+        or(eq(kudos.giverId, userId), eq(kudos.receiverId, userId))
+      );
+      await db.delete(communityMessages).where(eq(communityMessages.senderId, userId));
+
+      // Optional tables (may not exist if schema not fully migrated)
+      try { await db.delete(postKudos).where(eq(postKudos.giverId, userId)); } catch {}
+      try { await db.delete(postReplies).where(eq(postReplies.authorId, userId)); } catch {}
+      try { await db.delete(posts).where(eq(posts.authorId, userId)); } catch {}
+      try { await db.delete(streaks).where(eq(streaks.userId, userId)); } catch {}
+      try { await db.delete(agentRuns).where(eq(agentRuns.userId, userId)); } catch {}
+
+      const result = await db.delete(users).where(eq(users.id, userId));
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   }
 }
 

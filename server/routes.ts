@@ -31,18 +31,7 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
-  app.get("/api/users/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const user = await storage.getUser(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+
 
   app.get("/api/users/:id", async (req, res) => {
     try {
@@ -102,6 +91,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Account deletion — required by Apple App Store and Google Play (since 2023)
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "Account and all associated data deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user account:", error);
+      res.status(500).json({ message: "Failed to delete account. Please try again." });
+    }
+  });
+
   // Community routes
   app.get("/api/communities", async (req, res) => {
     try {
@@ -135,8 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(communities);
     } catch (error) {
-      console.error('ChatGPT Discovery: Error getting recommended communities:', error);
-      res.status(500).json({ message: "ChatGPT community discovery temporarily unavailable" });
+      console.error('TriPlace: Error getting recommended communities:', error);
+      res.status(500).json({ message: "Community discovery temporarily unavailable" });
     }
   });
 
@@ -499,12 +506,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:id/conversations", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const conversations = await storage.getUserConversations(userId);
-      res.json(conversations);
+      const rawConversations = await storage.getUserConversations(userId);
+      
+      // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
+      const normalized = await Promise.all(rawConversations.map(async (c) => {
+        // Count unread messages from this user to the current user
+        const conversation = await storage.getConversation(userId, c.user.id);
+        const unreadCount = conversation.filter(
+          (m) => m.receiverId === userId && !m.isRead
+        ).length;
+        return {
+          otherUser: c.user,
+          lastMessage: c.lastMessage,
+          unreadCount,
+        };
+      }));
+      
+      res.json(normalized);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
 
   app.post("/api/messages", async (req, res) => {
     try {

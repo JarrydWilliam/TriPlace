@@ -2,46 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    /* High-End Dark Theme (Default) */
-    --background: 260 40% 5%;    /* Deep Violet Black */
-    --foreground: 210 40% 98%;   /* Crisp White */
+/* Base styles merged below at the correct :root and .dark declarations */
 
-    --card: 260 30% 10%;         /* Slightly lighter violet-black */
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 260 30% 10%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 250 90% 65%;      /* Electric Violet */
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 180 80% 50%;    /* Cyan Accent */
-    --secondary-foreground: 260 40% 5%;
- 
-    --muted: 260 20% 15%;
-    --muted-foreground: 215 20% 65%;
- 
-    --accent: 280 80% 60%;       /* Pink/Purple accent */
-    --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 260 30% 20%;
-    --input: 260 30% 20%;
-    --ring: 250 90% 65%;
- 
-    --radius: 0.75rem;
-  }
- 
-  .dark {
-    --background: 260 40% 5%;
-    --foreground: 210 40% 98%;
-    /* ... same as root since we are dark-first now */
-  }
-}
  
 @layer base {
   * {

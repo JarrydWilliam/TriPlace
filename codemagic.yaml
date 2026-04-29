@@ -1,0 +1,141 @@
+workflows:
+  # ── iOS Native Build ─────────────────────────────────────────────────────────
+  ios-release:
+    name: TriPlace iOS Release
+    max_build_duration: 60
+    environment:
+      node: 20.11.0
+      xcode: latest
+      cocoapods: default
+      groups:
+        - triplace_env        # Define this group in Codemagic dashboard
+      vars:
+        BUNDLE_ID: com.triplace.app
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web bundle
+        script: |
+          export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+          export VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+          export VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+          export VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
+          export VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
+          npm run build
+      - name: Capacitor init (first time only — idempotent)
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Set up keychain and provisioning profiles
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build iOS
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme "$XCODE_SCHEME" \
+            --config Release
+      - name: Upload to TestFlight
+        script: |
+          app-store-connect publish \
+            --path build/ios/ipa/*.ipa \
+            --whats-new "Latest TriPlace update"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+  # ── Android Native Build ──────────────────────────────────────────────────────
+  android-release:
+    name: TriPlace Android Release
+    max_build_duration: 60
+    environment:
+      node: 20.11.0
+      java: 17
+      groups:
+        - triplace_env
+        - triplace_android_keystore
+      vars:
+        PACKAGE_NAME: com.triplace.app
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web bundle
+        script: |
+          export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+          export VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+          export VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+          export VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
+          export VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
+          npm run build
+      - name: Capacitor init (first time only)
+        script: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+      - name: Sync Capacitor
+        script: npx cap sync android
+      - name: Set up keystore
+        script: |
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+      - name: Build Android App Bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$CM_BUILD_DIR/keystore.jks" \
+            -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+      - name: Upload to Google Play
+        script: |
+          google-play publish \
+            --package-name "$PACKAGE_NAME" \
+            --track internal \
+            --artifact-type aab \
+            android/app/build/outputs/bundle/release/app-release.aab
+    artifacts:
+      - android/app/build/outputs/bundle/release/app-release.aab
+      - android/app/build/outputs/apk/release/app-release.apk
+
+  # ── Web / PWA Deploy (bonus) ──────────────────────────────────────────────────
+  web-deploy:
+    name: TriPlace Web Deploy
+    max_build_duration: 20
+    environment:
+      node: 20.11.0
+      groups:
+        - triplace_env
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build
+        script: npm run build
+    artifacts:
+      - dist/**

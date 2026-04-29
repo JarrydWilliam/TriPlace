@@ -138,11 +138,8 @@ export default function Onboarding() {
     },
     onSuccess: async () => {
       await refreshUser();
-      setLocation("/dashboard");
-      toast({
-        title: "Profile Created",
-        description: "Welcome to your new third place.",
-      });
+      // Redirect to cinematic reveal — the "Familiar but New" moment
+      setLocation("/reveal");
     },
     onError: () => {
       toast({

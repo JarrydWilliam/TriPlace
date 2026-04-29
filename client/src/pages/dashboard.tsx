@@ -44,16 +44,16 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
-  // Listen for ChatGPT community updates from service worker
+  // Listen for community updates from service worker
   useEffect(() => {
-    const handleChatGPTCommunityUpdate = () => {
+    const handleCommunityUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
     };
 
-    window.addEventListener('chatgpt-communities-updated', handleChatGPTCommunityUpdate);
+    window.addEventListener('communities-updated', handleCommunityUpdate);
     
     return () => {
-      window.removeEventListener('chatgpt-communities-updated', handleChatGPTCommunityUpdate);
+      window.removeEventListener('communities-updated', handleCommunityUpdate);
     };
   }, [queryClient]);
 
@@ -69,12 +69,12 @@ export default function Dashboard() {
     }
   }, [updateAvailable, markUpdatesApplied, toast]);
 
-  // Pull-to-refresh handler with ChatGPT community refresh
+  // Pull-to-refresh handler
   const handleRefresh = async () => {
-    // Notify service worker to refresh ChatGPT community cache
+    // Notify service worker to refresh community cache
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
-        type: 'REFRESH_CHATGPT_COMMUNITIES'
+        type: 'REFRESH_COMMUNITIES'
       });
     }
     
@@ -235,8 +235,23 @@ export default function Dashboard() {
     },
   });
 
-  // Live data from user activity
-  const monthlyKudos = 0;
+  // Derive live kudos count from actual received kudos this month
+  const monthlyKudos = useQuery({
+    queryKey: ["/api/users", user?.id, "kudos", "monthly"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user?.id}/kudos/received`);
+      if (!response.ok) return 0;
+      const kudos = await response.json();
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      return Array.isArray(kudos) ? kudos.filter((k: any) => new Date(k.createdAt) >= monthStart).length : 0;
+    },
+    select: (data) => data ?? 0,
+  });
+  const kudosThisMonth = monthlyKudos.data ?? 0;
+
   const currentChallenges: Array<{ id: string; title: string; progress: number; target: number; current: number }> = [
     {
       id: "join-events",
@@ -258,9 +273,10 @@ export default function Dashboard() {
     {
       id: "send-messages",
       title: "Send 5 community messages",
-      current: 2, // This would come from actual message count
+      // Message count will be computed from actual community messages when available
+      current: 0,
       target: 5,
-      progress: 40
+      progress: 0,
     },
     {
       id: "join-communities",
@@ -319,7 +335,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center space-x-1">
                       <Heart className="w-4 h-4" />
-                      <span className="text-sm">💜 {monthlyKudos} Kudos this month</span>
+                      <span className="text-sm">💜 {kudosThisMonth} Kudos this month</span>
                     </div>
                   </div>
                 </div>
@@ -773,24 +789,6 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Trending Events */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-white/80">🔥 Trending Events</h4>
-                  <div className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm">🎉</span>
-                      <h5 className="text-sm font-medium text-gray-900 dark:text-white">
-                        Weekend Hiking Adventure
-                      </h5>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                      Saturday • 15 attending • $0
-                    </p>
-                    <Button size="sm" variant="outline" className="w-full">
-                      View Event
-                    </Button>
-                  </div>
-                </div>
 
               </CardContent>
             </Card>

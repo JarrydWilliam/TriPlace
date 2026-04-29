@@ -5,12 +5,9 @@ const config: CapacitorConfig = {
   appName: "TriPlace",
   webDir: "dist/public",
   bundledWebRuntime: false,
-  server: {
-    // During development, point to local dev server.
-    // Remove this block for production builds.
-    url: "http://localhost:5000",
-    cleartext: true,
-  },
+  // server block intentionally omitted for production.
+  // For local dev with Capacitor: uncomment below and run `npx cap sync`
+  // server: { url: "http://localhost:5000", cleartext: true },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
@@ -35,7 +32,7 @@ const config: CapacitorConfig = {
     contentInset: "always",
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false, // Must be false for Google Play compliance
     backgroundColor: "#0f0e17",
   },
 };
