@@ -132,7 +132,7 @@ function App() {
         {/* Force Dark Mode for High-End Feel */}
         <div className="dark min-h-screen bg-background text-foreground antialiased selection:bg-primary/30">
           <AuthProvider>
-            <ThemeProvider defaultTheme="dark" storageKey="samevibe-theme">
+            <ThemeProvider>
               <TooltipProvider>
                 <GlobalScrollWrapper>
                   <Toaster />
