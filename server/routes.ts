@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(communities);
     } catch (error) {
-      console.error('TriPlace: Error getting recommended communities:', error);
+      console.error('SameVibe: Error getting recommended communities:', error);
       res.status(500).json({ message: "Community discovery temporarily unavailable" });
     }
   });

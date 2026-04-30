@@ -282,7 +282,7 @@ export default function SupportSettings() {
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Rate TriPlace</p>
+                    <p className="font-medium">Rate SameVibe</p>
                     <p className="text-sm text-gray-500">Help us improve with your feedback</p>
                   </div>
                   <div className="flex space-x-1">
@@ -325,7 +325,7 @@ export default function SupportSettings() {
               
               <div className="text-center pt-2">
                 <p className="text-sm text-gray-500">
-                  Emergency Support: <a href="mailto:safety@triplace.com" className="text-blue-600 hover:underline">safety@triplace.com</a>
+                  Emergency Support: <a href="mailto:safety@samevibe.app" className="text-blue-600 hover:underline">safety@samevibe.app</a>
                 </p>
               </div>
             </CardContent>

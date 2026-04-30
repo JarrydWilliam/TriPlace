@@ -18,9 +18,9 @@ const isNativePlatform = (): boolean => {
 // VITE_FIREBASE_MESSAGING_SENDER_ID, VITE_FIREBASE_STORAGE_BUCKET in your .env file.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "AIzaSyDvvOMs_7vBWRiLm4HsqV9_SB7-xdGaIJI",
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "triplace-v2"}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "triplace-v2",
-  storageBucket: `${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "triplace-v2"}.firebasestorage.app`,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "samevibe-app"}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "samevibe-app",
+  storageBucket: `${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "samevibe-app"}.firebasestorage.app`,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "779102688787",
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "1:779102688787:web:176d1dc6c4f165b01e91e6",
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "G-EYXMFMMXCY",

@@ -448,7 +448,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-4 p-4 bg-white/10 rounded-lg backdrop-blur-sm">
               <p className="text-white/90 text-sm italic">
-                "TriPlace connects hearts and minds through shared experiences, building meaningful communities where every connection matters."
+                "SameVibe connects hearts and minds through shared experiences, building meaningful communities where every connection matters."
               </p>
             </div>
           </CardContent>

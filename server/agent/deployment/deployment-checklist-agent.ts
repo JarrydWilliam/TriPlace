@@ -31,7 +31,7 @@ export async function runDeploymentChecklist(): Promise<{ reportPath: string; re
 
   // 3. Write the report
   const lines: string[] = [
-    `# TriPlace Deployment Readiness Report`,
+    `# SameVibe Deployment Readiness Report`,
     `> Generated: ${new Date().toISOString()}`,
     ``,
     `## Overall Score: ${report.score}/100`,
@@ -71,7 +71,7 @@ export async function runDeploymentChecklist(): Promise<{ reportPath: string; re
   lines.push(`eas login`);
   lines.push(``);
   lines.push(`# Configure EAS (first time)`);
-  lines.push(`cd TriPlaceMobile && eas build:configure`);
+  lines.push(`cd SameVibeMobile && eas build:configure`);
   lines.push(``);
   lines.push(`# Build for iOS (App Store)`);
   lines.push(`eas build --platform ios --profile production`);

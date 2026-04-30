@@ -48,7 +48,7 @@ interface QuizQuestion {
 const QUIZ_SECTIONS: QuizQuestion[] = [
   {
     id: "hopingToFind",
-    question: "What brings you to TriPlace?",
+    question: "What brings you to SameVibe?",
     subtitle: "Select up to 3 that resonate most.",
     type: "multiple",
     maxSelections: 3,

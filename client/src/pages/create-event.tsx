@@ -150,7 +150,7 @@ export default function CreateEventPage() {
               <div>
                 <h3 className="font-medium text-blue-900 dark:text-blue-100">Revenue Sharing Model</h3>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  TriPlace takes a {formData.revenueSharePercentage}% platform fee from paid events. 
+                  SameVibe takes a {formData.revenueSharePercentage}% platform fee from paid events. 
                   Revenue helps maintain platform quality and supports community growth initiatives.
                 </p>
               </div>

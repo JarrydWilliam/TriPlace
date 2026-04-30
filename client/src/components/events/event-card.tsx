@@ -47,7 +47,7 @@ export function EventCard({
   const [dontShowExternalWarning, setDontShowExternalWarning] = useState(false);
 
   useEffect(() => {
-    setDontShowExternalWarning(localStorage.getItem('triplace_hide_external_warning') === 'true');
+    setDontShowExternalWarning(localStorage.getItem('samevibe_hide_external_warning') === 'true');
     trackEvent('event_view', { userId: user?.id, eventId: event.id });
   }, []);
 
@@ -102,7 +102,7 @@ export function EventCard({
   const confirmExternalLink = () => {
     trackEvent('external_source_click', { userId: user?.id, eventId: event.id, metadata: { confirmed: true } });
     if (dontShowExternalWarning) {
-      localStorage.setItem('triplace_hide_external_warning', 'true');
+      localStorage.setItem('samevibe_hide_external_warning', 'true');
     }
     setShowExternalWarning(false);
     const url = event.externalId?.startsWith('http') 
@@ -277,8 +277,8 @@ export function EventCard({
           <AlertDialogHeader>
             <AlertDialogTitle>External Link</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400 space-y-2">
-              <p>You are leaving TriPlace to view this event on <strong className="text-white">{event.sourceName || 'an external site'}</strong>.</p>
-              <p className="text-xs">TriPlace is not responsible for external event content or transactions.</p>
+              <p>You are leaving SameVibe to view this event on <strong className="text-white">{event.sourceName || 'an external site'}</strong>.</p>
+              <p className="text-xs">SameVibe is not responsible for external event content or transactions.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           

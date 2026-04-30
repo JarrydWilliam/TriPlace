@@ -21,10 +21,10 @@ export async function trackEvent(
 ) {
   try {
     // Generate or get session ID from sessionStorage
-    let sessionId = sessionStorage.getItem('triplace_session_id');
+    let sessionId = sessionStorage.getItem('samevibe_session_id');
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
-      sessionStorage.setItem('triplace_session_id', sessionId);
+      sessionStorage.setItem('samevibe_session_id', sessionId);
     }
 
     await apiRequest("POST", "/api/telemetry", {

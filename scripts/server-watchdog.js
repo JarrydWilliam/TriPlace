@@ -99,6 +99,6 @@ process.on("SIGINT",  () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // ── Start ──────────────────────────────────────────────────────────────────────
-log("🛡️  TriPlace Server Watchdog started. Monitoring 24/7.");
+log("🛡️  SameVibe Server Watchdog started. Monitoring 24/7.");
 startServer();
 setInterval(checkHealth, HEALTH_INTERVAL_MS);

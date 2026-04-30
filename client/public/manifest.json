@@ -1,7 +1,7 @@
 {
-  "name": "TriPlace",
-  "short_name": "TriPlace",
-  "description": "Find your people. Find your place. AI-powered community discovery for real-world connections.",
+  "name": "SameVibe",
+  "short_name": "SameVibe",
+  "description": "SameVibe: Discover Your Scene. Find your people, your places, and your next move. AI-powered social discovery.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#080612",

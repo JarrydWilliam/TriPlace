@@ -58,7 +58,7 @@ export function AgentInsightsCard({ userId }: AgentInsightsCardProps) {
             >
               <Bot className="w-4 h-4 text-violet-400" />
             </motion.div>
-            <CardTitle className="text-sm font-semibold text-violet-300">TriPlace Agent</CardTitle>
+            <CardTitle className="text-sm font-semibold text-violet-300">SameVibe Agent</CardTitle>
             {pulseAgent && (
               <Badge variant="outline" className="text-xs border-violet-500/50 text-violet-400 animate-pulse">
                 Scanning...

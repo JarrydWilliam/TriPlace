@@ -57,7 +57,7 @@ export function Sidebar() {
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
           <Logo size="md" />
-          <span className="text-xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">TriPlace</span>
+          <span className="text-xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">SameVibe</span>
         </div>
 
         {/* User Profile Preview - Glass Card */}

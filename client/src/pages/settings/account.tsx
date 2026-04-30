@@ -33,13 +33,13 @@ export default function AccountSettings() {
       } catch (fbErr: any) {
         console.warn("Firebase deletion failed:", fbErr);
         // If it's a re-auth error, we might still want to log them out
-        // but we've already deleted their DB record, so they are effectively gone from TriPlace
+        // but we've already deleted their DB record, so they are effectively gone from SameVibe
       }
       await signOut();
       toast({ title: "Account deleted", description: "Your account and all data have been permanently deleted." });
       navigate('/');
     } catch (err) {
-      toast({ title: "Deletion failed", description: err instanceof Error ? err.message : "Please try again or contact privacy@triplace.app", variant: "destructive" });
+      toast({ title: "Deletion failed", description: err instanceof Error ? err.message : "Please try again or contact privacy@samevibe.app", variant: "destructive" });
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -190,7 +190,7 @@ export default function AccountSettings() {
                 <Button variant="outline" className="justify-start h-auto p-4">
                   <div className="text-left">
                     <p className="font-medium">Download Your Data</p>
-                    <p className="text-sm text-gray-500">Get a copy of your TriPlace data</p>
+                    <p className="text-sm text-gray-500">Get a copy of your SameVibe data</p>
                   </div>
                 </Button>
                 
@@ -237,14 +237,14 @@ export default function AccountSettings() {
                     <Button variant="destructive" className="w-full justify-start">
                       <Trash2 className="mr-2 h-4 w-4" />
                       <div className="text-left">
-                        <p className="font-medium">Delete Account</p>
+                        <p className="font-medium">Delete SameVibe Account</p>
                         <p className="text-sm">Permanently delete your account and all data</p>
                       </div>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle className="text-red-600">Delete Account</DialogTitle>
+                      <DialogTitle className="text-red-600">Delete SameVibe Account</DialogTitle>
                       <DialogDescription>
                         This action cannot be undone. All your data, communities, messages, and connections will be permanently deleted.
                       </DialogDescription>
@@ -275,7 +275,7 @@ export default function AccountSettings() {
                         onClick={handleDeleteAccount}
                         disabled={deleteConfirmation !== 'DELETE' || isDeleting}
                       >
-                        {isDeleting ? "Deleting..." : "Delete Account"}
+                        {isDeleting ? "Deleting..." : "Delete SameVibe Account"}
                       </Button>
                     </DialogFooter>
                   </DialogContent>

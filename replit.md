@@ -1,8 +1,8 @@
-# TriPlace - Social Platform
+# SameVibe - Social Platform
 
 ## Overview
 
-TriPlace is a full-stack social platform that connects people through shared experiences, communities, and events. Built with a modern tech stack, it features a React frontend with Express.js backend, utilizing PostgreSQL for data persistence and Firebase for authentication.
+SameVibe is a full-stack social platform that connects people through shared experiences, communities, and events. Built with a modern tech stack, it features a React frontend with Express.js backend, utilizing PostgreSQL for data persistence and Firebase for authentication.
 
 ## System Architecture
 
@@ -392,13 +392,13 @@ Changelog:
   - All pages now provide smooth, native-like scrolling experience without overscroll issues
 
 - June 28, 2025. Created complete WebView deployment package for mobile app wrapping
-  - Built webview.html as pure HTML/CSS/JavaScript wrapper that loads TriPlace in iframe
+  - Built webview.html as pure HTML/CSS/JavaScript wrapper that loads SameVibe in iframe
   - Removed all React Native components and dependencies for clean WebView implementation
   - Added comprehensive mobile optimizations: touch handling, orientation changes, keyboard support
   - Updated main HTML with user-scalable=no and maximum-scale=1.0 for WebView compatibility
   - Created WEBVIEW-DEPLOYMENT.md with complete deployment instructions and options
   - WebView wrapper includes loading states, error handling, and pull-to-refresh prevention
-  - All TriPlace features (authentication, quiz, communities, messaging, events) work seamlessly in WebView
+  - All SameVibe features (authentication, quiz, communities, messaging, events) work seamlessly in WebView
   - Ready for deployment with Cordova, PhoneGap, React Native WebView, or similar mobile containers
   - Fast time-to-market solution: no rebuild required, just wrap existing web app in native container
 
@@ -412,7 +412,7 @@ Changelog:
   - Dynamic member discovery ensures all community members meet 70%+ interest overlap and location requirements
   - AI generates 3-7 communities per user session based on authentic connection opportunities vs broad categories
   - System creates communities in database when they don't exist, driven by genuine user needs and collective patterns
-  - Complete alignment with TriPlace vision: authentic third place experiences through data-driven community formation
+  - Complete alignment with SameVibe vision: authentic third place experiences through data-driven community formation
 
 - June 29, 2025. Implemented comprehensive pull-to-refresh functionality and responsive design system
   - Built PullToRefresh component with native mobile touch gestures and smooth animations

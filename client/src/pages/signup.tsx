@@ -70,7 +70,7 @@ export default function Signup() {
           <div className="flex justify-center mb-3">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold">Join TriPlace</h1>
+          <h1 className="text-2xl font-bold">Join SameVibe</h1>
           <p className="text-sm text-muted-foreground">Discover your people, locally.</p>
         </div>
 

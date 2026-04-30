@@ -71,7 +71,7 @@ export function PWAInstall() {
       setShowInstallDialog(false);
       toast({
         title: "App Installed!",
-        description: "TriPlace has been added to your device. Launch it anytime from your home screen.",
+        description: "SameVibe has been added to your device. Launch it anytime from your home screen.",
       });
     };
 
@@ -161,7 +161,7 @@ export function PWAInstall() {
               ) : (
                 <Monitor className="w-6 h-6 text-primary" />
               )}
-              <DialogTitle>Install TriPlace</DialogTitle>
+              <DialogTitle>Install SameVibe</DialogTitle>
             </div>
             <Button
               variant="ghost"
@@ -172,7 +172,7 @@ export function PWAInstall() {
             </Button>
           </div>
           <DialogDescription>
-            Get the full TriPlace experience with our app! Access your digital third place instantly from your {platform === 'mobile' ? 'home screen' : 'desktop'}.
+            Get the full SameVibe experience with our app! Access your digital third place instantly from your {platform === 'mobile' ? 'home screen' : 'desktop'}.
           </DialogDescription>
         </DialogHeader>
         
@@ -217,7 +217,7 @@ export function PWAInstall() {
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
-                        <span>Tap <strong>"Add"</strong> to install TriPlace</span>
+                        <span>Tap <strong>"Add"</strong> to install SameVibe</span>
                       </li>
                     </ol>
                   </div>
@@ -247,7 +247,7 @@ export function PWAInstall() {
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
-                        <span>Tap <strong>"Install"</strong> to add TriPlace to your home screen</span>
+                        <span>Tap <strong>"Install"</strong> to add SameVibe to your home screen</span>
                       </li>
                     </ol>
                   </div>
@@ -278,7 +278,7 @@ export function PWAInstall() {
                     size="lg"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Install TriPlace
+                    Install SameVibe
                   </Button>
                 ) : (
                   <div className="space-y-2">

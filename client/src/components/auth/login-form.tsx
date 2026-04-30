@@ -22,7 +22,7 @@ export function LoginForm({ onEmailSignup, onShowLogin, showEmailButton = true }
   return (
     <Card className="w-full max-w-md mx-auto bg-gray-800/50 backdrop-blur-sm border-gray-700">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Welcome to TriPlace</CardTitle>
+        <CardTitle className="text-2xl font-bold">Welcome to SameVibe</CardTitle>
         <CardDescription className="text-gray-400">
           Connect through shared experiences
         </CardDescription>

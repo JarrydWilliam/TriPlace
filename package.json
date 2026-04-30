@@ -1,5 +1,5 @@
 {
-  "name": "rest-express",
+  "name": "samevibe",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -14,8 +14,8 @@
     "agents:status": "curl -s http://localhost:5000/api/agents/status | npx json",
     "watchdog": "node scripts/server-watchdog.js",
     "pm2:start": "pm2 start ecosystem.config.js --env production",
-    "pm2:stop": "pm2 stop triplace",
-    "pm2:logs": "pm2 logs triplace",
+    "pm2:stop": "pm2 stop samevibe",
+    "pm2:logs": "pm2 logs samevibe",
     "pm2:status": "pm2 status"
   },
   "dependencies": {

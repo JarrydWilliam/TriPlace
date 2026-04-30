@@ -73,7 +73,7 @@ export default function NotificationSettings() {
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
                   <p className="font-medium">Enable Push Notifications</p>
-                  <p className="text-sm text-gray-500">Allow TriPlace to send notifications to your device</p>
+                  <p className="text-sm text-gray-500">Allow SameVibe to send notifications to your device</p>
                 </div>
                 <Switch
                   checked={settings.pushEnabled}

@@ -58,7 +58,7 @@ export function PostEventModal({ isOpen, onClose, onRemindLater, onSkip, userId,
       });
       toast({
         title: "Feedback Submitted",
-        description: "Thank you for helping keep TriPlace safe and high quality!",
+        description: "Thank you for helping keep SameVibe safe and high quality!",
       });
       onClose();
     },

@@ -1,5 +1,5 @@
 /**
- * AgentRegistry — Central registry for all TriPlace AI agents.
+ * AgentRegistry — Central registry for all SameVibe AI agents.
  * Tracks every registered agent: name, group, status, heartbeat, and restart count.
  * The AgentSupervisor reads this registry to decide what needs healing.
  */

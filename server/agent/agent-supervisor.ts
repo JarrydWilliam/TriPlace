@@ -1,5 +1,5 @@
 /**
- * AgentSupervisor — 24/7 watchdog for all TriPlace AI agents.
+ * AgentSupervisor — 24/7 watchdog for all SameVibe AI agents.
  *
  * Responsibilities:
  *  1. Check every agent's heartbeat every 2 minutes

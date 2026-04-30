@@ -1,6 +1,6 @@
-const CACHE_NAME = 'triplace-v1.0.2';
-const STATIC_CACHE = 'triplace-static-v1.0.2';
-const DYNAMIC_CACHE = 'triplace-dynamic-v1.0.2';
+const CACHE_NAME = 'samevibe-v1.0.2';
+const STATIC_CACHE = 'samevibe-static-v1.0.2';
+const DYNAMIC_CACHE = 'samevibe-dynamic-v1.0.2';
 
 // API endpoints that should always be fresh
 const FRESH_ENDPOINTS = [
@@ -11,7 +11,7 @@ const FRESH_ENDPOINTS = [
 
 // Install event - cache static files
 self.addEventListener('install', (event) => {
-  console.log('TriPlace Service Worker: Installing...');
+  console.log('SameVibe Service Worker: Installing...');
   event.waitUntil(
     Promise.all([
       self.skipWaiting(),
@@ -26,14 +26,14 @@ self.addEventListener('install', (event) => {
 
 // Activate event - claim clients immediately
 self.addEventListener('activate', (event) => {
-  console.log('TriPlace Service Worker: Activating...');
+  console.log('SameVibe Service Worker: Activating...');
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('TriPlace Service Worker: Deleting old cache:', cacheName);
+              console.log('SameVibe Service Worker: Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
 // Message event - handle community refresh requests
 self.addEventListener('message', (event) => {
   if (event.data && (event.data.type === 'REFRESH_COMMUNITIES' || event.data.type === 'REFRESH_CHATGPT_COMMUNITIES')) {
-    console.log('TriPlace Service Worker: Refreshing community cache');
+    console.log('SameVibe Service Worker: Refreshing community cache');
 
     caches.open(DYNAMIC_CACHE).then(cache => {
       FRESH_ENDPOINTS.forEach(endpoint => {
@@ -114,7 +114,7 @@ self.addEventListener('message', (event) => {
 // Background sync
 self.addEventListener('sync', (event) => {
   if (event.tag === 'community-sync' || event.tag === 'chatgpt-community-sync') {
-    console.log('TriPlace Service Worker: Background syncing communities');
+    console.log('SameVibe Service Worker: Background syncing communities');
     event.waitUntil(
       fetch('/api/communities/recommended')
         .then(response => {
@@ -123,14 +123,14 @@ self.addEventListener('sync', (event) => {
               .then(cache => cache.put('/api/communities/recommended', response));
           }
         })
-        .catch(error => console.log('TriPlace Service Worker: Background sync failed:', error))
+        .catch(error => console.log('SameVibe Service Worker: Background sync failed:', error))
     );
   }
 });
 
 // Push notifications
 self.addEventListener('push', (event) => {
-  let payload = { title: 'TriPlace', body: 'New activity in your communities!', url: '/dashboard' };
+  let payload = { title: 'SameVibe', body: 'New activity in your communities!', url: '/dashboard' };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
   } catch (_) {}
@@ -139,9 +139,9 @@ self.addEventListener('push', (event) => {
     body: payload.body,
     icon: '/icon-192.png',
     badge: '/icon-96.png',
-    tag: 'triplace-notification',
+    tag: 'samevibe-notification',
     data: { url: payload.url || '/dashboard' },
-    actions: [{ action: 'open', title: 'Open TriPlace' }]
+    actions: [{ action: 'open', title: 'Open SameVibe' }]
   };
 
   event.waitUntil(
@@ -156,4 +156,4 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(clients.openWindow(url));
 });
 
-console.log('TriPlace Service Worker: Ready');
+console.log('SameVibe Service Worker: Ready');

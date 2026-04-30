@@ -1,5 +1,5 @@
 /**
- * FeatureSpecAnalyzer — Scans the current TriPlace codebase to build a structured
+ * FeatureSpecAnalyzer — Scans the current SameVibe codebase to build a structured
  * snapshot of every existing feature: API routes, DB entities, and mobile screens.
  *
  * This snapshot is fed to the FeatureIdeaGenerator so it proposes features that
@@ -54,8 +54,8 @@ export async function analyzeAppSpec(): Promise<AppSpec> {
   const dbEntities = extractLines(schemaFile, /export const \w+\s*=/g)
     .map(e => e.replace("export const ", "").replace(/\s*=.*/, ""));
 
-  // 3. Mobile screens from TriPlaceMobile/app directory
-  const mobileAppDir = path.join(ROOT, "..", "TriPlaceMobile", "app");
+  // 3. Mobile screens from SameVibeMobile/app directory
+  const mobileAppDir = path.join(ROOT, "..", "SameVibeMobile", "app");
   const mobileScreens = listFiles(mobileAppDir, ".tsx").concat(listFiles(mobileAppDir, ".ts"));
 
   // Also check client pages for the web wrapper

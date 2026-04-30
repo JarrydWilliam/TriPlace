@@ -1,11 +1,11 @@
-# TriPlace — App Store Submission Guide
+# SameVibe — App Store Submission Guide
 
 ## App Metadata
 
 | Field | Value |
 |-------|-------|
-| **App Name** | TriPlace |
-| **Subtitle** | Your Community, Your Third Place |
+| **App Name** | SameVibe |
+| **Subtitle** | Discover Your Scene |
 | **Bundle ID (iOS)** | com.triplace.app |
 | **Package Name (Android)** | com.triplace.app |
 | **Version** | 1.0.0 |
@@ -14,9 +14,9 @@
 | **Secondary Category** | Lifestyle |
 | **Age Rating** | 12+ |
 | **Content Rating (Google)** | Teen |
-| **Privacy URL** | https://triplace.app/privacy |
-| **Support URL** | https://triplace.app/support |
-| **Marketing URL** | https://triplace.app |
+| **Privacy URL** | https://samevibe.app/privacy |
+| **Support URL** | https://samevibe.app/support |
+| **Marketing URL** | https://samevibe.app |
 
 ---
 
@@ -27,12 +27,12 @@
 
 **Full Description** (max 4000 chars):
 ```
-TriPlace helps you find your people — the real ones who share your passions, live nearby, and are ready to show up.
+SameVibe helps you find your people — the real ones who share your passions, live nearby, and are ready to show up.
 
 Answer a few quick questions about your interests, and our AI instantly reveals the communities you belong in. Not random groups. Your people.
 
 🌟 THE FAMILIAR BUT NEW EXPERIENCE
-We take the social apps you already know — the feeds, the chats, the events — and make them actually meaningful. TriPlace feels instantly familiar, but the people and places it connects you to feel completely new.
+We take the social apps you already know — the feeds, the chats, the events — and make them actually meaningful. SameVibe feels instantly familiar, but the people and places it connects you to feel completely new.
 
 🤖 AI-POWERED COMMUNITY MATCHING
 Our AI reads your interests, location, and vibe to match you with local communities that genuinely fit. The more you engage, the better it knows you.
@@ -49,9 +49,9 @@ Celebrate the people in your communities. Give kudos for great contributions, me
 🔒 PRIVACY FIRST
 We collect only what we need to match you with your community. You can delete your account and all associated data at any time, instantly. We disclose all AI providers we use in our privacy policy.
 
-TriPlace is built for people who believe that the best conversations — and the best connections — happen in person.
+SameVibe is built for people who believe that the best conversations — and the best connections — happen in person.
 
-Find your third place.
+Find your scene.
 ```
 
 ---
@@ -76,10 +76,10 @@ third place, neighborhood, interest groups, real connections
 
 ## App Review Notes (Apple)
 
-> TriPlace helps users discover events and communities that match their interests. The app indexes publicly available event listings and redirects users to the original source for full details or ticketing. 
+> SameVibe helps users discover events and communities that match their interests. The app indexes publicly available event listings and redirects users to the original source for full details or ticketing. 
 > 
 > **Content & Transaction Policy:**
-> TriPlace does not host events, sell tickets, collect event payments, or replace the source website's transaction flow. All event details and transactions occur on the original provider’s website. Event content is attribution-based and limited to public metadata such as title, date, time, venue, and source link.
+> SameVibe does not host events, sell tickets, collect event payments, or replace the source website's transaction flow. All event details and transactions occur on the original provider’s website. Event content is attribution-based and limited to public metadata such as title, date, time, venue, and source link.
 >
 > For paid event content, users are redirected to the original provider (e.g., Eventbrite, Meetup, venue website). No in-app payments for events are processed.
 >
@@ -87,7 +87,7 @@ third place, neighborhood, interest groups, real connections
 >
 > Test credentials are not required — the app supports Google Sign-In via the test account below, or users can create a new account via email.
 >
-> **Demo account**: triplace.demo@gmail.com / [set up a demo Google account]
+> **Demo account**: samevibe.demo@gmail.com / [set up a demo Google account]
 
 ---
 
@@ -123,8 +123,8 @@ third place, neighborhood, interest groups, real connections
 
 ## Pre-Submission Checklist
 
-- [ ] Firebase project configured for production domain `triplace.app`
-- [ ] Firebase OAuth redirect domains updated to include `triplace.app`
+- [ ] Firebase project configured for production domain `samevibe.app`
+- [ ] Firebase OAuth redirect domains updated to include `samevibe.app`
 - [ ] All VITE_FIREBASE_* env vars set in Codemagic
 - [ ] OPENAI_API_KEY set in Codemagic
 - [ ] DATABASE_URL (Neon) set in Codemagic
@@ -135,9 +135,9 @@ third place, neighborhood, interest groups, real connections
 - [ ] `npx cap sync` run after every web build
 - [ ] iOS provisioning profile created in Apple Developer Console
 - [ ] Android keystore generated and stored in Codemagic secrets
-- [ ] Privacy Policy accessible at `https://triplace.app/privacy`
-- [ ] Terms of Service accessible at `https://triplace.app/terms`
-- [ ] Support email set up (e.g. support@triplace.app)
+- [ ] Privacy Policy accessible at `https://samevibe.app/privacy`
+- [ ] Terms of Service accessible at `https://samevibe.app/terms`
+- [ ] Support email set up (e.g. support@samevibe.app)
 - [ ] App Store Connect app record created (com.triplace.app)
 - [ ] Google Play Console app record created (com.triplace.app)
 
@@ -173,8 +173,8 @@ npx cap open android
 1. Connect GitHub repo at https://codemagic.io
 2. Select `codemagic.yaml` as the build config
 3. Create environment variable groups:
-   - `triplace_env`: all VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
-   - `triplace_android_keystore`: KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD
+   - `samevibe_env`: all VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
+   - `samevibe_android_keystore`: KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD
 4. Add Apple Developer account in Codemagic integrations
 5. Enable automatic TestFlight distribution
 6. Enable automatic Google Play (internal track) distribution

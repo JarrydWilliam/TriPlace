@@ -2,7 +2,7 @@ import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.triplace.app",
-  appName: "TriPlace",
+  appName: "SameVibe",
   webDir: "dist/public",
   bundledWebRuntime: false,
   // server block intentionally omitted for production.
@@ -28,7 +28,7 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    scheme: "TriPlace",
+    scheme: "SameVibe",
     contentInset: "always",
   },
   android: {

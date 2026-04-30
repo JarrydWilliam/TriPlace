@@ -116,7 +116,7 @@ export class LocalActivityScanner {
 
   /**
    * Get a human-readable summary of local trending activity.
-   * Used for the dashboard "Your TriPlace Agent" card.
+   * Used for the dashboard "Your SameVibe Agent" card.
    */
   async getSummary(userLat: number, userLon: number, radiusMiles = 50): Promise<string[]> {
     const topics = await this.scanLocalActivity(userLat, userLon, radiusMiles);

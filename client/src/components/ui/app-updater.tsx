@@ -40,7 +40,7 @@ export function AppUpdater() {
                   setUpdateAvailable(true);
                   toast({
                     title: "Update Available",
-                    description: "A new version of TriPlace is ready to install.",
+                    description: "A new version of SameVibe is ready to install.",
                   });
                 }
               });
@@ -63,7 +63,7 @@ export function AppUpdater() {
           setUpdateAvailable(true);
           toast({
             title: "App Updated",
-            description: "TriPlace has been updated in the background.",
+            description: "SameVibe has been updated in the background.",
           });
         }
         
@@ -133,7 +133,7 @@ export function AppUpdater() {
             <div>
               <DialogTitle>App Update Available</DialogTitle>
               <DialogDescription>
-                A new version of TriPlace is ready to install with the latest features and improvements.
+                A new version of SameVibe is ready to install with the latest features and improvements.
               </DialogDescription>
             </div>
           </div>

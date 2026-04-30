@@ -1,5 +1,5 @@
 /**
- * ecosystem.config.js — PM2 configuration for 24/7 TriPlace server monitoring.
+ * ecosystem.config.js — PM2 configuration for 24/7 SameVibe server monitoring.
  *
  * PM2 is the production-grade process manager. Use this for real deployment.
  *
@@ -11,15 +11,15 @@
  *
  * Useful commands:
  *   pm2 status            (see all running processes)
- *   pm2 logs triplace     (live server logs)
- *   pm2 restart triplace  (manual restart)
+ *   pm2 logs samevibe     (live server logs)
+ *   pm2 restart samevibe  (manual restart)
  *   pm2 monit             (real-time CPU/memory dashboard)
  */
 
 module.exports = {
   apps: [
     {
-      name: "triplace",
+      name: "samevibe",
       script: "node_modules/.bin/tsx",
       args: "server/index.ts",
       cwd: "./",

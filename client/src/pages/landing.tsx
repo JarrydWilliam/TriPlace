@@ -33,7 +33,7 @@ export default function Landing() {
           <div className="animate-pulse">
             <Logo size="xl" />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading TriPlace...</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading SameVibe...</p>
         </div>
       </div>
     );
@@ -57,7 +57,8 @@ export default function Landing() {
         <header className="flex justify-between items-center mb-16">
           <div className="flex items-center space-x-3">
             <Logo size="md" />
-            <span className="text-2xl font-bold text-white">TriPlace</span>
+            <span className="text-2xl font-bold text-white">SameVibe</span>
+            <span className="hidden md:inline-block text-xs font-medium text-white/40 uppercase tracking-widest ml-2 mt-1">Discover Your Scene</span>
           </div>
           <nav className="hidden md:flex space-x-8">
             <a href="#features" className="text-white/70 hover:text-white transition-colors">Features</a>

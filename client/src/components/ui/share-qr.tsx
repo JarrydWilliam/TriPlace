@@ -66,7 +66,7 @@ export function ShareQR() {
     if (!qrCodeUrl) return;
     
     const link = document.createElement('a');
-    link.download = 'triplace-qr-code.png';
+    link.download = 'samevibe-qr-code.png';
     link.href = qrCodeUrl;
     document.body.appendChild(link);
     link.click();
@@ -92,7 +92,7 @@ export function ShareQR() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center">Share TriPlace</DialogTitle>
+          <DialogTitle className="text-center">Share SameVibe</DialogTitle>
           <DialogDescription className="text-center">
             Scan this QR code or share the link to invite others to your digital third place
           </DialogDescription>
@@ -103,7 +103,7 @@ export function ShareQR() {
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <img 
                 src={qrCodeUrl} 
-                alt="TriPlace QR Code" 
+                alt="SameVibe QR Code" 
                 className="w-64 h-64"
               />
             </div>

@@ -19,13 +19,13 @@ export function PwaUpdateChecker() {
 
   const checkAppVersion = () => {
     try {
-      const lastVersion = localStorage.getItem('triplace_app_version');
+      const lastVersion = localStorage.getItem('samevibe_app_version');
       
       if (lastVersion && lastVersion !== APP_VERSION) {
         setUpdateAvailable(true);
       } else if (!lastVersion) {
         // First time user, set version
-        localStorage.setItem('triplace_app_version', APP_VERSION);
+        localStorage.setItem('samevibe_app_version', APP_VERSION);
       }
     } catch (error) {
 
@@ -35,7 +35,7 @@ export function PwaUpdateChecker() {
   const handleUpdate = async () => {
     try {
       // Update stored version
-      localStorage.setItem('triplace_app_version', APP_VERSION);
+      localStorage.setItem('samevibe_app_version', APP_VERSION);
       
       // Clear all caches
       if ('caches' in window) {

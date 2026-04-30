@@ -35,7 +35,7 @@ export class RedditEventsScraper {
       // Use Reddit's JSON API (public, no auth required)
       const response = await fetch(`${this.baseUrl}/r/${subreddit}/search.json?q=${keywords.join(' OR ')}&restrict_sr=1&sort=new&limit=25`, {
         headers: {
-          'User-Agent': 'TriPlace Event Aggregator 1.0'
+          'User-Agent': 'SameVibe Event Aggregator 1.0'
         }
       });
       

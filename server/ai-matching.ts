@@ -1,7 +1,7 @@
 /**
- * TriPlace Community Matching Engine
+ * SameVibe Community Matching Engine
  *
- * Uses TriPlace's own native agents to match users to communities:
+ * Uses SameVibe's own native agents to match users to communities:
  *  - BehavioralEngine (interest-learner): Builds a dynamic user identity vector
  *    from event attendance, kudos, and community messages with time decay.
  *  - MatchOptimizer (match-optimizer): Calculates "Match Force" between users
@@ -9,14 +9,14 @@
  *
  * OpenAI is used as the LLM backbone for community generation ONLY — but
  * the matching logic, scoring, and interest inference are all done by
- * TriPlace's own agents, not by outsourcing the decision to a third-party.
+ * SameVibe's own agents, not by outsourcing the decision to a third-party.
  */
 import OpenAI from "openai";
 import { Community, User } from "@shared/schema";
 import { interestLearner, type LearnedInterest } from "./agent/interest-learner";
 import { matchOptimizer } from "./agent/match-optimizer";
 
-// Initialize OpenAI as LLM backbone (model layer only — reasoning done by TriPlace agents)
+// Initialize OpenAI as LLM backbone (model layer only — reasoning done by SameVibe agents)
 let llm: OpenAI | null = null;
 if (process.env.OPENAI_API_KEY) {
   llm = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -43,9 +43,9 @@ interface GeneratedCommunity {
   reasoning: string;
 }
 
-// ── TriPlace Matching Engine ──────────────────────────────────────────────────
+// ── SameVibe Matching Engine ──────────────────────────────────────────────────
 
-export class TriPlaceMatchingEngine {
+export class SameVibeMatchingEngine {
 
   /**
    * Generate dynamic communities based on collective user patterns.
@@ -56,7 +56,7 @@ export class TriPlaceMatchingEngine {
     allUsers: User[],
     userLocation?: { lat: number; lon: number }
   ): Promise<GeneratedCommunity[]> {
-    // Build collective interest profile using TriPlace's own behavioral engine
+    // Build collective interest profile using SameVibe's own behavioral engine
     const collectiveProfile = this.analyzeCollectivePatterns(allUsers);
     const baseLocation = userLocation ? `${userLocation.lat},${userLocation.lon}` : "Virtual";
 
@@ -77,20 +77,20 @@ export class TriPlaceMatchingEngine {
     }
 
     if (!llm) {
-      console.log("TriPlace: LLM unavailable — using behavioral-only community generation");
+      console.log("SameVibe: LLM unavailable — using behavioral-only community generation");
       return this.generateFromBehavioralData(allUsers, baseLocation);
     }
 
     try {
       return await this.generateWithLLM(collectiveProfile, locationContext, baseLocation);
     } catch (error: any) {
-      console.error("TriPlace community generation: LLM call failed, falling back to behavioral engine:", error.message);
+      console.error("SameVibe community generation: LLM call failed, falling back to behavioral engine:", error.message);
       return this.generateFromBehavioralData(allUsers, baseLocation);
     }
   }
 
   /**
-   * Match a user to available communities using TriPlace's own native scoring:
+   * Match a user to available communities using SameVibe's own native scoring:
    * 1. BehavioralEngine inferred interests (time-decayed, micro-tagged)
    * 2. MatchOptimizer explicit + inferred interest overlap
    * 3. LLM only used for natural-language reasoning strings (optional, non-blocking)
@@ -107,14 +107,14 @@ export class TriPlaceMatchingEngine {
     try {
       inferredInterests = await interestLearner.learnInterests(user.id);
     } catch (error) {
-      console.error("TriPlace behavioral engine: interest inference failed:", error);
+      console.error("SameVibe behavioral engine: interest inference failed:", error);
     }
 
     // Merge explicit + inferred interests into a unified interest set
     const explicitTags = new Set((user.interests || []).map((i) => i.toLowerCase()));
     const inferredTags = new Map(inferredInterests.map((i) => [i.tag, i.score]));
 
-    // ── Step 2: Score each community using TriPlace's own matching logic ──
+    // ── Step 2: Score each community using SameVibe's own matching logic ──
     const scored = availableCommunities.map((community) => {
       const communityTags = this.extractCommunityTags(community);
       
@@ -188,7 +188,7 @@ export class TriPlaceMatchingEngine {
     locationContext: string,
     baseLocation: string
   ): Promise<GeneratedCommunity[]> {
-    const prompt = `You are the TriPlace community matching engine. Analyze these user behavior patterns and generate exactly 5 communities.
+    const prompt = `You are the SameVibe community matching engine. Analyze these user behavior patterns and generate exactly 5 communities.
 
 REQUIREMENTS:
 - Generate EXACTLY 5 communities based on the patterns below
@@ -356,4 +356,4 @@ BEHAVIORAL ANALYSIS (${allUsers.length} users, ${quizPatterns.length} with quiz 
   }
 }
 
-export const aiMatcher = new TriPlaceMatchingEngine();
+export const aiMatcher = new SameVibeMatchingEngine();

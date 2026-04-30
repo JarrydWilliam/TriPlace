@@ -1,14 +1,14 @@
 workflows:
   # ── iOS Native Build ─────────────────────────────────────────────────────────
   ios-release:
-    name: TriPlace iOS Release
+    name: SameVibe iOS Release
     max_build_duration: 60
     environment:
       node: 20.11.0
       xcode: latest
       cocoapods: default
       groups:
-        - triplace_env        # Define this group in Codemagic dashboard
+        - samevibe_env        # Define this group in Codemagic dashboard
       vars:
         BUNDLE_ID: com.triplace.app
         XCODE_PROJECT: ios/App/App.xcodeproj
@@ -55,21 +55,21 @@ workflows:
         script: |
           app-store-connect publish \
             --path build/ios/ipa/*.ipa \
-            --whats-new "Latest TriPlace update"
+            --whats-new "SameVibe beta – initial testing build"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
 
   # ── Android Native Build ──────────────────────────────────────────────────────
   android-release:
-    name: TriPlace Android Release
+    name: SameVibe Android Release
     max_build_duration: 60
     environment:
       node: 20.11.0
       java: 17
       groups:
-        - triplace_env
-        - triplace_android_keystore
+        - samevibe_env
+        - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.triplace.app
     triggering:
@@ -120,12 +120,12 @@ workflows:
 
   # ── Web / PWA Deploy (bonus) ──────────────────────────────────────────────────
   web-deploy:
-    name: TriPlace Web Deploy
+    name: SameVibe Web Deploy
     max_build_duration: 20
     environment:
       node: 20.11.0
       groups:
-        - triplace_env
+        - samevibe_env
     triggering:
       events:
         - push

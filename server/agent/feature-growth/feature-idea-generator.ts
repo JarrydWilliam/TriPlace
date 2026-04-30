@@ -1,7 +1,7 @@
 /**
- * FeatureIdeaGenerator — Uses GPT-4o to propose new features for TriPlace.
+ * FeatureIdeaGenerator — Uses GPT-4o to propose new features for SameVibe.
  *
- * TriPlace is a mobile-first social community app (React Native / Expo) that
+ * SameVibe is a mobile-first social community app (React Native / Expo) that
  * connects people through shared interests, local events, and communities.
  * The generator keeps proposals aligned with the app's exact spec snapshot.
  */
@@ -32,7 +32,7 @@ export async function generateFeatureIdeas(spec: AppSpec): Promise<FeaturePropos
   }
 
   const prompt = `
-You are a senior mobile product engineer working on TriPlace — a React Native / Expo mobile app 
+You are a senior mobile product engineer working on SameVibe — a React Native / Expo mobile app 
 that connects people through shared interests, real-world local events, and interest-based communities.
 The backend is Node.js / Express / PostgreSQL (Drizzle ORM). The app uses Firebase for auth and Stripe for payments.
 
@@ -42,7 +42,7 @@ Current app snapshot:
 - Mobile Screens: ${spec.mobileScreens.join(", ")}
 - Existing AI Agents: ${spec.serverAgents.join(", ")}
 
-Propose exactly 5 new features that would make TriPlace MORE engaging for mobile users.
+Propose exactly 5 new features that would make SameVibe MORE engaging for mobile users.
 Each feature must:
 1. Fit the existing tech stack (React Native, Expo, Express, Drizzle, OpenAI)
 2. Extend or integrate with an existing entity or route naturally

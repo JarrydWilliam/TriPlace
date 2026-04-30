@@ -58,7 +58,7 @@ export default function Login() {
             <Logo />
           </div>
           <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your TriPlace account</p>
+          <p className="text-sm text-muted-foreground">Sign in to your SameVibe account</p>
         </div>
 
         {/* Google Sign-In */}

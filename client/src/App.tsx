@@ -35,6 +35,7 @@ import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { PostEventFlow } from "@/components/safety/post-event-flow";
+import { ThemeProvider } from "@/lib/theme-context";
 import AdminMetrics from "@/pages/admin/metrics";
 
 function Router() {
@@ -131,7 +132,7 @@ function App() {
         {/* Force Dark Mode for High-End Feel */}
         <div className="dark min-h-screen bg-background text-foreground antialiased selection:bg-primary/30">
           <AuthProvider>
-            <ThemeProvider defaultTheme="dark" storageKey="triplace-theme">
+            <ThemeProvider defaultTheme="dark" storageKey="samevibe-theme">
               <TooltipProvider>
                 <GlobalScrollWrapper>
                   <Toaster />

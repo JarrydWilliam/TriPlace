@@ -1,5 +1,5 @@
 /**
- * BuildValidator — Checks the TriPlaceMobile Expo app for App Store and Play Store readiness.
+ * BuildValidator — Checks the SameVibeMobile Expo app for App Store and Play Store readiness.
  *
  * Validates:
  *  - app.json: bundleIdentifier (iOS), package (Android), version, buildNumber
@@ -27,7 +27,7 @@ export interface ValidationReport {
 }
 
 const ROOT = process.cwd();
-const MOBILE_ROOT = path.join(ROOT, "..", "TriPlaceMobile");
+const MOBILE_ROOT = path.join(ROOT, "..", "SameVibeMobile");
 
 function fileExists(relativePath: string): boolean {
   return fs.existsSync(path.join(MOBILE_ROOT, relativePath));
@@ -74,7 +74,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "iOS bundleIdentifier set",
     passed: !!bundleId,
     detail: bundleId ? `Bundle ID: ${bundleId}` : "ios.bundleIdentifier missing",
-    fix: `Add "ios": { "bundleIdentifier": "com.yourcompany.triplace" } to app.json`,
+    fix: `Add "ios": { "bundleIdentifier": "com.yourcompany.samevibe" } to app.json`,
   });
 
   checks.push({
@@ -90,7 +90,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "Android package name set",
     passed: !!pkg,
     detail: pkg ? `Package: ${pkg}` : "android.package missing",
-    fix: `Add "android": { "package": "com.yourcompany.triplace" } to app.json`,
+    fix: `Add "android": { "package": "com.yourcompany.samevibe" } to app.json`,
   });
 
   checks.push({
@@ -131,7 +131,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "eas.json configured",
     passed: !!easJson,
     detail: easJson ? "eas.json found" : "eas.json missing — needed for EAS Build",
-    fix: "Run `npx eas build:configure` in TriPlaceMobile/",
+    fix: "Run `npx eas build:configure` in SameVibeMobile/",
   });
 
   // ── Schema / Permissions ───────────────────────────────────────────────────
@@ -139,7 +139,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "App scheme set (deep links)",
     passed: !!expo.scheme,
     detail: expo.scheme ? `Scheme: ${expo.scheme}` : "expo.scheme missing",
-    fix: `Add "scheme": "triplace" to app.json`,
+    fix: `Add "scheme": "samevibe" to app.json`,
   });
 
   // Compute score

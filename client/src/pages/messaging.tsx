@@ -1,5 +1,5 @@
 /**
- * /messaging — TriPlace Direct Messaging
+ * /messaging — SameVibe Direct Messaging
  *
  * Full DM experience:
  *  - Left panel: conversation list with avatars, last message, unread badges

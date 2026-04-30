@@ -16,7 +16,7 @@ export function Logo({ size = "md", className }: LogoProps) {
   return (
     <img
       src="/logo.png"
-      alt="TriPlace Logo"
+      alt="SameVibe Logo"
       className={cn(
         "rounded-lg object-contain", 
         sizeClasses[size],

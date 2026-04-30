@@ -1,5 +1,5 @@
 /**
- * BugOrchestrator — 24/7 bug monitoring scheduler for TriPlace.
+ * BugOrchestrator — 24/7 bug monitoring scheduler for SameVibe.
  *
  * Schedule: every 5 minutes — checks for new unanalyzed errors and diagnoses them.
  * Auto-scales by spawning helper agents when the error queue is large (>20 items).

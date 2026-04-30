@@ -1,5 +1,5 @@
 /**
- * /discover — TriPlace discovery experience
+ * /discover — SameVibe discovery experience
  *
  * The "Familiar but New" space. Feels like a social feed (familiar)
  * but the discovery mechanism is spatial/AI-driven (new).
@@ -201,7 +201,7 @@ export default function Discover() {
         <div className="max-w-lg mx-auto py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">Discover</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">SameVibe: Discover Your Scene</p>
               <h1 className="text-xl font-bold text-foreground">Find your people</h1>
             </div>
             <div className="flex items-center gap-1.5 text-primary">
@@ -272,7 +272,7 @@ export default function Discover() {
             <div className="text-center py-12 space-y-3">
               <p className="text-4xl">🔭</p>
               <p className="text-sm text-muted-foreground">No communities found for this category yet.</p>
-              <p className="text-xs text-muted-foreground/60">As more people join TriPlace, new ones will appear here.</p>
+              <p className="text-xs text-muted-foreground/60">As more people join SameVibe, new ones will appear here.</p>
             </div>
           )}
         </section>

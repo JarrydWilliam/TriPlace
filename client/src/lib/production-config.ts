@@ -66,7 +66,7 @@ export const ERROR_MESSAGES = {
   LOCATION_UNAVAILABLE: "Unable to determine your location. Using approximate location instead.",
   GENERIC: "Something went wrong. Please try again.",
   QUOTA_EXCEEDED: "Service temporarily unavailable. Please try again later.",
-  MAINTENANCE: "TriPlace is currently undergoing maintenance. Please try again soon.",
+  MAINTENANCE: "SameVibe is currently undergoing maintenance. Please try again soon.",
 } as const;
 
 // Success messages

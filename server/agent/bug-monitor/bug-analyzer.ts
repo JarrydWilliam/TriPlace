@@ -23,8 +23,8 @@ export async function analyzeBug(error: CapturedError): Promise<BugDiagnosis | n
   if (!process.env.OPENAI_API_KEY) return null;
 
   const prompt = `
-You are a senior Node.js / TypeScript / React Native engineer debugging the TriPlace app.
-TriPlace is a social mobile app (Expo/React Native frontend, Express + PostgreSQL backend, Firebase auth).
+You are a senior Node.js / TypeScript / React Native engineer debugging the SameVibe app.
+SameVibe is a social mobile app (Expo/React Native frontend, Express + PostgreSQL backend, Firebase auth).
 
 Error details:
 - Message: ${error.message}

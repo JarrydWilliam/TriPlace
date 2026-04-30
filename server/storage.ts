@@ -141,7 +141,7 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
-      // First generate dynamic communities using TriPlace's matching agents
+      // First generate dynamic communities using SameVibe's matching agents
       const dynamicCommunities = await this.generateDynamicCommunities(userId);
       
       // Get user's current communities to exclude them from recommendations
@@ -153,7 +153,7 @@ export class DatabaseStorage implements IStorage {
         !userCommunityIds.includes(community.id)
       );
       
-      // Use TriPlace AI matching for location-aware communities
+      // Use SameVibe AI matching for location-aware communities
       try {
         const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
         
