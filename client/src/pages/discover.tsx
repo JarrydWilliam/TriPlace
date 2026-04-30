@@ -160,9 +160,10 @@ export default function Discover() {
 
   // Upcoming events near user
   const { data: events = [] } = useQuery<Event[]>({
-    queryKey: ["/api/events/upcoming"],
+    queryKey: ["/api/events/upcoming", user?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/events/upcoming`);
+      const url = user?.id ? `/api/events/upcoming?userId=${user.id}` : `/api/events/upcoming`;
+      const res = await fetch(url);
       return res.ok ? res.json() : [];
     },
   });
@@ -186,7 +187,12 @@ export default function Discover() {
     ? recommended
     : recommended.filter((c) => c.category === selectedCategory);
 
-  const upcomingEvents = events.slice(0, 4);
+  const upcomingEvents = events
+    .filter((e) => {
+      if (e.expiresAt && new Date(e.expiresAt) < new Date()) return false;
+      return true;
+    })
+    .slice(0, 4);
 
   return (
     <div className="min-h-screen bg-background pb-24">

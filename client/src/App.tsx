@@ -34,6 +34,8 @@ import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
 import { BackToTop } from "@/components/ui/back-to-top";
+import { PostEventFlow } from "@/components/safety/post-event-flow";
+import AdminMetrics from "@/pages/admin/metrics";
 
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
@@ -114,6 +116,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/admin/metrics" component={AdminMetrics} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
       </Switch>
@@ -135,6 +138,7 @@ function App() {
                   <AppUpdater />
                   <PwaUpdateChecker />
                   <BackToTop />
+                  <PostEventFlow />
                   <Router />
                 </GlobalScrollWrapper>
               </TooltipProvider>

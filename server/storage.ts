@@ -1,10 +1,11 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
-  type User, type InsertUser, type Community, type InsertCommunity, 
+  telemetryEvents, type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
-  type EventAttendee, type InsertEventAttendee, type ActivityFeedItem
+  type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
+  type TelemetryEvent, type InsertTelemetryEvent
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -78,6 +79,9 @@ export interface IStorage {
 
   refreshUserRecommendations(userId: number): Promise<void>;
   deleteUser(userId: number): Promise<boolean>;
+
+  createTelemetryEvent(event: InsertTelemetryEvent): Promise<TelemetryEvent>;
+  getTelemetryEvents(filters?: { userId?: number, eventType?: string, eventId?: number }): Promise<TelemetryEvent[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -525,18 +529,38 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).orderBy(asc(events.date));
   }
 
-  async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]> {
-    return await this.getAllEvents();
+  async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number, userId?: number): Promise<Event[]> {
+    let allEvents = await this.getAllEvents();
+    
+    if (userId) {
+      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
+      const blockedIds = new Set(blocks.map(b => b.blockedId));
+      if (blockedIds.size > 0) {
+        allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
+      }
+    }
+    
+    return allEvents;
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
     return await db.select().from(events).where(eq(events.category, category));
   }
 
-  async getUpcomingEvents(): Promise<Event[]> {
-    return await db.select().from(events)
+  async getUpcomingEvents(userId?: number): Promise<Event[]> {
+    let allEvents = await db.select().from(events)
       .where(sql`${events.date} >= NOW()`)
       .orderBy(asc(events.date));
+      
+    if (userId) {
+      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
+      const blockedIds = new Set(blocks.map(b => b.blockedId));
+      if (blockedIds.size > 0) {
+        allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
+      }
+    }
+    
+    return allEvents;
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
@@ -576,7 +600,7 @@ export class DatabaseStorage implements IStorage {
     return result.map(r => r.event);
   }
 
-  async getEventAttendees(eventId: number): Promise<User[]> {
+  async getEventAttendees(eventId: number, currentUserId?: number): Promise<User[]> {
     const result = await db.select({
       user: users
     })
@@ -584,7 +608,17 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(users, eq(eventAttendees.userId, users.id))
     .where(eq(eventAttendees.eventId, eventId));
     
-    return result.map(r => r.user);
+    let attendees = result.map(r => r.user);
+    
+    if (currentUserId) {
+      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, currentUserId));
+      const blockedIds = new Set(blocks.map(b => b.blockedId));
+      if (blockedIds.size > 0) {
+        attendees = attendees.filter(u => !blockedIds.has(u.id));
+      }
+    }
+    
+    return attendees;
   }
 
   async getMessage(id: number): Promise<Message | undefined> {
@@ -593,6 +627,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversation(userId1: number, userId2: number): Promise<Message[]> {
+    const blocks = await db.select().from(userBlocks)
+      .where(or(
+        and(eq(userBlocks.blockerId, userId1), eq(userBlocks.blockedId, userId2)),
+        and(eq(userBlocks.blockerId, userId2), eq(userBlocks.blockedId, userId1))
+      ));
+      
+    if (blocks.length > 0) return [];
+
     return await db.select().from(messages)
       .where(
         or(
@@ -1067,6 +1109,26 @@ export class DatabaseStorage implements IStorage {
       console.error('Error deleting user:', error);
       throw error;
     }
+  }
+
+  async createTelemetryEvent(insertEvent: InsertTelemetryEvent): Promise<TelemetryEvent> {
+    const [event] = await db.insert(telemetryEvents).values(insertEvent).returning();
+    return event;
+  }
+
+  async getTelemetryEvents(filters?: { userId?: number, eventType?: string, eventId?: number }): Promise<TelemetryEvent[]> {
+    let query = db.select().from(telemetryEvents);
+    const conditions = [];
+
+    if (filters?.userId) conditions.push(eq(telemetryEvents.userId, filters.userId));
+    if (filters?.eventType) conditions.push(eq(telemetryEvents.eventType, filters.eventType));
+    if (filters?.eventId) conditions.push(eq(telemetryEvents.eventId, filters.eventId));
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions)).orderBy(desc(telemetryEvents.createdAt));
+    }
+    
+    return await query.orderBy(desc(telemetryEvents.createdAt));
   }
 }
 

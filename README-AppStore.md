@@ -76,7 +76,10 @@ third place, neighborhood, interest groups, real connections
 
 ## App Review Notes (Apple)
 
-> TriPlace indexes publicly available event listings and redirects users to the original source for full details or ticketing. The app does not sell tickets, collect event payments, or replace the source website's transaction flow. Event content is attribution-based and limited to public metadata such as title, date, time, venue, and source link.
+> TriPlace helps users discover events and communities that match their interests. The app indexes publicly available event listings and redirects users to the original source for full details or ticketing. 
+> 
+> **Content & Transaction Policy:**
+> TriPlace does not host events, sell tickets, collect event payments, or replace the source website's transaction flow. All event details and transactions occur on the original provider’s website. Event content is attribution-based and limited to public metadata such as title, date, time, venue, and source link.
 >
 > For paid event content, users are redirected to the original provider (e.g., Eventbrite, Meetup, venue website). No in-app payments for events are processed.
 >
@@ -110,10 +113,10 @@ third place, neighborhood, interest groups, real connections
 
 | Asset | Size | Status |
 |-------|------|--------|
-| App Icon (iOS) | 1024×1024 PNG, no alpha | ⚠️ Need to generate |
-| App Icon (Android) | 512×512 PNG | ⚠️ Need to generate |
-| Splash Screen | 2732×2732 (iOS), 1080×1920 (Android) | ⚠️ Need to generate |
-| Feature Graphic (Google Play) | 1024×500 | ⚠️ Need to generate |
+| App Icon (iOS) | 1024×1024 PNG, no alpha | ✅ Generated |
+| App Icon (Android) | 512×512 PNG | ✅ Generated |
+| Splash Screen | 2732×2732 (iOS), 1080×1920 (Android) | ✅ Generated |
+| Feature Graphic (Google Play) | 1024×500 | ✅ Generated |
 | OG Image | 1200×630 | ✅ `/client/public/og-image.jpg` |
 
 ---

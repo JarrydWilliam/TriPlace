@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LiveMembersTab } from "@/components/community/live-members-tab";
-import { ScrapedEventsTab } from "@/components/community/scraped-events-tab";
+import { AggregatedEventsTab } from "@/components/community/aggregated-events-tab";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/telemetry";
 import { Send, Heart, Calendar, Users, MapPin, MessageCircle, Clock, Star, ChevronDown, Award, ArrowLeft, Pin, Sun, Moon } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -105,6 +106,8 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to join event');
       }
+
+      trackEvent('rsvp_complete', { userId: user.id, eventId });
 
       toast({
         title: "Event Joined!",

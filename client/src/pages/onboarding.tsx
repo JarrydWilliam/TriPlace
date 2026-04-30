@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/telemetry";
 import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -137,6 +138,7 @@ export default function Onboarding() {
       return res.json();
     },
     onSuccess: async () => {
+      trackEvent('quiz_complete', { userId: user?.id });
       await refreshUser();
       // Redirect to cinematic reveal — the "Familiar but New" moment
       setLocation("/reveal");

@@ -7,12 +7,20 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+const getApiUrl = (url: string) => {
+  const isNative = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+  if (isNative && url.startsWith('/')) {
+    return `https://triplace.app${url}`;
+  }
+  return url;
+};
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await fetch(getApiUrl(url), {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +37,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const res = await fetch(getApiUrl(queryKey[0] as string), {
       credentials: "include",
     });
 

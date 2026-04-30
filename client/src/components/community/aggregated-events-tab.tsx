@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Clock, DollarSign } from "lucide-react";
+import { Calendar, MapPin, Users, Clock, DollarSign, ExternalLink } from "lucide-react";
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/telemetry";
 
 interface Event {
   id: number;
@@ -19,14 +21,18 @@ interface Event {
   price: string;
   communityId: number;
   isGlobal: boolean;
+  sourceUrl?: string;
+  sourceName?: string;
+  sourceAttribution?: string;
 }
 
-interface ScrapedEventsTabProps {
+interface AggregatedEventsTabProps {
   communityId: number;
 }
 
-export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
+export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [joiningEventId, setJoiningEventId] = useState<number | null>(null);
 
   const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
@@ -48,12 +54,14 @@ export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: 1 }),
+        body: JSON.stringify({ userId: user?.id || 1 }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to join event');
       }
+
+      trackEvent('rsvp_complete', { userId: user?.id, eventId });
 
       toast({
         title: "Event Joined!",
@@ -195,7 +203,14 @@ export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
                   
                   <Button
                     size="sm"
-                    onClick={() => handleJoinEvent(event.id, event.title)}
+                    onClick={() => {
+                      if (event.sourceUrl) {
+                        window.open(event.sourceUrl, "_blank", "noopener,noreferrer");
+                        trackEvent('external_source_click', { userId: user?.id, eventId: event.id });
+                        return;
+                      }
+                      handleJoinEvent(event.id, event.title);
+                    }}
                     disabled={joiningEventId === event.id}
                     className="gap-2"
                   >
@@ -203,6 +218,11 @@ export function ScrapedEventsTab({ communityId }: ScrapedEventsTabProps) {
                       <>
                         <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         Joining...
+                      </>
+                    ) : event.sourceUrl ? (
+                      <>
+                        <ExternalLink className="h-3 w-3" />
+                        View on {event.sourceName || 'Source'}
                       </>
                     ) : (
                       <>

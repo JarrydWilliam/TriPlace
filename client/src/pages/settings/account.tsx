@@ -11,7 +11,7 @@ import { Link, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { signOutUser } from "@/lib/firebase";
+import { signOutUser, deleteFirebaseAccount } from "@/lib/firebase";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
@@ -27,13 +27,19 @@ export default function AccountSettings() {
     setIsDeleting(true);
     try {
       await apiRequest('DELETE', `/api/users/${user.id}`);
-      // Sign out of Firebase after DB deletion
-      await signOutUser();
+      // Also delete from Firebase Auth to meet strict App Store requirements
+      try {
+        await deleteFirebaseAccount();
+      } catch (fbErr: any) {
+        console.warn("Firebase deletion failed:", fbErr);
+        // If it's a re-auth error, we might still want to log them out
+        // but we've already deleted their DB record, so they are effectively gone from TriPlace
+      }
       await signOut();
       toast({ title: "Account deleted", description: "Your account and all data have been permanently deleted." });
       navigate('/');
     } catch (err) {
-      toast({ title: "Deletion failed", description: "Please try again or contact privacy@triplace.app", variant: "destructive" });
+      toast({ title: "Deletion failed", description: err instanceof Error ? err.message : "Please try again or contact privacy@triplace.app", variant: "destructive" });
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);

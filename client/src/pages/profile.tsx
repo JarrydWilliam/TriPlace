@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { MapPin, Calendar, Edit, Save, X } from "lucide-react";
+import { MapPin, Calendar, Edit, Save, X, Heart, Bookmark, Users } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useParams } from "wouter";
 import { Logo } from "@/components/ui/logo";
+import { ReportBlockMenu } from "@/components/safety/report-block-menu";
 
 const interestColors = [
   "bg-primary/20 text-primary",
@@ -35,6 +36,7 @@ export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [signalCooldown, setSignalCooldown] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     bio: "",
@@ -66,6 +68,15 @@ export default function Profile() {
     enabled: !!targetUserId,
   });
 
+  // Fetch current user events for "Connect After Event" validation
+  const { data: currentUserEvents = [] } = useQuery({
+    queryKey: ['/api/users', currentUser?.id, 'events'],
+    enabled: !!currentUser?.id && !isOwnProfile,
+  });
+
+  const sharedEvents = currentUserEvents.filter((ce: any) => userEvents.some((ue: any) => ue.id === ce.id));
+  const canConnectAfterEvent = sharedEvents.length > 0;
+
   // Fetch user kudos
   const { data: userKudos = [], isLoading: kudosLoading } = useQuery({
     queryKey: ['/api/users', targetUserId, 'kudos', 'received'],
@@ -94,6 +105,34 @@ export default function Profile() {
         variant: "destructive",
       });
     },
+  });
+
+  // Explicit AI Connection Signal Mutation
+  const connectionSignalMutation = useMutation({
+    mutationFn: async (signalType: string) => {
+      if (!targetUserId || !currentUser) return;
+      const response = await apiRequest('POST', `/api/users/${targetUserId}/connection-signal`, {
+        sourceUserId: currentUser.id,
+        signalType: "explicit_interest", // The backend will learn from this
+        detail: signalType
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      setSignalCooldown(true);
+      setTimeout(() => setSignalCooldown(false), 3000);
+      toast({
+        title: "Interest Registered",
+        description: "Your signal has been securely sent.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Slow Down",
+        description: "You're sending too many signals. Please wait a moment.",
+        variant: "destructive",
+      });
+    }
   });
 
   const handleEditClick = () => {
@@ -225,7 +264,7 @@ export default function Profile() {
                     )}
                   </div>
                   
-                  {!isEditing && (
+                  {!isEditing && isOwnProfile && (
                     <Button
                       onClick={handleEditClick}
                       className="bg-primary hover:bg-primary/90"
@@ -233,6 +272,42 @@ export default function Profile() {
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Profile
                     </Button>
+                  )}
+                  
+                  {!isOwnProfile && (
+                    <div className="flex flex-col gap-2 mt-4 md:mt-0">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => connectionSignalMutation.mutate('interested')}
+                          disabled={connectionSignalMutation.isPending || signalCooldown}
+                          className="bg-primary hover:bg-primary/90 flex-1"
+                        >
+                          <Heart className="h-4 w-4 mr-2" />
+                          {signalCooldown ? "Sent" : "Interested"}
+                        </Button>
+                        <ReportBlockMenu targetUserId={targetUserId!} currentUserId={currentUser?.id} />
+                      </div>
+                      <Button
+                        onClick={() => connectionSignalMutation.mutate('save')}
+                        variant="outline"
+                        disabled={connectionSignalMutation.isPending || signalCooldown}
+                        className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white flex-1 sm:flex-none"
+                      >
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        {signalCooldown ? "Saved" : "Save Profile"}
+                      </Button>
+                      {canConnectAfterEvent && (
+                        <Button
+                          onClick={() => connectionSignalMutation.mutate('connect_after')}
+                          variant="outline"
+                          disabled={connectionSignalMutation.isPending || signalCooldown}
+                          className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white w-full sm:w-auto"
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          {signalCooldown ? "Connected" : "Connect After Event"}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>

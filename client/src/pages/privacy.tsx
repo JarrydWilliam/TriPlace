@@ -13,30 +13,34 @@ export default function Privacy() {
         <section className="space-y-4 text-sm text-foreground/80 leading-relaxed">
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-2">1. Information We Collect</h2>
-            <p>TriPlace collects information you provide directly, including your name, email address, profile photo, location, and interest preferences gathered during onboarding. We also collect usage data such as events attended, communities joined, posts created, and kudos given.</p>
+            <p>TriPlace collects information you provide directly, including your name, email address, profile photo, location, and interest preferences. We also collect usage data to improve the experience and ensure safety, including event interactions (RSVPs, clicks), behavioral patterns, and analytics.</p>
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-2">2. How We Use Your Information</h2>
-            <p>We use your information to personalize your experience, match you with relevant communities, surface local events, and power the TriPlace background agent that learns your evolving interests. We do not sell your data to third parties.</p>
+            <p>TriPlace uses your activity and preferences to personalize recommendations. Your data is used solely to improve your local social discovery experience and for app functionality. We do not sell your personally identifiable information to third parties.</p>
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-2">3. Location Data</h2>
             <p>TriPlace uses your device's GPS to show local events and connect you with nearby community members. Location data is only used to personalize your feed and is not shared with third parties for advertising purposes.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">4. Third-Party AI Services</h2>
-            <p>TriPlace uses OpenAI's API to generate community recommendations and analyze community trends. To do this, anonymized interest data, quiz answers, and general location context (city/region level) may be sent to OpenAI. This data is used solely for generating personalized recommendations and is subject to <a href="https://openai.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">OpenAI's Privacy Policy</a>. We do not send personally identifiable information (such as your name or email) to OpenAI.</p>
+            <h2 className="text-lg font-semibold text-foreground mb-2">4. AI-Personalized Recommendations</h2>
+            <p>TriPlace uses AI to personalize your experience and match you with the right communities. To do this, anonymized interest data, quiz answers, and general location context (city/region level) may be processed by industry-standard AI providers. This data is used solely for generating personalized recommendations and is subject to strict data safety standards. No personally identifiable information (such as your name or email) is shared with these AI providers for training purposes.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">5. Background Agent</h2>
-            <p>Our in-app intelligence agent analyzes your community activity, attended events, and local social activity to update your interest profile and surface new communities. This processing uses OpenAI's API as described in Section 4.</p>
+            <h2 className="text-lg font-semibold text-foreground mb-2">5. The Discovery Engine</h2>
+            <p>Our discovery engine analyzes your activity and attended events to update your interest profile and surface new communities. This allows TriPlace to grow with you as your interests evolve.</p>
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-2">6. Data Retention & Deletion</h2>
-            <p>We retain your account data for as long as your account is active. You may request deletion of your account and all associated data at any time through the Settings → Account page. Account deletion is permanent and cannot be undone.</p>
+            <p>Users can delete their account and associated data at any time within the app (Settings → Account). Deletion is permanent and removes your database records and authentication credentials immediately.</p>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">7. Contact</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">7. Content Moderation & Safety</h2>
+            <p>TriPlace maintains a safe community. Users can report or block others directly in the app. Reported content is reviewed by our team and may be removed if it violates our safety standards.</p>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">8. Contact</h2>
             <p>For privacy questions, contact us at <a href="mailto:privacy@triplace.app" className="text-primary hover:underline">privacy@triplace.app</a></p>
           </div>
         </section>

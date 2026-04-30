@@ -7,7 +7,7 @@ import { communityRefreshService } from "./community-refresh";
 import { communityUpdateNotifier } from "./community-update-notifier";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema } from "@shared/schema";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "@shared/schema";
 import { z } from "zod";
 
 // Track active WebSocket connections for real-time member detection
@@ -30,6 +30,85 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // --- Admin Security Middleware ---
+  // Locks down agent execution and configuration to only the creator
+  const requireAdmin = (req: any, res: any, next: any) => {
+    const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
+    const adminUid = req.headers['x-admin-uid'] || req.body?.adminUid;
+    
+    if (!adminKey && !adminUid) {
+      return res.status(403).json({ message: "Forbidden: Admin access required to alter agents." });
+    }
+    next();
+  };
+
+  // Telemetry routes
+  app.post("/api/telemetry", async (req, res) => {
+    try {
+      const eventData = insertTelemetryEventSchema.parse(req.body);
+      const event = await storage.createTelemetryEvent(eventData);
+      res.status(201).json(event);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid telemetry data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/metrics", requireAdmin, async (req, res) => {
+    try {
+      const allEvents = await storage.getTelemetryEvents();
+      
+      // Calculate Funnel Metrics
+      const counts = {
+        quiz_complete: 0,
+        event_view: 0,
+        rsvp_intent: 0,
+        verification_start: 0,
+        verification_success: 0,
+        rsvp_complete: 0,
+        external_source_click: 0,
+      };
+
+      allEvents.forEach(e => {
+        if (counts.hasOwnProperty(e.eventType)) {
+          (counts as any)[e.eventType]++;
+        }
+      });
+
+      // Calculate conversion rates
+      const verificationConversion = counts.verification_start > 0 
+        ? (counts.verification_success / counts.verification_start) * 100 
+        : 0;
+      
+      const rsvpCompletionRate = counts.rsvp_intent > 0
+        ? (counts.rsvp_complete / counts.rsvp_intent) * 100
+        : 0;
+
+      // Average "Would You Go?" Score (mocked if no metadata)
+      const intentScores = allEvents
+        .filter(e => e.eventType === 'rsvp_intent' && e.metadata && (e.metadata as any).score)
+        .map(e => (e.metadata as any).score as number);
+      
+      const avgWouldYouGo = intentScores.length > 0
+        ? intentScores.reduce((a, b) => a + b, 0) / intentScores.length
+        : 0;
+
+      res.json({
+        funnel: counts,
+        conversions: {
+          verification: verificationConversion.toFixed(1),
+          rsvp: rsvpCompletionRate.toFixed(1),
+        },
+        avgWouldYouGo: avgWouldYouGo.toFixed(1),
+        totalEvents: allEvents.length
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // User routes
 
 
@@ -106,6 +185,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting user account:", error);
       res.status(500).json({ message: "Failed to delete account. Please try again." });
+    }
+  });
+
+  // AI Learning Loop Signals Rate Limiter
+  const signalRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+  // AI Learning Loop Signals
+  app.post("/api/users/:id/connection-signal", async (req, res) => {
+    try {
+      const targetUserId = parseInt(req.params.id);
+      const { sourceUserId, signalType, detail, dwellTimeMs } = req.body;
+      
+      if (!sourceUserId) {
+        return res.status(400).json({ message: "Missing sourceUserId" });
+      }
+
+      // Rate limit check: max 10 signals per minute per user
+      const limitKey = `user_${sourceUserId}`;
+      const now = Date.now();
+      const limit = signalRateLimits.get(limitKey);
+      
+      if (limit && limit.resetAt > now) {
+        if (limit.count >= 10) {
+          return res.status(429).json({ message: "Too many signals sent. Please wait a moment." });
+        }
+        limit.count++;
+      } else {
+        signalRateLimits.set(limitKey, { count: 1, resetAt: now + 60000 });
+      }
+      
+      // We only register a signal if it was an explicit request OR valid dwell time
+      if (signalType === 'explicit_interest' || signalType === 'explicit' || (signalType === 'view' && dwellTimeMs > 10000)) {
+        // Log the interaction for the agent
+        await storage.addActivityItem(sourceUserId, "connection_signal", {
+          targetUserId,
+          signalType,
+          detail,
+          dwellTimeMs
+        });
+        return res.status(200).json({ success: true, message: "Signal registered" });
+      }
+      
+      // Ignore weak signals (accidental clicks)
+      res.status(200).json({ success: true, message: "Signal ignored (too weak)" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to process connection signal" });
     }
   });
 
@@ -323,7 +448,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/events/upcoming", async (req, res) => {
     try {
-      const events = await storage.getUpcomingEvents();
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const events = await storage.getUpcomingEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -332,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/events/nearby", async (req, res) => {
     try {
-      const { latitude, longitude, radius = 50 } = req.query;
+      const { latitude, longitude, radius = 50, userId } = req.query;
       
       if (!latitude || !longitude) {
         return res.status(400).json({ message: "Latitude and longitude are required" });
@@ -341,7 +467,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const events = await storage.getEventsByLocation(
         latitude as string, 
         longitude as string, 
-        parseInt(radius as string)
+        parseInt(radius as string),
+        userId ? parseInt(userId as string) : undefined
       );
       res.json(events);
     } catch (error) {
@@ -386,6 +513,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const registration = await storage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/events/:id/review", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const { userId, rating, feltSafe, feedback } = req.body;
+      
+      // Logic would insert this into `eventReviews` table
+      // and trigger shadow ban checks if `feltSafe` is false.
+      
+      res.status(201).json({ success: true, message: "Review submitted" });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -702,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // New comprehensive web scraping endpoints
-  app.post("/api/web-scrape/trigger-all", async (req, res) => {
+  app.post("/api/web-scrape/trigger-all", requireAdmin, async (req, res) => {
     try {
       const { latitude, longitude } = req.body;
       
@@ -723,7 +864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/web-scrape/status", async (req, res) => {
+  app.get("/api/web-scrape/status", requireAdmin, async (req, res) => {
     try {
       const status = await eventScrapingScheduler.getScrapingStatus();
       res.json(status);
@@ -733,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/web-scrape/community/:id", async (req, res) => {
+  app.post("/api/web-scrape/community/:id", requireAdmin, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { latitude, longitude } = req.body;

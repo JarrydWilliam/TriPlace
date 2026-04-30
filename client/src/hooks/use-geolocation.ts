@@ -9,17 +9,27 @@ interface GeolocationState {
   locationName: string | null;
 }
 
-export function useGeolocation(userId?: number) {
+export function useGeolocation(userId?: number, enabled = false) {
   const [location, setLocation] = useState<GeolocationState>({
     latitude: null,
     longitude: null,
     error: null,
-    loading: true,
+    loading: enabled,
     source: null,
     locationName: null,
   });
 
+  const [trigger, setTrigger] = useState(0);
+
+  const refresh = () => setTrigger(prev => prev + 1);
+
   useEffect(() => {
+    if (!enabled && trigger === 0) {
+      setLocation(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
+    setLocation(prev => ({ ...prev, loading: true }));
     let hasGPSAttempted = false;
 
     // Step 1: Try high-accuracy GPS first (mobile-optimized)
@@ -151,5 +161,5 @@ export function useGeolocation(userId?: number) {
     tryGPSLocation();
   }, []);
 
-  return location;
+  return { ...location, refresh };
 }

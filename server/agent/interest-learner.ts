@@ -9,13 +9,13 @@
  */
 
 import { db } from "../db";
-import { eventAttendees, events, postKudos, posts, communityMessages, kudos, users } from "@shared/schema";
+import { eventAttendees, events, postKudos, posts, communityMessages, kudos, users, eventReviews } from "@shared/schema";
 import { eq, gte, desc, sql, and } from "drizzle-orm";
 
 export interface LearnedInterest {
   tag: string;
   score: number;        // 0-1 confidence score
-  source: "event_attended" | "post_kudos" | "community_activity" | "event_rsvp";
+  source: "event_attended" | "post_kudos" | "community_activity" | "event_rsvp" | "event_review";
   lastSeen: Date;
   decayedScore?: number; // Score after time decay applied
 }
@@ -52,6 +52,7 @@ const KEYWORD_TO_TAG: Record<string, string> = {
 };
 
 const BEHAVIOR_WEIGHTS = {
+  event_review_5_star: 1.0, // Massive boost for phenomenal experience
   event_attended: 0.5,   // Confirmed presence
   event_going: 0.4,      // Strong intent
   event_interested: 0.15, // Weak intent
@@ -155,6 +156,36 @@ export class BehavioralEngine {
       }
     }
 
+    // 1.5 Event Reviews (The Safety & Quality Loop)
+    const reviews = await db
+      .select({ event: events, rating: eventReviews.rating, createdAt: eventReviews.createdAt })
+      .from(eventReviews)
+      .innerJoin(events, eq(eventReviews.eventId, events.id))
+      .where(eq(eventReviews.userId, userId));
+
+    for (const { event, rating, createdAt } of reviews) {
+      if (!event) continue;
+      const activityDate = createdAt ? new Date(createdAt) : new Date();
+      
+      const allTags = new Set([
+        ...(event.tags ?? []),
+        ...extractTagsFromText(`${event.title} ${event.description}`)
+      ]);
+      
+      if (rating >= 4) {
+        // High quality signal -> massive boost
+        for (const tag of allTags) bump(tag, BEHAVIOR_WEIGHTS.event_review_5_star, "event_review", activityDate);
+      } else if (rating <= 2) {
+        // Poor quality signal -> Apply an active penalty/decay to these tags
+        for (const tag of allTags) {
+          const entry = tagScores.get(tag);
+          if (entry) {
+            entry.rawScore *= 0.5; // Halve their interest in this tag
+          }
+        }
+      }
+    }
+
     // 2. Posts Kudos (Engagement)
     const kudosGiven = await db
       .select({ post: posts, createdAt: postKudos.createdAt })
@@ -212,6 +243,7 @@ export class BehavioralEngine {
 
   private getSourceStrength(source: LearnedInterest["source"]): number {
     switch (source) {
+      case "event_review": return 5;
       case "event_attended": return 4;
       case "event_rsvp": return 3;
       case "post_kudos": return 2;

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, deleteUser } from "firebase/auth";
 import { ERROR_MESSAGES } from "./production-config";
 
 // Safely detect Capacitor native context without hard dependency
@@ -68,5 +68,19 @@ export const signOutUser = async () => {
     await signOut(auth);
   } catch (error) {
     throw new Error('Unable to sign out. Please try again.');
+  }
+};
+
+export const deleteFirebaseAccount = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  try {
+    await deleteUser(user);
+  } catch (error: any) {
+    if (error.code === 'auth/requires-recent-login') {
+      throw new Error('For your security, please sign out and sign back in before deleting your account.');
+    }
+    throw new Error('Unable to delete authentication account. Please contact support.');
   }
 };
