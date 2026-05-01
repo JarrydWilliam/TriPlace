@@ -99,18 +99,16 @@ export function VerificationModal({ isOpen, onClose, userId, onVerified }: Verif
         });
         return;
       }
+      verifyMutation.mutate();
     } else {
-      // TODO: Replace with real Firebase Auth Phone Verification logic
-      if (code.length < 4) {
-        toast({
-          title: "Invalid Code",
-          description: "Please enter the code sent to your phone.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Production mode does not allow fake verification bypass
+      toast({
+        title: "Verification Unavailable",
+        description: "SMS Verification is currently disabled in Beta.",
+        variant: "destructive",
+      });
+      return;
     }
-    verifyMutation.mutate();
   };
 
   return (
