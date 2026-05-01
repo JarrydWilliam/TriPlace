@@ -173,7 +173,7 @@ npx cap open android
 1. Connect GitHub repo at https://codemagic.io
 2. Select `codemagic.yaml` as the build config
 3. Create environment variable groups:
-   - `samevibe_env`: all VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
+   - `samevibe_env`: all VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL + VITE_ENABLE_BETA_SMS_SIMULATION=true (for beta workflows only)
    - `samevibe_android_keystore`: KEYSTORE_BASE64, KEY_ALIAS, KEY_PASSWORD, STORE_PASSWORD
 4. Add Apple Developer account in Codemagic integrations
 5. Enable automatic TestFlight distribution

@@ -90,21 +90,26 @@ export function VerificationModal({ isOpen, onClose, userId, onVerified }: Verif
   });
 
   const handleVerifyCode = () => {
-    if (import.meta.env.DEV) {
+    const isBetaSimulation = import.meta.env.VITE_ENABLE_BETA_SMS_SIMULATION === 'true';
+
+    if (import.meta.env.DEV || isBetaSimulation) {
       if (code !== "123456") {
         toast({
           title: "Invalid Code",
-          description: "For development, use code 123456.",
+          description: `For ${import.meta.env.DEV ? 'development' : 'beta testing'}, use code 123456.`,
           variant: "destructive",
         });
         return;
+      }
+      if (isBetaSimulation && !import.meta.env.DEV) {
+          trackEvent('verification_beta_simulated', { userId });
       }
       verifyMutation.mutate();
     } else {
       // Production mode does not allow fake verification bypass
       toast({
         title: "Verification Unavailable",
-        description: "SMS Verification is currently disabled in Beta.",
+        description: "SMS Verification is currently disabled.",
         variant: "destructive",
       });
       return;
@@ -154,9 +159,11 @@ export function VerificationModal({ isOpen, onClose, userId, onVerified }: Verif
                   onChange={(e) => setCode(e.target.value)}
                   maxLength={6}
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  (Simulated: enter any 4+ digit code)
-                </p>
+                {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_BETA_SMS_SIMULATION === 'true') && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    (Simulated: use code 123456)
+                  </p>
+                )}
               </div>
               <Button
                 className="w-full bg-primary"
