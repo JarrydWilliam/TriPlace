@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from './button';
 import { RefreshCw } from 'lucide-react';
 
-const APP_VERSION = '1.0.2'; // Increment this to trigger updates
+const APP_VERSION = '1.0.3'; // Increment this to trigger updates
 
 export function PwaUpdateChecker() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
