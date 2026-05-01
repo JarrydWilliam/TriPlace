@@ -1,13 +1,13 @@
-# TriPlace WebView Mobile Deployment Guide
+# SameVibe WebView Mobile Deployment Guide
 
 ## What is WebView Implementation?
-A WebView wraps your existing TriPlace web application inside a native mobile container. You're not rebuilding anything - just loading your website as the app's interface.
+A WebView wraps your existing SameVibe web application inside a native mobile container. You're not rebuilding anything - just loading your website as the app's interface.
 
 ## Files Ready for Deployment
 
 ### 1. WebView Container (`webview.html`)
 - Pure HTML/CSS/JavaScript wrapper
-- Loads your TriPlace app in an iframe
+- Loads your SameVibe app in an iframe
 - Mobile-optimized with touch handling
 - Prevents zoom, overscroll, and context menus
 - Includes loading states and error handling
@@ -52,7 +52,7 @@ Your app already includes:
 
 ## Features Included in WebView
 
-### Complete TriPlace Functionality
+### Complete SameVibe Functionality
 - ✅ Firebase Authentication (Google Sign-in)
 - ✅ 15-Question Onboarding Quiz
 - ✅ AI-Powered Community Matching
@@ -105,7 +105,7 @@ Update the iframe src in `webview.html`:
 1. **Fast Time-to-Market**: No rebuild required
 2. **Consistent Experience**: Same features across web and mobile
 3. **Easy Updates**: Push changes via web app, no app store delays
-4. **Full Functionality**: All TriPlace features work seamlessly
+4. **Full Functionality**: All SameVibe features work seamlessly
 5. **Cost Effective**: No separate mobile development needed
 
-Your TriPlace app is now fully ready for WebView deployment with complete mobile optimization.
+Your SameVibe app is now fully ready for WebView deployment with complete mobile optimization.

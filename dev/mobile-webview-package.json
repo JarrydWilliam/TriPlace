@@ -1,7 +1,7 @@
 {
-  "name": "triplace-mobile-webview",
+  "name": "SameVibe-mobile-webview",
   "version": "1.0.0",
-  "description": "TriPlace Mobile WebView Wrapper",
+  "description": "SameVibe Mobile WebView Wrapper",
   "main": "webview.html",
   "scripts": {
     "serve": "python3 -m http.server 8080",
@@ -9,8 +9,8 @@
     "build": "echo 'WebView wrapper ready for deployment'",
     "deploy": "echo 'Deploy webview.html to your mobile app container'"
   },
-  "keywords": ["webview", "mobile", "triplace", "social", "community"],
-  "author": "TriPlace Team",
+  "keywords": ["webview", "mobile", "SameVibe", "social", "community"],
+  "author": "SameVibe Team",
   "license": "MIT",
   "devDependencies": {
     "http-server": "^14.1.1"

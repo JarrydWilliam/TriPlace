@@ -42,7 +42,7 @@ export default function DeploymentStatus() {
           <div className="flex items-center justify-center mb-4">
             <Rocket className="w-8 h-8 text-blue-600 mr-3" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              TriPlace Deployment Status
+              SameVibe Deployment Status
             </h1>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
@@ -99,7 +99,7 @@ export default function DeploymentStatus() {
               <Rocket className="w-12 h-12 mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">Ready for Deployment!</h3>
               <p className="mb-4">
-                All critical checks passed. TriPlace is ready for production deployment.
+                All critical checks passed. SameVibe is ready for production deployment.
               </p>
               <Button 
                 size="lg" 
@@ -155,7 +155,7 @@ export default function DeploymentStatus() {
           <CardHeader>
             <CardTitle>Feature Completeness</CardTitle>
             <CardDescription>
-              All planned TriPlace features implemented and tested
+              All planned SameVibe features implemented and tested
             </CardDescription>
           </CardHeader>
           <CardContent>
