@@ -16,6 +16,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Middleware for logging API requests
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -46,51 +47,55 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Initialization function
+const serverPromise = (async () => {
   const server = await registerRoutes(app);
-
-  // ── Core intelligence agent (existing) ─────────────────────────────────────
-  startAgentScheduler();
-
-  // ── AI Agent Groups: 24/7 supervisor + three specialized groups ──────────────
-  startAgentSupervisor();                  // Watchdog: restarts crashed agents every 2 min
-  startBugMonitorScheduler(app);           // Group 2: monitors errors every 5 min
-  startFeatureGrowthScheduler(app);        // Group 1: proposes features weekly
-  startDeploymentScheduler(app);           // Group 3: validates App Store readiness weekly
 
   // Global status endpoint: shows all registered agents
   app.get("/api/agents/status", (_req, res) => {
     res.json(agentRegistry.getSummary());
   });
 
-
-
+  // Error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
-    throw err;
+    if (process.env.NODE_ENV !== "production") {
+      console.error(err);
+    }
   });
 
-  // Force production mode for deployment
   const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
-  
+  const isVercel = process.env.VERCEL === "1";
+
   if (isProduction) {
     serveStatic(app);
   } else {
     await setupVite(app, server);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Only start long-lived agents and listen on port if NOT on Vercel
+  if (!isVercel) {
+    startAgentScheduler();
+    startAgentSupervisor();
+    startBugMonitorScheduler(app);
+    startFeatureGrowthScheduler(app);
+    startDeploymentScheduler(app);
+
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  }
+
+  return server;
 })();
+
+// Export for Vercel
+export { app, serverPromise };
+export default app;
