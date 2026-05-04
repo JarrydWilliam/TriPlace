@@ -13,8 +13,8 @@
  */
 import OpenAI from "openai";
 import { Community, User } from "@shared/schema";
-import { interestLearner, type LearnedInterest } from "./agent/interest-learner";
-import { matchOptimizer } from "./agent/match-optimizer";
+import { interestLearner, type LearnedInterest } from "./agent/interest-learner.js";
+import { matchOptimizer } from "./agent/match-optimizer.js";
 
 // Initialize OpenAI as LLM backbone (model layer only — reasoning done by SameVibe agents)
 let llm: OpenAI | null = null;

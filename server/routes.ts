@@ -1,12 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { storage } from "./storage";
-import { eventScraper } from "./event-scraper";
-import { communityRefreshService } from "./community-refresh";
-import { communityUpdateNotifier } from "./community-update-notifier";
-import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
-import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
+import { storage } from "./storage.js";
+import { eventScraper } from "./event-scraper.js";
+import { communityRefreshService } from "./community-refresh.js";
+import { communityUpdateNotifier } from "./community-update-notifier.js";
+import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
+import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -1500,7 +1500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(post);
 
       // Trigger AI learning
-      import("./agent/agent-runner").then(({ agentRunner }) => {
+      import("./agent/agent-runner.js").then(({ agentRunner }) => {
         agentRunner.runAgentForUser(parseInt(authorId)).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
@@ -1517,7 +1517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
 
       // Trigger AI learning
-      import("./agent/agent-runner").then(({ agentRunner }) => {
+      import("./agent/agent-runner.js").then(({ agentRunner }) => {
         agentRunner.runAgentForUser(parseInt(giverId)).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
@@ -1562,7 +1562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/agent/run/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const { runAgentForUser } = await import("./agent/agent-runner");
+      const { runAgentForUser } = await import("./agent/agent-runner.js");
       const result = await runAgentForUser(userId);
       res.json(result);
     } catch (error) {

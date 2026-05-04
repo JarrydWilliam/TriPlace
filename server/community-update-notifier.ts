@@ -1,4 +1,4 @@
-import { storage } from './storage';
+import { storage } from './storage.js';
 
 export class CommunityUpdateNotifier {
   private static instance: CommunityUpdateNotifier;

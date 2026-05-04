@@ -1,5 +1,5 @@
-import { storage } from './storage';
-import { aiMatcher } from './ai-matching';
+import { storage } from './storage.js';
+import { aiMatcher } from './ai-matching.js';
 import { User } from '@shared/schema';
 
 export class CommunityRefreshService {

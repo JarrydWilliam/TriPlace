@@ -7,9 +7,9 @@ import {
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
-import { aiMatcher } from "./ai-matching";
+import { aiMatcher } from "./ai-matching.js";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;

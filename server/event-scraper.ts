@@ -1,8 +1,8 @@
 import { Event, Community, InsertEvent } from "@shared/schema";
-import { storage } from "./storage";
-import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator";
-import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler";
-import { db } from "./utils/firebase-admin";
+import { storage } from "./storage.js";
+import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
+import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
+import { db } from "./utils/firebase-admin.js";
 import * as admin from "firebase-admin";
 
 interface ScrapedEvent {

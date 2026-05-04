@@ -1,6 +1,6 @@
 import * as cron from 'node-cron';
-import { eventScraperOrchestrator } from '../scrapers/eventScraperOrchestrator';
-import { storage } from '../storage';
+import { eventScraperOrchestrator } from '../scrapers/eventScraperOrchestrator.js';
+import { storage } from '../storage.js';
 
 export class EventScrapingScheduler {
   private isRunning = false;

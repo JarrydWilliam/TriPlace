@@ -1,19 +1,19 @@
-import { EventbriteScraper } from './eventbriteScraper';
-import { MeetupScraper } from './meetupScraper';
-import { TicketmasterScraper } from './ticketmasterScraper';
-import { InstagramScraper } from './instagramScraper';
-import { LocalEventsScraper } from './localEventsScraper';
-import { SeatGeekScraper } from './seatgeekScraper';
-import { BandsintownScraper } from './bandsintownScraper';
-import { RedditEventsScraper } from './redditEventsScraper';
-import { GoogleThingsToDoScraper } from './googleThingsToDoScraper';
-import { FallbackEventScraper } from './fallbackEventScraper';
-import { CommunityMatcher } from '../filters/matchCommunityCriteria';
-import { DeduplicationUtils } from '../utils/dedupe';
-import { GeolocationUtils } from '../utils/geolocation';
-import { ScrapedEvent } from '../types/scraperTypes';
+import { EventbriteScraper } from './eventbriteScraper.js';
+import { MeetupScraper } from './meetupScraper.js';
+import { TicketmasterScraper } from './ticketmasterScraper.js';
+import { InstagramScraper } from './instagramScraper.js';
+import { LocalEventsScraper } from './localEventsScraper.js';
+import { SeatGeekScraper } from './seatgeekScraper.js';
+import { BandsintownScraper } from './bandsintownScraper.js';
+import { RedditEventsScraper } from './redditEventsScraper.js';
+import { GoogleThingsToDoScraper } from './googleThingsToDoScraper.js';
+import { FallbackEventScraper } from './fallbackEventScraper.js';
+import { CommunityMatcher } from '../filters/matchCommunityCriteria.js';
+import { DeduplicationUtils } from '../utils/dedupe.js';
+import { GeolocationUtils } from '../utils/geolocation.js';
+import { ScrapedEvent } from '../types/scraperTypes.js';
 import { Community, InsertEvent } from '@shared/schema';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 export class EventScraperOrchestrator {
   private eventbriteScraper = new EventbriteScraper();
