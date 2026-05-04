@@ -1,14 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { startAgentScheduler } from "./agent/agent-runner";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { startAgentScheduler } from "./agent/agent-runner.js";
 
 // ── AI Agent Groups ──────────────────────────────────────────────────────────
-import { startAgentSupervisor } from "./agent/agent-supervisor";
-import { agentRegistry } from "./agent/agent-registry";
-import { startFeatureGrowthScheduler } from "./agent/feature-growth/feature-orchestrator";
-import { startBugMonitorScheduler } from "./agent/bug-monitor/bug-orchestrator";
-import { startDeploymentScheduler } from "./agent/deployment/deployment-orchestrator";
+import { startAgentSupervisor } from "./agent/agent-supervisor.js";
+import { agentRegistry } from "./agent/agent-registry.js";
+import { startFeatureGrowthScheduler } from "./agent/feature-growth/feature-orchestrator.js";
+import { startBugMonitorScheduler } from "./agent/bug-monitor/bug-orchestrator.js";
+import { startDeploymentScheduler } from "./agent/deployment/deployment-orchestrator.js";
 
 // Environment variables are handled by Replit in production
 
