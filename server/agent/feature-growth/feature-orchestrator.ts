@@ -14,9 +14,9 @@
 
 import cron from "node-cron";
 import type { Express } from "express";
-import { featureSpecAnalyzer } from "./feature-spec-analyzer";
-import { featureIdeaGenerator } from "./feature-idea-generator";
-import { featureScaffolder } from "./feature-scaffolder";
+import { featureSpecAnalyzer } from "./feature-spec-analyzer.js";
+import { featureIdeaGenerator } from "./feature-idea-generator.js";
+import { featureScaffolder } from "./feature-scaffolder.js";
 import { agentRegistry } from "../agent-registry";
 import { workloadScaler } from "../workload-scaler";
 

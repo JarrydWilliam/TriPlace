@@ -8,8 +8,8 @@
  * 4. Suggest Mergers for low-activity clusters (future)
  */
 
-import { db } from "../db";
-import { communities, communityMessages, users } from "@shared/schema";
+import { db } from "../db.js";
+import { communities, communityMessages, users } from "../../shared/schema.js";
 import { eq, desc, sql, lt, and } from "drizzle-orm";
 
 export interface CommunityHealthReport {

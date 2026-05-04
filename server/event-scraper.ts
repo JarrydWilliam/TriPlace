@@ -1,4 +1,4 @@
-import { Event, Community, InsertEvent } from "@shared/schema";
+import { Event, Community, InsertEvent } from "../shared/schema.js";
 import { storage } from "./storage.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";

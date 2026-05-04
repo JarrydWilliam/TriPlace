@@ -4,8 +4,8 @@
  * significant new interests are discovered.
  */
 
-import { db } from "../db";
-import { users, agentRuns } from "@shared/schema";
+import { db } from "../db.js";
+import { users, agentRuns } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { LearnedInterest } from "./interest-learner";
 import { TrendingTopic } from "./local-activity-scanner";

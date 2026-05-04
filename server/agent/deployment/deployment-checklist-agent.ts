@@ -5,8 +5,8 @@
 
 import fs from "fs";
 import path from "path";
-import { buildValidator, ValidationReport } from "./build-validator";
-import { storeMetadataGenerator, StoreMetadata } from "./store-metadata-generator";
+import { buildValidator, ValidationReport } from "./build-validator.js";
+import { storeMetadataGenerator, StoreMetadata } from "./store-metadata-generator.js";
 
 const ROOT = process.cwd();
 

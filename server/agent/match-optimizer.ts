@@ -10,8 +10,8 @@
  * "Attending this 5K increases your match strength with 12 locals."
  */
 
-import { db } from "../db";
-import { users, events, eventAttendees } from "@shared/schema";
+import { db } from "../db.js";
+import { users, events, eventAttendees } from "../../shared/schema.js";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { type LearnedInterest } from "./interest-learner";
 

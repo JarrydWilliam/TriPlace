@@ -8,9 +8,9 @@
 
 import cron from "node-cron";
 import type { Express } from "express";
-import { errorLogMonitor } from "./error-log-monitor";
-import { bugAnalyzer, analyzeMultipleBugs } from "./bug-analyzer";
-import { autoPatcher } from "./auto-patcher";
+import { errorLogMonitor } from "./error-log-monitor.js";
+import { bugAnalyzer, analyzeMultipleBugs } from "./bug-analyzer.js";
+import { autoPatcher } from "./auto-patcher.js";
 import { agentRegistry } from "../agent-registry";
 import { workloadScaler } from "../workload-scaler";
 

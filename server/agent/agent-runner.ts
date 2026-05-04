@@ -5,12 +5,12 @@
  */
 
 import cron from "node-cron";
-import { db } from "../db";
-import { users } from "@shared/schema";
-import { interestLearner } from "./interest-learner";
-import { localActivityScanner } from "./local-activity-scanner";
-import { preferenceUpdater } from "./preference-updater";
-import { matchOptimizer } from "./match-optimizer";
+import { db } from "../db.js";
+import { users } from "../../shared/schema.js";
+import { interestLearner } from "./interest-learner.js";
+import { localActivityScanner } from "./local-activity-scanner.js";
+import { preferenceUpdater } from "./preference-updater.js";
+import { matchOptimizer } from "./match-optimizer.js";
 import { storage } from "../storage";
 import { gt } from "drizzle-orm";
 
@@ -198,7 +198,7 @@ async function runAgentForAllUsers(): Promise<void> {
  * Start the background agent scheduler.
  * Call once from server/index.ts at startup.
  */
-import { communityMonitor } from "./community-monitor";
+import { communityMonitor } from "./community-monitor.js";
 
 // ... existing code ...
 

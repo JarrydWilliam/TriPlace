@@ -9,7 +9,7 @@
 
 import cron from "node-cron";
 import type { Express } from "express";
-import { deploymentChecklistAgent } from "./deployment-checklist-agent";
+import { deploymentChecklistAgent } from "./deployment-checklist-agent.js";
 import { agentRegistry } from "../agent-registry";
 
 const AGENT_ID = "deployment-orchestrator";

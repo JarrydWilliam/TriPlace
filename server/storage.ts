@@ -6,7 +6,7 @@ import {
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching.js";

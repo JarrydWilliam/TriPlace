@@ -3,8 +3,8 @@
  * Returns trending topics to inform the agent's preference update.
  */
 
-import { db } from "../db";
-import { events, eventAttendees, communityMessages, posts } from "@shared/schema";
+import { db } from "../db.js";
+import { events, eventAttendees, communityMessages, posts } from "../../shared/schema.js";
 import { gte, lte, sql, desc, and } from "drizzle-orm";
 
 export interface TrendingTopic {

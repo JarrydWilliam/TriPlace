@@ -11,7 +11,7 @@
  */
 
 import cron from "node-cron";
-import { agentRegistry, AgentRecord } from "./agent-registry";
+import { agentRegistry, AgentRecord } from "./agent-registry.js";
 
 /** After this many ms of silence, consider an agent dead */
 const HEARTBEAT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes

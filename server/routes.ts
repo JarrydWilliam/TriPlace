@@ -7,7 +7,7 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "@shared/schema";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "../shared/schema.js";
 import { z } from "zod";
 
 // Track active WebSocket connections for real-time member detection

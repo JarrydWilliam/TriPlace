@@ -8,8 +8,8 @@
  * - Micro-Tagging: Detects specific sub-interests (e.g. "trail-running")
  */
 
-import { db } from "../db";
-import { eventAttendees, events, postKudos, posts, communityMessages, kudos, users, eventReviews } from "@shared/schema";
+import { db } from "../db.js";
+import { eventAttendees, events, postKudos, posts, communityMessages, kudos, users, eventReviews } from "../../shared/schema.js";
 import { eq, gte, desc, sql, and } from "drizzle-orm";
 
 export interface LearnedInterest {

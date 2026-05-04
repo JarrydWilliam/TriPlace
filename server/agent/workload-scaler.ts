@@ -21,8 +21,8 @@
  * so it's monitored and heartbeated.
  */
 
-import { agentRegistry, AgentGroup, AgentRecord } from "./agent-registry";
-import { spawnNewAgent } from "./agent-supervisor";
+import { agentRegistry, AgentGroup, AgentRecord } from "./agent-registry.js";
+import { spawnNewAgent } from "./agent-supervisor.js";
 
 export interface ScaleOptions<T> {
   /** ID of the parent agent requesting help */
