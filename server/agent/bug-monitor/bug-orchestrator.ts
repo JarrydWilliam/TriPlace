@@ -11,8 +11,8 @@ import type { Express } from "express";
 import { errorLogMonitor } from "./error-log-monitor.js";
 import { bugAnalyzer, analyzeMultipleBugs } from "./bug-analyzer.js";
 import { autoPatcher } from "./auto-patcher.js";
-import { agentRegistry } from "../agent-registry";
-import { workloadScaler } from "../workload-scaler";
+import { agentRegistry } from "../agent-registry.js";
+import { workloadScaler } from "../workload-scaler.js";
 
 const AGENT_ID = "bug-monitor-orchestrator";
 const SCALE_THRESHOLD = 20; // spawn helpers when >20 unanalyzed errors

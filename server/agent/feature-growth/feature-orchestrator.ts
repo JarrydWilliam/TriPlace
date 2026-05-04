@@ -17,8 +17,8 @@ import type { Express } from "express";
 import { featureSpecAnalyzer } from "./feature-spec-analyzer.js";
 import { featureIdeaGenerator } from "./feature-idea-generator.js";
 import { featureScaffolder } from "./feature-scaffolder.js";
-import { agentRegistry } from "../agent-registry";
-import { workloadScaler } from "../workload-scaler";
+import { agentRegistry } from "../agent-registry.js";
+import { workloadScaler } from "../workload-scaler.js";
 
 const AGENT_ID = "feature-growth-orchestrator";
 

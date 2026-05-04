@@ -7,9 +7,9 @@
 import { db } from "../db.js";
 import { users, agentRuns } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
-import { LearnedInterest } from "./interest-learner";
-import { TrendingTopic } from "./local-activity-scanner";
-import { storage } from "../storage";
+import { LearnedInterest } from "./interest-learner.js";
+import { TrendingTopic } from "./local-activity-scanner.js";
+import { storage } from "../storage.js";
 
 export interface PreferenceUpdateResult {
   userId: number;

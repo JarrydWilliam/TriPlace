@@ -11,7 +11,7 @@ import { interestLearner } from "./interest-learner.js";
 import { localActivityScanner } from "./local-activity-scanner.js";
 import { preferenceUpdater } from "./preference-updater.js";
 import { matchOptimizer } from "./match-optimizer.js";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { gt } from "drizzle-orm";
 
 let isRunning = false;

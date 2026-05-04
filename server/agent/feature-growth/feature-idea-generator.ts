@@ -7,7 +7,7 @@
  */
 
 import OpenAI from "openai";
-import { AppSpec } from "./feature-spec-analyzer";
+import { AppSpec } from "./feature-spec-analyzer.js";
 
 export interface FeatureProposal {
   title: string;

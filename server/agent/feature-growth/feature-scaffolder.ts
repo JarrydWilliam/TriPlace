@@ -11,10 +11,10 @@
 
 import fs from "fs";
 import path from "path";
-import { FeatureProposal } from "./feature-idea-generator";
-import { AppSpec } from "./feature-spec-analyzer";
-import { spawnNewAgent } from "../agent-supervisor";
-import { agentRegistry } from "../agent-registry";
+import { FeatureProposal } from "./feature-idea-generator.js";
+import { AppSpec } from "./feature-spec-analyzer.js";
+import { spawnNewAgent } from "../agent-supervisor.js";
+import { agentRegistry } from "../agent-registry.js";
 
 const ROOT = process.cwd();
 const PROPOSALS_DIR = path.join(ROOT, "docs", "feature-proposals");

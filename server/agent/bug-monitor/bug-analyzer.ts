@@ -4,7 +4,7 @@
  */
 
 import OpenAI from "openai";
-import { CapturedError } from "./error-log-monitor";
+import { CapturedError } from "./error-log-monitor.js";
 
 export interface BugDiagnosis {
   errorId: string;

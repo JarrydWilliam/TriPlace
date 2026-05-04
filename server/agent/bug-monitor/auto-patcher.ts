@@ -10,8 +10,8 @@
 
 import fs from "fs";
 import path from "path";
-import { BugDiagnosis } from "./bug-analyzer";
-import { CapturedError } from "./error-log-monitor";
+import { BugDiagnosis } from "./bug-analyzer.js";
+import { CapturedError } from "./error-log-monitor.js";
 
 const ROOT = process.cwd();
 const PATCH_DIR = path.join(ROOT, "docs", "bug-patches");

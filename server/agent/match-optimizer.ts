@@ -13,7 +13,7 @@
 import { db } from "../db.js";
 import { users, events, eventAttendees } from "../../shared/schema.js";
 import { eq, and, inArray, desc } from "drizzle-orm";
-import { type LearnedInterest } from "./interest-learner";
+import { type LearnedInterest } from "./interest-learner.js";
 
 export interface MatchResult {
   score: number;        // 0-100
