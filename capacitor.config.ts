@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: "com.triplace.app",
   appName: "SameVibe",
   webDir: "dist/public",
-  bundledWebRuntime: false,
+  // bundledWebRuntime removed — deprecated in Capacitor 6+
   // server block intentionally omitted for production.
   // For local dev with Capacitor: uncomment below and run `npx cap sync`
   // server: { url: "http://localhost:5000", cleartext: true },

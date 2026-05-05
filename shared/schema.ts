@@ -242,6 +242,34 @@ export const userBlocks = pgTable("user_blocks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userReports = pgTable("user_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id")
+    .references(() => users.id)
+    .notNull(),
+  targetUserId: integer("target_user_id")
+    .references(() => users.id)
+    .notNull(),
+  reason: text("reason").notNull(), // harassment, spam, fake_profile, inappropriate_content, other
+  details: text("details"),
+  status: text("status").default("pending"), // pending, reviewed, resolved
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const eventReports = pgTable("event_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id")
+    .references(() => users.id)
+    .notNull(),
+  eventId: integer("event_id")
+    .references(() => events.id)
+    .notNull(),
+  reason: text("reason").notNull(), // misleading, spam, inappropriate, cancelled, other
+  details: text("details"),
+  status: text("status").default("pending"), // pending, reviewed, resolved
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const featureFlags = pgTable("feature_flags", {
   id: serial("id").primaryKey(),
   featureName: text("feature_name").notNull().unique(),
@@ -375,6 +403,16 @@ export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
   id: true,
 });
 
+export const insertUserReportSchema = createInsertSchema(userReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEventReportSchema = createInsertSchema(eventReports).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertEventReviewSchema = createInsertSchema(eventReviews).omit({
   id: true,
   createdAt: true,
@@ -424,6 +462,10 @@ export type AgentRun = typeof agentRuns.$inferSelect;
 export type InsertAgentRun = z.infer<typeof insertAgentRunSchema>;
 export type UserBlock = typeof userBlocks.$inferSelect;
 export type InsertUserBlock = z.infer<typeof insertUserBlockSchema>;
+export type UserReport = typeof userReports.$inferSelect;
+export type InsertUserReport = z.infer<typeof insertUserReportSchema>;
+export type EventReport = typeof eventReports.$inferSelect;
+export type InsertEventReport = z.infer<typeof insertEventReportSchema>;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
 export type EventReview = typeof eventReviews.$inferSelect;

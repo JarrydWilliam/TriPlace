@@ -522,11 +522,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const eventId = parseInt(req.params.id);
       const { userId, rating, feltSafe, feedback } = req.body;
-      
-      // Logic would insert this into `eventReviews` table
-      // and trigger shadow ban checks if `feltSafe` is false.
-      
-      res.status(201).json({ success: true, message: "Review submitted" });
+
+      if (!userId || rating === undefined) {
+        return res.status(400).json({ message: "userId and rating are required" });
+      }
+
+      const numRating = parseInt(rating);
+      if (numRating < 1 || numRating > 5) {
+        return res.status(400).json({ message: "rating must be between 1 and 5" });
+      }
+
+      const review = await storage.createEventReview(
+        parseInt(userId),
+        eventId,
+        numRating,
+        feltSafe !== false, // default true unless explicitly false
+        feedback
+      );
+
+      // Safety guard: if user did not feel safe, auto-file a safety report
+      if (feltSafe === false && feedback) {
+        await storage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
+      }
+
+      res.status(201).json({ success: true, review, message: "Review submitted" });
+    } catch (error) {
+      console.error("Event review error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ── Safety Routes (required by Apple and Google store policies) ─────────────
+
+  // Block a user
+  app.post("/api/users/block", async (req, res) => {
+    try {
+      const { blockerId, blockedId, reason } = req.body;
+      if (!blockerId || !blockedId) {
+        return res.status(400).json({ message: "blockerId and blockedId are required" });
+      }
+      if (blockerId === blockedId) {
+        return res.status(400).json({ message: "Cannot block yourself" });
+      }
+      const block = await storage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
+      res.status(201).json({ success: true, block });
+    } catch (error) {
+      console.error("Block user error:", error);
+      res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  // Report a user
+  app.post("/api/users/:id/report", async (req, res) => {
+    try {
+      const targetUserId = parseInt(req.params.id);
+      const { reporterId, reason, details } = req.body;
+      if (!reporterId || !reason) {
+        return res.status(400).json({ message: "reporterId and reason are required" });
+      }
+      const validReasons = ['harassment', 'spam', 'fake_profile', 'inappropriate_content', 'other'];
+      if (!validReasons.includes(reason)) {
+        return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
+      }
+      const report = await storage.reportUser(parseInt(reporterId), targetUserId, reason, details);
+      res.status(201).json({ success: true, report, message: "Report submitted for review" });
+    } catch (error) {
+      console.error("Report user error:", error);
+      res.status(500).json({ message: "Failed to submit report" });
+    }
+  });
+
+  // Report an event
+  app.post("/api/events/:id/report", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const { reporterId, reason, details } = req.body;
+      if (!reporterId || !reason) {
+        return res.status(400).json({ message: "reporterId and reason are required" });
+      }
+      const validReasons = ['misleading', 'spam', 'inappropriate', 'cancelled', 'safety_concern', 'other'];
+      if (!validReasons.includes(reason)) {
+        return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
+      }
+      const report = await storage.reportEvent(parseInt(reporterId), eventId, reason, details);
+      res.status(201).json({ success: true, report, message: "Report submitted for review" });
+    } catch (error) {
+      console.error("Report event error:", error);
+      res.status(500).json({ message: "Failed to submit report" });
+    }
+  });
+
+  // /api/events/feed alias for /api/events/upcoming (required by live check spec)
+  app.get("/api/events/feed", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const events = await storage.getUpcomingEvents(userId);
+      res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

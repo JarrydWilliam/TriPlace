@@ -1,11 +1,14 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
-  telemetryEvents, type User, type InsertUser, type Community, type InsertCommunity, 
+  telemetryEvents, userBlocks, userReports, eventReports, eventReviews,
+  type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
-  type TelemetryEvent, type InsertTelemetryEvent
+  type TelemetryEvent, type InsertTelemetryEvent,
+  type UserBlock, type UserReport, type InsertUserReport,
+  type EventReport, type InsertEventReport
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -82,6 +85,13 @@ export interface IStorage {
 
   createTelemetryEvent(event: InsertTelemetryEvent): Promise<TelemetryEvent>;
   getTelemetryEvents(filters?: { userId?: number, eventType?: string, eventId?: number }): Promise<TelemetryEvent[]>;
+
+  // Safety & Moderation
+  blockUser(blockerId: number, blockedId: number, reason?: string): Promise<UserBlock>;
+  isUserBlocked(viewerId: number, targetId: number): Promise<boolean>;
+  reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport>;
+  reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport>;
+  createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1103,6 +1113,24 @@ export class DatabaseStorage implements IStorage {
       try { await db.delete(streaks).where(eq(streaks.userId, userId)); } catch {}
       try { await db.delete(agentRuns).where(eq(agentRuns.userId, userId)); } catch {}
 
+      // Safety table cleanup (new tables — wrapped in try/catch for schema migration safety)
+      try {
+        await db.delete(userBlocks).where(
+          or(eq(userBlocks.blockerId, userId), eq(userBlocks.blockedId, userId))
+        );
+      } catch {}
+      try {
+        await db.delete(userReports).where(
+          or(eq(userReports.reporterId, userId), eq(userReports.targetUserId, userId))
+        );
+      } catch {}
+      try {
+        await db.delete(eventReports).where(eq(eventReports.reporterId, userId));
+      } catch {}
+      try {
+        await db.delete(eventReviews).where(eq(eventReviews.userId, userId));
+      } catch {}
+
       const result = await db.delete(users).where(eq(users.id, userId));
       return (result.rowCount || 0) > 0;
     } catch (error) {
@@ -1129,6 +1157,62 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await query.orderBy(desc(telemetryEvents.createdAt));
+  }
+
+  // ── Safety & Moderation ───────────────────────────────────────────────────
+
+  async blockUser(blockerId: number, blockedId: number, reason?: string): Promise<UserBlock> {
+    // Idempotency: return existing block if already blocked
+    const [existing] = await db
+      .select()
+      .from(userBlocks)
+      .where(and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId)))
+      .limit(1);
+    if (existing) return existing;
+
+    const [block] = await db
+      .insert(userBlocks)
+      .values({ blockerId, blockedId, reason: reason ?? null })
+      .returning();
+    return block;
+  }
+
+  async isUserBlocked(viewerId: number, targetId: number): Promise<boolean> {
+    const [block] = await db
+      .select()
+      .from(userBlocks)
+      .where(
+        or(
+          and(eq(userBlocks.blockerId, viewerId), eq(userBlocks.blockedId, targetId)),
+          and(eq(userBlocks.blockerId, targetId), eq(userBlocks.blockedId, viewerId))
+        )
+      )
+      .limit(1);
+    return !!block;
+  }
+
+  async reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport> {
+    const [report] = await db
+      .insert(userReports)
+      .values({ reporterId, targetUserId, reason, details: details ?? null, status: 'pending' })
+      .returning();
+    return report;
+  }
+
+  async reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport> {
+    const [report] = await db
+      .insert(eventReports)
+      .values({ reporterId, eventId, reason, details: details ?? null, status: 'pending' })
+      .returning();
+    return report;
+  }
+
+  async createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any> {
+    const [review] = await db
+      .insert(eventReviews)
+      .values({ userId, eventId, rating, feltSafe, feedback: feedback ?? null })
+      .returning();
+    return review;
   }
 }
 

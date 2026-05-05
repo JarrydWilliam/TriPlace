@@ -16,11 +16,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap } from "lucide-react";
+import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, AlertCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Community, Event } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent } from "@/lib/telemetry";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ─── Category pill config ─────────────────────────────────────────────────────
 
@@ -136,6 +145,26 @@ export default function Discover() {
   const qc = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [joiningId, setJoiningId] = useState<number | null>(null);
+
+  // External handoff warning dialog state
+  const [pendingExternalUrl, setPendingExternalUrl] = useState<string | null>(null);
+  const [pendingSourceName, setPendingSourceName] = useState<string | null>(null);
+
+  /** Call this instead of window.open directly for any external URL */
+  const openExternal = (url: string, sourceName?: string | null, eventTitle?: string) => {
+    setPendingExternalUrl(url);
+    setPendingSourceName(sourceName ?? "the event page");
+    trackEvent("external_handoff_warning_shown", { url, sourceName, userId: user?.id });
+  };
+
+  const confirmExternalOpen = () => {
+    if (pendingExternalUrl) {
+      trackEvent("external_handoff_confirmed", { url: pendingExternalUrl, userId: user?.id });
+      window.open(pendingExternalUrl, "_blank", "noopener,noreferrer");
+    }
+    setPendingExternalUrl(null);
+    setPendingSourceName(null);
+  };
 
   // Recommended communities
   const { data: recommended = [], isLoading: loadingCommunities } = useQuery<Community[]>({
@@ -297,9 +326,13 @@ export default function Discover() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-4 p-3.5 rounded-xl bg-muted/20 border border-border/30 hover:bg-muted/40 transition-colors cursor-pointer"
                   onClick={() => {
-                    // Always send to original source — no in-app ticketing
+                    // Show warning dialog before opening external source
                     if (event.sourceUrl) {
-                      window.open(event.sourceUrl, "_blank", "noopener,noreferrer");
+                      openExternal(
+                        event.sourceUrl,
+                        event.sourceName ?? event.sourceAttribution,
+                        event.title
+                      );
                     }
                   }}
                 >
@@ -329,6 +362,41 @@ export default function Discover() {
       </div>
 
       <MobileNav />
+
+      {/* ─ External Handoff Warning Dialog ─ */}
+      <Dialog
+        open={!!pendingExternalUrl}
+        onOpenChange={(open) => { if (!open) { setPendingExternalUrl(null); setPendingSourceName(null); } }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/10 mx-auto mb-3">
+              <ExternalLink className="w-6 h-6 text-amber-500" />
+            </div>
+            <DialogTitle className="text-center">Leaving SameVibe</DialogTitle>
+            <DialogDescription className="text-center">
+              You are about to visit{" "}
+              <span className="font-medium text-foreground">
+                {pendingSourceName ?? "an external website"}
+              </span>
+              . SameVibe does not sell tickets or control third-party content.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setPendingExternalUrl(null); setPendingSourceName(null); }}
+            >
+              Cancel
+            </Button>
+            <Button className="flex-1 gap-2" onClick={confirmExternalOpen}>
+              <ExternalLink className="w-4 h-4" />
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

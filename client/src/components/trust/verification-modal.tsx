@@ -8,181 +8,83 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/telemetry";
 import { useEffect } from "react";
+import { Calendar, ExternalLink, Clock } from "lucide-react";
 
 interface VerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: number;
   onVerified: () => void;
+  /** If provided, shown as the external source link for the event */
+  eventSourceUrl?: string;
+  /** Display name of the source platform (e.g. "Eventbrite") */
+  eventSourceName?: string;
 }
 
-export function VerificationModal({ isOpen, onClose, userId, onVerified }: VerificationModalProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [step, setStep] = useState<"phone" | "code">("phone");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function VerificationModal({
+  isOpen,
+  onClose,
+  userId,
+  onVerified,
+  eventSourceUrl,
+  eventSourceName,
+}: VerificationModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      trackEvent('verification_start', { userId });
+      trackEvent("verification_start", { userId });
     }
   }, [isOpen, userId]);
 
-  // For MVP, we simulate sending a code and verifying
-  const handleSendCode = () => {
-    if (phone.length < 10) {
-      toast({
-        title: "Invalid Phone Number",
-        description: "Please enter a valid 10-digit phone number.",
-        variant: "destructive",
-      });
-      return;
+  const handleOpenSource = () => {
+    if (eventSourceUrl) {
+      trackEvent("external_source_click", { userId, source: eventSourceName });
+      window.open(eventSourceUrl, "_blank", "noopener,noreferrer");
     }
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setStep("code");
-      toast({
-        title: "Code Sent",
-        description: "Please check your messages for the verification code.",
-      });
-    }, 1000);
-  };
-
-  const verifyMutation = useMutation({
-    mutationFn: async () => {
-      // Simulate checking the code, then update user's trust level
-      const response = await apiRequest("PATCH", `/api/users/${userId}`, {
-        trustLevel: 1,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      trackEvent('verification_success', { userId });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
-      toast({
-        title: "Phone Verified!",
-        description: "Your trust level has been increased. You can now RSVP to events.",
-      });
-      onVerified();
-      onClose();
-      // Reset for future
-      setTimeout(() => setStep("phone"), 500);
-    },
-    onError: () => {
-      trackEvent('verification_failed', { userId });
-      toast({
-        title: "Verification Failed",
-        description: "Invalid code or connection error. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleVerifyCode = () => {
-    const isBetaSimulation = import.meta.env.VITE_ENABLE_BETA_SMS_SIMULATION === 'true';
-
-    if (import.meta.env.DEV || isBetaSimulation) {
-      if (code !== "123456") {
-        toast({
-          title: "Invalid Code",
-          description: `For ${import.meta.env.DEV ? 'development' : 'beta testing'}, use code 123456.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      if (isBetaSimulation && !import.meta.env.DEV) {
-          trackEvent('verification_beta_simulated', { userId });
-      }
-      verifyMutation.mutate();
-    } else {
-      // Production mode does not allow fake verification bypass
-      toast({
-        title: "Verification Unavailable",
-        description: "SMS Verification is currently disabled.",
-        variant: "destructive",
-      });
-      return;
-    }
+    onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Verify Your Profile</DialogTitle>
-          <DialogDescription>
-            To keep meetups real and reduce fake accounts, please verify your phone number before RSVPing. Your phone number will not be shown on your profile.
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mx-auto mb-3">
+            <Clock className="w-7 h-7 text-primary" />
+          </div>
+          <DialogTitle className="text-center">RSVP Coming Soon</DialogTitle>
+          <DialogDescription className="text-center">
+            In-app RSVP is coming in a future update. In the meantime, you can register directly on the original event page.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          {step === "phone" ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="(555) 123-4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full bg-primary"
-                onClick={handleSendCode}
-                disabled={isSubmitting || !phone}
-              >
-                {isSubmitting ? "Sending..." : "Send Verification Code"}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Verification Code</Label>
-                <Input
-                  id="code"
-                  type="text"
-                  placeholder="123456"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  maxLength={6}
-                />
-                {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_BETA_SMS_SIMULATION === 'true') && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    (Simulated: use code 123456)
-                  </p>
-                )}
-              </div>
-              <Button
-                className="w-full bg-primary"
-                onClick={handleVerifyCode}
-                disabled={verifyMutation.isPending || !code}
-              >
-                {verifyMutation.isPending ? "Verifying..." : "Verify Code"}
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setStep("phone")}
-                disabled={verifyMutation.isPending}
-              >
-                Back to Phone Number
-              </Button>
-            </div>
-          )}
+        <div className="py-2 space-y-3">
+          <div className="p-3 rounded-lg bg-muted/40 border border-border/50 text-sm text-muted-foreground text-center">
+            <Calendar className="w-4 h-4 inline mr-1.5 opacity-70" />
+            SameVibe does not sell tickets or process payments. You will be taken to{" "}
+            <span className="font-medium text-foreground">
+              {eventSourceName ?? "the event source"}
+            </span>{" "}
+            to complete your registration.
+          </div>
         </div>
+
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Not Now
+          </Button>
+          {eventSourceUrl ? (
+            <Button onClick={handleOpenSource} className="flex-1 gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Register on {eventSourceName ?? "Source"}
+            </Button>
+          ) : (
+            <Button onClick={onClose} className="flex-1">
+              OK
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

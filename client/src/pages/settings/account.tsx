@@ -203,14 +203,24 @@ export default function AccountSettings() {
               </div>
 
               <div className="space-y-2">
-                <Button variant="link" className="p-0 h-auto justify-start">
-                  Privacy Policy
-                  <ExternalLink className="w-3 h-3 ml-1" />
-                </Button>
-                <Button variant="link" className="p-0 h-auto justify-start">
-                  Terms of Service
-                  <ExternalLink className="w-3 h-3 ml-1" />
-                </Button>
+                <Link href="/privacy">
+                  <Button variant="link" className="p-0 h-auto justify-start">
+                    Privacy Policy
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
+                <Link href="/terms">
+                  <Button variant="link" className="p-0 h-auto justify-start">
+                    Terms of Service
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
+                <Link href="/delete-account">
+                  <Button variant="link" className="p-0 h-auto justify-start text-muted-foreground">
+                    Account Deletion Info
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -225,10 +235,10 @@ export default function AccountSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start opacity-60" disabled>
                   <div className="text-left">
                     <p className="font-medium">Deactivate Account</p>
-                    <p className="text-sm text-gray-500">Temporarily disable your account</p>
+                    <p className="text-sm text-gray-500">Temporarily disable your account — coming soon</p>
                   </div>
                 </Button>
 

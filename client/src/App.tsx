@@ -30,6 +30,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Reveal from "@/pages/reveal";
 import Discover from "@/pages/discover";
+import DeleteAccount from "@/pages/delete-account";
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/delete-account" component={DeleteAccount} />
       <Route path="/admin/metrics" component={AdminMetrics} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
