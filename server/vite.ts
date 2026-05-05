@@ -2,15 +2,11 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
+import { type Server } from "http";
+import { nanoid } from "nanoid";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import { createServer as createViteServer, createLogger } from "vite";
-import { type Server } from "http";
-// import viteConfig from "../vite.config";
-import { nanoid } from "nanoid";
-
-const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -19,14 +15,27 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
+  console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+/**
+ * setupVite — Only used in local development.
+ * Uses a dynamic import() so Vite (and its Rollup dependency) are NEVER
+ * loaded in the Vercel serverless runtime. Vercel runs in production mode
+ * and never calls this function, but the static import would still load
+ * Rollup at cold-start — causing "Cannot find module @rollup/rollup-linux-x64-gnu".
+ */
 export async function setupVite(app: Express, server: Server) {
+  // Dynamic import: Vite is only resolved when this function is actually called.
+  // In production / Vercel, this code path is never hit.
+  const { createServer: createViteServer, createLogger } = await import("vite");
+
+  const viteLogger = createLogger();
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+    allowedHosts: true as true,
   };
 
   const viteConfig = (await import("../vite.config.js")).default;
@@ -35,7 +44,7 @@ export async function setupVite(app: Express, server: Server) {
     configFile: false,
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      error: (msg: string, options?: Parameters<typeof viteLogger.error>[1]) => {
         viteLogger.error(msg, options);
         process.exit(1);
       },
@@ -56,7 +65,6 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -82,7 +90,7 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
+  // Fall through to index.html for client-side routing
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
