@@ -2,8 +2,7 @@ import { Event, Community, InsertEvent } from "../shared/schema.js";
 import { storage } from "./storage.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
-import { db } from "./utils/firebase-admin.js";
-import * as admin from "firebase-admin";
+// firebase-admin removed: all data stored in Neon via Drizzle
 
 interface ScrapedEvent {
   title: string;
@@ -545,21 +544,4 @@ export class EventScraper {
 }
 
 export const eventScraper = new EventScraper();
-
-// Add this function to save events to Firestore
-async function saveEventsToFirebase(communityId: string, events: ScrapedEvent[]) {
-  const batch = db.batch();
-  const eventsRef = db.collection("communities").doc(communityId).collection("events");
-  events.forEach(event => {
-    const eventRef = eventsRef.doc(); // auto-generated ID
-    batch.set(eventRef, {
-      ...event,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-  });
-  await batch.commit();
-}
-
-// Example integration: after scraping events for a community
-// (You can call this in your orchestrator or wherever you handle scraped events)
-// await saveEventsToFirebase(community.id, events);
+// Note: saveEventsToFirebase removed — all events are persisted via Drizzle/Neon (storage.createEvent)
