@@ -1,23 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
-import { startAgentScheduler } from "./agent/agent-runner.js";
 
-// ── AI Agent Groups ──────────────────────────────────────────────────────────
-import { startAgentSupervisor } from "./agent/agent-supervisor.js";
-import { agentRegistry } from "./agent/agent-registry.js";
-import { startFeatureGrowthScheduler } from "./agent/feature-growth/feature-orchestrator.js";
-import { startBugMonitorScheduler } from "./agent/bug-monitor/bug-orchestrator.js";
-import { startDeploymentScheduler } from "./agent/deployment/deployment-orchestrator.js";
-
-// Environment variables are handled by Replit in production
+// Agent imports are dynamic — only loaded when NOT running on Vercel.
+// Static imports would execute OpenAI/cron initialization at module load time,
+// crashing the serverless function with "OPENAI_API_KEY missing".
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Middleware for logging API requests
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -35,11 +29,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -51,9 +43,13 @@ app.use((req, res, next) => {
 const serverPromise = (async () => {
   const server = await registerRoutes(app);
 
-  // Global status endpoint: shows all registered agents
+  // Global agent status endpoint (simplified for Vercel)
   app.get("/api/agents/status", (_req, res) => {
-    res.json(agentRegistry.getSummary());
+    res.json({
+      status: "ok",
+      agents: "disabled on Vercel - run on dedicated worker",
+      environment: process.env.NODE_ENV,
+    });
   });
 
   // Error handling middleware
@@ -66,7 +62,9 @@ const serverPromise = (async () => {
     }
   });
 
-  const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    process.env.REPLIT_DEPLOYMENT === "1";
   const isVercel = process.env.VERCEL === "1";
 
   if (isProduction) {
@@ -75,8 +73,24 @@ const serverPromise = (async () => {
     await setupVite(app, server);
   }
 
-  // Only start long-lived agents and listen on port if NOT on Vercel
+  // Only start long-lived agents and listen on port if NOT on Vercel.
+  // Dynamic imports: only load agent modules when actually needed.
+  // This prevents OpenAI/cron from being instantiated at cold-start on Vercel.
   if (!isVercel) {
+    const [
+      { startAgentScheduler },
+      { startAgentSupervisor },
+      { startFeatureGrowthScheduler },
+      { startBugMonitorScheduler },
+      { startDeploymentScheduler },
+    ] = await Promise.all([
+      import("./agent/agent-runner.js"),
+      import("./agent/agent-supervisor.js"),
+      import("./agent/feature-growth/feature-orchestrator.js"),
+      import("./agent/bug-monitor/bug-orchestrator.js"),
+      import("./agent/deployment/deployment-orchestrator.js"),
+    ]);
+
     startAgentScheduler();
     startAgentSupervisor();
     startBugMonitorScheduler(app);
@@ -84,13 +98,10 @@ const serverPromise = (async () => {
     startDeploymentScheduler(app);
 
     const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${port}`);
-    });
+    server.listen(
+      { port, host: "0.0.0.0", reusePort: true },
+      () => { log(`serving on port ${port}`); }
+    );
   }
 
   return server;
