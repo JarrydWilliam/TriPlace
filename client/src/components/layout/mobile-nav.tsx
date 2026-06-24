@@ -3,6 +3,18 @@ import { Badge } from "@/components/ui/badge";
 import { Home, Compass, Users, MessageCircle, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+
+// Lightweight haptic trigger — works on native Capacitor, no-ops gracefully in browser
+const triggerHaptic = async () => {
+  try {
+    // @ts-ignore — Capacitor may not be available in browser
+    const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
+    await Haptics.impact({ style: ImpactStyle.Light });
+  } catch {
+    // Not in a native Capacitor context — silently ignore
+  }
+};
 
 export function MobileNav() {
   const { user } = useAuth();
@@ -29,7 +41,7 @@ export function MobileNav() {
       href: "/dashboard", 
       icon: Home, 
       label: "Home",
-      active: location === "/dashboard"
+      active: location === "/dashboard" || location === "/"
     },
     { 
       href: "/discover", 
@@ -40,21 +52,21 @@ export function MobileNav() {
     { 
       href: "/communities", 
       icon: Users, 
-      label: "Communities",
+      label: "My Groups",
       active: location === "/communities"
     },
     { 
       href: "/messages", 
       icon: MessageCircle, 
       label: "Messages",
-      active: location === "/messages",
+      active: location === "/messages" || location === "/messaging",
       badge: unreadCount > 0 ? String(unreadCount > 99 ? "99+" : unreadCount) : undefined,
     },
     { 
       href: "/profile", 
       icon: User, 
       label: "Profile",
-      active: location === "/profile"
+      active: location === "/profile" || location.startsWith("/profile/")
     },
   ];
 
@@ -64,8 +76,10 @@ export function MobileNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
       style={{
-        background: "hsl(var(--card))",
-        borderTop: "1px solid hsl(var(--border))",
+        background: "rgba(8, 6, 18, 0.92)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
@@ -74,19 +88,42 @@ export function MobileNav() {
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href}>
-              <a className={`
-                flex flex-col items-center py-2 px-3 relative transition-colors min-w-[48px]
-                ${item.active 
-                  ? 'text-primary' 
-                  : 'text-muted-foreground'
-                }
-              `}>
-                <Icon className="h-5 w-5 mb-1" />
-                <span className="text-xs">{item.label}</span>
+              <a
+                className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px]"
+                onClick={() => triggerHaptic()}
+              >
+                {/* Animated active pill indicator */}
+                {item.active && (
+                  <motion.div
+                    layoutId="nav-indicator"
+                    className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-xl bg-white/10"
+                    transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+                  />
+                )}
+
+                <div className="relative z-10">
+                  <Icon
+                    className={`h-5 w-5 mb-1 transition-all duration-300 ${
+                      item.active
+                        ? "text-[#ff6b35] scale-110"
+                        : "text-white/40"
+                    }`}
+                  />
+                </div>
+
+                <span
+                  className={`text-[10px] font-medium z-10 transition-colors duration-300 ${
+                    item.active ? "text-[#ff6b35]" : "text-white/30"
+                  }`}
+                >
+                  {item.label}
+                </span>
+
+                {/* Unread badge */}
                 {item.badge && (
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute -top-1 right-0 min-w-[18px] h-[18px] p-0 bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center rounded-full"
+                  <Badge
+                    variant="secondary"
+                    className="absolute top-0 right-1 min-w-[16px] h-[16px] p-0 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full border-0"
                   >
                     {item.badge}
                   </Badge>

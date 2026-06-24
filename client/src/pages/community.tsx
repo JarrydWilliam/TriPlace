@@ -205,69 +205,65 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   const sortedDates = Object.keys(eventsByDate).sort();
 
   return (
-    <div className="responsive-padding space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+    <div className="space-y-5 pb-4">
       {sortedDates.map((date) => (
         <div key={date} className="space-y-3">
-          <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
-            {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
-          </h3>
+          {/* Date header */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/8" />
+            <span className="text-xs font-semibold text-white/40 uppercase tracking-widest whitespace-nowrap">
+              {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
+            </span>
+            <div className="h-px flex-1 bg-white/8" />
+          </div>
+
           {eventsByDate[date].map((event) => (
-            <Card key={event.id} className="glass-card border-white/5 hover:bg-white/10 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-lg font-semibold text-white truncate pr-2">
-                        {event.title}
-                      </h4>
-                      <Badge variant="secondary" className="flex-shrink-0 bg-white/10 text-white">
-                        {formatPrice(event.price ?? "0")}
-                      </Badge>
-                    </div>
-                    
-                    <p className="text-sm text-white/70 mb-3 line-clamp-2">
-                      {event.description}
-                    </p>
-                    
-                    <div className="flex flex-wrap gap-4 text-sm text-white/50 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatEventDate(typeof event.date === 'string' ? event.date : event.date.toISOString())}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{event.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>by {event.organizer}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={() => handleJoinEvent(event.id, event.title)}
-                    disabled={joiningEventId === event.id}
-                    className="flex-shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md font-medium transition-colors"
-                    size="sm"
-                  >
-                    {joiningEventId === event.id ? (
-                      <>
-                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                        Joining...
-                      </>
-                    ) : (
-                      <>
-                        <Users className="h-3 w-3 mr-2" />
-                        Join Event
-                      </>
-                    )}
-                  </Button>
+            <div
+              key={event.id}
+              className="rounded-2xl border border-white/8 overflow-hidden bg-white/4 hover:bg-white/7 transition-all"
+            >
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h4 className="text-sm font-bold text-white leading-tight">{event.title}</h4>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
+                    parseFloat(event.price ?? "0") === 0
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : "bg-amber-500/20 text-amber-300"
+                  }`}>
+                    {formatPrice(event.price ?? "0")}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+
+                <p className="text-xs text-white/55 leading-relaxed mb-3 line-clamp-2">{event.description}</p>
+
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/40 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatEventDate(typeof event.date === 'string' ? event.date : event.date.toISOString())}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    <span className="truncate">{event.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>by {event.organizer}</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => handleJoinEvent(event.id, event.title)}
+                  disabled={joiningEventId === event.id}
+                  className="w-full h-9 rounded-xl bg-gradient-to-r from-primary/80 to-accent/80 hover:from-primary hover:to-accent text-white text-xs font-semibold transition-all"
+                >
+                  {joiningEventId === event.id ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>Join Event</>
+                  )}
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       ))}
@@ -322,7 +318,8 @@ export default function CommunityPage() {
       if (!response.ok) throw new Error('Failed to fetch messages');
       return response.json();
     },
-    refetchInterval: 500,
+    // WebSocket handles real-time updates — 5s polling is a conservative fallback only
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
@@ -499,23 +496,25 @@ export default function CommunityPage() {
               {/* Conditionally render active tab content */}
               {activeTab === "chat" && (
               <div className="mt-0 h-[70vh] flex flex-col relative">
-                {/* Chat Header with Community Status */}
-                <div className="responsive-padding border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-10">
+                {/* Chat Header */}
+                <div className="px-4 py-3 border-b border-white/10 bg-black/30 backdrop-blur-md">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold shadow-lg">
-                          {community.name.charAt(0)}
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {community.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a1a2e]"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#080612] shadow" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">{community.name}</h3>
-                        <p className="text-xs text-white/60">{community.memberCount} members online</p>
+                        <h3 className="font-bold text-white text-sm leading-tight">{community.name}</h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-white/50">{community.memberCount} members</span>
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-300 border border-green-500/30">
-                      Active
+                    <Badge className="bg-green-500/20 text-green-300 border border-green-500/30 text-xs">
+                      🟢 Active
                     </Badge>
                   </div>
                 </div>

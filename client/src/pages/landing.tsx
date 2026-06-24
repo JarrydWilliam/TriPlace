@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { PWAInstall } from "@/components/ui/pwa-install";
 
@@ -11,6 +11,7 @@ import { PWAInstall } from "@/components/ui/pwa-install";
 export default function Landing() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [mode, setMode] = useState<"signup" | "login">("signup");
 
   useEffect(() => {
     if (!loading && user) {
@@ -22,8 +23,9 @@ export default function Landing() {
     navigate("/onboarding");
   };
 
+  // Toggle between sign-up and sign-in modes so returning users can log in
   const handleShowLogin = () => {
-    // For now, just show the same form - in a real app you'd have separate login/signup forms
+    setMode((prev) => (prev === "signup" ? "login" : "signup"));
   };
 
   if (loading) {
@@ -41,16 +43,14 @@ export default function Landing() {
 
   return (
     <section className="mobile-page-container relative overflow-hidden bg-gray-900 no-pull-refresh">
-      {/* Background with gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
-      <div 
-        className="absolute inset-0 opacity-30" 
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080')",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}
-      ></div>
+      {/* Background: pure CSS gradient — no external image dependency for offline/Capacitor builds */}
+      <div className="absolute inset-0" style={{
+        background: "radial-gradient(ellipse at 20% 50%, hsl(260,60%,18%) 0%, hsl(260,40%,8%) 45%, hsl(220,50%,6%) 100%)"
+      }} />
+      {/* Decorative bokeh blobs */}
+      <div className="absolute top-[-15%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[80px]" style={{ background: "hsl(270,70%,55%)" }} />
+      <div className="absolute bottom-[-10%] left-[-15%] w-[55vw] h-[55vw] rounded-full opacity-15 blur-[100px]" style={{ background: "hsl(300,60%,45%)" }} />
+      <div className="absolute top-[40%] left-[30%] w-[30vw] h-[30vw] rounded-full opacity-10 blur-[60px]" style={{ background: "hsl(240,80%,70%)" }} />
       
       <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
         {/* Header */}
@@ -77,12 +77,36 @@ export default function Landing() {
               Where genuine connection, shared passions, and meaningful community are always just around the corner.
             </p>
             
-            {/* Authentication Form */}
+            {/* Authentication Form — toggles between signup and login */}
             <div className="max-w-md mx-auto">
               <LoginForm 
                 onEmailSignup={handleEmailSignup}
                 onShowLogin={handleShowLogin}
+                mode={mode}
               />
+              <p className="text-center text-white/50 text-sm mt-4">
+                {mode === "signup" ? (
+                  <>
+                    Already have an account?{" "}
+                    <button
+                      onClick={handleShowLogin}
+                      className="text-primary hover:text-primary/80 font-medium underline-offset-2 hover:underline transition-colors"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    New to SameVibe?{" "}
+                    <button
+                      onClick={handleShowLogin}
+                      className="text-primary hover:text-primary/80 font-medium underline-offset-2 hover:underline transition-colors"
+                    >
+                      Create account
+                    </button>
+                  </>
+                )}
+              </p>
             </div>
           </div>
         </div>

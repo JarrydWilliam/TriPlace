@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/telemetry";
-import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
@@ -120,12 +121,41 @@ export default function Onboarding() {
     resonateStatement: ""
   });
 
-  // Auto-detect location for that step
+  // Location step: show manual entry after 8s if GPS hasn't resolved
+  const [locationGpsTimeout, setLocationGpsTimeout] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualLocationInput, setManualLocationInput] = useState("");
+  const gpsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Start 8-second GPS timeout when we reach the location step
+  useEffect(() => {
+    const isLocationStep = QUIZ_SECTIONS[step]?.id === "location";
+    if (isLocationStep && !locationName) {
+      gpsTimerRef.current = setTimeout(() => {
+        setLocationGpsTimeout(true);
+        setShowManualInput(true);
+      }, 8000);
+    }
+    return () => {
+      if (gpsTimerRef.current) clearTimeout(gpsTimerRef.current);
+    };
+  }, [step, locationName]);
+
+  // Auto-detect location for that step — cancel timer if GPS succeeds
   useEffect(() => {
     if (locationName && !answers.location) {
       setAnswers(prev => ({ ...prev, location: locationName }));
+      setLocationGpsTimeout(false);
+      setShowManualInput(false);
+      if (gpsTimerRef.current) clearTimeout(gpsTimerRef.current);
     }
   }, [locationName]);
+
+  const handleManualLocationSubmit = () => {
+    const trimmed = manualLocationInput.trim();
+    if (trimmed.length < 2) return;
+    setAnswers(prev => ({ ...prev, location: trimmed }));
+  };
 
   const submitQuizMutation = useMutation({
     mutationFn: async (data: QuizAnswers) => {
@@ -201,16 +231,31 @@ export default function Onboarding() {
   const currentQ = QUIZ_SECTIONS[step];
 
   return (
-    <div className="min-h-screen w-full bg-black text-white overflow-hidden relative flex flex-col items-center justify-center">
-      {/* Background Ambience */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-black to-black z-0" />
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/10 to-transparent opacity-50 z-0 pointer-events-none" />
+    <div className="min-h-screen w-full text-white overflow-hidden relative flex flex-col items-center justify-center" style={{ background: "radial-gradient(ellipse at 40% 0%, hsl(260,60%,20%) 0%, hsl(250,50%,8%) 50%, hsl(240,40%,4%) 100%)" }}>
+      {/* Rich background bokeh */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-25 blur-[80px]" style={{ background: "hsl(270,70%,55%)" }} />
+        <div className="absolute bottom-[-10%] right-[-15%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px]" style={{ background: "hsl(290,60%,45%)" }} />
+        <div className="absolute top-[50%] left-[60%] w-[30vw] h-[30vw] rounded-full opacity-15 blur-[60px]" style={{ background: "hsl(240,80%,65%)" }} />
+      </div>
 
       {/* Header */}
-      <div className="absolute top-0 w-full p-6 flex justify-between items-center z-20">
+      <div className="absolute top-0 w-full px-6 pt-safe flex justify-between items-center z-20" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 24px)" }}>
         <Logo size="sm" />
-        <div className="w-32">
-          <Progress value={progress} className="h-1 bg-white/10" />
+        {/* Dot step indicators */}
+        <div className="flex items-center gap-1.5">
+          {QUIZ_SECTIONS.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all duration-300 ${
+                i === step
+                  ? "w-5 h-2 bg-white"
+                  : i < step
+                  ? "w-2 h-2 bg-white/60"
+                  : "w-2 h-2 bg-white/20"
+              }`}
+            />
+          ))}
         </div>
       </div>
 
@@ -244,24 +289,76 @@ export default function Onboarding() {
 
           {/* Options Grid */}
           <div className="grid grid-cols-1 gap-3 mb-8">
-            {currentQ.id === "location" ? (
-              // Special Location Input
-              <div className="glass-card p-6 rounded-xl border border-white/10 text-center space-y-4">
-                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
-                  <MapPin className="w-8 h-8 text-blue-400" />
+              {currentQ.id === "location" ? (
+              // Location Step — auto-detect with manual fallback
+              <div className="glass-card p-6 rounded-xl border border-white/10 text-center space-y-5">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                  answers.location ? "bg-green-500/20" : "bg-blue-500/20 animate-pulse"
+                }`}>
+                  <MapPin className={`w-8 h-8 ${answers.location ? "text-green-400" : "text-blue-400"}`} />
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">
-                    {locationName || "Detecting location..."}
-                  </h3>
-                  <p className="text-sm text-white/40 mt-1">
-                    We use this to find communities near you.
-                  </p>
-                </div>
-                {!locationName && (
-                  <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                    Enter Manually
-                  </Button>
+
+                {answers.location ? (
+                  // GPS success or manual entry confirmed
+                  <div>
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <h3 className="text-xl font-semibold text-white">{answers.location}</h3>
+                    </div>
+                    <p className="text-sm text-white/40">We'll find communities near you.</p>
+                    <button
+                      onClick={() => {
+                        setAnswers(prev => ({ ...prev, location: "" }));
+                        setShowManualInput(true);
+                      }}
+                      className="text-xs text-white/30 hover:text-white/60 transition-colors mt-3 underline underline-offset-2"
+                    >
+                      Change location
+                    </button>
+                  </div>
+                ) : showManualInput ? (
+                  // Manual entry UI
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-1">Where are you based?</h3>
+                      <p className="text-sm text-white/40">Enter your city and state or country.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={manualLocationInput}
+                        onChange={(e) => setManualLocationInput(e.target.value)}
+                        placeholder="e.g. Denver, CO"
+                        className="flex-1 bg-white/5 border-white/20 text-white placeholder:text-white/30 focus:border-primary"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleManualLocationSubmit();
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        onClick={handleManualLocationSubmit}
+                        disabled={manualLocationInput.trim().length < 2}
+                        className="bg-primary hover:bg-primary/90 text-white px-4"
+                      >
+                        <Search className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // GPS detecting state
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">
+                      Detecting location...
+                    </h3>
+                    <p className="text-sm text-white/40 mt-1">
+                      We use this to find communities near you.
+                    </p>
+                    <button
+                      onClick={() => setShowManualInput(true)}
+                      className="mt-4 text-sm text-white/50 hover:text-white border border-white/10 rounded-full px-4 py-2 transition-all hover:bg-white/10"
+                    >
+                      Enter manually instead
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -274,34 +371,50 @@ export default function Onboarding() {
                 return (
                   <motion.button
                     key={option.value}
-                    whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => handleSelect(option.value)}
                     className={`
-                      group relative w-full p-4 rounded-xl text-left transition-all duration-200 border
-                      flex items-center space-x-4
-                      ${isSelected 
-                        ? "bg-white/10 border-primary/50 shadow-[0_0_15px_rgba(124,58,237,0.3)]" 
-                        : "bg-white/5 border-white/5 hover:border-white/10"
+                      group relative w-full p-4 rounded-2xl text-left transition-all duration-200
+                      flex items-center gap-4 min-h-[64px]
+                      ${
+                        isSelected
+                          ? "bg-white/12 border-2 border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.01]"
+                          : "bg-white/5 border border-white/8 hover:bg-white/9 hover:border-white/15"
                       }
                     `}
                   >
+                    {/* Emoji circle — larger, branded */}
                     <div className={`
-                      w-10 h-10 rounded-full flex items-center justify-center text-lg
-                      transition-colors duration-200
-                      ${isSelected ? "bg-primary/20" : "bg-white/5 group-hover:bg-white/10"}
+                      w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0
+                      transition-all duration-200
+                      ${
+                        isSelected
+                          ? "bg-primary/30 shadow-[inset_0_0_10px_rgba(124,58,237,0.3)]"
+                          : "bg-white/8 group-hover:bg-white/12"
+                      }
                     `}>
                       {option.emoji}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`font-medium ${isSelected ? "text-white" : "text-white/80"}`}>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-semibold text-base leading-tight ${
+                          isSelected ? "text-white" : "text-white/85"
+                        }`}>
                           {option.label}
                         </span>
-                        {isSelected && <Check className="w-4 h-4 text-primary" />}
+                        {/* Animated checkmark */}
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                          isSelected
+                            ? "border-primary bg-primary"
+                            : "border-white/20"
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
                       </div>
                       {option.description && (
-                        <p className="text-xs text-white/40 mt-0.5 group-hover:text-white/60 transition-colors">
+                        <p className="text-xs text-white/45 mt-0.5 leading-snug">
                           {option.description}
                         </p>
                       )}

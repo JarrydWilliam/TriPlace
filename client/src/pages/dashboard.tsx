@@ -30,6 +30,7 @@ import { StreakCard } from "@/components/ui/streak-card";
 
 import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 
 export default function Dashboard() {
@@ -310,57 +311,51 @@ export default function Dashboard() {
   return (
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto min-h-screen">
+        <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top max-w-6xl mx-auto min-h-screen pb-24">
         
-        {/* Mobile-First User Banner */}
-        <Card className="mb-4 sm:mb-6 glass-card bg-gradient-to-r from-primary/80 to-accent/80 border-0 shadow-[0_0_30px_rgba(124,58,237,0.2)]">
-          <CardContent className="responsive-padding">
-            {/* Mobile Layout - Stack vertically on small screens */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <Logo size="md" className="mr-2 hidden sm:block" />
-                <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20">
-                  <AvatarImage src={user.avatar || undefined} />
-                  <AvatarFallback className="bg-white/20 text-white text-lg">
-                    {user.name?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h1 className="text-lg sm:text-2xl font-bold leading-tight">Welcome to your third place, {user.name?.split(' ')[0] || 'friend'}!</h1>
-                  {/* Mobile - Stack location and kudos vertically */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-1 text-white/80 space-y-1 sm:space-y-0">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-sm">{locationName || 'Location loading...'}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-sm">💜 {kudosThisMonth} Kudos this month</span>
-                    </div>
+        {/* ── Hero Banner ── */}
+        <div
+          className="mb-5 rounded-3xl overflow-hidden relative"
+          style={{
+            background: "linear-gradient(135deg, hsl(270,60%,30%) 0%, hsl(280,70%,25%) 40%, hsl(300,50%,20%) 100%)",
+            boxShadow: "0 20px 60px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
+          }}
+        >
+          {/* Mesh overlay */}
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)" }} />
+          <div className="relative p-5">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
+                <AvatarImage src={user.avatar || undefined} />
+                <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
+                  {user.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold text-white leading-tight truncate">
+                  Welcome back, {user.name?.split(' ')[0] || 'friend'}!
+                </h1>
+                <p className="text-sm text-white/60 italic">Your third place awaits.</p>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <div className="flex items-center gap-1 text-white/70 text-xs">
+                    <MapPin className="w-3 h-3" />
+                    <span>{locationName || 'Detecting...'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-white/70 text-xs">
+                    <Heart className="w-3 h-3 text-pink-400" />
+                    <span className="text-pink-300 font-medium">💜 {kudosThisMonth} Kudos</span>
                   </div>
                 </div>
               </div>
-              {/* Mobile - Action buttons with larger touch targets */}
-              <div className="flex items-center justify-end space-x-3 sm:space-x-2">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <ShareQR />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  className="text-white hover:bg-white/20"
-                >
-                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9">
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </Button>
-                
-                {/* Settings Dropdown Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="text-white hover:bg-white/20"
-                    >
-                      <Settings className="w-5 h-5" />
+                    <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9">
+                      <Settings className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-64" align="end">
@@ -446,13 +441,8 @@ export default function Dashboard() {
                 </DropdownMenu>
               </div>
             </div>
-            <div className="mt-4 p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <p className="text-white/90 text-sm italic">
-                "SameVibe connects hearts and minds through shared experiences, building meaningful communities where every connection matters."
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div className="grid-responsive">
           
@@ -599,72 +589,58 @@ export default function Dashboard() {
                   {Array.isArray(userActiveCommunities) ? userActiveCommunities.length : 0}/5
                 </Badge>
               </CardHeader>
-              <CardContent className="space-y-3">
-
+              {/* Community cards */}
+              <CardContent className="space-y-3 pt-0">
                 {userCommunitiesLoading ? (
                   <div className="animate-pulse space-y-3">
-                    {['community-1', 'community-2', 'community-3'].map(loadingId => (
-                      <div key={`loading-${loadingId}`} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+                    {[0,1,2].map(i => (
+                      <div key={i} className="h-20 bg-white/5 rounded-2xl" />
                     ))}
                   </div>
                 ) : Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
-                  userActiveCommunities.map((community: any) => (
-                    <div key={community.id} className="p-4 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full ${communityColors[community.category as keyof typeof communityColors] || 'bg-gray-500'}`} />
-                          <h4 className="font-medium text-white text-sm">
-                            {community.name}
-                          </h4>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-xs">
-                            Activity: {community.activityScore || 0}
-                          </Badge>
-                          <Link href={`/community/${community.id}`}>
-                            <Button 
-                              size="sm" 
-                              className="bg-gradient-to-r from-emerald-400 to-yellow-400 hover:from-emerald-500 hover:to-yellow-500 text-white font-semibold px-3 py-1 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-lg group"
-                            >
-                              <span className="text-xs">Enter</span>
-                              <div className="ml-1 transition-transform group-hover:translate-x-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
-                                </svg>
+                  userActiveCommunities.map((community: any) => {
+                    const dotColor = communityColors[community.category as keyof typeof communityColors] || 'bg-violet-500';
+                    return (
+                      <div
+                        key={community.id}
+                        className="relative rounded-2xl bg-white/5 border border-white/8 overflow-hidden hover:bg-white/8 transition-all duration-200"
+                      >
+                        {/* Left accent stripe */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${dotColor} rounded-l-2xl`} />
+                        <div className="pl-4 pr-4 pt-3 pb-3 ml-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <h4 className="font-semibold text-white text-sm truncate">{community.name}</h4>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                <span className="text-[11px] text-green-400 font-medium">{getLiveCount(community.id)} online</span>
                               </div>
+                            </div>
+                            <span className="text-[10px] text-white/30 bg-white/8 border border-white/10 rounded-full px-2 py-0.5 flex-shrink-0 ml-2">
+                              Score {community.activityScore || 0}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/45 mb-3 capitalize">{community.category}</p>
+                          <Link href={`/community/${community.id}`}>
+                            <Button
+                              size="sm"
+                              className="w-full h-8 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl border-0 transition-all group"
+                            >
+                              Enter
+                              <svg className="w-3 h-3 ml-1.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5-5 5M6 12h12" />
+                              </svg>
                             </Button>
                           </Link>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-white/60">
-                          {community.category}
-                        </p>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                            {getLiveCount(community.id)} online
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 text-xs text-white/50">
-                        <span>Last active: {new Date(community.lastActivityAt).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span className="text-green-600 dark:text-green-400">
-                          {isConnected ? 'Connected' : 'Offline'}
-                        </span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-6">
                     <Users className="w-12 h-12 mx-auto text-white/20 mb-3" />
-                    <p className="text-sm text-white/60 mb-2">
-                      No communities yet
-                    </p>
-                    <p className="text-xs text-white/40">
-                      Discover communities that evolve with your journey below
-                    </p>
+                    <p className="text-sm text-white/60 mb-1">No communities yet</p>
+                    <p className="text-xs text-white/35">Explore communities below to find your people</p>
                   </div>
                 )}
               </CardContent>
@@ -750,7 +726,7 @@ export default function Dashboard() {
                       onRetry={() => window.location.reload()}
                     />
                   ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
-                    recommendations.slice(0, 2).map((community: Community) => (
+                    recommendations.slice(0, 5).map((community: Community) => (
                       <div key={community.id} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center space-x-2 mb-1">
                           <span className="text-sm">🌟</span>
@@ -813,6 +789,9 @@ export default function Dashboard() {
 
       {/* PWA Installation Prompt */}
       <PWAInstall />
+
+      {/* Persistent bottom navigation */}
+      <MobileNav />
     </div>
   );
 }

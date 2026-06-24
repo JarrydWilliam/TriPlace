@@ -87,7 +87,7 @@ third place, neighborhood, interest groups, real connections
 >
 > Test credentials are not required — the app supports Google Sign-In via the test account below, or users can create a new account via email.
 >
-> **Demo account**: samevibe.demo@gmail.com / [set up a demo Google account]
+> **Demo account**: Create a dedicated Google account for review (e.g. samevibe.demo@gmail.com) and add it to Firebase Console → Authentication → Users before submitting. Share the credentials in the App Review Notes field in App Store Connect — do NOT commit them to source code.
 
 ---
 
@@ -125,7 +125,7 @@ third place, neighborhood, interest groups, real connections
 
 - [ ] Firebase project configured for production domain `samevibe.app`
 - [ ] Firebase OAuth redirect domains updated to include `samevibe.app`
-- [ ] All VITE_FIREBASE_* env vars set in Codemagic
+- [ ] All VITE_FIREBASE_* env vars set in Codemagic (NO fallback hardcoding — fixed ✅)
 - [ ] OPENAI_API_KEY set in Codemagic
 - [ ] DATABASE_URL (Neon) set in Codemagic
 - [ ] App icon (1024x1024) added to Xcode / Android res
@@ -135,11 +135,22 @@ third place, neighborhood, interest groups, real connections
 - [ ] `npx cap sync` run after every web build
 - [ ] iOS provisioning profile created in Apple Developer Console
 - [ ] Android keystore generated and stored in Codemagic secrets
-- [ ] Privacy Policy accessible at `https://samevibe.app/privacy`
-- [ ] Terms of Service accessible at `https://samevibe.app/terms`
+- [ ] Privacy Policy accessible at `https://samevibe.app/privacy` (page polished ✅)
+- [ ] Terms of Service accessible at `https://samevibe.app/terms` (page polished ✅)
 - [ ] Support email set up (e.g. support@samevibe.app)
 - [ ] App Store Connect app record created (com.triplace.app)
 - [ ] Google Play Console app record created (com.triplace.app)
+- [ ] Demo Google account created and credentials added to App Store Connect review notes
+- [x] Mobile nav added to Dashboard (✅ fixed)
+- [x] Mobile nav added to Communities page (✅ fixed)
+- [x] Onboarding location step has working manual fallback (✅ fixed)
+- [x] External Unsplash image URL removed from landing (✅ fixed)
+- [x] Firebase API keys no longer hardcoded in JS bundle (✅ fixed)
+- [x] Message polling reduced from 500ms to 5000ms (✅ fixed)
+- [x] Reveal page has Join buttons (✅ fixed)
+- [x] Privacy & Terms pages match app design system (✅ fixed)
+- [x] Haptic feedback added via @capacitor/haptics (✅ fixed)
+- [x] Mobile nav has animated active indicator (✅ fixed)
 
 ---
 

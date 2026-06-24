@@ -3,7 +3,6 @@ import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, Google
 import { ERROR_MESSAGES } from "./production-config";
 
 // Safely detect Capacitor native context without hard dependency
-// Once @capacitor/core is installed, this will properly detect iOS/Android
 const isNativePlatform = (): boolean => {
   try {
     // @ts-ignore — dynamic check, Capacitor may not be installed yet
@@ -13,17 +12,35 @@ const isNativePlatform = (): boolean => {
   }
 };
 
-// Firebase configuration — loaded from environment variables
-// Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_APP_ID,
-// VITE_FIREBASE_MESSAGING_SENDER_ID, VITE_FIREBASE_STORAGE_BUCKET in your .env file.
+// Validate required Firebase env vars at startup — fail fast with clear message
+// rather than shipping secrets in the JS bundle as hardcoded fallbacks.
+const requiredVars = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_APP_ID",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+] as const;
+
+const missing = requiredVars.filter((key) => !import.meta.env[key]);
+if (missing.length > 0 && import.meta.env.PROD) {
+  // In production, throw clearly so CI catches it before reaching users
+  throw new Error(
+    `[SameVibe] Missing required Firebase environment variables: ${missing.join(", ")}. ` +
+    `Set them in your .env file or Codemagic environment variable groups.`
+  );
+}
+
+// Firebase configuration — all values come from environment variables only.
+// Copy .env.example → .env and fill in your Firebase project values.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "AIzaSyDvvOMs_7vBWRiLm4HsqV9_SB7-xdGaIJI",
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "samevibe-app"}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "samevibe-app",
-  storageBucket: `${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "samevibe-app"}.firebasestorage.app`,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "779102688787",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "1:779102688787:web:176d1dc6c4f165b01e91e6",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "G-EYXMFMMXCY",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            ?? "",
+  authDomain:        `${import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "samevibe-app"}.firebaseapp.com`,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         ?? "samevibe-app",
+  storageBucket:     `${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET  ?? "samevibe-app"}.firebasestorage.app`,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID             ?? "",
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     ?? "",
 };
 
 const app = initializeApp(firebaseConfig);
