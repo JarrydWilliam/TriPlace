@@ -6,8 +6,8 @@
 |-------|-------|
 | **App Name** | SameVibe |
 | **Subtitle** | Discover Your Scene |
-| **Bundle ID (iOS)** | com.triplace.app |
-| **Package Name (Android)** | com.triplace.app |
+| **Bundle ID (iOS)** | com.samevibe.app |
+| **Package Name (Android)** | com.samevibe.app |
 | **Version** | 1.0.0 |
 | **Build** | 1 |
 | **Category** | Social Networking |
@@ -138,8 +138,8 @@ third place, neighborhood, interest groups, real connections
 - [ ] Privacy Policy accessible at `https://samevibe.app/privacy` (page polished ✅)
 - [ ] Terms of Service accessible at `https://samevibe.app/terms` (page polished ✅)
 - [ ] Support email set up (e.g. support@samevibe.app)
-- [ ] App Store Connect app record created (com.triplace.app)
-- [ ] Google Play Console app record created (com.triplace.app)
+- [ ] App Store Connect app record created (com.samevibe.app)
+- [ ] Google Play Console app record created (com.samevibe.app)
 - [ ] Demo Google account created and credentials added to App Store Connect review notes
 - [x] Mobile nav added to Dashboard (✅ fixed)
 - [x] Mobile nav added to Communities page (✅ fixed)

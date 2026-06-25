@@ -10,7 +10,7 @@ workflows:
       groups:
         - samevibe_env        # Define this group in Codemagic dashboard
       vars:
-        BUNDLE_ID: com.triplace.app
+        BUNDLE_ID: com.samevibe.app
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
     triggering:
@@ -71,7 +71,7 @@ workflows:
         - samevibe_env
         - samevibe_android_keystore
       vars:
-        PACKAGE_NAME: com.triplace.app
+        PACKAGE_NAME: com.samevibe.app
     triggering:
       events:
         - push

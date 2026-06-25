@@ -74,7 +74,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "iOS bundleIdentifier set",
     passed: !!bundleId,
     detail: bundleId ? `Bundle ID: ${bundleId}` : "ios.bundleIdentifier missing",
-    fix: `Add "ios": { "bundleIdentifier": "com.yourcompany.samevibe" } to app.json`,
+    fix: `Add "ios": { "bundleIdentifier": "com.samevibe.app" } to app.json`,
   });
 
   checks.push({
@@ -90,7 +90,7 @@ export async function validateBuild(): Promise<ValidationReport> {
     name: "Android package name set",
     passed: !!pkg,
     detail: pkg ? `Package: ${pkg}` : "android.package missing",
-    fix: `Add "android": { "package": "com.yourcompany.samevibe" } to app.json`,
+    fix: `Add "android": { "package": "com.samevibe.app" } to app.json`,
   });
 
   checks.push({
