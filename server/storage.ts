@@ -908,13 +908,6 @@ export class DatabaseStorage implements IStorage {
     return filteredMembers;
   }
 
-  async refreshUserRecommendations(userId: number): Promise<void> {
-    // Called when agent discovers new interests — forces next recommendation fetch to re-run AI matching
-    // The actual recommendation logic in getRecommendedCommunities already re-runs dynamically
-    // so clearing any server-side cache is sufficient here (currently no caching layer)
-    console.log(`[Storage] Refreshing recommendations for user ${userId}`);
-  }
-
   async getTrendingEventsByLocation(userLocation: { lat: number, lon: number }, radiusMiles: number = 50): Promise<any[]> {
     try {
       const allEvents = await db
