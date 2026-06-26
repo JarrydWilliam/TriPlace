@@ -21,7 +21,7 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm install
       - name: Build web bundle
         script: |
           export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
@@ -80,7 +80,7 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm install
       - name: Build web bundle
         script: |
           export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
@@ -134,7 +134,7 @@ workflows:
           include: true
     scripts:
       - name: Install dependencies
-        script: npm ci
+        script: npm install
       - name: Build
         script: npm run build
     artifacts:
