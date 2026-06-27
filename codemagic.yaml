@@ -7,11 +7,16 @@ workflows:
       node: 20.11.0
       xcode: latest
       cocoapods: default
+      # ✅ Declarative signing — Codemagic handles certs + profiles automatically
+      # Requires: Apple Developer account connected in Codemagic → Integrations
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.samevibe.app
       groups:
-        - samevibe_env        # Define this group in Codemagic dashboard
+        - samevibe_env        # VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
       vars:
         BUNDLE_ID: com.samevibe.app
-        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     triggering:
       events:
@@ -20,45 +25,49 @@ workflows:
         - pattern: main
           include: true
     scripts:
-      - name: Install dependencies
-        script: npm install
+      - name: Install Node dependencies
+        script: |
+          npm install
+
       - name: Build web bundle
         script: |
-          export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
-          export VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
-          export VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
-          export VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
-          export VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
           npm run build
-      - name: Capacitor init (first time only — idempotent)
+
+      - name: Add iOS platform (if missing)
         script: |
           if [ ! -d "ios" ]; then
+            echo "ios/ folder not found — running npx cap add ios"
             npx cap add ios
+          else
+            echo "ios/ folder already exists"
           fi
-      - name: Sync Capacitor
-        script: npx cap sync ios
-      - name: Set up keychain and provisioning profiles
+
+      - name: Sync Capacitor to iOS
         script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
+          npx cap sync ios
+
+      - name: Set bundle identifier
+        script: |
+          # Make sure the Xcode project bundle ID matches what Codemagic fetched certs for
           xcode-project use-profiles
-      - name: Build iOS
+
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
+            --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
             --config Release
+
       - name: Upload to TestFlight
         script: |
           app-store-connect publish \
             --path build/ios/ipa/*.ipa \
-            --whats-new "SameVibe beta – initial testing build"
+            --whats-new "SameVibe beta – initial build"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
   # ── Android Native Build ──────────────────────────────────────────────────────
   android-release:
@@ -79,26 +88,25 @@ workflows:
         - pattern: main
           include: true
     scripts:
-      - name: Install dependencies
+      - name: Install Node dependencies
         script: npm install
+
       - name: Build web bundle
-        script: |
-          export VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
-          export VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
-          export VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
-          export VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
-          export VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
-          npm run build
-      - name: Capacitor init (first time only)
+        script: npm run build
+
+      - name: Add Android platform (if missing)
         script: |
           if [ ! -d "android" ]; then
             npx cap add android
           fi
-      - name: Sync Capacitor
+
+      - name: Sync Capacitor to Android
         script: npx cap sync android
+
       - name: Set up keystore
         script: |
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+
       - name: Build Android App Bundle
         script: |
           cd android
@@ -107,6 +115,7 @@ workflows:
             -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
       - name: Upload to Google Play
         script: |
           google-play publish \
@@ -114,28 +123,7 @@ workflows:
             --track internal \
             --artifact-type aab \
             android/app/build/outputs/bundle/release/app-release.aab
+
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
       - android/app/build/outputs/apk/release/app-release.apk
-
-  # ── Web / PWA Deploy (bonus) ──────────────────────────────────────────────────
-  web-deploy:
-    name: SameVibe Web Deploy
-    max_build_duration: 20
-    environment:
-      node: 20.11.0
-      groups:
-        - samevibe_env
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    scripts:
-      - name: Install dependencies
-        script: npm install
-      - name: Build
-        script: npm run build
-    artifacts:
-      - dist/**
