@@ -1456,9 +1456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedUser = await storage.updateUser(parseInt(userId), {
         interests,
-        goals,
-        personalityTraits,
-        availability: Array.isArray(availability) ? availability : [availability],
+        quizAnswers: {
+          goals,
+          personalityTraits,
+          availability: Array.isArray(availability) ? availability : [availability]
+        },
         location: location || "",
         latitude: latitude ? parseFloat(latitude).toString() : null,
         longitude: longitude ? parseFloat(longitude).toString() : null,
@@ -1526,21 +1528,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cleanup inactive connections every 5 minutes
-  setInterval(() => {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    
-    activeConnections.forEach(async (connection, userId) => {
-      if (connection.lastActivity < fiveMinutesAgo) {
-        connection.ws.close();
-        activeConnections.delete(userId);
-        await storage.setUserOnlineStatus(userId, false);
-        broadcastMemberUpdate(userId, false);
-      }
-    });
-  }, 5 * 60 * 1000);
+  if (process.env.VERCEL !== "1") {
+    setInterval(() => {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      
+      activeConnections.forEach(async (connection, userId) => {
+        if (connection.lastActivity < fiveMinutesAgo) {
+          connection.ws.close();
+          activeConnections.delete(userId);
+          await storage.setUserOnlineStatus(userId, false);
+          broadcastMemberUpdate(userId, false);
+        }
+      });
+    }, 5 * 60 * 1000);
 
-  // Initialize event scraping scheduler
-  eventScrapingScheduler.startScheduling();
+    // Initialize event scraping scheduler
+    eventScrapingScheduler.startScheduling();
+  }
 
   // ── Posts ──────────────────────────────────────────────────────────────────
 

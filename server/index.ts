@@ -40,11 +40,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Initialization function
+console.log("[Vercel Startup] Starting serverPromise execution...");
 const serverPromise = (async () => {
+  console.log("[Vercel Startup] Calling registerRoutes...");
   const server = await registerRoutes(app);
+  console.log("[Vercel Startup] registerRoutes returned.");
 
   // Global agent status endpoint (simplified for Vercel)
   app.get("/api/agents/status", (_req, res) => {
+    console.log("[Vercel API] /api/agents/status hit");
     res.json({
       status: "ok",
       agents: "disabled on Vercel - run on dedicated worker",
@@ -56,6 +60,7 @@ const serverPromise = (async () => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    console.error("[Vercel Startup] App Error Middleware:", err);
     res.status(status).json({ message });
     if (process.env.NODE_ENV !== "production") {
       console.error(err);
@@ -67,9 +72,17 @@ const serverPromise = (async () => {
     process.env.REPLIT_DEPLOYMENT === "1";
   const isVercel = process.env.VERCEL === "1";
 
+  console.log("[Vercel Startup] Environment checks: isProduction=", isProduction, "isVercel=", isVercel);
+
   if (isProduction) {
-    serveStatic(app);
+    if (isVercel) {
+       console.log("[Vercel Startup] Skipping serveStatic on Vercel because Vercel Edge handles static files.");
+    } else {
+       console.log("[Vercel Startup] Calling serveStatic...");
+       serveStatic(app);
+    }
   } else {
+    console.log("[Vercel Startup] Calling setupVite...");
     await setupVite(app, server);
   }
 
@@ -77,6 +90,7 @@ const serverPromise = (async () => {
   // Dynamic imports: only load agent modules when actually needed.
   // This prevents OpenAI/cron from being instantiated at cold-start on Vercel.
   if (!isVercel) {
+    console.log("[Vercel Startup] Not on Vercel, starting agents and listening on port...");
     const [
       { startAgentScheduler },
       { startAgentSupervisor },
@@ -104,8 +118,12 @@ const serverPromise = (async () => {
     );
   }
 
+  console.log("[Vercel Startup] serverPromise execution complete!");
   return server;
-})();
+})().catch(err => {
+  console.error("[Vercel Startup] serverPromise threw an error:", err);
+  throw err;
+});
 
 // Export for Vercel
 export { app, serverPromise };
