@@ -12,10 +12,6 @@ workflows:
       node: 20.11.0
       xcode: latest
       cocoapods: default
-      # ✅ Declarative signing — Codemagic handles certs + profiles automatically
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.samevibe.app
       groups:
         - samevibe_env        # VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
       vars:
@@ -47,9 +43,18 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Set bundle identifier
+      - name: Set up keychain and code signing
         script: |
-          # Make sure the Xcode project bundle ID matches what Codemagic fetched certs for
+          keychain initialize
+          
+          echo "Fetching and creating signing files for $BUNDLE_ID..."
+          # This command will automatically generate the missing Certificate
+          # and Provisioning Profile on Apple's servers because it now has the API key!
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          
+          keychain add-certificates
           xcode-project use-profiles
 
       - name: Build IPA
