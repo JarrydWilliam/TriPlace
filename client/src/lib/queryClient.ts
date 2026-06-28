@@ -7,8 +7,10 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+import { Capacitor } from "@capacitor/core";
+
 const getApiUrl = (url: string) => {
-  const isNative = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+  const isNative = Capacitor.isNativePlatform();
   if (isNative && url.startsWith('/')) {
     return `https://tri-place.vercel.app${url}`;
   }
