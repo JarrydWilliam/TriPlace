@@ -73,6 +73,12 @@ workflows:
           echo "Code signing setup successful. Downloaded profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
+      - name: Auto-increment build number
+        script: |
+          # Dynamically set the Xcode build number to match the Codemagic Build ID
+          # This prevents Apple from rejecting the upload due to duplicate build numbers.
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+
       - name: Build IPA
         script: |
           xcode-project build-ipa \
