@@ -10,7 +10,7 @@ async function throwIfResNotOk(res: Response) {
 const getApiUrl = (url: string) => {
   const isNative = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   if (isNative && url.startsWith('/')) {
-    return `https://samevibe.app${url}`;
+    return `https://tri-place.vercel.app${url}`;
   }
   return url;
 };
