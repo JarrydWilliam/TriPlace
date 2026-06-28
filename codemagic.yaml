@@ -7,6 +7,11 @@ workflows:
       node: 20.11.0
       xcode: latest
       cocoapods: default
+      # ✅ Declarative signing — Codemagic handles certs + profiles automatically
+      # Requires: Apple Developer account connected in Codemagic → Integrations
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.samevibe.app
       groups:
         - samevibe_env        # VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
       vars:
@@ -38,32 +43,10 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Set up keychain and code signing
+      - name: Set bundle identifier
         script: |
-          set -e # Fail if any command fails
-          keychain initialize
-          
-          echo "Fetching signing files for $BUNDLE_ID..."
-          # We add set +e so we can capture the exact exit code and error if it fails
-          set +e
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create --verbose
-          FETCH_STATUS=$?
-          set -e
-          
-          if [ $FETCH_STATUS -ne 0 ]; then
-            echo "❌ ERROR: Failed to fetch or create provisioning profile."
-            echo "Codemagic cannot automatically create the profile without App Store Connect API credentials."
-            echo "Please ensure you have configured the Apple Developer Portal integration in Codemagic UI and referenced it, OR manually create the App ID 'com.samevibe.app' in the Apple Developer Portal."
-            exit 1
-          fi
-          
-          keychain add-certificates
+          # Make sure the Xcode project bundle ID matches what Codemagic fetched certs for
           xcode-project use-profiles
-          
-          echo "Checking downloaded profiles:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory found!"
 
       - name: Build IPA
         script: |
