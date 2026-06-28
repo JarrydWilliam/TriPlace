@@ -45,17 +45,33 @@ workflows:
 
       - name: Set up keychain and code signing
         script: |
+          # Fail immediately if any command fails
+          set -e
+          
           keychain initialize
           
           echo "Fetching and creating signing files for $BUNDLE_ID..."
-          # This command will automatically generate the missing Certificate
-          # and Provisioning Profile on Apple's servers because it now has the API key!
+          
+          # Temporarily disable exit on error to capture the exact exit code
+          set +e
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create
+            --create \
+            --verbose
+          FETCH_STATUS=$?
+          set -e
+          
+          if [ $FETCH_STATUS -ne 0 ]; then
+            echo "❌ ERROR: Failed to fetch or create provisioning profile."
+            echo "The API key integration named 'Codemagic' was likely not found or lacks permissions."
+            exit 1
+          fi
           
           keychain add-certificates
           xcode-project use-profiles
+          
+          echo "Code signing setup successful. Downloaded profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Build IPA
         script: |
