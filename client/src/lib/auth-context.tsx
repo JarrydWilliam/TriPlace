@@ -32,35 +32,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fallback timeout: if Firebase fails to initialize or onAuthStateChanged hangs
+    // due to iOS WKWebView IndexedDB issues, we force the loading state to false
+    // so the app isn't permanently stuck on the loading screen.
+    const fallbackTimeout = setTimeout(() => {
+      console.warn("Firebase onAuthStateChanged timed out. Forcing loading to false.");
+      setLoading(false);
+    }, 5000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      clearTimeout(fallbackTimeout);
       setFirebaseUser(firebaseUser);
       
       if (firebaseUser) {
         try {
-          // Try to get existing user
-          const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`);
+          // Add an abort controller to prevent infinite hanging if the network or service worker gets stuck
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
           
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData);
-          } else if (response.status === 404) {
-            // Create new user
-            const newUserData = {
-              firebaseUid: firebaseUser.uid,
-              email: firebaseUser.email!,
-              name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
-              avatar: firebaseUser.photoURL,
-              interests: [],
-            };
+          try {
+            // Try to get existing user
+            const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`, {
+              signal: controller.signal
+            });
             
-            const createResponse = await apiRequest('POST', '/api/users', newUserData);
-            if (createResponse.ok) {
-              const createdUser = await createResponse.json();
-              setUser(createdUser);
+            if (response.ok) {
+              const userData = await response.json();
+              setUser(userData);
+            } else if (response.status === 404) {
+              // Create new user
+              const newUserData = {
+                firebaseUid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+                avatar: firebaseUser.photoURL,
+                interests: [],
+              };
+              
+              const createResponse = await apiRequest('POST', '/api/users', newUserData);
+              if (createResponse.ok) {
+                const createdUser = await createResponse.json();
+                setUser(createdUser);
+              }
             }
+          } finally {
+            clearTimeout(timeoutId);
           }
         } catch (error) {
           // Authentication error - user will remain null
+          console.error("Auth fetch failed:", error);
         }
       } else {
         setUser(null);
