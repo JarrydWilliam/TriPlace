@@ -82,152 +82,162 @@ export function LoginForm({
   const isLogin = mode === "login";
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white/8 backdrop-blur-xl border border-white/12 shadow-2xl">
-      <CardHeader className="text-center pb-2">
-        <CardTitle className="text-2xl font-bold text-white">
-          {isLogin ? "Welcome back" : "Join SameVibe"}
-        </CardTitle>
-        <CardDescription className="text-white/50">
-          {isLogin
-            ? "Sign in to find your people"
-            : "Discover your community"}
-        </CardDescription>
-      </CardHeader>
+    <div className="w-full max-w-md mx-auto relative group">
+      {/* Dynamic Glowing Aura behind the card */}
+      <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-accent to-secondary rounded-2xl blur-lg opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+      
+      <Card className="relative w-full bg-[#0d0a1a]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl overflow-hidden">
+        {/* Subtle grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        
+        <CardHeader className="text-center pb-2 pt-6 relative z-10">
+          <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-white/95 to-white/70 bg-clip-text text-transparent">
+            {isLogin ? "Welcome back" : "Join SameVibe"}
+          </CardTitle>
+          <CardDescription className="text-white/50 text-sm mt-1">
+            {isLogin
+              ? "Sign in to find your people and discover your scene"
+              : "Create your digital third place and start connecting"}
+          </CardDescription>
+        </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Google Sign-In */}
-        <Button
-          onClick={handleGoogleLogin}
-          disabled={googleLoading}
-          className="w-full bg-white text-gray-900 py-4 px-6 rounded-xl font-semibold text-base hover:bg-gray-100 transition-all duration-200 flex items-center justify-center gap-3 shadow-lg min-h-[52px]"
-          variant="outline"
-        >
-          {googleLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
-          ) : (
-            <FaGoogle className="text-red-500 w-5 h-5" />
-          )}
-          <span>{isLogin ? "Sign in with Google" : "Continue with Google"}</span>
-        </Button>
+        <CardContent className="space-y-5 relative z-10 pb-6">
+          {/* Premium Glass Google Sign-In */}
+          <Button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-4 px-6 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[52px]"
+            variant="outline"
+          >
+            {googleLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-white/70" />
+            ) : (
+              <FaGoogle className="text-[#ea4335] w-4.5 h-4.5 filter drop-shadow-[0_0_6px_rgba(234,67,53,0.3)]" />
+            )}
+            <span>{isLogin ? "Sign in with Google" : "Continue with Google"}</span>
+          </Button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-white/30 text-xs uppercase tracking-widest">or</span>
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
+          {/* Divider */}
+          <div className="flex items-center gap-4 py-1">
+            <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-white/10" />
+            <span className="text-white/30 text-xs font-semibold uppercase tracking-widest">or</span>
+            <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent via-white/10 to-white/10" />
+          </div>
 
-        {/* Email/Password form */}
-        {showEmailButton && (
-          <form onSubmit={handleEmailSubmit} className="space-y-3">
-            {!isLogin && (
-              <div className="space-y-1">
-                <Label htmlFor="auth-name" className="text-white/60 text-xs">
-                  Your name
+          {/* Email/Password form */}
+          {showEmailButton && (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="auth-name" className="text-white/60 text-xs font-medium tracking-wide">
+                    YOUR NAME
+                  </Label>
+                  <div className="relative group/input">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
+                    <Input
+                      id="auth-name"
+                      type="text"
+                      placeholder="First name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10.5 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[46px]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="auth-email" className="text-white/60 text-xs font-medium tracking-wide">
+                  EMAIL ADDRESS
                 </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <div className="relative group/input">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
                   <Input
-                    id="auth-name"
-                    type="text"
-                    placeholder="First name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-primary focus:ring-primary/30 min-h-[44px]"
+                    id="auth-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-10.5 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[46px]"
                   />
                 </div>
               </div>
-            )}
 
-            <div className="space-y-1">
-              <Label htmlFor="auth-email" className="text-white/60 text-xs">
-                Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <Input
-                  id="auth-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-primary focus:ring-primary/30 min-h-[44px]"
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="auth-password" className="text-white/60 text-xs font-medium tracking-wide">
+                  PASSWORD
+                </Label>
+                <div className="relative group/input">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
+                  <Input
+                    id="auth-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isLogin ? "Your password" : "At least 8 characters"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={isLogin ? 1 : 8}
+                    className="pl-10.5 pr-10 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[46px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4.5 h-4.5" />
+                    ) : (
+                      <Eye className="w-4.5 h-4.5" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="auth-password" className="text-white/60 text-xs">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <Input
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={isLogin ? "Your password" : "At least 8 characters"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={isLogin ? 1 : 8}
-                  className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-primary focus:ring-primary/30 min-h-[44px]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading || !email || !password}
-              className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-semibold rounded-xl py-3 min-h-[52px] transition-all shadow-lg shadow-primary/25"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : isLogin ? (
-                "Sign In"
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
-        )}
-
-        {/* Toggle link */}
-        <p className="text-center text-white/40 text-sm">
-          {isLogin ? (
-            <>
-              New to SameVibe?{" "}
-              <button
-                onClick={onShowLogin}
-                className="text-primary hover:text-primary/80 font-medium transition-colors"
+              <Button
+                type="submit"
+                disabled={loading || !email || !password}
+                className="w-full relative overflow-hidden group/btn bg-gradient-to-r from-primary to-accent text-white font-semibold rounded-xl py-3.5 min-h-[50px] transition-all duration-300 active:scale-[0.99] shadow-lg shadow-primary/25 hover:shadow-primary/45"
               >
-                Create account
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{" "}
-              <button
-                onClick={onShowLogin}
-                className="text-primary hover:text-primary/80 font-medium transition-colors"
-              >
-                Sign in
-              </button>
-            </>
+                {/* Glow overlay */}
+                <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.15)_40%,rgba(255,255,255,0.15)_60%,transparent_80%)] -translate-x-[100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000 ease-out" />
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                ) : isLogin ? (
+                  "Sign In"
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </form>
           )}
-        </p>
-      </CardContent>
-    </Card>
+
+          {/* Toggle link */}
+          <p className="text-center text-white/40 text-sm mt-6">
+            {isLogin ? (
+              <>
+                New to SameVibe?{" "}
+                <button
+                  onClick={onShowLogin}
+                  className="text-primary hover:text-primary/80 font-semibold underline-offset-4 hover:underline transition-all duration-200"
+                >
+                  Create account
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button
+                  onClick={onShowLogin}
+                  className="text-primary hover:text-primary/80 font-semibold underline-offset-4 hover:underline transition-all duration-200"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
