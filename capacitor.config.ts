@@ -23,6 +23,10 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ["google.com", "facebook.com", "yahoo.com"],
+    },
     Geolocation: {
       // No extra config needed — uses native device GPS
     },
