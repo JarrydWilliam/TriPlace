@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, deleteUser } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut, deleteUser } from "firebase/auth";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
 
 // Safely detect Capacitor native context without hard dependency
@@ -52,10 +53,21 @@ googleProvider.setCustomParameters({
 
 export const signInWithGoogle = async () => {
   try {
-    // Capacitor native (iOS/Android) requires redirect — popups don't work in WKWebView/WebView
+    // Capacitor native (iOS/Android) uses the Native Google Sign-In SDK via Capacitor plugin
+    // This perfectly handles the native iOS popup sheet without webview redirect/cookie issues.
     if (isNativePlatform()) {
-      await signInWithRedirect(auth, googleProvider);
-      const result = await getRedirectResult(auth);
+      const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+      
+      if (!nativeResult.credential?.idToken) {
+        throw new Error("Failed to get Google authentication credential.");
+      }
+      
+      const credential = GoogleAuthProvider.credential(
+        nativeResult.credential.idToken,
+        nativeResult.credential.accessToken
+      );
+      
+      const result = await signInWithCredential(auth, credential);
       return result;
     }
     // Standard browser: use popup for better UX
