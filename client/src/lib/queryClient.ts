@@ -12,7 +12,7 @@ import { Capacitor } from "@capacitor/core";
 export const getApiUrl = (url: string) => {
   const isNative = Capacitor.isNativePlatform();
   if (isNative && url.startsWith('/')) {
-    return `https://tri-place.vercel.app${url}`;
+    return `https://samevibe-sandy.vercel.app${url}`;
   }
   return url;
 };

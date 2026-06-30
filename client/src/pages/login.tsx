@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { Mail, Lock, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const { authError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -88,6 +90,14 @@ export default function Login() {
           
           <div className="relative bg-[#0d0a1a]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl p-6 space-y-4">
             
+            {/* Backend Auth Error Banner */}
+            {authError && (
+              <div className="flex items-start gap-2 text-sm text-[#ef4444] bg-[#ef4444]/10 rounded-xl p-3 border border-[#ef4444]/20 animate-shake">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
             {/* Apple Sign-In (Primary) */}
             <Button
               className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"

@@ -8,6 +8,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   user: User | null;
   loading: boolean;
+  authError: string | null;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fallback timeout: if Firebase fails to initialize or onAuthStateChanged hangs
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(fallbackTimeout);
       setFirebaseUser(firebaseUser);
+      setAuthError(null);
       
       if (firebaseUser) {
         try {
@@ -73,14 +76,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
               if (createResponse.ok) {
                 const createdUser = await createResponse.json();
                 setUser(createdUser);
+              } else {
+                throw new Error("Failed to create user profile. The server may be experiencing issues.");
               }
+            } else {
+              throw new Error(`Server returned ${response.status}: Unable to load profile.`);
             }
           } finally {
             clearTimeout(timeoutId);
           }
-        } catch (error) {
-          // Authentication error - user will remain null
+        } catch (error: any) {
+          // Authentication error - user will remain null, but we expose the error
           console.error("Auth fetch failed:", error);
+          setAuthError(error.message || "Failed to load your profile. Please try again later.");
         }
       } else {
         setUser(null);
@@ -97,10 +105,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await auth.signOut();
       setUser(null);
       setFirebaseUser(null);
+      setAuthError(null);
     } catch (error) {
       // Sign out error - will clear state regardless
       setUser(null);
       setFirebaseUser(null);
+      setAuthError(null);
     }
   };
 
@@ -111,9 +121,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+          setAuthError(null);
+        } else {
+          setAuthError(`Failed to refresh profile: ${response.status}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to refresh user:', error);
+        setAuthError(error.message || "Failed to refresh profile.");
       }
     }
   };
@@ -122,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     firebaseUser,
     user,
     loading,
+    authError,
     signOut,
     refreshUser,
   };
