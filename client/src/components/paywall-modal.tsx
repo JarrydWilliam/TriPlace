@@ -7,8 +7,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Crown, Users } from "lucide-react";
+import { Sparkles, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { Purchases } from "@revenuecat/purchases-capacitor";
+import { Capacitor } from "@capacitor/core";
 
 interface PaywallModalProps {
   open: boolean;
@@ -19,26 +22,52 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
   const handleCheckout = async (tier: number) => {
+    if (!Capacitor.isNativePlatform()) {
+      toast({
+        title: "App Store Only",
+        description: "Purchases are only supported inside the native iOS/Android app.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const res = await fetch("/api/checkout/community-unlock", {
+      setIsPurchasing(true);
+      // Fetch available packages from RevenueCat
+      const offerings = await Purchases.getOfferings();
+      const currentOffering = offerings.current;
+      
+      if (!currentOffering || currentOffering.availablePackages.length === 0) {
+        throw new Error("No products available currently.");
+      }
+
+      // We purchase the first available package
+      const packageToBuy = currentOffering.availablePackages[0];
+      await Purchases.purchasePackage({ aPackage: packageToBuy });
+
+      // After successful native purchase, verify with our backend to grant the capacity
+      const res = await fetch("/api/checkout/verify-revenuecat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user?.id, tier }),
       });
 
-      if (!res.ok) throw new Error("Failed to create checkout session");
-
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
+      if (!res.ok) throw new Error("Failed to verify purchase on backend");
+      
+      toast({ title: "Success! 🎉", description: "Your community capacity has been increased!" });
+      onOpenChange(false);
+    } catch (error: any) {
+      if (error.userCancelled) return; // User simply closed the payment sheet
       toast({
-        title: "Error",
-        description: "Could not start checkout. Please try again.",
+        title: "Purchase Error",
+        description: error.message || "Could not complete purchase. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
@@ -71,9 +100,10 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
               <span className="text-2xl font-bold text-white">$0.99</span>
               <Button 
                 onClick={() => handleCheckout(1)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isPurchasing}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[100px]"
               >
-                Purchase
+                {isPurchasing ? "Processing..." : "Purchase"}
               </Button>
             </div>
           </div>
