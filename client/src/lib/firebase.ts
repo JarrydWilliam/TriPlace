@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser } from "firebase/auth";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
 
@@ -45,7 +45,14 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+
+// CRITICAL FIX: Use initializeAuth with browserLocalPersistence instead of getAuth().
+// getAuth() defaults to indexedDBLocalCache, which causes iOS WKWebView to HANG 
+// indefinitely when returning from the background (e.g., after closing the native 
+// Google Sign-In or Apple Sign-In popup). This fixes the infinite spinning wheel.
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
+});
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
