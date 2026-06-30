@@ -1,0 +1,7 @@
+{
+  "name": "quiz-designer",
+  "description": "An expert Antigravity subagent dedicated to auditing and updating the SameVibe onboarding quiz to adhere to our premium design standards, ensuring flawless micro-animations and perfect integration with the AI matcher.",
+  "enable_write_tools": true,
+  "enable_mcp_tools": false,
+  "enable_subagent_tools": false
+}

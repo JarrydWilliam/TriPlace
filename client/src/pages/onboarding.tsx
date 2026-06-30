@@ -94,6 +94,55 @@ const QUIZ_SECTIONS: QuizQuestion[] = [
     ]
   },
   {
+    id: "personalityVibe",
+    question: "What's your social vibe?",
+    subtitle: "Be honest, there's no wrong answer.",
+    type: "single",
+    options: [
+      { value: "extrovert", label: "Life of the party", emoji: "🎉", description: "Energized by large groups" },
+      { value: "introvert", label: "Quiet observer", emoji: "🦉", description: "Prefer small groups or 1-on-1" },
+      { value: "ambivert", label: "Social chameleon", emoji: "🦎", description: "Depends on the day and the people" },
+      { value: "thinker", label: "Deep thinker", emoji: "🤔", description: "Always analyzing and observing" }
+    ]
+  },
+  {
+    id: "activityLevel",
+    question: "How active do you want to be?",
+    subtitle: "Match your energy to the community.",
+    type: "single",
+    options: [
+      { value: "very-active", label: "In the mix", emoji: "🔥", description: "Attending events, leading chats" },
+      { value: "casual", label: "Casual participant", emoji: "☕", description: "Pop in when free, low pressure" },
+      { value: "lurker", label: "Observer", emoji: "👀", description: "Just want to read and learn" },
+      { value: "creator", label: "Creator / Organizer", emoji: "🛠️", description: "Ready to start projects" }
+    ]
+  },
+  {
+    id: "availability",
+    question: "When are you usually free?",
+    subtitle: "Select all that apply.",
+    type: "multiple",
+    maxSelections: 3,
+    options: [
+      { value: "weekdays", label: "Weekdays (9-5)", emoji: "☀️" },
+      { value: "weeknights", label: "Weeknights", emoji: "🌙" },
+      { value: "weekends", label: "Weekends", emoji: "🎉" },
+      { value: "anytime", label: "Flexible", emoji: "⏰" }
+    ]
+  },
+  {
+    id: "resonateStatement",
+    question: "Which statement resonates with you most right now?",
+    subtitle: "A vibe check.",
+    type: "single",
+    options: [
+      { value: "deep-talks", label: "I prefer deep 1-on-1 conversations over big groups", emoji: "🗣️" },
+      { value: "doer", label: "I bond with people by doing activities together", emoji: "🏃" },
+      { value: "listener", label: "I'm a great listener and observer", emoji: "👂" },
+      { value: "organizer", label: "I love organizing and bringing people together", emoji: "📋" }
+    ]
+  },
+  {
     id: "location",
     question: "Where are you based?",
     subtitle: "To find local gems around you.",
