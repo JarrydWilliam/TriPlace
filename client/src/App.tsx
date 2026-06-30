@@ -61,7 +61,7 @@ function Router() {
           setLocation('/profile-setup');
         } else if (!requiresProfile && needsOnboarding && location !== '/onboarding') {
           setLocation('/onboarding');
-        } else if (!requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup'].includes(location)) {
+        } else if (!requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup', '/onboarding', '/profile-setup'].includes(location)) {
           setLocation('/dashboard');
         }
       }
