@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut, deleteUser } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser } from "firebase/auth";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
 
@@ -88,6 +88,48 @@ export const signInWithGoogle = async () => {
         throw new Error('This domain is not authorized for authentication. Please contact support.');
       default:
         throw new Error('Authentication failed. Please try again or contact support.');
+    }
+  }
+};
+
+export const signInWithApple = async () => {
+  try {
+    if (isNativePlatform()) {
+      const nativeResult = await FirebaseAuthentication.signInWithApple();
+      
+      if (!nativeResult.credential?.idToken) {
+        throw new Error("Failed to get Apple authentication credential.");
+      }
+      
+      const provider = new OAuthProvider('apple.com');
+      const credential = provider.credential({
+        idToken: nativeResult.credential.idToken,
+        rawNonce: nativeResult.credential.nonce
+      });
+      
+      const result = await signInWithCredential(auth, credential);
+      return result;
+    }
+    
+    // Standard browser: use popup
+    const provider = new OAuthProvider('apple.com');
+    // Request full name and email
+    provider.addScope('email');
+    provider.addScope('name');
+    
+    const result = await signInWithPopup(auth, provider);
+    return result;
+  } catch (error: any) {
+    switch (error.code) {
+      case 'auth/popup-closed-by-user':
+      case 'auth/cancelled-popup-request':
+        throw new Error('Sign-in was cancelled. Please try again.');
+      case 'auth/popup-blocked':
+        throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
+      case 'auth/network-request-failed':
+        throw new Error(ERROR_MESSAGES.NETWORK);
+      default:
+        throw new Error('Apple Sign-In failed. Please try again.');
     }
   }
 };

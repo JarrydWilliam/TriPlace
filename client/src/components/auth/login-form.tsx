@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signInWithGoogle } from "@/lib/firebase";
+import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 import { FaGoogle } from "react-icons/fa";
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -26,6 +26,7 @@ export function LoginForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Email/password form fields
@@ -45,6 +46,21 @@ export function LoginForm({
       });
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+    } catch (error: any) {
+      toast({
+        title: "Apple Sign-in failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -101,8 +117,24 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-5 relative z-10 pb-6">
-          {/* Premium Glass Google Sign-In */}
+        <CardContent className="space-y-4 relative z-10 pb-6">
+          {/* Apple Sign-In (Primary) */}
+          <Button
+            onClick={handleAppleLogin}
+            disabled={appleLoading}
+            className="w-full bg-white text-black hover:bg-gray-200 py-4 px-6 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[52px]"
+          >
+            {appleLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.62-1.48 3.608-2.922 1.156-1.674 1.631-3.328 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.502 1.09zM15.515 3.833c.843-1.012 1.4-2.427 1.245-3.833-1.207.052-2.662.805-3.532 1.818-.68.827-1.33 2.273-1.144 3.662 1.358.111 2.662-.623 3.431-1.647z"/>
+              </svg>
+            )}
+            <span>{isLogin ? "Sign in with Apple" : "Continue with Apple"}</span>
+          </Button>
+
+          {/* Premium Glass Google Sign-In (Secondary) */}
           <Button
             onClick={handleGoogleLogin}
             disabled={googleLoading}

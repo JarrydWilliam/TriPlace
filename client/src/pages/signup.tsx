@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, signInWithGoogle } from "@/lib/firebase";
+import { auth, signInWithGoogle, signInWithApple } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,19 @@ export default function Signup() {
     }
   };
 
+  const handleAppleSignup = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithApple();
+      setLocation("/onboarding");
+    } catch (err: any) {
+      setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-gray-900 flex items-center justify-center px-4">
       {/* Background gradients */}
@@ -82,8 +95,21 @@ export default function Signup() {
         <div className="relative">
           <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-secondary rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-700"></div>
           
-          <div className="relative bg-[#0d0a1a]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl p-6 space-y-5">
-            {/* Google Sign-Up */}
+          <div className="relative bg-[#0d0a1a]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl p-6 space-y-4">
+            
+            {/* Apple Sign-Up (Primary) */}
+            <Button
+              className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
+              onClick={handleAppleSignup}
+              disabled={loading}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.62-1.48 3.608-2.922 1.156-1.674 1.631-3.328 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.502 1.09zM15.515 3.833c.843-1.012 1.4-2.427 1.245-3.833-1.207.052-2.662.805-3.532 1.818-.68.827-1.33 2.273-1.144 3.662 1.358.111 2.662-.623 3.431-1.647z"/>
+              </svg>
+              Continue with Apple
+            </Button>
+
+            {/* Google Sign-Up (Secondary) */}
             <Button
               variant="outline"
               className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px]"
