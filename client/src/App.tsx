@@ -51,24 +51,17 @@ function Router() {
       const needsProfileSetup = !user.name || user.name === user.email?.split('@')[0];
       const isGoogleUser = firebaseUser.providerId === 'google.com' || firebaseUser.providerData.some(p => p.providerId === 'google.com');
       
-      // Only redirect if user is on landing page or explicitly needs redirection
-      if (location === '/' || location === '') {
-        if (!isGoogleUser && needsProfileSetup) {
-          setLocation('/profile-setup');
-        } else if (needsOnboarding) {
-          setLocation('/onboarding');
-        } else {
-          setLocation('/dashboard');
-        }
-      }
+      const requiresProfile = !isGoogleUser && needsProfileSetup;
       
-      // Handle completion redirects only
-      else if (!needsOnboarding && location === '/onboarding') {
-        setLocation('/dashboard');
-      } else if (!needsProfileSetup && location === '/profile-setup') {
-        if (needsOnboarding) {
+      const publicRoutes = ['/terms', '/privacy', '/delete-account'];
+      const isPublicRoute = publicRoutes.includes(location);
+
+      if (!isPublicRoute) {
+        if (requiresProfile && location !== '/profile-setup') {
+          setLocation('/profile-setup');
+        } else if (!requiresProfile && needsOnboarding && location !== '/onboarding') {
           setLocation('/onboarding');
-        } else {
+        } else if (!requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup'].includes(location)) {
           setLocation('/dashboard');
         }
       }
