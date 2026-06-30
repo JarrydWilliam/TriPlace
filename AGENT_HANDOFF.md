@@ -16,10 +16,14 @@
 1. **iOS Native Login Loop Resolved**: 
    - Fixed a silent backend crash on iOS by routing the native network wrapper to the healthy `samevibe-sandy.vercel.app` endpoint instead of the broken `tri-place` deployment. 
    - Added a robust error boundary to the authentication context so backend outages display visible UI errors instead of causing infinite loading screens.
-2. **AI Community Generation Verified**: 
+2. **AI Community Generation Verified & Fixed**: 
    - Solved the "Cold Start / No Communities" bug. The production database is now seeded with sample users. 
-   - The AI accurately analyzes user overlaps, generates dynamic communities, and drops users directly into 3 personalized communities on the cinematic `/reveal` screen after the quiz.
-3. **UI & Mobile Permissions Polish**:
+   - Fixed a frontend API query bug on the `/reveal` screen where the User ID wasn't being passed to the recommendations endpoint, causing users to see 0 communities even after they were successfully generated in the backend.
+3. **Monetization Architecture Overhaul (App Store Compliance)**:
+   - Completely ripped out Stripe, as it violates Apple's App Store Review Guideline 3.1.1 for selling digital goods.
+   - Implemented native `RevenueCat` (via `@revenuecat/purchases-capacitor`) for Apple In-App Purchases and Google Play Billing.
+   - Created a new secure backend route (`/api/checkout/verify-revenuecat`) to handle unlocking community slots upon successful StoreKit transactions.
+4. **UI & Mobile Permissions Polish**:
    - Added a toast notification for quiz selection limits to prevent silent failures.
    - Fixed location permissions on native mobile by implementing `@capacitor/geolocation` in `use-geolocation.ts`, forcing the native iOS OS-level permission prompt during onboarding.
 
