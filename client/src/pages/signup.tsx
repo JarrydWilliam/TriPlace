@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, signInWithGoogle } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +43,7 @@ export default function Signup() {
     setError("");
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       setLocation("/onboarding");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google signup failed");
