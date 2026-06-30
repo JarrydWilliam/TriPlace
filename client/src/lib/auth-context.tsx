@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User as FirebaseUser, onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { User } from "@shared/schema";
-import { apiRequest } from "./queryClient";
+import { apiRequest, getApiUrl } from "./queryClient";
 
 interface AuthContextType {
   firebaseUser: FirebaseUser | null;
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           try {
             // Try to get existing user
-            const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`, {
+            const response = await fetch(getApiUrl(`/api/users/firebase/${firebaseUser.uid}`), {
               signal: controller.signal
             });
             
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     if (firebaseUser) {
       try {
-        const response = await fetch(`/api/users/firebase/${firebaseUser.uid}`);
+        const response = await fetch(getApiUrl(`/api/users/firebase/${firebaseUser.uid}`));
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
