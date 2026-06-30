@@ -246,6 +246,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary route to seed production database
+  app.get("/api/communities/seed", async (req, res) => {
+    try {
+      const { hashPassword } = await import('./auth.js');
+      const { db } = await import('./db.js');
+      const { users, communities, events, posts, postKudos, communityMessages } = await import('../shared/schema.js');
+
+      // 1. Create Premium Persona Users
+      const personas = [
+        { username: "alex_hikes_prod", name: "Alex Rover", bio: "Always finding new trails. Nature is my third place.", interests: ["hiking", "photography", "outdoors"] },
+        { username: "sarah_codes_prod", name: "Sarah Dev", bio: "Building the next big thing. Coffee addict.", interests: ["tech", "startup", "coding"] },
+      ];
+
+      const userIds: number[] = [];
+      const passwordHash = await hashPassword("password123");
+
+      for (const p of personas) {
+        // check if exists
+        const existing = await storage.getUserByUsername(p.username);
+        if (existing) {
+          userIds.push(existing.id);
+        } else {
+          const [user] = await db.insert(users).values({
+            username: p.username,
+            password: passwordHash,
+            displayName: p.name,
+            bio: p.bio,
+            interests: p.interests,
+            location: "San Francisco, CA",
+            onboardingCompleted: true,
+            email: `${p.username}@example.com`,
+            latitude: (37.7749 + (Math.random() - 0.5) * 0.1).toString(),
+            longitude: (-122.4194 + (Math.random() - 0.5) * 0.1).toString(),
+          }).returning();
+          userIds.push(user.id);
+        }
+      }
+
+      // 2. Create High-End Communities (Tribes)
+      const tribes = [
+        { name: "Sunrise Cold Plunge", description: "We meet at 6am. We freeze. We feel alive.", tags: ["wellness", "challenge", "morning"], cat: "wellness" },
+        { name: "Strictly Vinyl", description: "Audiophiles sharing rare cuts and listening sessions.", tags: ["music", "vinyl", "hifi"], cat: "music" },
+        { name: "Startup Graveyard", description: "Celebrating failures and learning from them. No ego allowed.", tags: ["tech", "startup", "growth"], cat: "tech" },
+        { name: "Urban Sketchers", description: "Capturing the city one page at a time.", tags: ["art", "drawing", "urban"], cat: "art" },
+        { name: "Rooftop Cinema Club", description: "Cult classics under the stars.", tags: ["movies", "social", "nightlife"], cat: "social" },
+      ];
+
+      for (const t of tribes) {
+        const existing = await db.select().from(communities).where(require('drizzle-orm').eq(communities.name, t.name)).limit(1);
+        if (existing.length === 0) {
+          await db.insert(communities).values({
+            name: t.name,
+            description: t.description,
+            category: t.cat,
+            location: "San Francisco, CA"
+          });
+        }
+      }
+
+      res.json({ message: "Seeded successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Seed failed", error: error.message });
+    }
+  });
+
   app.get("/api/communities/recommended", async (req, res) => {
     try {
       const interests = req.query.interests as string;

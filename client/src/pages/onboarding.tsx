@@ -247,6 +247,10 @@ export default function Onboarding() {
           return { ...prev, [question.id]: current.filter(v => v !== value) };
         }
         if (question.maxSelections && current.length >= question.maxSelections) {
+          toast({
+            title: "Limit reached",
+            description: `You can only select up to ${question.maxSelections} options.`,
+          });
           return prev;
         }
         return { ...prev, [question.id]: [...current, value] };

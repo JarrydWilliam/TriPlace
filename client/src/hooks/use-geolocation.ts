@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
 interface GeolocationState {
   latitude: number | null;
@@ -33,18 +35,10 @@ export function useGeolocation(userId?: number, enabled = false) {
     let hasGPSAttempted = false;
 
     // Step 1: Try high-accuracy GPS first (mobile-optimized)
-    const tryGPSLocation = () => {
-      if (!navigator.geolocation) {
-        tryIPLocation();
-        return;
-      }
-
+    const tryGPSLocation = async () => {
       hasGPSAttempted = true;
       
-      const handleSuccess = async (position: GeolocationPosition) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        
+      const handleSuccess = async (lat: number, lon: number) => {
         // Try to get human-readable address
         let locationName = 'GPS Location';
         try {
@@ -83,8 +77,6 @@ export function useGeolocation(userId?: number, enabled = false) {
             });
             if (!response.ok) {
               console.error('Failed to update user location:', response.status);
-            } else {
-
             }
           } catch (error) {
             console.error('Error updating user location:', error);
@@ -92,16 +84,43 @@ export function useGeolocation(userId?: number, enabled = false) {
         }
       };
 
-      const handleError = (error: GeolocationPositionError) => {
+      const handleError = (error?: any) => {
         tryIPLocation();
       };
 
-      // Mobile-optimized GPS settings
-      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-        enableHighAccuracy: true,
-        timeout: 10000, // Give more time for mobile GPS
-        maximumAge: 300000, // Cache for 5 minutes
-      });
+      try {
+        if (Capacitor.isNativePlatform()) {
+          // Explicitly request permissions on iOS/Android Native
+          const perm = await Geolocation.requestPermissions();
+          if (perm.location !== 'granted') {
+            handleError();
+            return;
+          }
+          const position = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000,
+          });
+          await handleSuccess(position.coords.latitude, position.coords.longitude);
+        } else {
+          // Web fallback
+          if (!navigator.geolocation) {
+            tryIPLocation();
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => handleSuccess(pos.coords.latitude, pos.coords.longitude),
+            handleError,
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 300000,
+            }
+          );
+        }
+      } catch (err) {
+        handleError(err);
+      }
     };
 
     // Step 2: IP-based fallback for reliability
