@@ -188,10 +188,10 @@ export class SameVibeMatchingEngine {
     locationContext: string,
     baseLocation: string
   ): Promise<GeneratedCommunity[]> {
-    const prompt = `You are the SameVibe community matching engine. Analyze these user behavior patterns and generate exactly 5 communities.
+    const prompt = `You are the SameVibe community matching engine. Analyze these user behavior patterns and generate exactly 3 communities.
 
 REQUIREMENTS:
-- Generate EXACTLY 5 communities based on the patterns below
+- Generate EXACTLY 3 communities based on the patterns below
 - Focus on 70%+ interest overlap between users
 - Create meaningful third-place experiences for authentic connections
 - Use GENERIC, non-geographic community names only (no city names in titles)
@@ -234,8 +234,8 @@ Respond with valid JSON only:
     const result = JSON.parse(json);
     const communities = result.emergentCommunities || [];
 
-    if (communities.length !== 5) {
-      throw new Error(`Expected 5 communities, got ${communities.length}`);
+    if (communities.length !== 3) {
+      throw new Error(`Expected 3 communities, got ${communities.length}`);
     }
 
     return communities.map((c: any) => ({
@@ -263,7 +263,7 @@ Respond with valid JSON only:
 
     const topInterests = Object.entries(counts)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
+      .slice(0, 3)
       .map(([tag]) => tag);
 
     const templates: Record<string, GeneratedCommunity> = {
@@ -288,10 +288,10 @@ Respond with valid JSON only:
     const result: GeneratedCommunity[] = topInterests
       .map((interest) => templates[interest.toLowerCase()])
       .filter(Boolean)
-      .slice(0, 5);
+      .slice(0, 3);
 
     // Fill remaining slots from fallbacks
-    const needed = 5 - result.length;
+    const needed = 3 - result.length;
     for (let i = 0; i < Math.min(needed, fallbacks.length); i++) {
       const fb = fallbacks[i];
       if (fb && !result.find((r) => r.name === fb.name)) {

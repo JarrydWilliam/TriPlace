@@ -293,14 +293,15 @@ export default function Discover() {
                   <CommunityCard
                     key={community.id}
                     community={community}
-                    joined={joinedIds.has(community.id)}
-                    joining={joiningId === community.id && joinMutation.isPending}
-                    onJoin={async (id) => {
-                      setJoiningId(id);
-                      await joinMutation.mutateAsync(id);
-                      setJoiningId(null);
-                    }}
-                  />
+                      joined={joinedIds.has(community.id)}
+                      joining={joiningId === community.id && joinMutation.isPending}
+                      onJoin={async (id) => {
+                        import('@/lib/haptics').then(({ hapticHeavy }) => hapticHeavy());
+                        setJoiningId(id);
+                        await joinMutation.mutateAsync(id);
+                        setJoiningId(null);
+                      }}
+                    />
                 ))}
               </div>
             </AnimatePresence>

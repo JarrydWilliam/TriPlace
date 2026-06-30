@@ -4,17 +4,7 @@ import { Home, Compass, Users, MessageCircle, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-
-// Lightweight haptic trigger — works on native Capacitor, no-ops gracefully in browser
-const triggerHaptic = async () => {
-  try {
-    // @ts-ignore — Capacitor may not be available in browser
-    const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
-    await Haptics.impact({ style: ImpactStyle.Light });
-  } catch {
-    // Not in a native Capacitor context — silently ignore
-  }
-};
+import { hapticLight } from "@/lib/haptics";
 
 export function MobileNav() {
   const { user } = useAuth();
@@ -90,7 +80,6 @@ export function MobileNav() {
             <Link key={item.href} href={item.href}>
               <a
                 className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px]"
-                onClick={() => triggerHaptic()}
               >
                 {/* Animated active pill indicator */}
                 {item.active && (

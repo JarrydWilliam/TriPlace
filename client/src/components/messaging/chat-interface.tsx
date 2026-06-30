@@ -8,6 +8,7 @@ import { Message, User } from "@shared/schema";
 import { Send, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { hapticHeavy } from "@/lib/haptics";
 
 interface ConversationListProps {
   conversations: Array<{
@@ -134,6 +135,7 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageInput.trim() && selectedUser) {
+      hapticHeavy();
       onSendMessage(messageInput.trim());
       setMessageInput("");
     }

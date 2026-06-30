@@ -23,6 +23,7 @@ import { Link, useLocation as useRouterLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
+import { motion } from "framer-motion";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { PWAInstall } from "@/components/ui/pwa-install";
@@ -649,11 +650,28 @@ export default function Dashboard() {
                     );
                   })
                 ) : (
-                  <div className="text-center py-6">
-                    <Users className="w-12 h-12 mx-auto text-white/20 mb-3" />
-                    <p className="text-sm text-white/60 mb-1">No communities yet</p>
-                    <p className="text-xs text-white/35">Explore communities below to find your people</p>
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center py-10 px-4 text-center"
+                  >
+                    <div className="relative mb-5">
+                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
+                        <Users className="w-8 h-8 text-white/80" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">It's a bit quiet here!</h3>
+                    <p className="text-sm text-white/60 mb-6 max-w-[250px]">
+                      Your social circle is a blank canvas. Discover local communities below to start connecting.
+                    </p>
+                    <Link href="/discover">
+                      <Button className="rounded-full shadow-lg shadow-primary/20 group">
+                        Explore Communities
+                        <ChevronDown className="w-4 h-4 ml-2 group-hover:-translate-y-0.5 transition-transform" />
+                      </Button>
+                    </Link>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
