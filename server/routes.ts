@@ -320,7 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
-      const userIdNum = userId ? parseInt(userId) : undefined;
+      const authUserId = req.user ? (req.user as any).id : undefined;
+      const userIdNum = userId ? parseInt(userId) : authUserId;
       
       
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);

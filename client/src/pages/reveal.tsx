@@ -21,7 +21,7 @@ export default function Reveal() {
   const [showPaywall, setShowPaywall] = useState(false);
 
   const { data: recommendations = [], isLoading } = useQuery<Community[]>({
-    queryKey: ["/api/communities/recommended"],
+    queryKey: [user?.id ? `/api/communities/recommended?userId=${user.id}` : "/api/communities/recommended"],
     enabled: !!user,
   });
 
