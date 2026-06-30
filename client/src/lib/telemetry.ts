@@ -13,7 +13,9 @@ export type TelemetryEventType =
   | 'post_event_review_completed' 
   | 'block_user' 
   | 'report_event' 
-  | 'report_user';
+  | 'report_user'
+  | 'external_handoff_warning_shown'
+  | 'external_handoff_confirmed';
 
 export async function trackEvent(
   eventType: TelemetryEventType, 

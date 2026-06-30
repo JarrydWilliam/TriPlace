@@ -31,12 +31,10 @@ function PostCard({ post, userId }: { post: Post; userId: number }) {
   const [localCount, setLocalCount] = useState(post.kudosCount ?? 0);
 
   const giveKudos = useMutation({
-    mutationFn: () =>
-      apiRequest(`/api/posts/${post.id}/kudos`, {
-        method: "POST",
-        body: JSON.stringify({ giverId: userId }),
-        headers: { "Content-Type": "application/json" },
-      }),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/posts/${post.id}/kudos`, { giverId: userId });
+      return res.json();
+    },
     onSuccess: (data: any) => {
       if (!data.alreadyGiven) {
         setLiked(true);
@@ -105,17 +103,18 @@ export function CommunityPosts({ communityId }: CommunityPostsProps) {
 
   const { data: posts = [], isLoading } = useQuery<Post[]>({
     queryKey: ["/api/communities", communityId, "posts"],
-    queryFn: () => apiRequest(`/api/communities/${communityId}/posts`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/communities/${communityId}/posts`);
+      return res.json();
+    },
     refetchInterval: 30_000,
   });
 
   const createPost = useMutation({
-    mutationFn: () =>
-      apiRequest(`/api/communities/${communityId}/posts`, {
-        method: "POST",
-        body: JSON.stringify({ authorId: user?.id, content: newPostContent.trim() }),
-        headers: { "Content-Type": "application/json" },
-      }),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/communities/${communityId}/posts`, { authorId: user?.id, content: newPostContent.trim() });
+      return res.json();
+    },
     onSuccess: () => {
       setNewPostContent("");
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "posts"] });

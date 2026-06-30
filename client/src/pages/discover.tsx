@@ -22,6 +22,7 @@ import { Community, Event } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/telemetry";
+import { PaywallModal } from "@/components/paywall-modal";
 import {
   Dialog,
   DialogContent,
@@ -154,12 +155,12 @@ export default function Discover() {
   const openExternal = (url: string, sourceName?: string | null, eventTitle?: string) => {
     setPendingExternalUrl(url);
     setPendingSourceName(sourceName ?? "the event page");
-    trackEvent("external_handoff_warning_shown", { url, sourceName, userId: user?.id });
+    trackEvent("external_handoff_warning_shown", { userId: user?.id, metadata: { url, sourceName } });
   };
 
   const confirmExternalOpen = () => {
     if (pendingExternalUrl) {
-      trackEvent("external_handoff_confirmed", { url: pendingExternalUrl, userId: user?.id });
+      trackEvent("external_handoff_confirmed", { userId: user?.id, metadata: { url: pendingExternalUrl } });
       window.open(pendingExternalUrl, "_blank", "noopener,noreferrer");
     }
     setPendingExternalUrl(null);
@@ -197,6 +198,8 @@ export default function Discover() {
     },
   });
 
+  const [showPaywall, setShowPaywall] = useState(false);
+
   const joinMutation = useMutation({
     mutationFn: async (communityId: number) => {
       return apiRequest("POST", `/api/communities/${communityId}/join`, { userId: user?.id });
@@ -205,8 +208,12 @@ export default function Discover() {
       qc.invalidateQueries({ queryKey: ["/api/users", user?.id, "communities"] });
       toast({ title: "You're in! 🎉", description: "Community joined." });
     },
-    onError: () => {
-      toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
+    onError: (error: Error) => {
+      if (error.message.includes("requiresUpgrade")) {
+        setShowPaywall(true);
+      } else {
+        toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
+      }
     },
   });
 
@@ -397,6 +404,7 @@ export default function Discover() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PaywallModal open={showPaywall} onOpenChange={setShowPaywall} />
     </div>
   );
 }

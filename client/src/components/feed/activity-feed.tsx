@@ -17,22 +17,22 @@ function ActivityItem({ activity, onLike, onComment }: ActivityItemProps) {
       case 'kudos_received':
         return {
           icon: <Heart className="h-4 w-4 text-accent" />,
-          title: `Received kudos from ${activity.content.giverName || 'Someone'}`,
-          description: activity.content.message || 'Thanks for being awesome!',
+          title: `Received kudos from ${(activity.content as any).giverName || 'Someone'}`,
+          description: (activity.content as any).message || 'Thanks for being awesome!',
           color: 'border-accent/20'
         };
       case 'event_joined':
         return {
           icon: <Calendar className="h-4 w-4 text-blue-400" />,
-          title: `Joined ${activity.content.eventName || 'an event'}`,
-          description: activity.content.eventDescription || 'Looking forward to this event!',
+          title: `Joined ${(activity.content as any).eventName || 'an event'}`,
+          description: (activity.content as any).eventDescription || 'Looking forward to this event!',
           color: 'border-blue-400/20'
         };
       case 'community_joined':
         return {
           icon: <UsersIcon className="h-4 w-4 text-green-400" />,
-          title: `Joined ${activity.content.communityName || 'a community'}`,
-          description: activity.content.communityDescription || 'Excited to be part of this community!',
+          title: `Joined ${(activity.content as any).communityName || 'a community'}`,
+          description: (activity.content as any).communityDescription || 'Excited to be part of this community!',
           color: 'border-green-400/20'
         };
       default:

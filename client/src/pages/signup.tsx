@@ -30,11 +30,7 @@ export default function Signup() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
       // Create user record in our DB
-      await apiRequest("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ firebaseUid: cred.user.uid, email, name }),
-        headers: { "Content-Type": "application/json" },
-      }).catch(() => {}); // Non-fatal if already exists
+      await apiRequest("POST", "/api/auth/register", { firebaseUid: cred.user.uid, email, name }).catch(() => {}); // Non-fatal if already exists
       setLocation("/onboarding");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Signup failed");

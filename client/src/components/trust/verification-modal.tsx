@@ -40,7 +40,7 @@ export function VerificationModal({
 
   const handleOpenSource = () => {
     if (eventSourceUrl) {
-      trackEvent("external_source_click", { userId, source: eventSourceName });
+      trackEvent("external_source_click", { userId, metadata: { source: eventSourceName } });
       window.open(eventSourceUrl, "_blank", "noopener,noreferrer");
     }
     onClose();

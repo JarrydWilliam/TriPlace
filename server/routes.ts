@@ -9,6 +9,8 @@ import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "../shared/schema.js";
 import { z } from "zod";
+import { stripe } from "./stripe.js";
+import express from "express";
 
 // Track active WebSocket connections for real-time member detection
 const activeConnections = new Map<number, { ws: WebSocket, lastActivity: Date }>();
@@ -285,6 +287,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Monetization Routes ──────────────────────────────────────────────────
+  app.post("/api/checkout/community-unlock", async (req, res) => {
+    try {
+      const { userId, tier } = req.body;
+      if (!userId || tier === undefined) {
+        return res.status(400).json({ message: "Missing userId or tier" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        client_reference_id: userId.toString(),
+        metadata: {
+          type: "community_unlock",
+          userId: userId.toString()
+        },
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Add Community Capacity",
+                description: "Unlocks the ability to join 1 more community.",
+              },
+              unit_amount: 99, // $0.99
+            },
+            quantity: 1,
+          },
+        ],
+        // Requires Capacitor deep linking or a web fallback
+        success_url: `${req.headers.origin || "https://triplace.app"}/discover?success=true`,
+        cancel_url: `${req.headers.origin || "https://triplace.app"}/discover?canceled=true`,
+      });
+
+      res.status(200).json({ url: session.url });
+    } catch (error) {
+      console.error("Stripe checkout error:", error);
+      res.status(500).json({ message: "Internal server error during checkout" });
+    }
+  });
+
+  // Stripe requires the raw body to verify webhooks
+  app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_test";
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
+    } catch (err: any) {
+      console.error("Webhook signature verification failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as any;
+      const userId = parseInt(session.metadata?.userId);
+      const type = session.metadata?.type;
+
+      if (userId && type === "community_unlock") {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const currentLimit = user.paymentTier ?? 0;
+          await storage.updateUser(userId, { paymentTier: currentLimit + 1 });
+          console.log(`Successfully upgraded user ${userId} capacity by 1 (total extra: ${currentLimit + 1})`);
+        }
+      }
+    }
+
+    res.status(200).json({ received: true });
+  });
+
   app.post("/api/communities", async (req, res) => {
     try {
       const communityData = insertCommunitySchema.parse(req.body);
@@ -307,15 +384,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User ID is required" });
       }
       
-      const result = await storage.joinCommunityWithRotation(userId, communityId);
-      
-      // If a community was dropped, add it back to recommendations pool
-      if (result.dropped) {
-        // Trigger recommendation refresh to include the dropped community
-        await storage.refreshUserRecommendations(userId);
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
+
+      // Monetization: Free 3 communities + extra purchased communities
+      const activeCommunities = await storage.getUserActiveCommunities(userId);
+      const userTier = user.paymentTier ?? 0;
+      let limit = 3 + userTier;
+
+      if (activeCommunities.length >= limit) {
+        return res.status(403).json({ 
+          requiresUpgrade: true,
+          message: `You have reached your limit of ${limit} communities. Please upgrade to unlock more.` 
+        });
+      }
+
+      const joined = await storage.joinCommunity(userId, communityId);
       
-      res.status(201).json(result);
+      res.status(201).json({ joined });
     } catch (error) {
       console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });

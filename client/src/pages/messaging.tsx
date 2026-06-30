@@ -67,7 +67,7 @@ function ConvoItem({
           <p className="text-sm font-semibold text-foreground truncate">{otherUser.name}</p>
           {lastMessage && (
             <p className="text-[11px] text-muted-foreground/60 flex-shrink-0 ml-2">
-              {new Date(lastMessage.createdAt).toLocaleTimeString(undefined, {
+              {lastMessage.createdAt && new Date(lastMessage.createdAt).toLocaleTimeString(undefined, {
                 hour: "numeric",
                 minute: "2-digit",
               })}
@@ -202,7 +202,7 @@ function DMThread({
                       isMine ? "text-primary-foreground/60" : "text-muted-foreground"
                     }`}
                   >
-                    {new Date(msg.createdAt).toLocaleTimeString(undefined, {
+                    {msg.createdAt && new Date(msg.createdAt).toLocaleTimeString(undefined, {
                       hour: "numeric",
                       minute: "2-digit",
                     })}

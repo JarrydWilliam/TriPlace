@@ -21,11 +21,17 @@ export function StreakCard({ userId }: StreakCardProps) {
 
   const { data: streak } = useQuery<Streak>({
     queryKey: ["/api/users", userId, "streak"],
-    queryFn: () => apiRequest(`/api/users/${userId}/streak`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/streak`);
+      return res.json();
+    },
   });
 
   const checkin = useMutation({
-    mutationFn: () => apiRequest(`/api/users/${userId}/checkin`, { method: "POST" }),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/users/${userId}/checkin`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "streak"] });
     },

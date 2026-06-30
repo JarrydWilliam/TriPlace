@@ -1,4 +1,7 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+puppeteer.use(StealthPlugin());
 import { ScrapedEvent } from '../types/scraperTypes';
 
 export class InstagramScraper {
@@ -24,7 +27,7 @@ export class InstagramScraper {
       // Set user agent to appear as regular browser
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 10000 });
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
       
       // Wait for content to load
       await new Promise(resolve => setTimeout(resolve, 3000));

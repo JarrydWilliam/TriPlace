@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/ui/logo";
-import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation } from "lucide-react";
+import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function Sidebar() {

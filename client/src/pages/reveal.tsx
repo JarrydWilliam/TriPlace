@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Users, Zap, CheckCircle2, Plus, Check, ArrowRight } from "lucide-react";
 import { Community } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { PaywallModal } from "@/components/paywall-modal";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Reveal() {
@@ -17,6 +18,7 @@ export default function Reveal() {
   const [step, setStep] = useState(0);
   const [joinedIds, setJoinedIds] = useState<Set<number>>(new Set());
   const [joiningId, setJoiningId] = useState<number | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const { data: recommendations = [], isLoading } = useQuery<Community[]>({
     queryKey: ["/api/communities/recommended"],
@@ -54,8 +56,12 @@ export default function Reveal() {
       queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
       toast({ title: "You're in! 🎉", description: "Community joined successfully." });
     },
-    onError: () => {
-      toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
+    onError: (error: Error) => {
+      if (error.message.includes("requiresUpgrade")) {
+        setShowPaywall(true);
+      } else {
+        toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
+      }
     },
   });
 
@@ -284,6 +290,7 @@ export default function Reveal() {
           )}
         </AnimatePresence>
       </div>
+      <PaywallModal open={showPaywall} onOpenChange={setShowPaywall} />
     </div>
   );
 }

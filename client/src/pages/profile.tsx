@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { TopBar } from "@/components/layout/top-bar";
+import { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,7 @@ export default function Profile() {
   const targetUserId = isOwnProfile ? currentUser?.id : parseInt(userId!);
 
   // Fetch profile user data (for viewing other users)
-  const { data: profileUser, isLoading: profileUserLoading } = useQuery({
+  const { data: profileUser, isLoading: profileUserLoading } = useQuery<User>({
     queryKey: ['/api/users', targetUserId],
     enabled: !!targetUserId && !isOwnProfile,
   });
@@ -57,19 +58,19 @@ export default function Profile() {
   const user = isOwnProfile ? currentUser : profileUser;
 
   // Fetch user communities
-  const { data: userCommunities = [], isLoading: communitiesLoading } = useQuery({
+  const { data: userCommunities = [], isLoading: communitiesLoading } = useQuery<any[]>({
     queryKey: ['/api/users', targetUserId, 'communities'],
     enabled: !!targetUserId,
   });
 
   // Fetch user events
-  const { data: userEvents = [], isLoading: eventsLoading } = useQuery({
+  const { data: userEvents = [], isLoading: eventsLoading } = useQuery<any[]>({
     queryKey: ['/api/users', targetUserId, 'events'],
     enabled: !!targetUserId,
   });
 
   // Fetch current user events for "Connect After Event" validation
-  const { data: currentUserEvents = [] } = useQuery({
+  const { data: currentUserEvents = [] } = useQuery<any[]>({
     queryKey: ['/api/users', currentUser?.id, 'events'],
     enabled: !!currentUser?.id && !isOwnProfile,
   });
@@ -78,7 +79,7 @@ export default function Profile() {
   const canConnectAfterEvent = sharedEvents.length > 0;
 
   // Fetch user kudos
-  const { data: userKudos = [], isLoading: kudosLoading } = useQuery({
+  const { data: userKudos = [], isLoading: kudosLoading } = useQuery<any[]>({
     queryKey: ['/api/users', targetUserId, 'kudos', 'received'],
     enabled: !!targetUserId,
   });
@@ -343,7 +344,7 @@ export default function Profile() {
               <CardContent>
                 {user.interests && user.interests.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {user.interests.map((interest, index) => (
+                    {user.interests.map((interest: string, index: number) => (
                       <Badge 
                         key={interest}
                         variant="secondary" 

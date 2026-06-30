@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { PaywallModal } from "@/components/paywall-modal";
 import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,6 +45,7 @@ export default function Dashboard() {
   const [, setRouterLocation] = useRouterLocation();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Listen for community updates from service worker
   useEffect(() => {
@@ -227,12 +229,16 @@ export default function Dashboard() {
         });
       }
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to join community. Please try again.",
-        variant: "destructive",
-      });
+    onError: (error: Error) => {
+      if (error.message.includes("requiresUpgrade")) {
+        setShowPaywall(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to join community. Please try again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -299,6 +305,12 @@ export default function Dashboard() {
     outdoor: "bg-emerald-500",
     social: "bg-indigo-500"
   };
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setRouterLocation('/login');
+    }
+  }, [authLoading, user, setRouterLocation]);
 
   if (authLoading || locationLoading) {
     return <ComponentLoadingSpinner text="Loading your dashboard..." />;
@@ -792,6 +804,7 @@ export default function Dashboard() {
 
       {/* Persistent bottom navigation */}
       <MobileNav />
+      <PaywallModal open={showPaywall} onOpenChange={setShowPaywall} />
     </div>
   );
 }

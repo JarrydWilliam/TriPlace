@@ -13,6 +13,8 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
+    "target": "es2022",
+    "downlevelIteration": true,
     "baseUrl": ".",
     "types": ["node", "vite/client", "react", "react-dom"],
     "paths": {

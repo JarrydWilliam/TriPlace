@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   subscriptionStatus: text("subscription_status").default("inactive"), // 'active', 'trialing', 'canceled'
   subscriptionStart: timestamp("subscription_start"),
   subscriptionEnd: timestamp("subscription_end"),
+  paymentTier: integer("payment_tier").default(0), // Number of extra communities purchased ($0.99 each)
   createdAt: timestamp("created_at").defaultNow(),
 });
 

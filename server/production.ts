@@ -7,18 +7,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = Number(process.env.PORT) || 5000;
 
 // Serve static files from dist/public
 app.use(express.static(join(__dirname, 'public')));
 
-// Register API routes
-await registerRoutes(app);
+async function startServer() {
+  // Register API routes
+  await registerRoutes(app);
 
-// Serve React app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'index.html'));
-});
+  // Serve React app for all other routes
+  app.get('*', (req, res) => {
+    res.sendFile(join(__dirname, 'public', 'index.html'));
+  });
 
-app.listen(port, '0.0.0.0', () => {
-});
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server started on port ${port}`);
+  });
+}
+
+startServer().catch(console.error);

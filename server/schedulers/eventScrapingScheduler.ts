@@ -20,8 +20,12 @@ export class EventScrapingScheduler {
     });
 
     // Also run once at startup after 30 seconds
-    setTimeout(() => {
-      this.runScheduledScraping();
+    setTimeout(async () => {
+      await this.runScheduledScraping();
+      
+      const { SystemMonitoringAgent } = await import('../agent/system-monitoring');
+      const monitor = new SystemMonitoringAgent();
+      await monitor.runAudit();
     }, 30000);
 
   }

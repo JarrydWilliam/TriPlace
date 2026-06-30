@@ -25,12 +25,18 @@ export function AgentInsightsCard({ userId }: AgentInsightsCardProps) {
 
   const { data: insights, isLoading } = useQuery<AgentInsights>({
     queryKey: ["/api/users", userId, "agent-insights"],
-    queryFn: () => apiRequest(`/api/users/${userId}/agent-insights`),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/agent-insights`);
+      return res.json();
+    },
     refetchInterval: 5 * 60 * 1000, // refresh every 5 min
   });
 
   const runAgent = useMutation({
-    mutationFn: () => apiRequest(`/api/agent/run/${userId}`, { method: "POST" }),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/agent/run/${userId}`);
+      return res.json();
+    },
     onMutate: () => setPulseAgent(true),
     onSettled: () => {
       setPulseAgent(false);
