@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { useEffect } from "react";
 import { registerForPushNotifications } from "./lib/push-notifications";
-import { Purchases, LogLevel } from "@revenuecat/purchases-capacitor";
+import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Capacitor } from "@capacitor/core";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -51,7 +51,6 @@ function Router() {
     const initRevenueCat = async () => {
       if (!Capacitor.isNativePlatform()) return;
       try {
-        await Purchases.setLogLevel({ level: LogLevel.DEBUG });
         await Purchases.configure({ apiKey: "test_MsaTHgEfnpHxvvCSiESBtLcmSVF" });
         if (user?.id) {
           await Purchases.logIn({ appUserID: String(user.id) });
