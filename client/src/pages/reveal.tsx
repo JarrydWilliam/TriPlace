@@ -73,7 +73,7 @@ export default function Reveal() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#080612] flex items-center justify-center text-white">
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
         <div className="w-12 h-12 border-4 border-[#ff6b35] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -85,7 +85,7 @@ export default function Reveal() {
   const hasJoinedAny = joinedIds.size > 0;
 
   return (
-    <div className="min-h-screen bg-[#080612] text-white overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#080612] text-white overflow-hidden relative">
       {/* Background ambient glow */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <motion.div
@@ -106,7 +106,7 @@ export default function Reveal() {
         />
       </div>
 
-      <div className="h-screen w-full flex flex-col items-center justify-center px-6 relative z-10 max-w-md mx-auto">
+      <div className="h-[100dvh] w-full flex flex-col items-center justify-center px-6 relative z-10 max-w-md mx-auto">
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div

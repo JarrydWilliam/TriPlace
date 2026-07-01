@@ -51,7 +51,7 @@ function Router() {
     const initRevenueCat = async () => {
       if (!Capacitor.isNativePlatform()) return;
       try {
-        await Purchases.configure({ apiKey: "test_MsaTHgEfnpHxvvCSiESBtLcmSVF" });
+        await Purchases.configure({ apiKey: import.meta.env.VITE_REVENUECAT_API_KEY || "test_MsaTHgEfnpHxvvCSiESBtLcmSVF" });
         if (user?.id) {
           await Purchases.logIn({ appUserID: String(user.id) });
         }

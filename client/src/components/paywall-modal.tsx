@@ -82,7 +82,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
             Expand Your Network
           </DialogTitle>
           <DialogDescription className="text-center text-zinc-400">
-            You've hit the limit of 3 free communities. Unlock more to continue expanding your TriPlace network!
+            You've hit the limit of 3 free communities. Unlock more to continue expanding your SameVibe network!
           </DialogDescription>
         </DialogHeader>
 

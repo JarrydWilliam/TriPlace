@@ -10,7 +10,7 @@
 - **Backend**: Node.js, Express, Drizzle ORM, Neon Postgres (Production), Vercel
 - **Mobile**: Capacitor (iOS/Android native wrapper)
 
-## Current Status (As of June 30, 2026)
+## Current Status (As of July 1, 2026)
 
 ### Recently Completed Milestones
 1. **iOS Native Login Loop Resolved**: 
@@ -23,23 +23,29 @@
    - Completely ripped out Stripe, as it violates Apple's App Store Review Guideline 3.1.1 for selling digital goods.
    - Implemented native `RevenueCat` (via `@revenuecat/purchases-capacitor`) for Apple In-App Purchases and Google Play Billing.
    - Created a new secure backend route (`/api/checkout/verify-revenuecat`) to handle unlocking community slots upon successful StoreKit transactions.
-4. **UI & Mobile Permissions Polish**:
-   - Added a toast notification for quiz selection limits to prevent silent failures.
-   - Fixed location permissions on native mobile by implementing `@capacitor/geolocation` in `use-geolocation.ts`, forcing the native iOS OS-level permission prompt during onboarding.
+   - Downgraded `@revenuecat/purchases-capacitor` to v9 to match the project's Capacitor 6 dependency.
+4. **Full Production Polish Pass**:
+   - Replaced the dev-facing 404 page ("Did you forget to add the page to the router?") with a fully branded, animated SameVibe 404 experience.
+   - Fixed old "TriPlace" branding in the paywall modal → now says "SameVibe".
+   - Fixed mobile viewport on `/reveal` screen using `100dvh` so content is never cut off on iOS Safari.
+   - Upgraded all empty states (Dashboard, Discover, Communities) to use premium glassmorphic cards.
+   - Added App Store mandatory "Zero Tolerance" clause to the Terms of Service.
+   - Moved the RevenueCat API key to `VITE_REVENUECAT_API_KEY` env var (with test key as fallback).
 5. **Responsive Sizing & Cold Start Matching**:
-   - Overhauled Tailwind config to use `100dvh` for `h-screen` and `min-h-screen` classes to fix mobile browser sizing issues where the bottom of the app was cut off.
-   - Fixed the AI Matching engine so that if the strict 70% compatibility threshold leaves the first user with 0 community recommendations, it falls back to serving their top 3 highest-scoring communities.
+   - Overhauled Tailwind config to use `100dvh` for `h-screen` and `min-h-screen` classes.
+   - Fixed the AI Matching engine cold-start fallback to serve top-3 communities if threshold returns 0 results.
 
 ## Architecture Notes
 - **AI Matching Engine (`server/ai-matching.ts`)**: Uses an LLM (OpenAI) to generate exactly 3 communities based on aggregate user behavior. Enforces generic names to prevent duplicate geographic communities.
 - **Behavioral Learner (`server/agent/interest-learner.ts`)**: An algorithmic agent that runs silently, dynamically weighting user actions (RSVPs, Kudos, Reviews) with a time decay to build a true "Identity Vector" rather than relying purely on what users say they like.
 - **Match Optimizer (`server/agent/match-optimizer.ts`)**: An algorithmic agent that calculates a 0-100 "Match Force" score between users based on explicit quiz answers and inferred behavioral tags.
+- **RevenueCat**: Set via `VITE_REVENUECAT_API_KEY` env var. Currently using test key. Before launching to production, configure a live key in Vercel + Codemagic env vars.
 
 ## Immediate Next Steps
-1. Wait for Vercel production deployment of recent fixes.
-2. Build the iOS app and push to TestFlight.
-3. Test the native app to verify that Google/Apple sign-ins instantly route to the Dashboard/Communities.
-4. Verify the native iOS location permission prompt triggers correctly during the quiz.
+1. Add `VITE_REVENUECAT_API_KEY` to Vercel environment variables (Settings → Environment Variables).
+2. Build the iOS app in Xcode and push to TestFlight.
+3. Test native app on a physical iPhone: verify Apple Sign-In, GPS permission prompt, and Apple IAP sheet all trigger correctly.
+4. When ready for launch, swap the RevenueCat test key for the production key.
 
 ---
 *Keep this document updated whenever major milestones are completed or architecture changes are made to ensure seamless cross-machine context.*

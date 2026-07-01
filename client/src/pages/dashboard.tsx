@@ -789,8 +789,15 @@ export default function Dashboard() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      <p className="text-sm">No communities found yet. Complete your quiz to get personalized recommendations!</p>
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                      <div className="relative mb-4">
+                        <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-xl backdrop-blur-md">
+                          <svg className="w-6 h-6 text-primary/80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-white/60">No communities yet</p>
+                      <p className="text-xs text-white/30 mt-1">Complete your quiz to get personalized matches!</p>
                     </div>
                   )}
                 </div>
