@@ -167,10 +167,15 @@ export class DatabaseStorage implements IStorage {
       try {
         const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
         
-        // Only return communities with 70%+ compatibility
-        const filteredRecommendations = recommendations
+        // Only return communities with 70%+ compatibility, but fallback to top 3 if none
+        let filteredRecommendations = recommendations
           .filter((rec: any) => rec.matchScore >= 70)
           .map((rec: any) => rec.community);
+          
+        if (filteredRecommendations.length === 0) {
+          filteredRecommendations = recommendations.map((rec: any) => rec.community).slice(0, 3);
+        }
+        
         return filteredRecommendations;
         
       } catch (error) {
@@ -183,12 +188,17 @@ export class DatabaseStorage implements IStorage {
             const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
             return { community, score: overlapScore };
           })
+          .sort((a, b) => b.score - a.score);
+          
+        let filtered = recommendedCommunities
           .filter(item => item.score >= 70)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3)
           .map(item => item.community);
+          
+        if (filtered.length === 0) {
+          filtered = recommendedCommunities.slice(0, 3).map(item => item.community);
+        }
         
-        return recommendedCommunities;
+        return filtered;
       }
         
     } catch (error) {

@@ -26,6 +26,9 @@
 4. **UI & Mobile Permissions Polish**:
    - Added a toast notification for quiz selection limits to prevent silent failures.
    - Fixed location permissions on native mobile by implementing `@capacitor/geolocation` in `use-geolocation.ts`, forcing the native iOS OS-level permission prompt during onboarding.
+5. **Responsive Sizing & Cold Start Matching**:
+   - Overhauled Tailwind config to use `100dvh` for `h-screen` and `min-h-screen` classes to fix mobile browser sizing issues where the bottom of the app was cut off.
+   - Fixed the AI Matching engine so that if the strict 70% compatibility threshold leaves the first user with 0 community recommendations, it falls back to serving their top 3 highest-scoring communities.
 
 ## Architecture Notes
 - **AI Matching Engine (`server/ai-matching.ts`)**: Uses an LLM (OpenAI) to generate exactly 3 communities based on aggregate user behavior. Enforces generic names to prevent duplicate geographic communities.

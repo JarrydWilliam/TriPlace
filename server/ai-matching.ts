@@ -165,9 +165,14 @@ export class SameVibeMatchingEngine {
     });
 
     // Filter to 70%+ matches only, sorted by score
-    const qualified = scored
+    let qualified = scored
       .filter((s) => s.score >= 70)
       .sort((a, b) => b.score - a.score);
+
+    // Fallback for cold-start / new users with no 70%+ matches
+    if (qualified.length === 0 && scored.length > 0) {
+      qualified = scored.sort((a, b) => b.score - a.score).slice(0, 3);
+    }
 
     // ── Step 3: Build recommendation objects with natural-language reasoning ──
     return qualified.map((s) => ({
