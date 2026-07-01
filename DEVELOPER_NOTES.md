@@ -1,6 +1,6 @@
-# Agent Handoff & Project Context
+# Developer Notes & Project Context
 
-*Note to AI Agent: When starting a new session or running on a new machine, read this document to understand the project's current state, recent fixes, and immediate priorities.*
+*Note: This document tracks the project's current state, recent fixes, and immediate priorities across different development environments.*
 
 ## Project Overview
 **Name**: SameVibe (formerly TriPlace)
