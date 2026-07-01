@@ -189,13 +189,18 @@ export default function CommunitiesPage() {
             ))}
           </div>
         ) : allCommunities?.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-2xl backdrop-blur-md">
+                <Users className="w-8 h-8 text-primary/80" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">
               No Communities Yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Communities will appear here as they're created based on user interests and locations.
+            <p className="text-sm text-white/50 max-w-[280px]">
+              Head over to the Discover tab to find active local communities that match your vibe!
             </p>
           </div>
         ) : (

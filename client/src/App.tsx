@@ -93,10 +93,30 @@ function Router() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
+        
+        <div className="flex flex-col items-center gap-6 relative z-10">
+          {/* Pulsing Logo Circle */}
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full border border-primary/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+            <div className="w-20 h-20 bg-gradient-to-br from-primary/80 to-primary/20 border border-primary/40 rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(var(--primary),0.3)]">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <path d="M12 2v20" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-white">SameVibe</h1>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          </div>
         </div>
       </div>
     );

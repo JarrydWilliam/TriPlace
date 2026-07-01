@@ -37,8 +37,8 @@ export default function Terms() {
               body: "You must be at least 13 years of age to use SameVibe. By creating an account, you represent that you meet this requirement.",
             },
             {
-              title: "3. User Content",
-              body: "You are responsible for all content you post, including community posts, messages, and profile information. You agree not to post content that is illegal, harassing, defamatory, or violates the rights of others.",
+              title: "3. User Content (Zero Tolerance)",
+              body: "You are responsible for all content you post. There is absolutely no tolerance for objectionable content, abusive users, harassment, or illegal activity on SameVibe. We actively moderate content and reserve the right to immediately remove any content or permanently ban any user that violates our community safety standards without prior notice.",
             },
             {
               title: "4. Community Rules",
