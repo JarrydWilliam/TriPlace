@@ -249,10 +249,10 @@ export function EventCard({
                   {loading 
                     ? "..." 
                     : isRegistered 
-                      ? <><Check className="w-4 h-4 mr-1" /> Registered</>
+                      ? <><Check className="w-4 h-4 mr-1" /> Saved</>
                       : (event.externalId && event.sourceName)
                         ? <><ExternalLink className="w-4 h-4 mr-1" /> View on {event.sourceName}</>
-                        : "RSVP"}
+                        : "I'm Interested"}
                 </Button>
               </div>
             )}
