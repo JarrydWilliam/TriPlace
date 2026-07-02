@@ -246,8 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Temporary route to seed production database
-  app.get("/api/communities/seed", async (req, res) => {
+  // Temporary route to seed production database — admin only
+  app.get("/api/communities/seed", requireAdmin, async (req, res) => {
     try {
       const { hashPassword } = await import('./auth.js');
       const { db } = await import('./db.js');
@@ -791,8 +791,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test OpenAI integration
-  app.post("/api/test-openai", async (req, res) => {
+  // Test OpenAI integration — admin only
+  app.post("/api/test-openai", requireAdmin, async (req, res) => {
     try {
       
       if (!process.env.OPENAI_API_KEY) {

@@ -34,6 +34,11 @@
 5. **Responsive Sizing & Cold Start Matching**:
    - Overhauled Tailwind config to use `100dvh` for `h-screen` and `min-h-screen` classes.
    - Fixed the AI Matching engine cold-start fallback to serve top-3 communities if threshold returns 0 results.
+6. **Security Hardening (Pre-Launch Deep Dive)**:
+   - Gated `/api/communities/seed` behind `requireAdmin` middleware — was previously open to the public internet.
+   - Gated `/api/test-openai` behind `requireAdmin` middleware — was previously callable by anyone.
+   - Error boundary now hides internal stack traces in production (`import.meta.env.DEV` guard) to prevent leaking code structure.
+   - `@revenuecat/purchases-capacitor` kept at v9 for Capacitor 6 compatibility — upgrade to v10 when Capacitor is bumped to v7.
 
 ## Architecture Notes
 - **AI Matching Engine (`server/ai-matching.ts`)**: Uses an LLM (OpenAI) to generate exactly 3 communities based on aggregate user behavior. Enforces generic names to prevent duplicate geographic communities.

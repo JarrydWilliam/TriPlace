@@ -73,7 +73,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               >
                 Go Home
               </Button>
-              {this.state.error && (
+              {this.state.error && import.meta.env.DEV && (
                 <details className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <summary className="cursor-pointer text-sm font-medium">
                     Error Details
