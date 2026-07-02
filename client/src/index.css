@@ -6,10 +6,16 @@
     * {
           @apply border-border;
     }
+    html {
+          /* Explicit overflow lets iOS WebKit scroll the document, not trap in a sub-element */
+          overflow-y: auto;
+          height: 100%;
+    }
     body {
           @apply bg-background text-foreground font-sans antialiased;
           background: radial-gradient(circle at top center, hsl(260, 40%, 15%), hsl(260, 40%, 5%));
-          min-height: 100vh;
+          min-height: 100dvh;
+          overflow-y: auto;
     }
 }
 

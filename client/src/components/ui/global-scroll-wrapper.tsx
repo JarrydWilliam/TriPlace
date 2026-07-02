@@ -1,5 +1,4 @@
 import { ReactNode, useEffect } from 'react';
-import { BackToTop } from './back-to-top';
 
 interface GlobalScrollWrapperProps {
   children: ReactNode;
@@ -7,27 +6,19 @@ interface GlobalScrollWrapperProps {
 
 export function GlobalScrollWrapper({ children }: GlobalScrollWrapperProps) {
   useEffect(() => {
-    // Ensure document scrolling is enabled globally
-    document.body.style.overflow = 'auto';
-    document.documentElement.style.overflow = 'auto';
-    
-    // Remove any fixed positioning that might prevent scrolling
+    // Force scrolling to be enabled globally — critical for iOS WebKit
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.height = '100%';
+    document.body.style.overflowY = 'auto';
     document.body.style.position = 'static';
     document.body.style.height = 'auto';
-    document.body.style.minHeight = '100vh';
-    
-    // Force scroll behavior to be smooth
+    document.body.style.minHeight = '100dvh';
     document.documentElement.style.scrollBehavior = 'smooth';
-    
-    return () => {
-      // Cleanup if needed
-    };
   }, []);
 
   return (
-    <div className="min-h-screen w-full">
+    <div style={{ minHeight: '100dvh', width: '100%', overflowY: 'auto' }}>
       {children}
-      <BackToTop />
     </div>
   );
 }

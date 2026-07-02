@@ -85,7 +85,7 @@ export default function Reveal() {
   const hasJoinedAny = joinedIds.size > 0;
 
   return (
-    <div className="min-h-[100dvh] bg-[#080612] text-white overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#080612] text-white relative">
       {/* Background ambient glow */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <motion.div

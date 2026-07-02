@@ -154,12 +154,17 @@ export class DatabaseStorage implements IStorage {
       // First generate dynamic communities using SameVibe's matching agents
       const dynamicCommunities = await this.generateDynamicCommunities(userId);
       
+      // Emergency fallback: if dynamic generation produced nothing, show all active communities
+      // so a new user is never shown a completely empty state
+      const communityPool = dynamicCommunities.length > 0
+        ? dynamicCommunities
+        : await this.getAllCommunities();
       // Get user's current communities to exclude them from recommendations
       const userCommunities = await this.getUserCommunities(userId);
       const userCommunityIds = userCommunities.map(c => c.id);
       
       // Filter out communities user has already joined
-      const availableCommunities = dynamicCommunities.filter(community => 
+      const availableCommunities = communityPool.filter(community =>
         !userCommunityIds.includes(community.id)
       );
       
@@ -279,20 +284,27 @@ export class DatabaseStorage implements IStorage {
         const communityInterests = this.getCommunityInterests(community);
         const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
         
-        // Check geographic compatibility if user has location
+        // Community is location-compatible if:
+        // 1. It has no members yet (new/empty community — always show to first user)
+        // 2. OR the user would find nearby members
+        // 3. OR the community has no location constraint
+        const totalMembers = await this.getCommunityMembers(community.id);
+        const isEmptyCommunity = totalMembers.length === 0;
+        
         let locationCompatible = true;
         if (user.latitude && user.longitude) {
-          // Check if community has members within acceptable radius
           const userLocation = { lat: parseFloat(user.latitude), lon: parseFloat(user.longitude) };
           const nearbyMembers = await this.getDynamicCommunityMembers(
             community.id, 
             userLocation, 
             userInterests, 
-            100 // Use 100-mile radius for compatibility check
+            100
           );
-          
-          // Community is location-compatible if it has nearby members or if user would be first in area
-          locationCompatible = nearbyMembers.length > 0 || !community.location || community.location === 'Virtual';
+          // Compatible if empty (first user wins), has nearby members, or is location-agnostic
+          locationCompatible = isEmptyCommunity || nearbyMembers.length > 0 || !community.location || community.location === 'Virtual';
+        } else {
+          // No user location — show everything
+          locationCompatible = true;
         }
         
         // Community is compatible if 70%+ interest overlap and location compatibility

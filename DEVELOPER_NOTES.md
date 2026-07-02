@@ -10,7 +10,7 @@
 - **Backend**: Node.js, Express, Drizzle ORM, Neon Postgres (Production), Vercel
 - **Mobile**: Capacitor (iOS/Android native wrapper)
 
-## Current Status (As of July 1, 2026)
+## Current Status (As of July 2, 2026)
 
 ### Recently Completed Milestones
 1. **iOS Native Login Loop Resolved**: 
@@ -39,6 +39,10 @@
    - Gated `/api/test-openai` behind `requireAdmin` middleware — was previously callable by anyone.
    - Error boundary now hides internal stack traces in production (`import.meta.env.DEV` guard) to prevent leaking code structure.
    - `@revenuecat/purchases-capacitor` kept at v9 for Capacitor 6 compatibility — upgrade to v10 when Capacitor is bumped to v7.
+7. **Critical Mobile Bug Fixes**:
+   - **Scrolling fixed**: Added explicit `overflow-y: auto` and `height: 100%` to `html` in `index.css`. Fixed `GlobalScrollWrapper` to use inline styles (bypassing Tailwind purge) and set `overflowY: 'auto'` on both `documentElement` and `body`. Removed `overflow-hidden` from `reveal.tsx` root which was trapping scroll.
+   - **Real logo on loading screen**: The loading state in `App.tsx` was showing a placeholder dollar-sign SVG. Replaced with the actual `/logo.png` asset inside the pulsing ring animation.
+   - **First user cold-start**: Fixed `findCompatibleExistingCommunities` in `storage.ts` — communities with 0 total members are now always location-compatible (previously excluded if they had a non-"Virtual" location string, which blocked all seeded communities). Added emergency fallback in `getRecommendedCommunities` to return all active communities if `generateDynamicCommunities` returns nothing.
 
 ## Architecture Notes
 - **AI Matching Engine (`server/ai-matching.ts`)**: Uses an LLM (OpenAI) to generate exactly 3 communities based on aggregate user behavior. Enforces generic names to prevent duplicate geographic communities.

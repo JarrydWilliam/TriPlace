@@ -101,11 +101,8 @@ function Router() {
           {/* Pulsing Logo Circle */}
           <div className="relative">
             <div className="absolute inset-0 rounded-full border border-primary/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-            <div className="w-20 h-20 bg-gradient-to-br from-primary/80 to-primary/20 border border-primary/40 rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(var(--primary),0.3)]">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                <path d="M12 2v20" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+            <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/40 rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(255,107,53,0.3)] overflow-hidden">
+              <img src="/logo.png" alt="SameVibe" className="w-full h-full object-cover rounded-full" />
             </div>
           </div>
           
