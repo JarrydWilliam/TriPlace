@@ -722,7 +722,7 @@ export default function Dashboard() {
                           size="sm" 
                           variant="outline" 
                           className="w-full min-h-[44px] text-xs"
-                          onClick={() => window.location.href = `/community/${event.communityId || ''}`}
+                          onClick={() => setRouterLocation(`/community/${event.communityId || ''}`)}
                         >
                           View Event
                         </Button>

@@ -30,11 +30,13 @@ export default function CommunitiesPage() {
     ]);
   };
 
-  // Fetch all communities
+  // Fetch user's joined communities only
   const { data: allCommunities, isLoading: communitiesLoading } = useQuery({
-    queryKey: ["/api/communities"],
+    queryKey: ["/api/users", user?.id, "communities"],
+    enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch("/api/communities");
+      if (!user?.id) return [];
+      const response = await fetch(`/api/users/${user.id}/communities`);
       if (!response.ok) throw new Error("Failed to fetch communities");
       return response.json();
     }
@@ -45,7 +47,7 @@ export default function CommunitiesPage() {
     queryKey: ["/api/events", "global"],
     queryFn: async () => {
       const response = await fetch("/api/events/global");
-      if (!response.ok) throw new Error("Failed to fetch partner events");
+      if (!response.ok) return [];
       return response.json();
     }
   });
@@ -109,7 +111,7 @@ export default function CommunitiesPage() {
                 <span>Back to Dashboard</span>
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">All Communities</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
           </div>
           <Button
             variant="ghost"
@@ -168,7 +170,7 @@ export default function CommunitiesPage() {
         {/* Communities Grid */}
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Discover Communities
+            Communities You've Joined
           </h2>
         </div>
 
@@ -197,11 +199,16 @@ export default function CommunitiesPage() {
               </div>
             </div>
             <h3 className="text-xl font-bold text-white mb-2">
-              No Communities Yet
+              No Groups Yet
             </h3>
-            <p className="text-sm text-white/50 max-w-[280px]">
-              Head over to the Discover tab to find active local communities that match your vibe!
+            <p className="text-sm text-white/50 max-w-[280px] mb-6">
+              You haven't joined any communities yet. Head to Discover to find your people!
             </p>
+            <Link href="/discover">
+              <button className="bg-primary text-white font-semibold px-6 py-3 rounded-full text-sm hover:opacity-90 transition-all">
+                Discover Communities
+              </button>
+            </Link>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -19,6 +19,7 @@ import { Send, ArrowLeft, MessageCircle, Search } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Message, User } from "@shared/schema";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -248,6 +249,7 @@ function DMThread({
 
 export default function Messaging() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [search, setSearch] = useState("");
 
@@ -280,7 +282,7 @@ export default function Messaging() {
       <div className="max-w-3xl mx-auto h-[calc(100vh-80px)] flex">
         {/* ── Conversation List ── */}
         <AnimatePresence initial={false}>
-          {(!showThread || window.innerWidth >= 768) && (
+          {(!showThread || !isMobile) && (
             <motion.div
               key="list"
               initial={{ x: -20, opacity: 0 }}
