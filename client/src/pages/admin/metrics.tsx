@@ -30,8 +30,14 @@ interface MetricsData {
 export default function AdminMetrics() {
   const { data, isLoading } = useQuery<MetricsData>({
     queryKey: ["/api/admin/metrics"],
-    // In a real app, you'd pass the admin key here
-    // For MVP/Demo, we assume the server checks it
+    queryFn: async () => {
+      const adminKey = import.meta.env.VITE_ADMIN_SECRET_KEY ?? "";
+      const res = await fetch("/api/admin/metrics", {
+        headers: { "x-admin-key": adminKey },
+      });
+      if (!res.ok) throw new Error("Unauthorized");
+      return res.json();
+    },
   });
 
   if (isLoading || !data) {

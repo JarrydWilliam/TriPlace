@@ -50,8 +50,15 @@ function Router() {
   useEffect(() => {
     const initRevenueCat = async () => {
       if (!Capacitor.isNativePlatform()) return;
+      const rcKey = import.meta.env.VITE_REVENUECAT_API_KEY;
+      if (!rcKey) {
+        // Skip RevenueCat initialization if the key is not configured.
+        // Never fall back to a test/hardcoded key in production.
+        console.warn('[SameVibe] VITE_REVENUECAT_API_KEY not set — RevenueCat disabled.');
+        return;
+      }
       try {
-        await Purchases.configure({ apiKey: import.meta.env.VITE_REVENUECAT_API_KEY || "test_MsaTHgEfnpHxvvCSiESBtLcmSVF" });
+        await Purchases.configure({ apiKey: rcKey });
         if (user?.id) {
           await Purchases.logIn({ appUserID: String(user.id) });
         }
@@ -148,7 +155,24 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/delete-account" component={DeleteAccount} />
-      <Route path="/admin/metrics" component={AdminMetrics} />
+      <Route path="/admin/metrics" component={() => {
+        // Admin gate — only allow access if the user's email matches the configured admin email.
+        // Without a proper backend session, this is the minimal client-side guard.
+        const { user } = useAuth();
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        if (!user || !adminEmail || user.email !== adminEmail) {
+          return (
+            <div className="min-h-screen bg-[#080612] flex items-center justify-center text-white">
+              <div className="text-center space-y-3">
+                <div className="text-4xl">🔒</div>
+                <h1 className="text-xl font-bold">Access Denied</h1>
+                <p className="text-white/50 text-sm">This page is restricted to administrators.</p>
+              </div>
+            </div>
+          );
+        }
+        return <AdminMetrics />;
+      }} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
       </Switch>

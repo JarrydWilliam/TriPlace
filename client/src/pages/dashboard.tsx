@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { PaywallModal } from "@/components/paywall-modal";
 import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
@@ -94,7 +94,7 @@ export default function Dashboard() {
     queryKey: ["/api/users", user?.id, "active-communities"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}/active-communities`);
+      const response = await fetch(getApiUrl(`/api/users/${user?.id}/active-communities`));
       if (!response.ok) throw new Error('Failed to fetch active communities');
       return response.json();
     }
@@ -109,7 +109,7 @@ export default function Dashboard() {
     queryKey: ["/api/users", user?.id, "events"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}/events`);
+      const response = await fetch(getApiUrl(`/api/users/${user?.id}/events`));
       if (!response.ok) throw new Error('Failed to fetch user events');
       return response.json();
     }
@@ -139,7 +139,7 @@ export default function Dashboard() {
     queryKey: ["/api/events/trending", latitude, longitude],
     enabled: !!latitude && !!longitude,
     queryFn: async () => {
-      const response = await fetch(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`);
+      const response = await fetch(getApiUrl(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`));
       if (!response.ok) throw new Error('Failed to fetch trending events');
       return response.json();
     }

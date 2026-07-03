@@ -22,7 +22,7 @@ export default function Terms() {
             </div>
             <h1 className="text-3xl font-bold">Terms of Service</h1>
           </div>
-          <p className="text-white/40 text-sm ml-[52px]">Last updated: February 2026</p>
+          <p className="text-white/40 text-sm ml-[52px]">Last updated: July 2026</p>
         </div>
 
         {/* Content */}

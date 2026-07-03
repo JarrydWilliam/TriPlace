@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Target, Edit, MapPin, Eye, Heart, MessageSquare, Calendar, Settings } from "lucide-react";
+import { ArrowLeft, Users, Target, Edit, MapPin, Eye, Heart, MessageSquare, Calendar, Settings, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -23,11 +24,16 @@ export default function CommunitySettings() {
     minMatchPercentage: [70]
   });
 
-  const [communities] = useState([
-    { id: 1, name: "Mindful Yoga Community", role: "Member", joinDate: "Dec 2024", category: "Wellness", memberCount: 234 },
-    { id: 2, name: "Tech Entrepreneurs", role: "Moderator", joinDate: "Nov 2024", category: "Professional", memberCount: 567 },
-    { id: 3, name: "Local Hikers", role: "Member", joinDate: "Jan 2025", category: "Outdoor", memberCount: 89 }
-  ]);
+  // Load real community data from the API
+  const { data: communities, isLoading: communitiesLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "active-communities"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user?.id}/active-communities`);
+      if (!res.ok) throw new Error("Failed to load communities");
+      return res.json();
+    }
+  });
 
   const handleRetakeQuiz = () => {
     toast({ title: "Redirecting to matching quiz..." });
@@ -56,18 +62,33 @@ export default function CommunitySettings() {
         </div>
 
         <div className="space-y-6">
-          {/* My Communities */}
+          {/* My Communities — live from API */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
                 <span>My Communities</span>
-                <Badge variant="secondary">{communities.length}</Badge>
+                {!communitiesLoading && communities && (
+                  <Badge variant="secondary">{communities.length}</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                {communities.map((community) => (
+              {communitiesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : !communities || communities.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">You haven't joined any communities yet.</p>
+                  <Link href="/discover">
+                    <Button variant="link" size="sm" className="mt-1">Browse communities →</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {communities.map((community: any) => (
                   <div key={community.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -125,6 +146,7 @@ export default function CommunitySettings() {
                   </div>
                 ))}
               </div>
+              )}
               
               <div className="pt-4 border-t">
                 <Button variant="outline" className="w-full">

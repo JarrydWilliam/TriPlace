@@ -43,18 +43,22 @@
    - **Scrolling fixed**: Added explicit `overflow-y: auto` and `height: 100%` to `html` in `index.css`. Fixed `GlobalScrollWrapper` to use inline styles (bypassing Tailwind purge) and set `overflowY: 'auto'` on both `documentElement` and `body`. Removed `overflow-hidden` from `reveal.tsx` root which was trapping scroll.
    - **Real logo on loading screen**: The loading state in `App.tsx` was showing a placeholder dollar-sign SVG. Replaced with the actual `/logo.png` asset inside the pulsing ring animation.
    - **First user cold-start**: Fixed `findCompatibleExistingCommunities` in `storage.ts` — communities with 0 total members are now always location-compatible (previously excluded if they had a non-"Virtual" location string, which blocked all seeded communities). Added emergency fallback in `getRecommendedCommunities` to return all active communities if `generateDynamicCommunities` returns nothing.
+8. **Production Launch Audit & Remediation (July 2-3, 2026)**:
+   - **Backend Route Hardening**: Completely rebuilt `requireAdmin` to enforce a strict `ADMIN_SECRET_KEY` environment check. Gated all heavy compute endpoints (e.g., AI refresh, event population, web scraping). Fixed broken SQL `OR` filters in global events endpoint.
+   - **CORS Restricted**: Locked down `vercel.json` wildcard CORS (`*`) to only allow `https://samevibe.app`.
+   - **App Store/Play Console Compliance**: Rebuilt the `security.tsx` page to remove the fake 2FA mock (violates "no placeholder UI" rules). Hooked up genuine active sign-in provider status via Firebase. Updated Account Deletion URLs to match production domain.
+   - **Environment Secrets Guarded**: Cleaned `cert_key.pem` out of git history. Updated `.env.example` with strict instructions on required secrets (RevenueCat, Admin, Database, Firebase).
+   - **Native API Routing**: Unified all raw `fetch()` calls in the frontend to correctly use `getApiUrl()` (resolving native iOS/Android CORS network failures), and deleted the conflicting `window.fetch` override in `main.tsx`.
 
 ## Architecture Notes
 - **AI Matching Engine (`server/ai-matching.ts`)**: Uses an LLM (OpenAI) to generate exactly 3 communities based on aggregate user behavior. Enforces generic names to prevent duplicate geographic communities.
 - **Behavioral Learner (`server/agent/interest-learner.ts`)**: An algorithmic agent that runs silently, dynamically weighting user actions (RSVPs, Kudos, Reviews) with a time decay to build a true "Identity Vector" rather than relying purely on what users say they like.
 - **Match Optimizer (`server/agent/match-optimizer.ts`)**: An algorithmic agent that calculates a 0-100 "Match Force" score between users based on explicit quiz answers and inferred behavioral tags.
-- **RevenueCat**: Set via `VITE_REVENUECAT_API_KEY` env var. Currently using test key. Before launching to production, configure a live key in Vercel + Codemagic env vars.
 
 ## Immediate Next Steps
-1. Add `VITE_REVENUECAT_API_KEY` to Vercel environment variables (Settings → Environment Variables).
+1. Add `VITE_REVENUECAT_API_KEY`, `ADMIN_SECRET_KEY`, and `VITE_ADMIN_EMAIL` to Vercel environment variables (Settings → Environment Variables).
 2. Build the iOS app in Xcode and push to TestFlight.
 3. Test native app on a physical iPhone: verify Apple Sign-In, GPS permission prompt, and Apple IAP sheet all trigger correctly.
-4. When ready for launch, swap the RevenueCat test key for the production key.
 
 ---
 *Keep this document updated whenever major milestones are completed or architecture changes are made to ensure seamless cross-machine context.*

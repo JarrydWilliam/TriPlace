@@ -33,14 +33,23 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Admin Security Middleware ---
-  // Locks down agent execution and configuration to only the creator
+  // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
+  // Any non-empty header is NOT sufficient — the value must match the secret exactly.
   const requireAdmin = (req: any, res: any, next: any) => {
-    const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
-    const adminUid = req.headers['x-admin-uid'] || req.body?.adminUid;
-    
-    if (!adminKey && !adminUid) {
-      return res.status(403).json({ message: "Forbidden: Admin access required to alter agents." });
+    const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
+
+    // If ADMIN_SECRET_KEY is not configured, lock down all admin routes completely.
+    if (!ADMIN_SECRET) {
+      console.error('[SameVibe] ADMIN_SECRET_KEY is not set — all admin routes are locked.');
+      return res.status(503).json({ message: "Admin routes are not configured on this server." });
     }
+
+    const providedKey = req.headers['x-admin-key'] || req.body?.adminKey;
+
+    if (!providedKey || providedKey !== ADMIN_SECRET) {
+      return res.status(403).json({ message: "Forbidden: Invalid or missing admin key." });
+    }
+
     next();
   };
 
@@ -926,7 +935,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Automatic event population for all user communities
-  app.post("/api/auto-populate-events", async (req, res) => {
+  // ADMIN ONLY: triggers web scraping — must not be publicly accessible
+  app.post("/api/auto-populate-events", requireAdmin, async (req, res) => {
     try {
       const { userId, latitude, longitude } = req.body;
       
@@ -1090,8 +1100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test endpoint to populate sample events for a community
-  app.post("/api/communities/:id/populate-sample-events", async (req, res) => {
+  // ADMIN ONLY: creates sample events — never expose to public users
+  app.post("/api/communities/:id/populate-sample-events", requireAdmin, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       if (isNaN(communityId)) {
@@ -1279,10 +1289,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all events where user has "attended" status
       const attendedEvents = await storage.getUserEvents(userId);
-      const confirmedAttended = attendedEvents.filter(event => {
-        // This would need to be implemented in storage to check attendance status
-        return true; // Placeholder - would check actual attendance records
-      });
+      // Filter to only events that have actually passed (cannot attend future events)
+      const confirmedAttended = attendedEvents.filter(event => 
+        new Date(event.date) < new Date()
+      );
       
       res.json(confirmedAttended);
     } catch (error) {
@@ -1294,14 +1304,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Global events route for communities page
   app.get("/api/events/global", async (req, res) => {
     try {
-      // Get all global/partner events (events marked as global or from partners)
+      // Get partner/global events only — events explicitly marked isGlobal or type=partner.
+      // The previous implementation had an OR clause that matched ALL future events.
       const allEvents = await storage.getAllEvents();
       const globalEvents = allEvents.filter(event => 
-        event.isGlobal === true || 
-        event.eventType === "partner" ||
-        event.title?.toLowerCase().includes("partner") ||
-        new Date(event.date) >= new Date() // Future events only
-      ).slice(0, 10); // Limit to 10 most recent
+        (event.isGlobal === true || event.eventType === "partner") &&
+        new Date(event.date) >= new Date()
+      ).slice(0, 10);
       
       res.json(globalEvents);
     } catch (error) {
@@ -1412,8 +1421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Community database refresh endpoints
-  app.post("/api/admin/refresh-all-communities", async (req, res) => {
+  // ADMIN ONLY: triggers heavy AI regeneration for all users
+  app.post("/api/admin/refresh-all-communities", requireAdmin, async (req, res) => {
     try {
       await communityRefreshService.regenerateAllUserCommunities();
       
@@ -1427,7 +1436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/refresh-user-communities/:userId", async (req, res) => {
+  app.post("/api/admin/refresh-user-communities/:userId", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) {
@@ -1464,8 +1473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Trigger global community database refresh
-  app.post("/api/community-updates/refresh", async (req, res) => {
+  // ADMIN ONLY: triggers global community refresh
+  app.post("/api/community-updates/refresh", requireAdmin, async (req, res) => {
     try {
       await communityUpdateNotifier.triggerGlobalCommunityRefresh();
       
@@ -1757,7 +1766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/agent/run/:userId", async (req, res) => {
+  // ADMIN ONLY: run AI agent pipeline for a specific user
+  app.post("/api/agent/run/:userId", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { runAgentForUser } = await import("./agent/agent-runner.js");

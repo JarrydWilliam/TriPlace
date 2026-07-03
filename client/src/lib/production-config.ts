@@ -62,7 +62,7 @@ export const ERROR_MESSAGES = {
   NETWORK: "Unable to connect. Please check your internet connection and try again.",
   TIMEOUT: "Request timed out. Please try again.",
   AUTHENTICATION: "Please sign in to continue.",
-  LOCATION_DENIED: "Location access is required for community recommendations.",
+  LOCATION_DENIED: "Location access improves community recommendations. You can also enter your city manually.",
   LOCATION_UNAVAILABLE: "Unable to determine your location. Using approximate location instead.",
   GENERIC: "Something went wrong. Please try again.",
   QUOTA_EXCEEDED: "Service temporarily unavailable. Please try again later.",

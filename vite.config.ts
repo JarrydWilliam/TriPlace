@@ -21,6 +21,15 @@ export default defineConfig(({ mode }) => ({
     // MUST match capacitor.config.ts webDir — this is what Capacitor loads on native iOS/Android
     outDir: resolve(process.cwd(), "dist", "public"),
     emptyOutDir: true,
+    rollupOptions: {
+      // Capacitor native plugins are not bundleable for web — they're injected at runtime
+      // by the native Capacitor bridge. Externalizing them prevents build errors while
+      // the existing isNativePlatform() guards ensure they're only called on native.
+      external: [
+        "@revenuecat/purchases-capacitor",
+        "@capacitor-firebase/authentication",
+      ],
+    },
   },
   server: {
     fs: {

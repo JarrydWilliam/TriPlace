@@ -20,7 +20,16 @@ export default function SupportSettings() {
   });
 
   const handleSubmitFeedback = () => {
-    toast({ title: "Feedback sent successfully!", description: "We'll review your message and get back to you." });
+    if (!feedbackForm.subject.trim() || !feedbackForm.message.trim()) {
+      toast({ title: "Please fill in subject and message", variant: "destructive" });
+      return;
+    }
+    // Open the user's mail client with the support email pre-filled.
+    // This is the most reliable approach for a client-side-only app.
+    const email = feedbackForm.email || 'support@samevibe.app';
+    const subject = encodeURIComponent(`[${feedbackForm.type}] ${feedbackForm.subject}`);
+    const body = encodeURIComponent(feedbackForm.message);
+    window.location.href = `mailto:support@samevibe.app?reply-to=${email}&subject=${subject}&body=${body}`;
     setFeedbackForm({ type: 'feedback', subject: '', message: '', email: '' });
   };
 
@@ -77,29 +86,15 @@ export default function SupportSettings() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-20 flex-col space-y-2">
-                  <Book className="w-6 h-6 text-blue-500" />
-                  <div className="text-center">
-                    <p className="font-medium">Help Center</p>
-                    <p className="text-sm text-gray-500">Browse articles</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="h-20 flex-col space-y-2">
-                  <MessageSquare className="w-6 h-6 text-green-500" />
-                  <div className="text-center">
-                    <p className="font-medium">Live Chat</p>
-                    <p className="text-sm text-gray-500">Chat with support</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="h-20 flex-col space-y-2">
-                  <Mail className="w-6 h-6 text-purple-500" />
-                  <div className="text-center">
-                    <p className="font-medium">Email Support</p>
-                    <p className="text-sm text-gray-500">Get detailed help</p>
-                  </div>
-                </Button>
+                <a href="mailto:support@samevibe.app?subject=Help%20Request">
+                  <Button variant="outline" className="w-full h-20 flex-col space-y-2">
+                    <Book className="w-6 h-6 text-blue-500" />
+                    <div className="text-center">
+                      <p className="font-medium">Email Support</p>
+                      <p className="text-sm text-gray-500">support@samevibe.app</p>
+                    </div>
+                  </Button>
+                </a>
               </div>
             </CardContent>
           </Card>
@@ -271,11 +266,11 @@ export default function SupportSettings() {
                 </div>
                 <div>
                   <p className="font-medium">Last Updated</p>
-                  <p className="text-sm text-gray-500">Dec 2024</p>
+                  <p className="text-sm text-gray-500">July 2026</p>
                 </div>
                 <div>
                   <p className="font-medium">Build</p>
-                  <p className="text-sm text-gray-500">#1234</p>
+                  <p className="text-sm text-gray-500">{import.meta.env.VITE_APP_VERSION || "1.0.0"}</p>
                 </div>
               </div>
 

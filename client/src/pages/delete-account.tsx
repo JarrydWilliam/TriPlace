@@ -7,7 +7,7 @@ import { Trash2, ShieldCheck, ArrowLeft, Smartphone } from "lucide-react";
  * Required by Google Play policy: apps that allow account creation must
  * provide a publicly accessible web URL where users can request deletion.
  *
- * URL: https://tri-place.vercel.app/delete-account
+ * URL: https://samevibe.app/delete-account
  * This URL is submitted in:
  *   - Google Play Console → App Content → Data Safety → Account Deletion URL
  *   - Apple App Store Connect → App Privacy → Account Deletion

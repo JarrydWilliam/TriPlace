@@ -113,10 +113,6 @@ export default function AccountSettings() {
                   <Badge variant="outline" className="text-blue-600 bg-blue-50">
                     Free Account
                   </Badge>
-                  <Button variant="link" className="p-0 h-auto">
-                    Upgrade to Premium
-                    <ExternalLink className="w-3 h-3 ml-1" />
-                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -131,47 +127,12 @@ export default function AccountSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Google Account */}
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">G</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">Google</p>
-                    <p className="text-sm text-gray-500">Connected • {user?.email}</p>
-                    <div className="flex items-center space-x-1 mt-1">
-                      <CheckCircle className="w-3 h-3 text-green-500" />
-                      <span className="text-xs text-green-600">Primary account</span>
-                    </div>
-                  </div>
-                </div>
-                <Button variant="outline" onClick={handleDisconnectGoogle}>
-                  Disconnect
-                </Button>
-              </div>
-
-              {/* Apple Account */}
-              <div className="flex items-center justify-between p-4 border-2 border-dashed border-gray-300 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold">🍎</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">Apple</p>
-                    <p className="text-sm text-gray-500">Not connected</p>
-                    <p className="text-xs text-gray-400">Enable Sign in with Apple for easier access</p>
-                  </div>
-                </div>
-                <Button variant="outline" onClick={handleConnectApple}>
-                  Connect
-                </Button>
-              </div>
-
+              {/* Sign-in providers */}
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
                   <Shield className="w-4 h-4 inline mr-1" />
-                  Connected accounts help you sign in securely and recover your account if needed.
+                  Your sign-in method is managed by Google or Apple. To change authentication
+                  providers, sign out and sign back in using the desired method.
                 </p>
               </div>
             </CardContent>
@@ -187,19 +148,23 @@ export default function AccountSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">Download Your Data</p>
-                    <p className="text-sm text-gray-500">Get a copy of your SameVibe data</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">Privacy Settings</p>
-                    <p className="text-sm text-gray-500">Manage how your data is used</p>
-                  </div>
-                </Button>
+                <a href="mailto:privacy@samevibe.app?subject=Data%20Download%20Request">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <div className="text-left">
+                      <p className="font-medium">Download Your Data</p>
+                      <p className="text-sm text-gray-500">Email privacy@samevibe.app to request a copy</p>
+                    </div>
+                  </Button>
+                </a>
+
+                <Link href="/privacy">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <div className="text-left">
+                      <p className="font-medium">Privacy Policy</p>
+                      <p className="text-sm text-gray-500">View how your data is used</p>
+                    </div>
+                  </Button>
+                </Link>
               </div>
 
               <div className="space-y-2">
