@@ -432,14 +432,6 @@ export default function CommunityPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="p-2 text-white hover:bg-white/10"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
           </div>
 
           {/* Glass Card Container for Content */}

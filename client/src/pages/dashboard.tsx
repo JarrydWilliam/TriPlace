@@ -36,7 +36,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 
 export default function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
   const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
   const { isConnected } = useWebSocket();
@@ -362,9 +362,6 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <ShareQR />
-                <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9">
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9">
@@ -376,54 +373,42 @@ export default function Dashboard() {
                     <DropdownMenuSeparator />
                     
                     {/* Profile Settings */}
-                    <Link href="/settings/profile">
-                      <DropdownMenuItem>
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        Profile
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/profile')}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
 
                     {/* Account Settings */}
-                    <Link href="/settings/account">
-                      <DropdownMenuItem>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Account
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/account')}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Account
+                    </DropdownMenuItem>
 
                     {/* Notifications */}
-                    <Link href="/settings/notifications">
-                      <DropdownMenuItem>
-                        <Bell className="mr-2 h-4 w-4" />
-                        Notifications
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/notifications')}>
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </DropdownMenuItem>
 
                     {/* Community Preferences */}
-                    <Link href="/settings/community">
-                      <DropdownMenuItem>
-                        <Users className="mr-2 h-4 w-4" />
-                        Community Preferences
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/community')}>
+                      <Users className="mr-2 h-4 w-4" />
+                      Community Preferences
+                    </DropdownMenuItem>
 
                     {/* Security */}
-                    <Link href="/settings/security">
-                      <DropdownMenuItem>
-                        <Shield className="mr-2 h-4 w-4" />
-                        Security
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/security')}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      Security
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
                     {/* Support */}
-                    <Link href="/settings/support">
-                      <DropdownMenuItem>
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        Support
-                      </DropdownMenuItem>
-                    </Link>
+                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/support')}>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Support
+                    </DropdownMenuItem>
 
                     {/* About / Legal */}
                     <DropdownMenuSub>
@@ -432,24 +417,26 @@ export default function Dashboard() {
                         About & Legal
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        <Link href="/terms">
-                          <DropdownMenuItem>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Terms of Service
-                          </DropdownMenuItem>
-                        </Link>
-                        <Link href="/privacy">
-                          <DropdownMenuItem>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Privacy Policy
-                          </DropdownMenuItem>
-                        </Link>
+                        <DropdownMenuItem onClick={() => setRouterLocation('/terms')}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Terms of Service
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRouterLocation('/privacy')}>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Privacy Policy
+                        </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Settings className="mr-2 h-4 w-4" />
                           App Version 1.0.0
                         </DropdownMenuItem>
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 focus:bg-red-500/10">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

@@ -113,14 +113,6 @@ export default function CommunitiesPage() {
             </Link>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="p-2"
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
         </div>
 
         {/* Partner Events Section */}
