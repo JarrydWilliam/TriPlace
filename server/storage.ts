@@ -200,7 +200,7 @@ export class DatabaseStorage implements IStorage {
           .map(item => item.community);
           
         if (filtered.length === 0) {
-          filtered = recommendedCommunities.slice(0, 3).map(item => item.community);
+          filtered = recommendedCommunities.slice(0, 20).map(item => item.community);
         }
         
         return filtered;
