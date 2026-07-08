@@ -200,13 +200,6 @@ export default function AccountSettings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start opacity-60" disabled>
-                  <div className="text-left">
-                    <p className="font-medium">Deactivate Account</p>
-                    <p className="text-sm text-gray-500">Temporarily disable your account — coming soon</p>
-                  </div>
-                </Button>
-
                 <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                   <DialogTrigger asChild>
                     <Button variant="destructive" className="w-full justify-start">

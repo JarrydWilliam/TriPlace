@@ -11,7 +11,7 @@ interface GeolocationState {
   locationName: string | null;
 }
 
-export function useGeolocation(userId?: number, enabled = false) {
+export function useGeolocation(userId?: number, enabled = true) {
   const [location, setLocation] = useState<GeolocationState>({
     latitude: null,
     longitude: null,

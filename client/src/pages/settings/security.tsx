@@ -65,29 +65,7 @@ export default function SecuritySettings() {
             </CardContent>
           </Card>
 
-          {/* Two-Factor Authentication — Coming Soon */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Lock className="w-5 h-5" />
-                <span>Two-Factor Authentication</span>
-                <Badge variant="outline" className="text-xs text-muted-foreground ml-auto">
-                  Coming Soon
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <Shield className="w-4 h-4 inline mr-1" />
-                  Extra sign-in verification (TOTP / authenticator app) is on our roadmap
-                  and will be available in a future update. For now, your account is
-                  secured by {isGoogleUser ? "Google" : isAppleUser ? "Apple" : "Firebase"}'s
-                  built-in security.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Security Alerts / Report */}
           <Card className="border-yellow-200 dark:border-yellow-800">

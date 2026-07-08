@@ -571,7 +571,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                     <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Challenges coming soon</p>
+                    <p>No active challenges</p>
                     <p className="text-sm">Stay active to unlock weekly challenges!</p>
                   </div>
                 )}
