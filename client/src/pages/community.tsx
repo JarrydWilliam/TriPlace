@@ -25,7 +25,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { CommunityPosts } from "@/components/ui/community-posts";
 
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
-import { useTheme } from "@/lib/theme-context";
+
 
 // Helper function to format name as "First Name + Last Initial"
 const formatDisplayName = (fullName: string | null | undefined): string => {
@@ -277,7 +277,7 @@ export default function CommunityPage() {
   const { latitude, longitude } = useGeolocation(user?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { theme, toggleTheme } = useTheme();
+
   const [newMessage, setNewMessage] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");

@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-// import { useTheme } from "@/lib/theme-context";
+
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +11,7 @@ import { Link, useLocation } from "wouter";
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
-  // const { theme, toggleTheme } = useTheme();
+
   const [location] = useLocation();
   const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation(user?.id);
 

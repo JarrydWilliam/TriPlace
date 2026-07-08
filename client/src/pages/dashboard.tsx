@@ -3,7 +3,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useCommunityUpdates } from "@/hooks/use-community-updates";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useLiveMembers } from "@/hooks/use-live-members";
-import { useTheme } from "@/lib/theme-context";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export default function Dashboard() {
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
   const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
   const { isConnected } = useWebSocket();
-  const { theme, toggleTheme } = useTheme();
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setRouterLocation] = useRouterLocation();

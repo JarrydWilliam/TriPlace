@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTheme } from "@/lib/theme-context";
+
 import { MobileNav } from "@/components/layout/mobile-nav";
 
 
@@ -20,7 +20,7 @@ export default function CommunitiesPage() {
   const { user, loading: authLoading } = useAuth();
   const { latitude, longitude } = useGeolocation(user?.id);
   const queryClient = useQueryClient();
-  const { theme, toggleTheme } = useTheme();
+
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
