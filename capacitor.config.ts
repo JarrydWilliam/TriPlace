@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
     },
     FirebaseAuthentication: {
       skipNativeAuth: false,
-      providers: ["google.com", "facebook.com", "yahoo.com"],
+      providers: ["google.com", "apple.com", "facebook.com", "yahoo.com"],
     },
     Geolocation: {
       // No extra config needed — uses native device GPS

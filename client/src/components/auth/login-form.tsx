@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signInWithGoogle, signInWithApple } from "@/lib/firebase";
-import { apiRequest } from "@/lib/queryClient";
+import { signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail } from "@/lib/firebase";
 import { FaGoogle } from "react-icons/fa";
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -70,20 +69,12 @@ export function LoginForm({
 
     setLoading(true);
     try {
-      const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
-      const body =
-        mode === "signup"
-          ? { email, password, name: name || email.split("@")[0] }
-          : { email, password };
-
-      const res = await apiRequest("POST", endpoint, body);
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Authentication failed");
+      if (mode === "signup") {
+        await signUpWithEmail(email, password, name || email.split("@")[0]);
+      } else {
+        await signInWithEmail(email, password);
       }
-
-      // On success the server sets the session — redirect handled by App.tsx auth state
-      window.location.reload();
+      // On success Firebase onAuthStateChanged will handle the redirect in App.tsx
     } catch (error: any) {
       toast({
         title: mode === "signup" ? "Sign-up failed" : "Sign-in failed",

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
 
@@ -138,6 +138,36 @@ export const signInWithApple = async () => {
       default:
         throw new Error('Apple Sign-In failed. Please try again.');
     }
+  }
+};
+
+export const signInWithEmail = async (email: string, pass: string) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    return result;
+  } catch (error: any) {
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      throw new Error('Invalid email or password.');
+    }
+    throw new Error('Authentication failed. Please try again.');
+  }
+};
+
+export const signUpWithEmail = async (email: string, pass: string, name: string) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+    if (result.user) {
+      await updateProfile(result.user, { displayName: name });
+    }
+    return result;
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error('An account with this email already exists.');
+    }
+    if (error.code === 'auth/weak-password') {
+      throw new Error('Password is too weak. Please use at least 6 characters.');
+    }
+    throw new Error('Sign-up failed. Please try again.');
   }
 };
 
