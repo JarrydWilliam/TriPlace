@@ -84,29 +84,6 @@ export default function Landing() {
                 onShowLogin={handleShowLogin}
                 mode={mode}
               />
-              <p className="text-center text-white/50 text-sm mt-4">
-                {mode === "signup" ? (
-                  <>
-                    Already have an account?{" "}
-                    <button
-                      onClick={handleShowLogin}
-                      className="text-primary hover:text-primary/80 font-medium underline-offset-2 hover:underline transition-colors"
-                    >
-                      Sign in
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    New to SameVibe?{" "}
-                    <button
-                      onClick={handleShowLogin}
-                      className="text-primary hover:text-primary/80 font-medium underline-offset-2 hover:underline transition-colors"
-                    >
-                      Create account
-                    </button>
-                  </>
-                )}
-              </p>
             </div>
           </div>
         </div>
