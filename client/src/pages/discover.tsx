@@ -296,7 +296,7 @@ export default function Discover() {
                       joined={joinedIds.has(community.id)}
                       joining={joiningId === community.id && joinMutation.isPending}
                       onJoin={async (id) => {
-                        import('@/lib/haptics').then(({ hapticHeavy }) => hapticHeavy());
+                        import('@/lib/haptics').then(({ hapticHeavy }) => hapticHeavy()).catch(console.error);
                         setJoiningId(id);
                         await joinMutation.mutateAsync(id);
                         setJoiningId(null);

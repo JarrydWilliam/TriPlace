@@ -131,6 +131,12 @@ export default function Dashboard() {
       }
     },
     onError: (error) => {
+      console.error("Failed to auto-populate events:", error);
+      toast({
+        title: "Sync Failed",
+        description: "Could not update your events at this time.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -248,13 +254,18 @@ export default function Dashboard() {
     queryKey: ["/api/users", user?.id, "kudos", "monthly"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}/kudos/received`);
-      if (!response.ok) return 0;
-      const kudos = await response.json();
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      return Array.isArray(kudos) ? kudos.filter((k: any) => new Date(k.createdAt) >= monthStart).length : 0;
+      try {
+        const response = await fetch(`/api/users/${user?.id}/kudos/received`);
+        if (!response.ok) return 0;
+        const kudos = await response.json();
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+        return Array.isArray(kudos) ? kudos.filter((k: any) => new Date(k.createdAt) >= monthStart).length : 0;
+      } catch (error) {
+        console.error("Failed to fetch monthly kudos:", error);
+        return 0;
+      }
     },
     select: (data) => data ?? 0,
   });

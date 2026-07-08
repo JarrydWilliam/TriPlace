@@ -53,9 +53,9 @@ export function VerificationModal({
           <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mx-auto mb-3">
             <Clock className="w-7 h-7 text-primary" />
           </div>
-          <DialogTitle className="text-center">RSVP Coming Soon</DialogTitle>
+          <DialogTitle className="text-center">Register for Event</DialogTitle>
           <DialogDescription className="text-center">
-            In-app RSVP is coming in a future update. In the meantime, you can register directly on the original event page.
+            You will be redirected to the original event page to complete your registration.
           </DialogDescription>
         </DialogHeader>
 

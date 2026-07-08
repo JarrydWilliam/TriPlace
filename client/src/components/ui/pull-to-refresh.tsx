@@ -54,6 +54,8 @@ export function PullToRefresh({
       
       try {
         await onRefresh();
+      } catch (error) {
+        console.error('Pull to refresh failed:', error);
       } finally {
         setIsRefreshing(false);
         setPullOffset(0);
