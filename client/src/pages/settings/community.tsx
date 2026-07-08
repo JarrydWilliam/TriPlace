@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Users, Target, Edit, MapPin, Eye, Heart, MessageSquare, Calendar, Settings, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 
 export default function CommunitySettings() {
   const { user } = useAuth();
@@ -172,14 +173,13 @@ export default function CommunitySettings() {
                     <p className="font-medium">Maximum Distance</p>
                     <Badge variant="outline">{discoverySettings.maxDistance[0]} miles</Badge>
                   </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="200"
-                    step="10"
-                    value={discoverySettings.maxDistance[0]}
-                    onChange={(e) => setDiscoverySettings({...discoverySettings, maxDistance: [parseInt(e.target.value)]})}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  <Slider
+                    min={10}
+                    max={200}
+                    step={10}
+                    value={[discoverySettings.maxDistance[0]]}
+                    onValueChange={(val) => setDiscoverySettings({...discoverySettings, maxDistance: val})}
+                    className="w-full my-4"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-1">
                     <span>10 miles</span>
@@ -192,14 +192,13 @@ export default function CommunitySettings() {
                     <p className="font-medium">Minimum Match Percentage</p>
                     <Badge variant="outline">{discoverySettings.minMatchPercentage[0]}%</Badge>
                   </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="95"
-                    step="5"
-                    value={discoverySettings.minMatchPercentage[0]}
-                    onChange={(e) => setDiscoverySettings({...discoverySettings, minMatchPercentage: [parseInt(e.target.value)]})}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  <Slider
+                    min={50}
+                    max={95}
+                    step={5}
+                    value={[discoverySettings.minMatchPercentage[0]]}
+                    onValueChange={(val) => setDiscoverySettings({...discoverySettings, minMatchPercentage: val})}
+                    className="w-full my-4"
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-1">
                     <span>50%</span>

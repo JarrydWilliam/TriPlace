@@ -1,6 +1,6 @@
 {
   "name": "samevibe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -22,6 +22,7 @@
     "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/android": "^6.2.1",
     "@capacitor/core": "^6.2.1",
+    "cors": "^2.8.5",
     "@capacitor/geolocation": "^6.1.1",
     "@capacitor/haptics": "^6.0.2",
     "@capacitor/ios": "^6.2.1",
@@ -111,6 +112,7 @@
     "cross-env": "^7.0.3",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.2.1",
+    "@types/cors": "^2.8.17",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",

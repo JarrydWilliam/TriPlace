@@ -3,6 +3,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useCommunityUpdates } from "@/hooks/use-community-updates";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useLiveMembers } from "@/hooks/use-live-members";
+import { useTheme } from "@/lib/theme-context";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
   const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
   const { isConnected } = useWebSocket();
+  const { theme, toggleTheme } = useTheme();
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -347,6 +349,16 @@ export default function Dashboard() {
         >
           {/* Mesh overlay */}
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)" }} />
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white border-0 rounded-full h-10 w-10 backdrop-blur-sm transition-all z-10"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
           <div className="relative p-5">
             <div className="flex items-center gap-4">
               <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
