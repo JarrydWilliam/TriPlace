@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { trackEvent } from "@/lib/telemetry";
+import { getApiUrl } from "@/lib/queryClient";
 
 interface Event {
   id: number;
@@ -38,7 +39,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
   const { data: events = [], isLoading, refetch } = useQuery<Event[]>({
     queryKey: ["/api/communities", communityId, "events"],
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/events`);
+      const response = await fetch(getApiUrl(`/api/communities/${communityId}/events`));
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }

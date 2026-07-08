@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
+import { getApiUrl } from '@/lib/queryClient';
 
 interface GeolocationState {
   latitude: number | null;
@@ -65,7 +66,7 @@ export function useGeolocation(userId?: number, enabled = true) {
         // Update user location in backend for dynamic community matching
         if (userId) {
           try {
-            const response = await fetch('/api/users/current/location', {
+            const response = await fetch(getApiUrl('/api/users/current/location'), {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -144,7 +145,7 @@ export function useGeolocation(userId?: number, enabled = true) {
           // Update user location in backend for IP-based location
           if (userId) {
             try {
-              const response = await fetch('/api/users/current/location', {
+              const response = await fetch(getApiUrl('/api/users/current/location'), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

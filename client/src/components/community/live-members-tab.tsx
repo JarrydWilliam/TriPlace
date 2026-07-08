@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/ui/logo';
 import { Users, Heart, Clock } from 'lucide-react';
+import { getApiUrl } from '@/lib/queryClient';
 
 interface LiveMember {
   id: number;
@@ -36,7 +37,7 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
       if (user?.id) {
         params.append('userId', user.id.toString());
       }
-      const response = await fetch(`/api/communities/${communityId}/members/live?${params}`);
+      const response = await fetch(getApiUrl(`/api/communities/${communityId}/members/live?${params}`));
       if (!response.ok) throw new Error('Failed to fetch live members');
       return response.json();
     },

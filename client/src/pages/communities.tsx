@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from "@/lib/queryClient";
 
 import { MobileNav } from "@/components/layout/mobile-nav";
 
@@ -36,7 +37,7 @@ export default function CommunitiesPage() {
     enabled: !!user?.id,
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetch(`/api/users/${user.id}/communities`);
+      const response = await fetch(getApiUrl(`/api/users/${user.id}/communities`));
       if (!response.ok) throw new Error("Failed to fetch communities");
       return response.json();
     }
@@ -46,7 +47,7 @@ export default function CommunitiesPage() {
   const { data: partnerEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ["/api/events", "global"],
     queryFn: async () => {
-      const response = await fetch("/api/events/global");
+      const response = await fetch(getApiUrl("/api/events/global"));
       if (!response.ok) return [];
       return response.json();
     }

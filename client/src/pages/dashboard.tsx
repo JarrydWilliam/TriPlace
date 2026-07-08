@@ -187,22 +187,22 @@ export default function Dashboard() {
     }
   }, [user?.id, latitude, longitude]);
 
-  // Fetch recommended communities and users
+  // Fetch recommended communities — does NOT require location (location is optional, improves ranking only)
   const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery({
-    queryKey: ["/api/communities/recommended", latitude, longitude, user?.id],
-    enabled: !!user && !!latitude && !!longitude,
+    queryKey: ["/api/communities/recommended", user?.id],
+    enabled: !!user,
     queryFn: async () => {
       const params = new URLSearchParams({
         userId: user?.id?.toString() || '',
-        latitude: latitude?.toString() || '',
-        longitude: longitude?.toString() || ''
       });
+      if (latitude) params.set('latitude', latitude.toString());
+      if (longitude) params.set('longitude', longitude.toString());
       
-      const response = await fetch(`/api/communities/recommended?${params}`);
+      const response = await fetch(getApiUrl(`/api/communities/recommended?${params}`));
       if (!response.ok) throw new Error('Failed to fetch recommendations');
       return response.json();
     },
-    staleTime: 0, // Always fetch fresh data for recommendations
+    staleTime: 0,
     refetchOnMount: true,
   });
 
@@ -806,8 +806,12 @@ export default function Dashboard() {
                           <svg className="w-6 h-6 text-primary/80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-white/60">No communities yet</p>
-                      <p className="text-xs text-white/30 mt-1">Complete your quiz to get personalized matches!</p>
+                      <p className="text-sm font-medium text-white/60">Loading your communities...</p>
+                      <Link href="/discover">
+                        <Button size="sm" variant="outline" className="mt-4 text-xs">
+                          Explore Communities
+                        </Button>
+                      </Link>
                     </div>
                   )}
                 </div>

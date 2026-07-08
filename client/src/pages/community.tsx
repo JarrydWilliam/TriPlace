@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/telemetry";
 import { Send, Heart, Calendar, Users, MapPin, MessageCircle, Clock, Star, ChevronDown, Award, ArrowLeft, Pin, Sun, Moon } from "lucide-react";
 import { Community, Event, User, Message } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -57,7 +57,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
     queryKey: ["/api/users", user?.id, "events"],
     queryFn: async () => {
       if (!user?.id) return [];
-      const response = await fetch(`/api/users/${user.id}/events`);
+      const response = await fetch(getApiUrl(`/api/users/${user.id}/events`));
       return response.json();
     },
     enabled: !!user?.id,
@@ -66,7 +66,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   const { data: allEvents = [], isLoading, refetch } = useQuery<Event[]>({
     queryKey: ["/api/communities", communityId, "events"],
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/events`);
+      const response = await fetch(getApiUrl(`/api/communities/${communityId}/events`));
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
@@ -91,7 +91,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
 
     try {
       setJoiningEventId(eventId);
-      const response = await fetch(`/api/events/${eventId}/register`, {
+      const response = await fetch(getApiUrl(`/api/events/${eventId}/register`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +302,7 @@ export default function CommunityPage() {
         longitude: longitude?.toString() || '',
         userId: user?.id?.toString() || ''
       });
-      const response = await fetch(`/api/communities/${communityId}/dynamic-info?${params}`);
+      const response = await fetch(getApiUrl(`/api/communities/${communityId}/dynamic-info?${params}`));
       if (!response.ok) throw new Error('Community not found');
       return response.json();
     },
@@ -314,7 +314,7 @@ export default function CommunityPage() {
     queryKey: ["/api/communities", communityId, "messages"],
     enabled: !!communityId,
     queryFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/messages`);
+      const response = await fetch(getApiUrl(`/api/communities/${communityId}/messages`));
       if (!response.ok) throw new Error('Failed to fetch messages');
       return response.json();
     },

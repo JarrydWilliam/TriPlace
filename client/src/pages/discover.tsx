@@ -19,7 +19,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, AlertCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Community, Event } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/telemetry";
 import { PaywallModal } from "@/components/paywall-modal";
@@ -172,8 +172,10 @@ export default function Discover() {
     queryKey: ["/api/communities/recommended", user?.id, selectedCategory],
     enabled: !!user?.id,
     queryFn: async () => {
-      const params = new URLSearchParams({ userId: String(user?.id), latitude: user?.latitude ?? "", longitude: user?.longitude ?? "" });
-      const res = await fetch(`/api/communities/recommended?${params}`);
+      const params = new URLSearchParams({ userId: String(user?.id) });
+      if (user?.latitude) params.set('latitude', user.latitude);
+      if (user?.longitude) params.set('longitude', user.longitude);
+      const res = await fetch(getApiUrl(`/api/communities/recommended?${params}`));
       return res.ok ? res.json() : [];
     },
   });
@@ -183,7 +185,7 @@ export default function Discover() {
     queryKey: ["/api/users", user?.id, "communities"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(`/api/users/${user?.id}/communities`);
+      const res = await fetch(getApiUrl(`/api/users/${user?.id}/communities`));
       return res.ok ? res.json() : [];
     },
   });
@@ -193,7 +195,7 @@ export default function Discover() {
     queryKey: ["/api/events/upcoming", user?.id],
     queryFn: async () => {
       const url = user?.id ? `/api/events/upcoming?userId=${user.id}` : `/api/events/upcoming`;
-      const res = await fetch(url);
+      const res = await fetch(getApiUrl(url));
       return res.ok ? res.json() : [];
     },
   });
