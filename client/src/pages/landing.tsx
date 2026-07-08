@@ -1,4 +1,3 @@
-import { LoginForm } from "@/components/auth/login-form";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { MapPin, Users, Calendar, Heart } from "lucide-react";
@@ -65,6 +64,14 @@ export default function Landing() {
             <a href="#community" className="text-white/70 hover:text-white transition-colors">Community</a>
             <a href="#events" className="text-white/70 hover:text-white transition-colors">Events</a>
           </nav>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" className="text-white hover:text-white/80" onClick={() => navigate("/login")}>
+              Log In
+            </Button>
+            <Button className="bg-primary text-white hover:bg-primary/90 rounded-full px-6" onClick={() => navigate("/signup")}>
+              Get Started
+            </Button>
+          </div>
         </header>
 
         {/* Hero Content */}
@@ -77,13 +84,21 @@ export default function Landing() {
               Where genuine connection, shared passions, and meaningful community are always just around the corner.
             </p>
             
-            {/* Authentication Form — toggles between signup and login */}
-            <div className="max-w-md mx-auto">
-              <LoginForm 
-                onEmailSignup={handleEmailSignup}
-                onShowLogin={handleShowLogin}
-                mode={mode}
-              />
+            {/* Call to Action */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <Button 
+                onClick={() => navigate("/signup")}
+                className="bg-white text-black hover:bg-gray-100 px-8 py-6 rounded-full text-lg font-semibold h-auto"
+              >
+                Join SameVibe Free
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate("/login")}
+                className="border-white/20 text-white hover:bg-white/10 px-8 py-6 rounded-full text-lg font-semibold h-auto"
+              >
+                Sign In
+              </Button>
             </div>
           </div>
         </div>
