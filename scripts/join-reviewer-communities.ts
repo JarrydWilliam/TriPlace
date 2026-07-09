@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from "../shared/schema.js";
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -18,15 +18,16 @@ async function run() {
     process.exit(1);
   }
 
-  // Update reviewer with coordinates for SF (matching seeded events/communities)
+  // Update reviewer with SF coordinates for better match with seeded content
   await db.update(schema.users).set({
     onboardingCompleted: true,
     latitude: '37.7749',
     longitude: '-122.4194',
-    interests: ['outdoor', 'music', 'tech', 'social', 'food'],
+    interests: ['outdoor', 'music', 'tech', 'social', 'food', 'arts', 'wellness'],
     location: 'San Francisco, CA',
+    name: 'SameVibe Reviewer',
   }).where(eq(schema.users.id, reviewer.id));
-  console.log(`Updated reviewer (ID: ${reviewer.id}) with interests and location`);
+  console.log(`Updated reviewer (ID: ${reviewer.id}) with SF coordinates`);
 
   // Get all communities
   const allCommunities = await db.select().from(schema.communities);
@@ -39,9 +40,9 @@ async function run() {
   const joinedIds = new Set(existingMemberships.map(m => m.communityId));
   console.log(`Reviewer already joined ${joinedIds.size} communities`);
 
-  // Join first 5 communities if not already joined
+  // Join ALL communities
   let joined = 0;
-  for (const community of allCommunities.slice(0, 5)) {
+  for (const community of allCommunities) {
     if (!joinedIds.has(community.id)) {
       await db.insert(schema.communityMembers).values({
         userId: reviewer.id,
