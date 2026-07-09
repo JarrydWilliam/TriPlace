@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Users, Globe, Handshake, AlertTriangle } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
+import { getApiUrl } from "@/lib/queryClient";
 
 
 interface EventCreationData {
@@ -52,7 +53,7 @@ export default function CreateEventPage() {
 
   const createEventMutation = useMutation({
     mutationFn: async (eventData: EventCreationData) => {
-      const response = await fetch("/api/events/create-global", {
+      const response = await fetch(getApiUrl("/api/events/create-global"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

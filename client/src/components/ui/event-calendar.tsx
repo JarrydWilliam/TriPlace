@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Event } from "@shared/schema";
@@ -23,7 +23,7 @@ export function EventCalendar({ events, onEventClick }: EventCalendarProps) {
 
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
-      const response = await fetch(`/api/events/${eventId}/mark-attended`, {
+      const response = await fetch(getApiUrl(`/api/events/${eventId}/mark-attended`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

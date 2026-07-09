@@ -11,6 +11,7 @@ import { ArrowLeft, Users, Target, Edit, MapPin, Eye, Heart, MessageSquare, Cale
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { getApiUrl } from "@/lib/queryClient";
 
 export default function CommunitySettings() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export default function CommunitySettings() {
     queryKey: ["/api/users", user?.id, "active-communities"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(`/api/users/${user?.id}/active-communities`);
+      const res = await fetch(getApiUrl(`/api/users/${user?.id}/active-communities`));
       if (!res.ok) throw new Error("Failed to load communities");
       return res.json();
     }

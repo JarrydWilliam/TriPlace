@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { getApiUrl } from '@/lib/queryClient';
 
 interface CommunityUpdateStatus {
   lastUpdate: number;
@@ -17,7 +18,7 @@ export function useCommunityUpdates() {
 
     const checkForUpdates = async () => {
       try {
-        const response = await fetch(`/api/community-updates/status?timestamp=${lastChecked}`);
+        const response = await fetch(getApiUrl(`/api/community-updates/status?timestamp=${lastChecked}`));
         if (response.ok) {
           const status: CommunityUpdateStatus = await response.json();
           

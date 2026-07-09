@@ -292,21 +292,22 @@ export default function CommunityPage() {
     ]);
   };
 
-  // Fetch community details with dynamic member count
-  const { data: community, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/communities", communityId, "dynamic-info", latitude, longitude, user?.id],
-    enabled: !!communityId && !!latitude && !!longitude && !!user?.id,
+  // Fetch community details — location is optional (improves member matching only)
+  const { data: community, isLoading: communityLoading, isError: communityError } = useQuery({
+    queryKey: ["/api/communities", communityId, "dynamic-info", user?.id],
+    enabled: !!communityId && !!user?.id,
     queryFn: async () => {
       const params = new URLSearchParams({
-        latitude: latitude?.toString() || '',
-        longitude: longitude?.toString() || '',
         userId: user?.id?.toString() || ''
       });
+      if (latitude) params.set('latitude', latitude.toString());
+      if (longitude) params.set('longitude', longitude.toString());
       const response = await fetch(getApiUrl(`/api/communities/${communityId}/dynamic-info?${params}`));
       if (!response.ok) throw new Error('Community not found');
       return response.json();
     },
     refetchInterval: 30000,
+    retry: 1,
   });
 
   // Fetch community messages/feed
@@ -399,7 +400,7 @@ export default function CommunityPage() {
     sendMessageMutation.mutate(newMessage);
   };
 
-  if (authLoading || communityLoading) {
+  if (authLoading || (communityLoading && !community)) {
     return (
       <div className="min-h-screen flex items-center justify-center glass-panel">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -407,12 +408,17 @@ export default function CommunityPage() {
     );
   }
 
-  if (!community) {
+  if (!community || communityError) {
     return (
       <div className="min-h-screen flex items-center justify-center glass-panel">
-        <div className="text-center">
+        <div className="text-center px-6">
           <h1 className="text-2xl font-bold text-white mb-2">Community Not Found</h1>
-          <p className="text-white/60">The community you're looking for doesn't exist.</p>
+          <p className="text-white/60 mb-6">This community couldn't be loaded right now.</p>
+          <Link href="/discover">
+            <Button className="rounded-full">
+              Explore Communities
+            </Button>
+          </Link>
         </div>
       </div>
     );

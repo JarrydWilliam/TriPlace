@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, ArrowLeft, MessageCircle, Search } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Message, User } from "@shared/schema";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -109,7 +109,7 @@ function DMThread({
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentUserId, otherUser.id],
     queryFn: async () => {
-      const res = await fetch(`/api/conversations/${currentUserId}/${otherUser.id}`);
+      const res = await fetch(getApiUrl(`/api/conversations/${currentUserId}/${otherUser.id}`));
       return res.ok ? res.json() : [];
     },
     refetchInterval: 3000, // Poll every 3s for new messages
@@ -257,7 +257,7 @@ export default function Messaging() {
     queryKey: ["/api/users", user?.id, "conversations"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(`/api/users/${user?.id}/conversations`);
+      const res = await fetch(getApiUrl(`/api/users/${user?.id}/conversations`));
       if (!res.ok) return [];
       const raw = await res.json();
       // Normalize: backend may return array of messages grouped by peer

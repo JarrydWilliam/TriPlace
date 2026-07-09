@@ -5,6 +5,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { hapticLight } from "@/lib/haptics";
+import { getApiUrl } from "@/lib/queryClient";
 
 export function MobileNav() {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ export function MobileNav() {
     queryKey: ["/api/users", user?.id, "conversations"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}/conversations`);
+      const response = await fetch(getApiUrl(`/api/users/${user?.id}/conversations`));
       if (!response.ok) return [];
       return response.json();
     },

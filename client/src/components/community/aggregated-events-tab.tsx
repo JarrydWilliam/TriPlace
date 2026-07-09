@@ -50,7 +50,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
   const handleJoinEvent = async (eventId: number, eventTitle: string) => {
     try {
       setJoiningEventId(eventId);
-      const response = await fetch(`/api/events/${eventId}/register`, {
+      const response = await fetch(getApiUrl(`/api/events/${eventId}/register`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

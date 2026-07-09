@@ -1388,8 +1388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const communityId = parseInt(req.params.id);
       const { latitude, longitude, userId } = req.query;
       
-      if (!latitude || !longitude || !userId) {
-        return res.status(400).json({ message: "Missing required parameters" });
+      if (!userId) {
+        return res.status(400).json({ message: "Missing required parameter: userId" });
       }
 
       const community = await storage.getCommunity(communityId);
@@ -1402,24 +1402,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const userLocation = { 
-        lat: parseFloat(latitude as string), 
-        lon: parseFloat(longitude as string) 
-      };
-      
-      const userInterests = user.interests || [];
-      const dynamicMembers = await storage.getDynamicCommunityMembers(communityId, userLocation, userInterests);
-      
-      res.json({
+      // Location is optional — skip dynamic member enrichment if not provided
+      if (latitude && longitude) {
+        const userLocation = { 
+          lat: parseFloat(latitude as string), 
+          lon: parseFloat(longitude as string) 
+        };
+        
+        const userInterests = user.interests || [];
+        const dynamicMembers = await storage.getDynamicCommunityMembers(communityId, userLocation, userInterests);
+        
+        return res.json({
+          ...community,
+          onlineMembers: dynamicMembers.length,
+          dynamicMembers: dynamicMembers
+        });
+      }
+
+      // Return community with basic info when no location provided
+      return res.json({
         ...community,
-        onlineMembers: dynamicMembers.length,
-        dynamicMembers: dynamicMembers
+        onlineMembers: community.memberCount || 0,
+        dynamicMembers: []
       });
     } catch (error) {
       console.error("Error fetching dynamic community info:", error);
       res.status(500).json({ message: "Failed to fetch dynamic community info" });
     }
   });
+
 
   // ADMIN ONLY: triggers heavy AI regeneration for all users
   app.post("/api/admin/refresh-all-communities", requireAdmin, async (req, res) => {

@@ -7,6 +7,7 @@ import { Event } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/lib/queryClient";
 
 interface EventDetailsModalProps {
   event: Event | null;
@@ -21,7 +22,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
 
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
-      const response = await fetch(`/api/events/${eventId}/mark-attended`, {
+      const response = await fetch(getApiUrl(`/api/events/${eventId}/mark-attended`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

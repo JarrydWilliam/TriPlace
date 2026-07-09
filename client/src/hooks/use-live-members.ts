@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from './use-websocket';
 import { useAuth } from './use-auth';
 import { useEffect, useState } from 'react';
+import { getApiUrl } from '@/lib/queryClient';
 
 interface LiveMemberData {
   communityId: number;
@@ -19,7 +20,7 @@ export function useLiveMembers(communityIds: number[]) {
     queryFn: async () => {
       const results = await Promise.all(
         communityIds.map(async (id) => {
-          const response = await fetch(`/api/communities/${id}/members/live`);
+          const response = await fetch(getApiUrl(`/api/communities/${id}/members/live`));
           const data = await response.json();
           return { communityId: id, liveCount: data.totalLive || 0 };
         })

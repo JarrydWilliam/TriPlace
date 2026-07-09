@@ -257,7 +257,7 @@ export default function Dashboard() {
     enabled: !!user?.id,
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/users/${user?.id}/kudos/received`);
+        const response = await fetch(getApiUrl(`/api/users/${user?.id}/kudos/received`));
         if (!response.ok) return 0;
         const kudos = await response.json();
         const monthStart = new Date();
