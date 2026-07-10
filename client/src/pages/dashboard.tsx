@@ -142,14 +142,20 @@ export default function Dashboard() {
     }
   });
 
-  // Fetch trending events in user's area
+  // Fetch trending events — location optional for sort ranking
   const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
     queryKey: ["/api/events/trending", latitude, longitude],
-    enabled: !!latitude && !!longitude,
+    enabled: !!user?.id,
     queryFn: async () => {
-      const response = await fetch(getApiUrl(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`));
-      if (!response.ok) throw new Error('Failed to fetch trending events');
-      return response.json();
+      // Use trending endpoint when location available, fall back to global upcoming
+      if (latitude && longitude) {
+        const response = await fetch(getApiUrl(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`));
+        if (response.ok) return response.json();
+      }
+      // Fallback: show global upcoming events without location filter
+      const fallback = await fetch(getApiUrl(`/api/events/upcoming?userId=${user?.id}`));
+      if (!fallback.ok) return [];
+      return fallback.json();
     }
   });
 
@@ -326,7 +332,7 @@ export default function Dashboard() {
     }
   }, [authLoading, user, setRouterLocation]);
 
-  if (authLoading || locationLoading) {
+  if (authLoading) {
     return <ComponentLoadingSpinner text="Loading your dashboard..." />;
   }
 
@@ -609,7 +615,7 @@ export default function Dashboard() {
                   <span>{user.name?.split(' ')[0] || 'Your'}'s Communities</span>
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">
-                  {Array.isArray(userActiveCommunities) ? userActiveCommunities.length : 0}/5
+                  {Array.isArray(userActiveCommunities) ? userActiveCommunities.length : 0} joined
                 </Badge>
               </CardHeader>
               {/* Community cards */}
@@ -791,7 +797,7 @@ export default function Dashboard() {
                             size="sm" 
                             variant="ghost"
                             className="min-h-[44px] min-w-[44px]"
-                            onClick={() => window.location.href = `/community/${community.id}`}
+                            onClick={() => setRouterLocation(`/community/${community.id}`)}
                           >
                             View
                           </Button>
