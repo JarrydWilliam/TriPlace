@@ -356,15 +356,6 @@ export default function Dashboard() {
           {/* Mesh overlay */}
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)" }} />
           
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white border-0 rounded-full h-10 w-10 backdrop-blur-sm transition-all z-10"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-
           <div className="relative p-5">
             <div className="flex items-center gap-4">
               <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
@@ -390,6 +381,14 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9"
+                >
+                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </Button>
                 <ShareQR />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
