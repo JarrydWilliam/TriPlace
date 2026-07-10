@@ -223,7 +223,7 @@ export default function Dashboard() {
     onSuccess: (data) => {
       // Invalidate all relevant queries with specific parameters
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/communities/recommended", latitude, longitude, user?.id] 
+        queryKey: ["/api/communities/recommended", user?.id] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ["/api/users", user?.id, "active-communities"] 
@@ -769,7 +769,7 @@ export default function Dashboard() {
                   ) : recommendationsError ? (
                     <InlineErrorMessage 
                       message="Unable to load community recommendations" 
-                      onRetry={() => window.location.reload()}
+                      onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
                     />
                   ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
                     recommendations.slice(0, 5).map((community: Community) => (
@@ -812,7 +812,7 @@ export default function Dashboard() {
                           <svg className="w-6 h-6 text-primary/80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-white/60">Loading your communities...</p>
+                      <p className="text-sm font-medium text-white/60">You've joined all available communities!</p>
                       <Link href="/discover">
                         <Button size="sm" variant="outline" className="mt-4 text-xs">
                           Explore Communities

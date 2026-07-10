@@ -1,22 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, signInWithGoogle, signInWithApple } from "@/lib/firebase";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Guard: redirect already-logged-in users to their destination
+  useEffect(() => {
+    if (!authLoading && user) {
+      setLocation(user.onboardingCompleted ? "/dashboard" : "/onboarding");
+    }
+  }, [user, authLoading, setLocation]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +57,16 @@ export default function Signup() {
     setLoading(true);
     try {
       await signInWithGoogle();
+      // auth-context resolves user; check if they already have an account
+      const cred = auth.currentUser;
+      if (cred) {
+        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        if (res.ok) {
+          const existingUser = await res.json();
+          setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
+          return;
+        }
+      }
       setLocation("/onboarding");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google signup failed");
@@ -61,6 +80,16 @@ export default function Signup() {
     setLoading(true);
     try {
       await signInWithApple();
+      // auth-context resolves user; check if they already have an account
+      const cred = auth.currentUser;
+      if (cred) {
+        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        if (res.ok) {
+          const existingUser = await res.json();
+          setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
+          return;
+        }
+      }
       setLocation("/onboarding");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple signup failed");

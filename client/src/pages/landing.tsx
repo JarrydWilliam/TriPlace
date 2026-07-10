@@ -1,31 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MapPin, Users, Calendar, Heart } from "lucide-react";
+import { Users, Calendar, Heart } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { PWAInstall } from "@/components/ui/pwa-install";
+
 
 
 export default function Landing() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
-  const [mode, setMode] = useState<"signup" | "login">("signup");
 
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/dashboard");
-    }
-  }, [user, loading, navigate]);
-
-  const handleEmailSignup = () => {
-    navigate("/onboarding");
-  };
-
-  // Toggle between sign-up and sign-in modes so returning users can log in
-  const handleShowLogin = () => {
-    setMode((prev) => (prev === "signup" ? "login" : "signup"));
-  };
+  // Redirect logged-in users before rendering the landing page content
+  if (!loading && user) {
+    navigate("/dashboard");
+    return null;
+  }
 
   if (loading) {
     return (

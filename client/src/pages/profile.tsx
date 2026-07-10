@@ -156,7 +156,7 @@ export default function Profile() {
     setEditForm({ name: "", bio: "", location: "" });
   };
 
-  if (authLoading) {
+  if (authLoading || (!isOwnProfile && profileUserLoading)) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -190,7 +190,7 @@ export default function Profile() {
                   <Avatar className="w-24 h-24">
                     <AvatarImage src={user.avatar || undefined} alt={user.name} />
                     <AvatarFallback className="bg-primary text-white text-2xl">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user.name?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   
