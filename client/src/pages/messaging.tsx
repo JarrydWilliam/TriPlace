@@ -277,9 +277,9 @@ export default function Messaging() {
   const showThread = !!selectedUser;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="mobile-page-container bg-background pb-20">
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
-      <div className="max-w-3xl mx-auto h-[calc(100vh-80px)] flex">
+      <div className="max-w-3xl mx-auto h-[calc(100dvh-80px)] flex">
         {/* ── Conversation List ── */}
         <AnimatePresence initial={false}>
           {(!showThread || !isMobile) && (

@@ -42,7 +42,7 @@ function ConversationList({ conversations, onSelectConversation, selectedUser }:
         </div>
       </div>
       
-      <ScrollArea className="h-[calc(100vh-200px)]">
+      <ScrollArea className="h-[calc(100dvh-200px)]">
         <div className="space-y-0">
           {filteredConversations.map((conversation) => {
             const isSelected = selectedUser?.id === conversation.user.id;
@@ -233,7 +233,7 @@ export function ChatInterface({
   loading
 }: ChatInterfaceProps) {
   return (
-    <div className="flex h-[calc(100vh-80px)] md:h-screen">
+    <div className="flex h-[calc(100dvh-80px)] md:h-screen">
       <ConversationList
         conversations={conversations}
         onSelectConversation={onSelectConversation}
