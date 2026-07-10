@@ -189,7 +189,7 @@ function ChatWindow({ selectedUser, messages, onSendMessage, loading }: ChatWind
       </ScrollArea>
 
       {/* Message Input */}
-      <div className="p-4 bg-gray-800 border-t border-gray-700 dark:bg-gray-800 dark:border-gray-700">
+      <div className="p-4 safe-area-bottom bg-gray-800 border-t border-gray-700 dark:bg-gray-800 dark:border-gray-700">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
           <Input
             type="text"
