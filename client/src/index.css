@@ -7,15 +7,15 @@
           @apply border-border;
     }
     html {
-          /* Explicit overflow lets iOS WebKit scroll the document, not trap in a sub-element */
-          overflow-y: auto;
-          height: 100%;
+          /* Prevent iOS bounce on the root to avoid white flashes, but let body scroll */
+          background-color: hsl(260, 40%, 15%); /* Match top of gradient */
     }
     body {
           @apply bg-background text-foreground font-sans antialiased;
           background: radial-gradient(circle at top center, hsl(260, 40%, 15%), hsl(260, 40%, 5%));
           min-height: 100dvh;
-          overflow-y: auto;
+          /* Let iOS handle scrolling natively */
+          -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -53,4 +53,25 @@
     min-height: 100dvh;
     overflow-x: hidden;
     position: relative;
+}
+
+@layer utilities {
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .safe-area-left {
+        padding-left: env(safe-area-inset-left, 0px);
+    }
+    .safe-area-right {
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+    .container-responsive {
+        @apply w-full max-w-[1200px] mx-auto;
+    }
+    .responsive-padding {
+        @apply px-4 sm:px-6 md:px-8;
+    }
 }
