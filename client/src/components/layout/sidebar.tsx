@@ -131,6 +131,7 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="mt-auto p-6 border-t border-white/5 space-y-2">
+        {/* [THEME_TOGGLE_HIDDEN] Uncomment to restore Light/Dark mode toggle
         <Button
           onClick={toggleTheme}
           variant="ghost"
@@ -139,6 +140,7 @@ export function Sidebar() {
           {theme === 'dark' ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
           {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
         </Button>
+        */}
         <Button
           onClick={signOut}
           variant="ghost"

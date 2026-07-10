@@ -381,6 +381,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
+                {/* [THEME_TOGGLE_HIDDEN] Uncomment to restore Light/Dark mode toggle
                 <Button
                   variant="ghost"
                   size="icon"
@@ -389,6 +390,7 @@ export default function Dashboard() {
                 >
                   {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </Button>
+                */}
                 <ShareQR />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
