@@ -12,13 +12,54 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Settings, Sun, Moon, CalendarDays, Plus, Clock, Star, Target, Award, Users, TrendingUp, Heart, User as UserIcon, Mail, Bell, Shield, HelpCircle, FileText, LogOut, Edit, Trash2, Camera, Lock, Smartphone, AlertTriangle } from "lucide-react";
+import {
+  MapPin,
+  Settings,
+  Sun,
+  Moon,
+  CalendarDays,
+  Plus,
+  Clock,
+  Star,
+  Target,
+  Award,
+  Users,
+  TrendingUp,
+  Heart,
+  User as UserIcon,
+  Mail,
+  Bell,
+  Shield,
+  HelpCircle,
+  FileText,
+  LogOut,
+  Edit,
+  Trash2,
+  Camera,
+  Lock,
+  Smartphone,
+  AlertTriangle,
+} from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { PaywallModal } from "@/components/paywall-modal";
 import { useState, useEffect } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { Link, useLocation as useRouterLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
@@ -45,10 +86,14 @@ import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
-
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { latitude, longitude, locationName, loading: locationLoading } = useGeolocation(user?.id);
+  const {
+    latitude,
+    longitude,
+    locationName,
+    loading: locationLoading,
+  } = useGeolocation(user?.id);
   const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
   const { isConnected } = useWebSocket();
   const { theme, toggleTheme } = useTheme();
@@ -59,24 +104,33 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [rotationConfirm, setRotationConfirm] = useState<{newComm: any, oldComm: any} | null>(null);
+  const [rotationConfirm, setRotationConfirm] = useState<{
+    newComm: any;
+    oldComm: any;
+  } | null>(null);
 
   const handleJoinClick = (community: any) => {
     if (userActiveCommunities && userActiveCommunities.length >= 5) {
       // Find the least active community
-      const leastActive = userActiveCommunities.reduce((least: any, current: any) => {
-        const currScore = current.activityScore || 0;
-        const leastScore = least.activityScore || 0;
-        if (currScore < leastScore) return current;
-        if (currScore > leastScore) return least;
-        
-        const currTime = current.lastActivityAt ? new Date(current.lastActivityAt).getTime() : 0;
-        const leastTime = least.lastActivityAt ? new Date(least.lastActivityAt).getTime() : 0;
-        if (currTime < leastTime) return current;
-        if (currTime > leastTime) return least;
-        
-        return current.id < least.id ? current : least;
-      });
+      const leastActive = userActiveCommunities.reduce(
+        (least: any, current: any) => {
+          const currScore = current.activityScore || 0;
+          const leastScore = least.activityScore || 0;
+          if (currScore < leastScore) return current;
+          if (currScore > leastScore) return least;
+
+          const currTime = current.lastActivityAt
+            ? new Date(current.lastActivityAt).getTime()
+            : 0;
+          const leastTime = least.lastActivityAt
+            ? new Date(least.lastActivityAt).getTime()
+            : 0;
+          if (currTime < leastTime) return current;
+          if (currTime > leastTime) return least;
+
+          return current.id < least.id ? current : least;
+        }
+      );
       setRotationConfirm({ newComm: community, oldComm: leastActive });
     } else {
       joinCommunityMutation.mutate(community.id);
@@ -86,13 +140,15 @@ export default function Dashboard() {
   // Listen for community updates from service worker
   useEffect(() => {
     const handleCommunityUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/communities/recommended"],
+      });
     };
 
-    window.addEventListener('communities-updated', handleCommunityUpdate);
-    
+    window.addEventListener("communities-updated", handleCommunityUpdate);
+
     return () => {
-      window.removeEventListener('communities-updated', handleCommunityUpdate);
+      window.removeEventListener("communities-updated", handleCommunityUpdate);
     };
   }, [queryClient]);
 
@@ -101,7 +157,8 @@ export default function Dashboard() {
     if (updateAvailable) {
       toast({
         title: "New Communities Available",
-        description: "Location-aware communities have been updated. Refreshing your recommendations.",
+        description:
+          "Location-aware communities have been updated. Refreshing your recommendations.",
         duration: 3000,
       });
       markUpdatesApplied();
@@ -111,29 +168,38 @@ export default function Dashboard() {
   // Pull-to-refresh handler
   const handleRefresh = async () => {
     // Notify service worker to refresh community cache
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
-        type: 'REFRESH_COMMUNITIES'
+        type: "REFRESH_COMMUNITIES",
       });
     }
-    
+
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] })
+      queryClient.invalidateQueries({
+        queryKey: ["/api/users", user?.id, "active-communities"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["/api/users", user?.id, "events"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["/api/communities/recommended"],
+      }),
     ]);
   };
 
   // Fetch user's active communities with activity scores
-  const { data: userActiveCommunities, isLoading: userCommunitiesLoading } = useQuery({
-    queryKey: ["/api/users", user?.id, "active-communities"],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const response = await fetch(getApiUrl(`/api/users/${user?.id}/active-communities`));
-      if (!response.ok) throw new Error('Failed to fetch active communities');
-      return response.json();
-    }
-  });
+  const { data: userActiveCommunities, isLoading: userCommunitiesLoading } =
+    useQuery({
+      queryKey: ["/api/users", user?.id, "active-communities"],
+      enabled: !!user?.id,
+      queryFn: async () => {
+        const response = await fetch(
+          getApiUrl(`/api/users/${user?.id}/active-communities`)
+        );
+        if (!response.ok) throw new Error("Failed to fetch active communities");
+        return response.json();
+      },
+    });
 
   // Get live member counts for user's communities
   const communityIds = userActiveCommunities?.map((c: any) => c.id) || [];
@@ -145,15 +211,23 @@ export default function Dashboard() {
     enabled: !!user?.id,
     queryFn: async () => {
       const response = await fetch(getApiUrl(`/api/users/${user?.id}/events`));
-      if (!response.ok) throw new Error('Failed to fetch user events');
+      if (!response.ok) throw new Error("Failed to fetch user events");
       return response.json();
-    }
+    },
   });
 
   // Auto-populate events when user has location
   const autoPopulateEvents = useMutation({
-    mutationFn: async (data: { userId: number, latitude: number, longitude: number }) => {
-      const response = await apiRequest("POST", "/api/auto-populate-events", data);
+    mutationFn: async (data: {
+      userId: number;
+      latitude: number;
+      longitude: number;
+    }) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/auto-populate-events",
+        data
+      );
       return response.json();
     },
     onSuccess: (data) => {
@@ -162,7 +236,9 @@ export default function Dashboard() {
           title: "Events Updated",
           description: `Found ${data.eventsAdded} new events in your communities`,
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "events"] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/users", user?.id, "events"],
+        });
       }
     },
     onError: (error) => {
@@ -170,9 +246,9 @@ export default function Dashboard() {
       toast({
         title: "Sync Failed",
         description: "Could not update your events at this time.",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   // Fetch trending events — location optional for sort ranking
@@ -182,29 +258,48 @@ export default function Dashboard() {
     queryFn: async () => {
       // Use trending endpoint when location available, fall back to global upcoming
       if (latitude && longitude) {
-        const response = await fetch(getApiUrl(`/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`));
+        const response = await fetch(
+          getApiUrl(
+            `/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`
+          )
+        );
         if (response.ok) return response.json();
       }
       // Fallback: show global upcoming events without location filter
-      const fallback = await fetch(getApiUrl(`/api/events/upcoming?userId=${user?.id}`));
+      const fallback = await fetch(
+        getApiUrl(`/api/events/upcoming?userId=${user?.id}`)
+      );
       if (!fallback.ok) return [];
       return fallback.json();
-    }
+    },
   });
 
   // Mark event attendance
   const markAttendanceMutation = useMutation({
-    mutationFn: async ({ eventId, userId }: { eventId: number, userId: number }) => {
-      const response = await apiRequest("POST", `/api/events/${eventId}/mark-attended`, { userId });
+    mutationFn: async ({
+      eventId,
+      userId,
+    }: {
+      eventId: number;
+      userId: number;
+    }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/events/${eventId}/mark-attended`,
+        { userId }
+      );
       return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Attendance Confirmed",
-        description: "Thank you for confirming your attendance! This helps us recommend better events.",
+        description:
+          "Thank you for confirming your attendance! This helps us recommend better events.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/communities/recommended"],
+      });
     },
     onError: (error) => {
       toast({
@@ -212,7 +307,7 @@ export default function Dashboard() {
         description: "Failed to mark attendance. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Auto-populate events when location is available (debounced to prevent spam)
@@ -222,7 +317,7 @@ export default function Dashboard() {
         autoPopulateEvents.mutate({
           userId: user.id,
           latitude,
-          longitude
+          longitude,
         });
       }, 2000);
       return () => clearTimeout(timer);
@@ -230,18 +325,24 @@ export default function Dashboard() {
   }, [user?.id, latitude, longitude]);
 
   // Fetch recommended communities — does NOT require location (location is optional, improves ranking only)
-  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery({
+  const {
+    data: recommendations,
+    isLoading: recommendationsLoading,
+    error: recommendationsError,
+  } = useQuery({
     queryKey: ["/api/communities/recommended", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const params = new URLSearchParams({
-        userId: user?.id?.toString() || '',
+        userId: user?.id?.toString() || "",
       });
-      if (latitude) params.set('latitude', latitude.toString());
-      if (longitude) params.set('longitude', longitude.toString());
-      
-      const response = await fetch(getApiUrl(`/api/communities/recommended?${params}`));
-      if (!response.ok) throw new Error('Failed to fetch recommendations');
+      if (latitude) params.set("latitude", latitude.toString());
+      if (longitude) params.set("longitude", longitude.toString());
+
+      const response = await fetch(
+        getApiUrl(`/api/communities/recommended?${params}`)
+      );
+      if (!response.ok) throw new Error("Failed to fetch recommendations");
       return response.json();
     },
     staleTime: 0,
@@ -251,23 +352,27 @@ export default function Dashboard() {
   // Join community with rotation mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async (communityId: number) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/join`, {
-        userId: user?.id,
-      });
+      const response = await apiRequest(
+        "POST",
+        `/api/communities/${communityId}/join`,
+        {
+          userId: user?.id,
+        }
+      );
       return response.json();
     },
     onSuccess: (data) => {
       // Invalidate all relevant queries with specific parameters
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/communities/recommended", user?.id] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/communities/recommended", user?.id],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/users", user?.id, "active-communities"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/users", user?.id, "active-communities"],
       });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/users", user?.id, "communities"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/users", user?.id, "communities"],
       });
-      
+
       if (data.dropped) {
         toast({
           title: "Community Rotated",
@@ -299,13 +404,17 @@ export default function Dashboard() {
     enabled: !!user?.id,
     queryFn: async () => {
       try {
-        const response = await fetch(getApiUrl(`/api/users/${user?.id}/kudos/received`));
+        const response = await fetch(
+          getApiUrl(`/api/users/${user?.id}/kudos/received`)
+        );
         if (!response.ok) return 0;
         const kudos = await response.json();
         const monthStart = new Date();
         monthStart.setDate(1);
         monthStart.setHours(0, 0, 0, 0);
-        return Array.isArray(kudos) ? kudos.filter((k: any) => new Date(k.createdAt) >= monthStart).length : 0;
+        return Array.isArray(kudos)
+          ? kudos.filter((k: any) => new Date(k.createdAt) >= monthStart).length
+          : 0;
       } catch (error) {
         console.error("Failed to fetch monthly kudos:", error);
         return 0;
@@ -315,23 +424,38 @@ export default function Dashboard() {
   });
   const kudosThisMonth = monthlyKudos.data ?? 0;
 
-  const currentChallenges: Array<{ id: string; title: string; progress: number; target: number; current: number }> = [
+  const currentChallenges: Array<{
+    id: string;
+    title: string;
+    progress: number;
+    target: number;
+    current: number;
+  }> = [
     {
       id: "join-events",
       title: "Join 3 community events this week",
-      current: Array.isArray(userJoinedEvents) ? userJoinedEvents.filter((event: any) => {
-        const eventDate = new Date(event.date);
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        return eventDate >= weekStart;
-      }).length : 0,
+      current: Array.isArray(userJoinedEvents)
+        ? userJoinedEvents.filter((event: any) => {
+            const eventDate = new Date(event.date);
+            const weekStart = new Date();
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            return eventDate >= weekStart;
+          }).length
+        : 0,
       target: 3,
-      progress: Math.min(100, ((Array.isArray(userJoinedEvents) ? userJoinedEvents.filter((event: any) => {
-        const eventDate = new Date(event.date);
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        return eventDate >= weekStart;
-      }).length : 0) / 3) * 100)
+      progress: Math.min(
+        100,
+        ((Array.isArray(userJoinedEvents)
+          ? userJoinedEvents.filter((event: any) => {
+              const eventDate = new Date(event.date);
+              const weekStart = new Date();
+              weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+              return eventDate >= weekStart;
+            }).length
+          : 0) /
+          3) *
+          100
+      ),
     },
     {
       id: "send-messages",
@@ -344,27 +468,31 @@ export default function Dashboard() {
     {
       id: "join-communities",
       title: "Join 2 new communities",
-      current: Array.isArray(userActiveCommunities) ? Math.min(userActiveCommunities.length, 2) : 0,
+      current: Array.isArray(userActiveCommunities)
+        ? Math.min(userActiveCommunities.length, 2)
+        : 0,
       target: 2,
-      progress: Array.isArray(userActiveCommunities) ? Math.min(100, (userActiveCommunities.length / 2) * 100) : 0
-    }
+      progress: Array.isArray(userActiveCommunities)
+        ? Math.min(100, (userActiveCommunities.length / 2) * 100)
+        : 0,
+    },
   ];
 
   // Color coding for communities
   const communityColors = {
     wellness: "bg-purple-500",
-    tech: "bg-blue-500", 
+    tech: "bg-blue-500",
     arts: "bg-pink-500",
     fitness: "bg-green-500",
     music: "bg-yellow-500",
     food: "bg-orange-500",
     outdoor: "bg-emerald-500",
-    social: "bg-indigo-500"
+    social: "bg-indigo-500",
   };
 
   useEffect(() => {
     if (!authLoading && !user) {
-      setRouterLocation('/login');
+      setRouterLocation("/login");
     }
   }, [authLoading, user, setRouterLocation]);
 
@@ -380,44 +508,49 @@ export default function Dashboard() {
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top max-w-6xl mx-auto min-h-[100dvh] pb-24">
-        
-        {/* ── Hero Banner ── */}
-        <div
-          className="mb-5 rounded-3xl overflow-hidden relative"
-          style={{
-            background: "linear-gradient(135deg, hsl(270,60%,30%) 0%, hsl(280,70%,25%) 40%, hsl(300,50%,20%) 100%)",
-            boxShadow: "0 20px 60px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
-          }}
-        >
-          {/* Mesh overlay */}
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)" }} />
-          
-          <div className="relative p-5">
-            <div className="flex items-center gap-4">
-              <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
-                <AvatarImage src={user.avatar || undefined} />
-                <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
-                  {user.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-bold text-white leading-tight truncate">
-                  Welcome back, {user.name?.split(' ')[0] || 'friend'}!
-                </h1>
-                <p className="text-sm text-white/60 italic">Your third place awaits.</p>
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <div className="flex items-center gap-1 text-white/70 text-xs">
-                    <MapPin className="w-3 h-3" />
-                    <span>{locationName || 'Detecting...'}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-white/70 text-xs">
-                    <Heart className="w-3 h-3 text-pink-400" />
-                    <span className="text-pink-300 font-medium">💜 {kudosThisMonth} Kudos</span>
+          {/* ── Hero Banner ── */}
+          <div
+            className="mb-5 rounded-3xl overflow-hidden relative"
+            style={{
+              background:
+                "linear-gradient(135deg, hsl(270,60%,30%) 0%, hsl(280,70%,25%) 40%, hsl(300,50%,20%) 100%)",
+              boxShadow:
+                "0 20px 60px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
+            }}
+          >
+            {/* Mesh overlay */}
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)",
+              }}
+            />
+
+            <div className="relative p-5">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
+                  <AvatarImage src={user.avatar || undefined} />
+                  <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
+                    {user.name?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-white leading-tight truncate">
+                    Welcome back, {user.name?.split(" ")[0] || "friend"}!
+                  </h1>
+                  <p className="text-sm text-white/60 italic">
+                    Your third place awaits.
+                  </p>
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <div className="flex items-center gap-1 text-white/70 text-xs">
+                      <MapPin className="w-3 h-3" />
+                      <span>{locationName || "Detecting..."}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {/* [THEME_TOGGLE_HIDDEN] Uncomment to restore Light/Dark mode toggle
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* [THEME_TOGGLE_HIDDEN] Uncomment to restore Light/Dark mode toggle
                 <Button
                   variant="ghost"
                   size="icon"
@@ -427,473 +560,558 @@ export default function Dashboard() {
                   {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </Button>
                 */}
-                <ShareQR />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9">
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-64" align="end">
-                    <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    
-                    {/* Profile Settings */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/profile')}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      Profile
-                    </DropdownMenuItem>
+                  <ShareQR />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64" align="end">
+                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
 
-                    {/* Account Settings */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/account')}>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Account
-                    </DropdownMenuItem>
+                      {/* Profile Settings */}
+                      <DropdownMenuItem
+                        onClick={() => setRouterLocation("/settings/profile")}
+                      >
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        Profile
+                      </DropdownMenuItem>
 
-                    {/* Notifications */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/notifications')}>
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                    </DropdownMenuItem>
+                      {/* Account Settings */}
+                      <DropdownMenuItem
+                        onClick={() => setRouterLocation("/settings/account")}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Account
+                      </DropdownMenuItem>
 
-                    {/* Community Preferences */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/community')}>
-                      <Users className="mr-2 h-4 w-4" />
-                      Community Preferences
-                    </DropdownMenuItem>
+                      {/* Notifications */}
+                      <DropdownMenuItem
+                        onClick={() =>
+                          setRouterLocation("/settings/notifications")
+                        }
+                      >
+                        <Bell className="mr-2 h-4 w-4" />
+                        Notifications
+                      </DropdownMenuItem>
 
-                    {/* Security */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/security')}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Security
-                    </DropdownMenuItem>
+                      {/* Community Preferences */}
+                      <DropdownMenuItem
+                        onClick={() => setRouterLocation("/settings/community")}
+                      >
+                        <Users className="mr-2 h-4 w-4" />
+                        Community Preferences
+                      </DropdownMenuItem>
 
-                    <DropdownMenuSeparator />
+                      {/* Security */}
+                      <DropdownMenuItem
+                        onClick={() => setRouterLocation("/settings/security")}
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        Security
+                      </DropdownMenuItem>
 
-                    {/* Support */}
-                    <DropdownMenuItem onClick={() => setRouterLocation('/settings/support')}>
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Support
-                    </DropdownMenuItem>
+                      <DropdownMenuSeparator />
 
-                    {/* About / Legal */}
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <FileText className="mr-2 h-4 w-4" />
-                        About & Legal
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => setRouterLocation('/terms')}>
+                      {/* Support */}
+                      <DropdownMenuItem
+                        onClick={() => setRouterLocation("/settings/support")}
+                      >
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        Support
+                      </DropdownMenuItem>
+
+                      {/* About / Legal */}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
                           <FileText className="mr-2 h-4 w-4" />
-                          Terms of Service
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRouterLocation('/privacy')}>
-                          <Shield className="mr-2 h-4 w-4" />
-                          Privacy Policy
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Settings className="mr-2 h-4 w-4" />
-                          App Version 1.0.0
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                          About & Legal
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem
+                            onClick={() => setRouterLocation("/terms")}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Terms of Service
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setRouterLocation("/privacy")}
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            Privacy Policy
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Settings className="mr-2 h-4 w-4" />
+                            App Version 1.0.0
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
 
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 focus:bg-red-500/10">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => signOut()}
+                        className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid-responsive">
+            {/* Event Calendar Widget */}
+            <div className="lg:col-span-2">
+              <Card className="glass-card border-white/5">
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-white/5 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                        <CardTitle className="text-lg sm:text-xl text-white flex items-center justify-between w-full sm:w-auto">
+                          <div className="flex items-center space-x-2">
+                            <CalendarDays className="w-5 h-5" />
+                            <span>My Events</span>
+                            <Badge variant="secondary" className="ml-2">
+                              {
+                                (userJoinedEvents || []).filter(
+                                  (event: any) => {
+                                    const eventDate = new Date(event.date);
+                                    const now = new Date();
+                                    return (
+                                      eventDate.getMonth() === now.getMonth() &&
+                                      eventDate.getFullYear() ===
+                                        now.getFullYear()
+                                    );
+                                  }
+                                ).length
+                              }{" "}
+                              this month
+                            </Badge>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-gray-500 sm:hidden" />
+                        </CardTitle>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block absolute right-4 top-1/2 transform -translate-y-1/2" />
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      {eventsLoading ? (
+                        <div className="animate-pulse space-y-3">
+                          {["event-1", "event-2", "event-3"].map(
+                            (loadingId) => (
+                              <div
+                                key={`loading-${loadingId}`}
+                                className="h-16 bg-gray-200 dark:bg-gray-700 rounded"
+                              />
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <EventCalendar
+                          events={userJoinedEvents || []}
+                          onEventClick={(event) => {
+                            setSelectedEvent(event);
+                            setIsEventModalOpen(true);
+                          }}
+                        />
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            </div>
+
+            {/* Today's Suggestions / Discoveries Panel */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* User's Active Communities */}
+              <Card className="glass-card border-white/5">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>
+                      {user.name?.split(" ")[0] || "Your"}'s Communities
+                    </span>
+                  </CardTitle>
+                  <Badge variant="secondary" className="text-xs">
+                    {Array.isArray(userActiveCommunities)
+                      ? userActiveCommunities.length
+                      : 0}{" "}
+                    joined
+                  </Badge>
+                </CardHeader>
+                {/* Community cards */}
+                <CardContent className="space-y-3 pt-0">
+                  {userCommunitiesLoading ? (
+                    <div className="animate-pulse space-y-3">
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className="h-20 bg-white/5 rounded-2xl" />
+                      ))}
+                    </div>
+                  ) : Array.isArray(userActiveCommunities) &&
+                    userActiveCommunities.length > 0 ? (
+                    userActiveCommunities.map((community: any) => {
+                      const dotColor =
+                        communityColors[
+                          community.category as keyof typeof communityColors
+                        ] || "bg-violet-500";
+                      return (
+                        <div
+                          key={community.id}
+                          className="relative rounded-2xl bg-white/5 border border-white/8 overflow-hidden hover:bg-white/8 transition-all duration-200"
+                        >
+                          {/* Left accent stripe */}
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1 ${dotColor} rounded-l-2xl`}
+                          />
+                          <div className="pl-4 pr-4 pt-3 pb-3 ml-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <h4 className="font-semibold text-white text-sm truncate">
+                                  {community.name}
+                                </h4>
+                              </div>
+                              <span className="text-[10px] text-white/50 flex-shrink-0 ml-2">
+                                {community.memberCount || 1} members
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/45 mb-3 capitalize">
+                              {community.category}
+                            </p>
+                            <Link href={`/community/${community.id}`}>
+                              <Button
+                                size="sm"
+                                className="w-full h-8 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl border-0 transition-all group"
+                              >
+                                Enter
+                                <svg
+                                  className="w-3 h-3 ml-1.5 transition-transform group-hover:translate-x-0.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M13 7l5 5-5 5M6 12h12"
+                                  />
+                                </svg>
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center justify-center py-10 px-4 text-center"
+                    >
+                      <div className="relative mb-5">
+                        <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
+                          <Users className="w-8 h-8 text-white/80" />
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        It's a bit quiet here!
+                      </h3>
+                      <p className="text-sm text-white/60 mb-6 max-w-[250px]">
+                        Your social circle is a blank canvas. Discover local
+                        communities below to start connecting.
+                      </p>
+                      <Link href="/discover">
+                        <Button className="rounded-full shadow-lg shadow-primary/20 group">
+                          Explore Communities
+                          <ChevronDown className="w-4 h-4 ml-2 group-hover:-translate-y-0.5 transition-transform" />
+                        </Button>
+                      </Link>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Discovery Suggestions */}
+              <Card className="glass-card border-white/5">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-5 h-5" />
+                      <span>Discover Communities</span>
+                    </div>
+                    <Link href="/discover">
+                      <Button variant="outline" size="sm" className="text-xs">
+                        View All
+                      </Button>
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Trending Events */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      🔥 Upcoming Local Events
+                    </h4>
+                    {trendingLoading ? (
+                      <div className="p-4 text-center">
+                        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Finding popular events...
+                        </p>
+                      </div>
+                    ) : Array.isArray(trendingEvents) &&
+                      trendingEvents.length > 0 ? (
+                      trendingEvents.slice(0, 3).map((event: any) => (
+                        <div
+                          key={event.id}
+                          className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {event.title}
+                            </h5>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                {event.joinCount} joined
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
+                            {new Date(event.date).toLocaleDateString()} •{" "}
+                            {event.location || "Online"}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full min-h-[44px] text-xs"
+                            onClick={() =>
+                              setRouterLocation(
+                                `/community/${event.communityId || ""}`
+                              )
+                            }
+                          >
+                            View Event
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                        <p className="text-sm">
+                          No trending events in your area yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* New Communities */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        🔍 New Communities
+                      </h4>
+                      <Link href="/discover">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          View All
+                        </Button>
+                      </Link>
+                    </div>
+                    {recommendationsLoading ? (
+                      <div className="p-4 text-center">
+                        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Finding your perfect communities...
+                        </p>
+                      </div>
+                    ) : recommendationsError ? (
+                      <InlineErrorMessage
+                        message="Unable to load community recommendations"
+                        onRetry={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: [
+                              "/api/communities/recommended",
+                              user?.id,
+                            ],
+                          })
+                        }
+                      />
+                    ) : Array.isArray(recommendations) &&
+                      recommendations.length > 0 ? (
+                      recommendations
+                        .slice(0, 5)
+                        .map((community: Community) => (
+                          <div
+                            key={community.id}
+                            className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors"
+                          >
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-sm">🌟</span>
+                              <h5 className="text-sm font-medium text-white">
+                                {community.name}
+                              </h5>
+                            </div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                              {community.memberCount} members •{" "}
+                              {community.category}
+                            </p>
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 min-h-[44px]"
+                                onClick={() => handleJoinClick(community)}
+                                disabled={joinCommunityMutation.isPending}
+                              >
+                                {joinCommunityMutation.isPending
+                                  ? "Joining..."
+                                  : "Join Community"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="min-h-[44px] min-w-[44px]"
+                                onClick={() =>
+                                  setRouterLocation(
+                                    `/community/${community.id}`
+                                  )
+                                }
+                              >
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-3 px-4 text-center">
+                        <div className="relative mb-4">
+                          <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+                          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-xl backdrop-blur-md">
+                            <svg
+                              className="w-6 h-6 text-primary/80"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                              <circle cx="9" cy="7" r="4" />
+                              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium text-white/60">
+                          You've joined all available communities!
+                        </p>
+                        <Link href="/discover">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-4 text-xs"
+                          >
+                            Explore Communities
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="pt-6 border-t border-white/5 space-y-6">
+                <h3 className="text-sm font-semibold text-white/50 px-2 uppercase tracking-wider">
+                  My Activity
+                </h3>
+                {/* Streak Card */}
+                <StreakCard userId={user.id} />
+                {/* Weekly Challenges */}
+                <Card className="glass-card border-white/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-white flex items-center space-x-2">
+                      <Target className="w-5 h-5" />
+                      <span>Weekly Challenges</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {currentChallenges.length > 0 ? (
+                      <div className="space-y-4">
+                        {currentChallenges.map((challenge) => (
+                          <div key={challenge.id} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {challenge.title}
+                              </span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {challenge.current}/{challenge.target}
+                              </span>
+                            </div>
+                            <Progress
+                              value={challenge.progress}
+                              className="h-2"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No active challenges</p>
+                        <p className="text-sm">
+                          Stay active to unlock weekly challenges!
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid-responsive">
-          
-          {/* Event Calendar Widget */}
-          <div className="lg:col-span-2">
-            <Card className="glass-card border-white/5">
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-white/5 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                      <CardTitle className="text-lg sm:text-xl text-white flex items-center justify-between w-full sm:w-auto">
-                        <div className="flex items-center space-x-2">
-                          <CalendarDays className="w-5 h-5" />
-                          <span>Event Calendar</span>
-                          <Badge variant="secondary" className="ml-2">
-                            {(userJoinedEvents || []).filter((event: any) => {
-                              const eventDate = new Date(event.date);
-                              const now = new Date();
-                              return eventDate.getMonth() === now.getMonth() && 
-                                     eventDate.getFullYear() === now.getFullYear();
-                            }).length} this month
-                          </Badge>
-                        </div>
-                        <ChevronDown className="w-4 h-4 text-gray-500 sm:hidden" />
-                      </CardTitle>
-                      <Button 
-                        size="sm" 
-                        className="bg-orange-500 hover:bg-orange-600 dark:bg-purple-600 dark:hover:bg-purple-700 w-full sm:w-auto min-h-[44px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRouterLocation("/create-event");
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Partner Event Creation
-                      </Button>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block absolute right-4 top-1/2 transform -translate-y-1/2" />
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    {eventsLoading ? (
-                      <div className="animate-pulse space-y-3">
-                        {['event-1', 'event-2', 'event-3'].map(loadingId => (
-                          <div key={`loading-${loadingId}`} className="h-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                        ))}
-                      </div>
-                    ) : (
-                      <EventCalendar 
-                        events={userJoinedEvents || []} 
-                        onEventClick={(event) => {
-                          setSelectedEvent(event);
-                          setIsEventModalOpen(true);
-                        }}
-                      />
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          </div>
-
-          {/* Today's Suggestions / Discoveries Panel */}
-          <div className="space-y-6">
-            
-            {/* Agent Insights Card */}
-            <div className="transform hover:scale-[1.02] transition-transform duration-300">
-               <AgentInsightsCard userId={user.id} />
-            </div>
-
-            {/* Streak Card */}
-            <StreakCard userId={user.id} />
-
-            {/* Local Kudos Leaders */}
-            <Card className="glass-card border-white/5">
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-white/5 transition-colors">
-                    <CardTitle className="text-lg text-white flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Star className="w-5 h-5 text-yellow-500" />
-                        <span>Local Kudos Leaders</span>
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    </CardTitle>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <Star className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>Kudos leaderboard building</p>
-                      <p className="text-sm">Give and receive kudos to see leaders here!</p>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-
-            {/* Weekly Challenges */}
-            <Card className="glass-card border-white/5">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>Weekly Challenges</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentChallenges.length > 0 ? (
-                  <div className="space-y-4">
-                    {currentChallenges.map((challenge) => (
-                      <div key={challenge.id} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {challenge.title}
-                          </span>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {challenge.current}/{challenge.target}
-                          </span>
-                        </div>
-                        <Progress value={challenge.progress} className="h-2" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No active challenges</p>
-                    <p className="text-sm">Stay active to unlock weekly challenges!</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* User's Active Communities */}
-            <Card className="glass-card border-white/5">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center space-x-2">
-                  <Users className="w-5 h-5" />
-                  <span>{user.name?.split(' ')[0] || 'Your'}'s Communities</span>
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">
-                  {Array.isArray(userActiveCommunities) ? userActiveCommunities.length : 0} joined
-                </Badge>
-              </CardHeader>
-              {/* Community cards */}
-              <CardContent className="space-y-3 pt-0">
-                {userCommunitiesLoading ? (
-                  <div className="animate-pulse space-y-3">
-                    {[0,1,2].map(i => (
-                      <div key={i} className="h-20 bg-white/5 rounded-2xl" />
-                    ))}
-                  </div>
-                ) : Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
-                  userActiveCommunities.map((community: any) => {
-                    const dotColor = communityColors[community.category as keyof typeof communityColors] || 'bg-violet-500';
-                    return (
-                      <div
-                        key={community.id}
-                        className="relative rounded-2xl bg-white/5 border border-white/8 overflow-hidden hover:bg-white/8 transition-all duration-200"
-                      >
-                        {/* Left accent stripe */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${dotColor} rounded-l-2xl`} />
-                        <div className="pl-4 pr-4 pt-3 pb-3 ml-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <h4 className="font-semibold text-white text-sm truncate">{community.name}</h4>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                                <span className="text-[11px] text-green-400 font-medium">{getLiveCount(community.id)} online</span>
-                              </div>
-                            </div>
-                            <span className="text-[10px] text-white/30 bg-white/8 border border-white/10 rounded-full px-2 py-0.5 flex-shrink-0 ml-2">
-                              Score {community.activityScore || 0}
-                            </span>
-                          </div>
-                          <p className="text-xs text-white/45 mb-3 capitalize">{community.category}</p>
-                          <Link href={`/community/${community.id}`}>
-                            <Button
-                              size="sm"
-                              className="w-full h-8 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl border-0 transition-all group"
-                            >
-                              Enter
-                              <svg className="w-3 h-3 ml-1.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5-5 5M6 12h12" />
-                              </svg>
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center py-10 px-4 text-center"
-                  >
-                    <div className="relative mb-5">
-                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
-                        <Users className="w-8 h-8 text-white/80" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">It's a bit quiet here!</h3>
-                    <p className="text-sm text-white/60 mb-6 max-w-[250px]">
-                      Your social circle is a blank canvas. Discover local communities below to start connecting.
-                    </p>
-                    <Link href="/discover">
-                      <Button className="rounded-full shadow-lg shadow-primary/20 group">
-                        Explore Communities
-                        <ChevronDown className="w-4 h-4 ml-2 group-hover:-translate-y-0.5 transition-transform" />
-                      </Button>
-                    </Link>
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Discovery Suggestions */}
-            <Card className="glass-card border-white/5">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5" />
-                    <span>Communities That Grow With You</span>
-                  </div>
-                  <Link href="/discover">
-                    <Button variant="outline" size="sm" className="text-xs">
-                      View All
-                    </Button>
-                  </Link>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                
-                {/* Trending Events */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔥 Trending Events</h4>
-                  {trendingLoading ? (
-                    <div className="p-4 text-center">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Finding popular events...</p>
-                    </div>
-                  ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
-                    trendingEvents.slice(0, 3).map((event: any) => (
-                      <div key={event.id} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="flex items-center justify-between mb-1">
-                          <h5 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {event.title}
-                          </h5>
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                              {event.joinCount} joined
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
-                          {new Date(event.date).toLocaleDateString()} • {event.location || 'Online'}
-                        </p>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="w-full min-h-[44px] text-xs"
-                          onClick={() => setRouterLocation(`/community/${event.communityId || ''}`)}
-                        >
-                          View Event
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      <p className="text-sm">No trending events in your area yet</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* New Communities */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 New Communities</h4>
-                    <Link href="/discover">
-                      <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        View All
-                      </Button>
-                    </Link>
-                  </div>
-                  {recommendationsLoading ? (
-                    <div className="p-4 text-center">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Finding your perfect communities...</p>
-                    </div>
-                  ) : recommendationsError ? (
-                    <InlineErrorMessage 
-                      message="Unable to load community recommendations" 
-                      onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
-                    />
-                  ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
-                    recommendations.slice(0, 5).map((community: Community) => (
-                      <div key={community.id} className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-sm">🌟</span>
-                          <h5 className="text-sm font-medium text-white">
-                            {community.name}
-                          </h5>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          {community.memberCount} members • {community.category}
-                        </p>
-                        <div className="flex space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="flex-1 min-h-[44px]"
-                            onClick={() => handleJoinClick(community)}
-                            disabled={joinCommunityMutation.isPending}
-                          >
-                            {joinCommunityMutation.isPending ? "Joining..." : "Join Community"}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            className="min-h-[44px] min-w-[44px]"
-                            onClick={() => setRouterLocation(`/community/${community.id}`)}
-                          >
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-3 px-4 text-center">
-                      <div className="relative mb-4">
-                        <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-xl backdrop-blur-md">
-                          <svg className="w-6 h-6 text-primary/80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                      </div>
-                      <p className="text-sm font-medium text-white/60">You've joined all available communities!</p>
-                      <Link href="/discover">
-                        <Button size="sm" variant="outline" className="mt-4 text-xs">
-                          Explore Communities
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-
-
-              </CardContent>
-            </Card>
-
-
-
-          </div>
-        </div>
-      </div>
-      
-      {/* Rotation Confirmation Dialog */}
-      <AlertDialog open={!!rotationConfirm} onOpenChange={(open) => !open && setRotationConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Community Limit Reached</AlertDialogTitle>
-            <AlertDialogDescription>
-              You already have five communities. Adding <strong>{rotationConfirm?.newComm?.name}</strong> will replace <strong>{rotationConfirm?.oldComm?.name}</strong>, which you have interacted with the least.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (rotationConfirm) {
-                  joinCommunityMutation.mutate(rotationConfirm.newComm.id);
-                }
-              }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Replace and Join
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+        {/* Rotation Confirmation Dialog */}
+        <AlertDialog
+          open={!!rotationConfirm}
+          onOpenChange={(open) => !open && setRotationConfirm(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Community Limit Reached</AlertDialogTitle>
+              <AlertDialogDescription>
+                You already have five communities. Adding{" "}
+                <strong>{rotationConfirm?.newComm?.name}</strong> will replace{" "}
+                <strong>{rotationConfirm?.oldComm?.name}</strong>, which you
+                have interacted with the least.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (rotationConfirm) {
+                    joinCommunityMutation.mutate(rotationConfirm.newComm.id);
+                  }
+                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Replace and Join
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PullToRefresh>
 
       {/* Event Details Modal */}
