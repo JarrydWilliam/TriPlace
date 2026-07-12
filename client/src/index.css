@@ -9,6 +9,7 @@
     html {
           /* Prevent iOS bounce on the root to avoid white flashes, but let body scroll */
           background-color: hsl(260, 40%, 15%); /* Match top of gradient */
+          overflow-x: hidden;
     }
     body {
           @apply bg-background text-foreground font-sans antialiased;
@@ -16,6 +17,12 @@
           min-height: 100dvh;
           /* Let iOS handle scrolling natively */
           -webkit-overflow-scrolling: touch;
+          overflow-x: hidden;
+    }
+    
+    * {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
     }
 }
 
@@ -51,7 +58,6 @@
 .mobile-page-container {
     width: 100%;
     min-height: 100dvh;
-    overflow-x: hidden;
     position: relative;
 }
 

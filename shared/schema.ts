@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   agentInferredInterests: jsonb("agent_inferred_interests"), // { tags: string[], updatedAt: string }
   onboardingCompleted: boolean("onboarding_completed").default(false),
   quizAnswers: jsonb("quiz_answers"),
+  notificationSettings: jsonb("notification_settings").default({}),
+  discoverySettings: jsonb("discovery_settings").default({}),
   isOnline: boolean("is_online").default(false),
   lastActiveAt: timestamp("last_active_at").defaultNow(),
   // New Progressive Trust & Monetization Fields

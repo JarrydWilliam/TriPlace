@@ -3,7 +3,8 @@
  * tailored to SameVibe's exact app identity.
  */
 
-import OpenAI from "openai";
+// import OpenAI from "openai";
+const OpenAI: any = null;
 import fs from "fs";
 import path from "path";
 

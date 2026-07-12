@@ -153,7 +153,7 @@ const QUIZ_SECTIONS: QuizQuestion[] = [
 
 export default function Onboarding() {
   const { user, refreshUser } = useAuth();
-  const { latitude, longitude, locationName } = useGeolocation(user?.id);
+  const { latitude, longitude, locationName, error: locationError } = useGeolocation(user?.id);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -180,15 +180,21 @@ export default function Onboarding() {
   useEffect(() => {
     const isLocationStep = QUIZ_SECTIONS[step]?.id === "location";
     if (isLocationStep && !locationName) {
-      gpsTimerRef.current = setTimeout(() => {
+      if (locationError) {
+        // If GPS/IP failed already, don't wait 8 seconds
         setLocationGpsTimeout(true);
         setShowManualInput(true);
-      }, 8000);
+      } else {
+        gpsTimerRef.current = setTimeout(() => {
+          setLocationGpsTimeout(true);
+          setShowManualInput(true);
+        }, 8000);
+      }
     }
     return () => {
       if (gpsTimerRef.current) clearTimeout(gpsTimerRef.current);
     };
-  }, [step, locationName]);
+  }, [step, locationName, locationError]);
 
   // Auto-detect location for that step — cancel timer if GPS succeeds
   useEffect(() => {
@@ -284,7 +290,7 @@ export default function Onboarding() {
   const currentQ = QUIZ_SECTIONS[step];
 
   return (
-    <div className="min-h-screen w-full text-white overflow-hidden relative flex flex-col items-center justify-center" style={{ background: "radial-gradient(ellipse at 40% 0%, hsl(260,60%,20%) 0%, hsl(250,50%,8%) 50%, hsl(240,40%,4%) 100%)" }}>
+    <div className="min-h-[100dvh] w-full text-white overflow-y-auto relative flex flex-col items-center justify-center" style={{ background: "radial-gradient(ellipse at 40% 0%, hsl(260,60%,20%) 0%, hsl(250,50%,8%) 50%, hsl(240,40%,4%) 100%)" }}>
       {/* Rich background bokeh */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-25 blur-[80px]" style={{ background: "hsl(270,70%,55%)" }} />

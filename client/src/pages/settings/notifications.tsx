@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bell, Smartphone, Mail, MessageSquare, Calendar, Users, Heart, Settings } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function NotificationSettings() {
   const { toast } = useToast();
@@ -43,8 +45,22 @@ export default function NotificationSettings() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    toast({ title: "Notification preferences saved!" });
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.notificationSettings) {
+      setSettings(prev => ({ ...prev, ...(user.notificationSettings as any) }));
+    }
+  }, [user?.notificationSettings]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    try {
+      await apiRequest('PATCH', `/api/users/${user.id}`, { notificationSettings: settings });
+      toast({ title: "Notification preferences saved!" });
+    } catch (err) {
+      toast({ title: "Failed to save preferences", variant: "destructive" });
+    }
   };
 
   return (

@@ -182,14 +182,17 @@ export default function Dashboard() {
     }
   });
 
-  // Auto-populate events when location is available
+  // Auto-populate events when location is available (debounced to prevent spam)
   useEffect(() => {
     if (user?.id && latitude && longitude && !autoPopulateEvents.isPending) {
-      autoPopulateEvents.mutate({
-        userId: user.id,
-        latitude,
-        longitude
-      });
+      const timer = setTimeout(() => {
+        autoPopulateEvents.mutate({
+          userId: user.id,
+          latitude,
+          longitude
+        });
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [user?.id, latitude, longitude]);
 
@@ -343,7 +346,7 @@ export default function Dashboard() {
   return (
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top max-w-6xl mx-auto min-h-screen pb-24">
+        <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top max-w-6xl mx-auto min-h-[100dvh] pb-24">
         
         {/* ── Hero Banner ── */}
         <div

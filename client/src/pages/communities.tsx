@@ -59,34 +59,32 @@ export default function CommunitiesPage() {
     const [lat, lon] = locationString.split(',').map(Number);
     if (!lat || !lon) return "Location Unknown";
     
-    // Simple location approximation - in production, you'd use reverse geocoding
-    if (lat > 40 && lat < 42 && lon > -112 && lon < -111) return "Ogden, Utah";
-    if (lat > 40 && lat < 41 && lon > -74 && lon < -73) return "New York, NY";
-    if (lat > 37 && lat < 38 && lon > -123 && lon < -122) return "San Francisco, CA";
-    return "Your Area";
+    return `${Math.abs(lat).toFixed(2)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? 'E' : 'W'}`;
   };
 
   // Get community tags from description and category
   const getCommunityTags = (community: Community) => {
-    const tags = [community.category];
+    const category = community.category?.toLowerCase() || "";
+    const tags = [category];
     
     // Extract additional tags from description
     const description = community.description?.toLowerCase() || "";
-    if (description.includes("tech")) tags.push("Tech");
-    if (description.includes("fitness") || description.includes("health")) tags.push("Fitness");
-    if (description.includes("outdoor") || description.includes("adventure")) tags.push("Outdoors");
-    if (description.includes("creative") || description.includes("art")) tags.push("Creative");
-    if (description.includes("food") || description.includes("cooking")) tags.push("Food");
-    if (description.includes("music")) tags.push("Music");
-    if (description.includes("business") || description.includes("entrepreneur")) tags.push("Business");
+    if (description.includes("tech")) tags.push("tech");
+    if (description.includes("fitness") || description.includes("health") || description.includes("wellness")) tags.push("fitness");
+    if (description.includes("outdoor") || description.includes("adventure")) tags.push("outdoor");
+    if (description.includes("creative") || description.includes("art")) tags.push("arts");
+    if (description.includes("food") || description.includes("cooking")) tags.push("food");
+    if (description.includes("music")) tags.push("music");
+    if (description.includes("business") || description.includes("entrepreneur")) tags.push("business");
+    if (description.includes("social") || description.includes("friends")) tags.push("social");
     
-    // Remove duplicates using filter
-    return tags.filter((tag, index) => tags.indexOf(tag) === index);
+    // Remove duplicates using filter and capitalize
+    return tags.filter((tag, index) => tags.indexOf(tag) === index).map(t => t.charAt(0).toUpperCase() + t.slice(1));
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-pulse">
             <Logo size="xl" />
@@ -100,7 +98,7 @@ export default function CommunitiesPage() {
   return (
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-24">
+        <div className="bg-gray-50 dark:bg-gray-900 min-h-[100dvh] pb-24">
           <div className="container-responsive responsive-padding safe-area-top max-w-6xl mx-auto">
         
         {/* Header with Back Button and Theme Toggle */}
@@ -212,14 +210,16 @@ export default function CommunitiesPage() {
                     {/* Community Icon */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center text-xl">
-                        {community.category === "Fitness and Health" && "💪"}
-                        {community.category === "Technology" && "💻"}
-                        {community.category === "Outdoor Activities" && "🏔️"}
-                        {community.category === "Creative Arts" && "🎨"}
-                        {community.category === "Food and Cooking" && "🍳"}
-                        {community.category === "Music" && "🎵"}
-                        {community.category === "Business" && "💼"}
-                        {!["Fitness and Health", "Technology", "Outdoor Activities", "Creative Arts", "Food and Cooking", "Music", "Business"].includes(community.category) && "🌟"}
+                        {community.category?.toLowerCase() === "fitness" && "💪"}
+                        {community.category?.toLowerCase() === "wellness" && "🧘"}
+                        {community.category?.toLowerCase() === "tech" && "💻"}
+                        {community.category?.toLowerCase() === "outdoor" && "🏔️"}
+                        {community.category?.toLowerCase() === "arts" && "🎨"}
+                        {community.category?.toLowerCase() === "food" && "🍳"}
+                        {community.category?.toLowerCase() === "music" && "🎵"}
+                        {community.category?.toLowerCase() === "business" && "💼"}
+                        {community.category?.toLowerCase() === "social" && "👋"}
+                        {!["fitness", "wellness", "tech", "outdoor", "arts", "food", "music", "business", "social"].includes(community.category?.toLowerCase() || "") && "🌟"}
                       </div>
                       <div className="text-right">
                         <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">

@@ -54,12 +54,10 @@ export default function ProfileSetup() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAvatarPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      toast({
+        title: 'Coming Soon',
+        description: 'Photo uploads will be available soon. Using default avatar for now.',
+      });
     }
   };
 
@@ -80,7 +78,6 @@ export default function ProfileSetup() {
     updateProfileMutation.mutate({
       name: formData.name.trim(),
       bio: formData.bio.trim(),
-      avatar: avatarPreview
     });
   };
 
@@ -90,14 +87,14 @@ export default function ProfileSetup() {
 
   if (updateProfileMutation.isPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <ComponentLoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 safe-area-top safe-area-bottom">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 safe-area-top safe-area-bottom">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Logo size="lg" className="mx-auto mb-4" />

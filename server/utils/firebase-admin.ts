@@ -19,11 +19,12 @@ function getAdminApp(): admin.app.App | null {
   if (adminApp) return adminApp;
 
   // Only initialize if service account credentials are available
-  const hasCredentials =
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+  const hasCredentialsFile =
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
     process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
-  if (!hasCredentials) {
+  if (!hasCredentialsFile && !serviceAccountJson) {
     // Running on Vercel without service account — safe to skip Admin SDK
     // All auth is handled client-side via Firebase client SDK
     return null;
@@ -32,6 +33,10 @@ function getAdminApp(): admin.app.App | null {
   try {
     if (admin.apps.length > 0) {
       adminApp = admin.apps[0]!;
+    } else if (serviceAccountJson) {
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(JSON.parse(serviceAccountJson)),
+      });
     } else {
       adminApp = admin.initializeApp({
         credential: admin.credential.applicationDefault(),

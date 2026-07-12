@@ -6,7 +6,8 @@
  * The generator keeps proposals aligned with the app's exact spec snapshot.
  */
 
-import OpenAI from "openai";
+// import OpenAI from "openai";
+const OpenAI: any = null;
 import { AppSpec } from "./feature-spec-analyzer.js";
 
 export interface FeatureProposal {

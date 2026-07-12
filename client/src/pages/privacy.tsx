@@ -3,7 +3,7 @@ import { Shield, ArrowLeft } from "lucide-react";
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-[#080612] text-white">
+    <div className="min-h-[100dvh] bg-[#080612] text-white">
       {/* Subtle background glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-10 blur-[100px]" style={{ background: "hsl(270,70%,55%)" }} />

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon } from "lucide-react";
 import { Link } from "wouter";
-
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ProfileSettings() {
   const { user } = useAuth();
@@ -29,8 +29,19 @@ export default function ProfileSettings() {
   const [interests, setInterests] = useState(user?.interests || []);
   const [newInterest, setNewInterest] = useState('');
 
-  const handleSave = () => {
-    toast({ title: "Profile updated successfully!" });
+  const handleSave = async () => {
+    if (!user) return;
+    try {
+      await apiRequest('PATCH', `/api/users/${user.id}`, {
+        name: profileData.name,
+        bio: profileData.bio,
+        location: profileData.location,
+        interests: interests,
+      });
+      toast({ title: "Profile updated successfully!" });
+    } catch (error) {
+      toast({ title: "Failed to update profile", variant: "destructive" });
+    }
   };
 
   const addInterest = () => {

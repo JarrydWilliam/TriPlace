@@ -53,6 +53,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  const requireAuth = async (req: any, res: any, next: any) => {
+    const { getAdminApp } = await import("./utils/firebase-admin.js");
+    const adminApp = getAdminApp();
+    if (!adminApp) {
+      console.warn('[SameVibe] Auth bypassed: Firebase Admin is not configured. Trusting client.');
+      return next(); 
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Missing or invalid Authorization header." });
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    try {
+      const decodedToken = await adminApp.auth().verifyIdToken(idToken);
+      req.firebaseUser = decodedToken;
+      next();
+    } catch (error) {
+      console.error('[SameVibe] verifyIdToken error:', error);
+      return res.status(401).json({ message: "Invalid or expired authentication token." });
+    }
+  };
+
   // Telemetry routes
   app.post("/api/telemetry", async (req, res) => {
     try {
@@ -151,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
       const user = await storage.createUser(userData);
@@ -164,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", async (req, res) => {
+  app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = insertUserSchema.partial().parse(req.body);
@@ -182,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Account deletion — required by Apple App Store and Google Play (since 2023)
-  app.delete("/api/users/:id", async (req, res) => {
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -203,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const signalRateLimits = new Map<string, { count: number; resetAt: number }>();
 
   // AI Learning Loop Signals
-  app.post("/api/users/:id/connection-signal", async (req, res) => {
+  app.post("/api/users/:id/connection-signal", requireAuth, async (req, res) => {
     try {
       const targetUserId = parseInt(req.params.id);
       const { sourceUserId, signalType, detail, dwellTimeMs } = req.body;
@@ -256,69 +280,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Temporary route to seed production database — admin only
-  app.get("/api/communities/seed", requireAdmin, async (req, res) => {
-    try {
-      const { hashPassword } = await import('./auth.js');
-      const { db } = await import('./db.js');
-      const { users, communities, events, posts, postKudos, communityMessages } = await import('../shared/schema.js');
+  
+  // [REMOVED TEST ROUTE IN PROD]
 
-      // 1. Create Premium Persona Users
-      const personas = [
-        { username: "alex_hikes_prod", name: "Alex Rover", bio: "Always finding new trails. Nature is my third place.", interests: ["hiking", "photography", "outdoors"] },
-        { username: "sarah_codes_prod", name: "Sarah Dev", bio: "Building the next big thing. Coffee addict.", interests: ["tech", "startup", "coding"] },
-      ];
-
-      const userIds: number[] = [];
-      const passwordHash = await hashPassword("password123");
-
-      for (const p of personas) {
-        // check if exists
-        const existing = await storage.getUserByUsername(p.username);
-        if (existing) {
-          userIds.push(existing.id);
-        } else {
-          const [user] = await db.insert(users).values({
-            username: p.username,
-            password: passwordHash,
-            displayName: p.name,
-            bio: p.bio,
-            interests: p.interests,
-            location: "San Francisco, CA",
-            onboardingCompleted: true,
-            email: `${p.username}@example.com`,
-            latitude: (37.7749 + (Math.random() - 0.5) * 0.1).toString(),
-            longitude: (-122.4194 + (Math.random() - 0.5) * 0.1).toString(),
-          }).returning();
-          userIds.push(user.id);
-        }
-      }
-
-      // 2. Create High-End Communities (Tribes)
-      const tribes = [
-        { name: "Sunrise Cold Plunge", description: "We meet at 6am. We freeze. We feel alive.", tags: ["wellness", "challenge", "morning"], cat: "wellness" },
-        { name: "Strictly Vinyl", description: "Audiophiles sharing rare cuts and listening sessions.", tags: ["music", "vinyl", "hifi"], cat: "music" },
-        { name: "Startup Graveyard", description: "Celebrating failures and learning from them. No ego allowed.", tags: ["tech", "startup", "growth"], cat: "tech" },
-        { name: "Urban Sketchers", description: "Capturing the city one page at a time.", tags: ["art", "drawing", "urban"], cat: "art" },
-        { name: "Rooftop Cinema Club", description: "Cult classics under the stars.", tags: ["movies", "social", "nightlife"], cat: "social" },
-      ];
-
-      for (const t of tribes) {
-        const existing = await db.select().from(communities).where(require('drizzle-orm').eq(communities.name, t.name)).limit(1);
-        if (existing.length === 0) {
-          await db.insert(communities).values({
-            name: t.name,
-            description: t.description,
-            category: t.cat,
-            location: "San Francisco, CA"
-          });
-        }
-      }
-
-      res.json({ message: "Seeded successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: "Seed failed", error: error.message });
-    }
-  });
 
   app.get("/api/communities/recommended", async (req, res) => {
     try {
@@ -329,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
-      const authUserId = req.user ? (req.user as any).id : undefined;
+      const authUserId = (req as any).user ? (req as any).user.id : undefined;
       const userIdNum = userId ? parseInt(userId) : authUserId;
       
       
@@ -363,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Monetization Routes ──────────────────────────────────────────────────
-  app.post("/api/checkout/verify-revenuecat", async (req, res) => {
+  app.post("/api/checkout/verify-revenuecat", requireAuth, async (req, res) => {
     try {
       const { userId, tier } = req.body;
       if (!userId || tier === undefined) {
@@ -386,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities", async (req, res) => {
+  app.post("/api/communities", requireAuth, async (req, res) => {
     try {
       const communityData = insertCommunitySchema.parse(req.body);
       const community = await storage.createCommunity(communityData);
@@ -399,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/join", async (req, res) => {
+  app.post("/api/communities/:id/join", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { userId } = req.body;
@@ -446,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update community activity when user interacts
-  app.post("/api/communities/:id/activity", async (req, res) => {
+  app.post("/api/communities/:id/activity", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { userId } = req.body;
@@ -463,7 +427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update current user's location
-  app.patch("/api/users/current/location", async (req, res) => {
+  app.patch("/api/users/current/location", requireAuth, async (req, res) => {
     try {
       const { latitude, longitude, location, userId } = req.body;
       
@@ -519,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/leave", async (req, res) => {
+  app.post("/api/communities/:id/leave", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { userId } = req.body;
@@ -601,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events", async (req, res) => {
+  app.post("/api/events", requireAuth, async (req, res) => {
     try {
       const eventData = insertEventSchema.parse(req.body);
       const event = await storage.createEvent(eventData);
@@ -614,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events/:id/register", async (req, res) => {
+  app.post("/api/events/:id/register", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { userId, status = "interested" } = req.body;
@@ -630,7 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events/:id/review", async (req, res) => {
+  app.post("/api/events/:id/review", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { userId, rating, feltSafe, feedback } = req.body;
@@ -667,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Safety Routes (required by Apple and Google store policies) ─────────────
 
   // Block a user
-  app.post("/api/users/block", async (req, res) => {
+  app.post("/api/users/block", requireAuth, async (req, res) => {
     try {
       const { blockerId, blockedId, reason } = req.body;
       if (!blockerId || !blockedId) {
@@ -685,7 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report a user
-  app.post("/api/users/:id/report", async (req, res) => {
+  app.post("/api/users/:id/report", requireAuth, async (req, res) => {
     try {
       const targetUserId = parseInt(req.params.id);
       const { reporterId, reason, details } = req.body;
@@ -705,7 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report an event
-  app.post("/api/events/:id/report", async (req, res) => {
+  app.post("/api/events/:id/report", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { reporterId, reason, details } = req.body;
@@ -736,7 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create global revenue-generating event
-  app.post("/api/events/create-global", async (req, res) => {
+  app.post("/api/events/create-global", requireAuth, async (req, res) => {
     try {
       const {
         title,
@@ -800,29 +764,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test OpenAI integration — admin only
+  // Test OpenAI integration — admin only (removed for app store readiness)
   app.post("/api/test-openai", requireAdmin, async (req, res) => {
-    try {
-      
-      if (!process.env.OPENAI_API_KEY) {
-        return res.json({ success: false, error: "No API key found", hasKey: false });
-      }
-      
-      const OpenAI = (await import("openai")).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: "Test message - respond with 'OpenAI working'" }],
-        max_tokens: 10
-      });
-      
-      const content = response.choices[0]?.message?.content;
-      res.json({ success: true, response: content, hasKey: true });
-    } catch (error: any) {
-      console.error("OpenAI test failed:", error.message);
-      res.json({ success: false, error: error.message, hasKey: !!process.env.OPENAI_API_KEY });
-    }
+    res.json({ success: false, message: "OpenAI integration has been removed." });
   });
 
   app.get("/api/users/:id/events", async (req, res) => {
@@ -873,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.post("/api/messages", async (req, res) => {
+  app.post("/api/messages", requireAuth, async (req, res) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
       const message = await storage.sendMessage(messageData);
@@ -886,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/messages/:id/read", async (req, res) => {
+  app.patch("/api/messages/:id/read", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.markMessageAsRead(id);
@@ -910,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/kudos", async (req, res) => {
+  app.post("/api/kudos", requireAuth, async (req, res) => {
     try {
       const kudosData = insertKudosSchema.parse(req.body);
       const kudos = await storage.giveKudos(kudosData);
@@ -952,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
       
       // Use new web scraper system for comprehensive event discovery
-      const result = await eventScraper.scrapeEventsWithWebScraping(userLocation);
+      const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
       
       res.json({ 
         message: `Auto-populated ${result.totalEvents} events across ${result.communitiesUpdated} communities using web scraping`,
@@ -967,7 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Event scraping routes
-  app.post("/api/communities/:id/scrape-events", async (req, res) => {
+  app.post("/api/communities/:id/scrape-events", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { latitude, longitude } = req.body;
@@ -982,11 +926,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
-      const scrapedEvents = await eventScraper.populateCommunityEvents(community, userLocation);
+      const savedCount = await eventScraperOrchestrator.triggerManualScrape(community.id, userLocation);
       
       res.json({ 
-        message: `Successfully scraped ${scrapedEvents.length} events for ${community.name}`,
-        events: scrapedEvents 
+        message: `Successfully scraped ${savedCount} events for ${community.name}`,
+        eventsAdded: savedCount 
       });
     } catch (error) {
       console.error('Event scraping error:', error);
@@ -1101,80 +1045,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ADMIN ONLY: creates sample events — never expose to public users
-  app.post("/api/communities/:id/populate-sample-events", requireAdmin, async (req, res) => {
-    try {
-      const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ message: "Invalid community ID" });
-      }
+  
+  // [REMOVED TEST ROUTE IN PROD]
 
-      const community = await storage.getCommunity(communityId);
-      if (!community) {
-        return res.status(404).json({ message: "Community not found" });
-      }
-
-      // Create sample events for this community
-      const sampleEvents = [
-        {
-          title: "Tech Innovation Workshop",
-          description: "Join us for an exciting workshop on the latest technology trends and innovations in our local tech community.",
-          organizer: "Tech Community Leaders",
-          date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-          location: "Salt Lake City Tech Hub",
-          address: "123 Tech Street, Salt Lake City, UT",
-          category: community.category,
-          price: "0",
-          communityId: communityId,
-          isGlobal: false
-        },
-        {
-          title: "Community Networking Meetup",
-          description: "Connect with like-minded individuals in our community. Perfect for building relationships and sharing ideas.",
-          organizer: "Community Organizers",
-          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-          location: "Community Center Downtown",
-          address: "456 Community Ave, Salt Lake City, UT",
-          category: community.category,
-          price: "15",
-          communityId: communityId,
-          isGlobal: false
-        },
-        {
-          title: "Weekend Social Gathering",
-          description: "Casual weekend gathering for community members to relax, socialize, and enjoy good company.",
-          organizer: "Social Committee",
-          date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-          location: "Local Park Pavilion",
-          address: "789 Park Lane, Salt Lake City, UT",
-          category: community.category,
-          price: "0",
-          communityId: communityId,
-          isGlobal: false
-        }
-      ];
-
-      let createdEvents = 0;
-      for (const eventData of sampleEvents) {
-        try {
-          await storage.createEvent(eventData);
-          createdEvents++;
-        } catch (error) {
-          console.error(`Error creating sample event:`, error);
-        }
-      }
-
-      res.json({ 
-        message: `Successfully created ${createdEvents} sample events for community ${community.name}`,
-        eventsCreated: createdEvents
-      });
-    } catch (error) {
-      console.error('Error populating sample events:', error);
-      res.status(500).json({ message: "Failed to populate sample events" });
-    }
-  });
 
   // Create community event
-  app.post("/api/communities/:id/events", async (req, res) => {
+  app.post("/api/communities/:id/events", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { title, description, date, location, price, organizerId } = req.body;
@@ -1226,7 +1102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Event attendance tracking
-  app.post("/api/events/:id/mark-attended", async (req, res) => {
+  app.post("/api/events/:id/mark-attended", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { userId } = req.body;
@@ -1354,7 +1230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/messages", async (req, res) => {
+  app.post("/api/communities/:id/messages", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { content, senderId } = req.body;
@@ -1525,7 +1401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update user activity (heartbeat)
-  app.post("/api/users/:id/activity", async (req, res) => {
+  app.post("/api/users/:id/activity", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       await storage.updateUserActivity(userId);
@@ -1537,7 +1413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Set user online/offline status
-  app.post("/api/users/:id/status", async (req, res) => {
+  app.post("/api/users/:id/status", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const { isOnline } = req.body;
@@ -1550,7 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Onboarding completion route for new quiz structure
-  app.post("/api/onboarding/complete", async (req, res) => {
+  app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
     try {
       const {
         hopingToFind,
@@ -1681,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/posts", async (req, res) => {
+  app.post("/api/communities/:id/posts", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { authorId, content } = req.body;
@@ -1726,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts/:id/kudos", async (req, res) => {
+  app.post("/api/posts/:id/kudos", requireAuth, async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
       const { giverId } = req.body;
@@ -1755,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users/:id/checkin", async (req, res) => {
+  app.post("/api/users/:id/checkin", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const streak = await storage.checkin(userId);

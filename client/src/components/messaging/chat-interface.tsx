@@ -233,7 +233,7 @@ export function ChatInterface({
   loading
 }: ChatInterfaceProps) {
   return (
-    <div className="flex h-[calc(100dvh-80px)] md:h-screen">
+    <div className="flex h-[calc(100dvh-80px)] md:h-[100dvh]">
       <ConversationList
         conversations={conversations}
         onSelectConversation={onSelectConversation}

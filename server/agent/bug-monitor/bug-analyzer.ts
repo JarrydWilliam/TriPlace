@@ -3,7 +3,8 @@
  * Returns a structured diagnosis for each error including whether it's safe to auto-patch.
  */
 
-import OpenAI from "openai";
+// import OpenAI from "openai";
+const OpenAI: any = null;
 import { CapturedError } from "./error-log-monitor.js";
 
 export interface BugDiagnosis {

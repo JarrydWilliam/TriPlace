@@ -339,9 +339,10 @@ export default function CommunityPage() {
       await queryClient.cancelQueries({ queryKey: ["/api/communities", communityId, "messages"] });
       
       const previousMessages = queryClient.getQueryData(["/api/communities", communityId, "messages"]);
+      const optimisticId = Date.now();
       
       const optimisticMessage = {
-        id: Date.now(),
+        id: optimisticId,
         content,
         senderId: user?.id,
         receiverId: user?.id,
@@ -360,13 +361,13 @@ export default function CommunityPage() {
         old ? [optimisticMessage, ...old] : [optimisticMessage]
       );
       
-      return { previousMessages };
+      return { previousMessages, optimisticId };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables, context) => {
       setNewMessage("");
       queryClient.setQueryData(["/api/communities", communityId, "messages"], (old: any) => {
         if (!old) return [data];
-        const filtered = old.filter((msg: any) => msg.id !== Date.now() && msg.id < 1000000000000);
+        const filtered = old.filter((msg: any) => msg.id !== context?.optimisticId);
         return [data, ...filtered];
       });
       queryClient.invalidateQueries({ queryKey: ["/api/communities", communityId, "messages"] });
@@ -402,7 +403,7 @@ export default function CommunityPage() {
 
   if (authLoading || (communityLoading && !community)) {
     return (
-      <div className="min-h-screen flex items-center justify-center glass-panel">
+      <div className="min-h-[100dvh] flex items-center justify-center glass-panel">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -410,7 +411,7 @@ export default function CommunityPage() {
 
   if (!community || communityError) {
     return (
-      <div className="min-h-screen flex items-center justify-center glass-panel">
+      <div className="min-h-[100dvh] flex items-center justify-center glass-panel">
         <div className="text-center px-6">
           <h1 className="text-2xl font-bold text-white mb-2">Community Not Found</h1>
           <p className="text-white/60 mb-6">This community couldn't be loaded right now.</p>
@@ -428,7 +429,7 @@ export default function CommunityPage() {
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
         {/* Main Glass Layout */}
-        <div className="glass-panel border-0 bg-transparent min-h-screen">
+        <div className="glass-panel border-0 bg-transparent min-h-[100dvh]">
           <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
 
           {/* Minimal Navigation */}

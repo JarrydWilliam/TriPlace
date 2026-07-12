@@ -11,16 +11,12 @@
  * the matching logic, scoring, and interest inference are all done by
  * SameVibe's own agents, not by outsourcing the decision to a third-party.
  */
-import OpenAI from "openai";
 import { Community, User } from "../shared/schema.js";
 import { interestLearner, type LearnedInterest } from "./agent/interest-learner.js";
 import { matchOptimizer } from "./agent/match-optimizer.js";
 
-// Initialize OpenAI as LLM backbone (model layer only — reasoning done by SameVibe agents)
-let llm: OpenAI | null = null;
-if (process.env.OPENAI_API_KEY) {
-  llm = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
+// OpenAI integration removed for App Store readiness.
+const llm: any = null;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

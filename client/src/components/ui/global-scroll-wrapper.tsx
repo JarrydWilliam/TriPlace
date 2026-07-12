@@ -17,7 +17,7 @@ export function GlobalScrollWrapper({ children }: GlobalScrollWrapperProps) {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen w-full relative">
+    <div className="flex flex-col min-h-[100dvh] w-full relative">
       {children}
     </div>
   );

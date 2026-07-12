@@ -66,7 +66,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-gray-900 flex items-center justify-center px-4">
       {/* Background gradients */}
       <div className="absolute inset-0" style={{
         background: "radial-gradient(ellipse at center, hsl(260,60%,14%) 0%, hsl(260,40%,8%) 50%, hsl(220,50%,6%) 100%)"
@@ -156,6 +156,8 @@ export default function Login() {
                   <Input
                     id="email"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     placeholder="you@example.com"
                     className="pl-9 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
                     value={email}

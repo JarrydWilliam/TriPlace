@@ -14,7 +14,7 @@ import { Trash2, ShieldCheck, ArrowLeft, Smartphone } from "lucide-react";
  */
 export default function DeleteAccount() {
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-[100dvh] bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-8">
 
         <div>

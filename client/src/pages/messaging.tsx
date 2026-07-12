@@ -330,13 +330,22 @@ export default function Messaging() {
                     />
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                    <MessageCircle className="w-14 h-14 text-muted-foreground/20 mb-4" />
-                    <p className="text-sm font-medium text-muted-foreground">No conversations yet</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center py-16 text-center px-6"
+                  >
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
+                        <MessageCircle className="w-8 h-8 text-white/80" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
+                    <p className="text-sm text-white/60 mb-6 max-w-[250px]">
                       Connect with people in your communities to start messaging.
                     </p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </motion.div>

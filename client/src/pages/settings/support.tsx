@@ -61,6 +61,15 @@ export default function SupportSettings() {
   ];
 
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
+  const [rating, setRating] = useState<number>(0);
+
+  const handleRate = (star: number) => {
+    setRating(star);
+    toast({
+      title: "Thanks for your feedback!",
+      description: `You rated SameVibe ${star} star${star > 1 ? 's' : ''}.`,
+    });
+  };
 
   return (
     <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
@@ -210,41 +219,49 @@ export default function SupportSettings() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <FileText className="mr-3 h-5 w-5 text-blue-500" />
-                  <div className="text-left">
-                    <p className="font-medium">Community Guidelines</p>
-                    <p className="text-sm text-gray-500">Learn about our community standards</p>
-                  </div>
-                  <ExternalLink className="ml-auto h-4 w-4" />
-                </Button>
+                <Link href="/terms">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <FileText className="mr-3 h-5 w-5 text-blue-500" />
+                    <div className="text-left">
+                      <p className="font-medium">Community Guidelines</p>
+                      <p className="text-sm text-gray-500">Learn about our community standards</p>
+                    </div>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Button>
+                </Link>
                 
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <Shield className="mr-3 h-5 w-5 text-green-500" />
-                  <div className="text-left">
-                    <p className="font-medium">Privacy Policy</p>
-                    <p className="text-sm text-gray-500">How we protect your data</p>
-                  </div>
-                  <ExternalLink className="ml-auto h-4 w-4" />
-                </Button>
+                <Link href="/privacy">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <Shield className="mr-3 h-5 w-5 text-green-500" />
+                    <div className="text-left">
+                      <p className="font-medium">Privacy Policy</p>
+                      <p className="text-sm text-gray-500">How we protect your data</p>
+                    </div>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Button>
+                </Link>
                 
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <FileText className="mr-3 h-5 w-5 text-purple-500" />
-                  <div className="text-left">
-                    <p className="font-medium">Terms of Service</p>
-                    <p className="text-sm text-gray-500">Your rights and responsibilities</p>
-                  </div>
-                  <ExternalLink className="ml-auto h-4 w-4" />
-                </Button>
+                <Link href="/terms">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <FileText className="mr-3 h-5 w-5 text-purple-500" />
+                    <div className="text-left">
+                      <p className="font-medium">Terms of Service</p>
+                      <p className="text-sm text-gray-500">Your rights and responsibilities</p>
+                    </div>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Button>
+                </Link>
                 
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <Star className="mr-3 h-5 w-5 text-yellow-500" />
-                  <div className="text-left">
-                    <p className="font-medium">What's New</p>
-                    <p className="text-sm text-gray-500">Latest features and updates</p>
-                  </div>
-                  <ExternalLink className="ml-auto h-4 w-4" />
-                </Button>
+                <a href="mailto:support@samevibe.app?subject=What's%20New">
+                  <Button variant="outline" className="w-full justify-start h-auto p-4">
+                    <Star className="mr-3 h-5 w-5 text-yellow-500" />
+                    <div className="text-left">
+                      <p className="font-medium">What's New</p>
+                      <p className="text-sm text-gray-500">Latest features and updates</p>
+                    </div>
+                    <ExternalLink className="ml-auto h-4 w-4" />
+                  </Button>
+                </a>
               </div>
             </CardContent>
           </Card>
@@ -282,7 +299,11 @@ export default function SupportSettings() {
                   </div>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="w-5 h-5 text-yellow-400 fill-current cursor-pointer hover:scale-110 transition-transform" />
+                      <Star 
+                        key={star} 
+                        onClick={() => handleRate(star)}
+                        className={`w-5 h-5 cursor-pointer hover:scale-110 transition-transform ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                      />
                     ))}
                   </div>
                 </div>
@@ -307,15 +328,19 @@ export default function SupportSettings() {
               </div>
               
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start text-red-600">
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Report Safety Issue
-                </Button>
+                <a href="mailto:safety@samevibe.app?subject=Report%20Safety%20Issue">
+                  <Button variant="outline" className="w-full justify-start text-red-600 mb-2">
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Report Safety Issue
+                  </Button>
+                </a>
                 
-                <Button variant="outline" className="w-full justify-start">
-                  <Shield className="mr-2 h-4 w-4" />
-                  Safety Resources
-                </Button>
+                <Link href="/terms">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Safety Resources
+                  </Button>
+                </Link>
               </div>
               
               <div className="text-center pt-2">

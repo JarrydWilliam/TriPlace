@@ -40,7 +40,7 @@ export function LoadingSpinner({ size = "md", className, text, useLogo = false }
 
 export function PageLoadingSpinner({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <LoadingSpinner size="xl" text={text} useLogo={true} />
     </div>
   );

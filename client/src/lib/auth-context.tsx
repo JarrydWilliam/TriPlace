@@ -55,8 +55,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           try {
             // Try to get existing user
+            const token = await firebaseUser.getIdToken();
             const response = await fetch(getApiUrl(`/api/users/firebase/${firebaseUser.uid}`), {
-              signal: controller.signal
+              signal: controller.signal,
+              headers: { "Authorization": `Bearer ${token}` }
             });
             
             if (response.ok) {
@@ -117,7 +119,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     if (firebaseUser) {
       try {
-        const response = await fetch(getApiUrl(`/api/users/firebase/${firebaseUser.uid}`));
+        const token = await firebaseUser.getIdToken();
+        const response = await fetch(getApiUrl(`/api/users/firebase/${firebaseUser.uid}`), {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);

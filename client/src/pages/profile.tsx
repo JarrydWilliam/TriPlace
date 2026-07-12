@@ -158,7 +158,7 @@ export default function Profile() {
 
   if (authLoading || (!isOwnProfile && profileUserLoading)) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
@@ -176,10 +176,10 @@ export default function Profile() {
 
   return (
     <div className="mobile-page-container">
-      <div className="flex min-h-screen">
+      <div className="flex min-h-[100dvh]">
         <Sidebar />
         
-        <main className="flex-1 pb-20 md:pb-0">
+        <main className="flex-1 pb-24 md:pb-8">
           <TopBar />
           
           <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">

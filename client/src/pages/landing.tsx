@@ -19,7 +19,7 @@ export default function Landing() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-pulse">
             <Logo size="xl" />
@@ -41,7 +41,7 @@ export default function Landing() {
       <div className="absolute bottom-[-10%] left-[-15%] w-[55vw] h-[55vw] rounded-full opacity-15 blur-[100px]" style={{ background: "hsl(300,60%,45%)" }} />
       <div className="absolute top-[40%] left-[30%] w-[30vw] h-[30vw] rounded-full opacity-10 blur-[60px]" style={{ background: "hsl(240,80%,70%)" }} />
       
-      <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex flex-col">
+      <div className="relative z-10 container mx-auto px-4 py-8 min-h-[100dvh] flex flex-col">
         {/* Header */}
         <header className="flex justify-between items-center mb-16">
           <div className="flex items-center space-x-3">

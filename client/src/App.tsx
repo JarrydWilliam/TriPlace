@@ -41,6 +41,23 @@ import { PostEventFlow } from "@/components/safety/post-event-flow";
 import { ThemeProvider } from "@/lib/theme-context";
 import AdminMetrics from "@/pages/admin/metrics";
 
+function AdminRoute() {
+  const { user } = useAuth();
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  if (!user || !adminEmail || user.email !== adminEmail) {
+    return (
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
+        <div className="text-center space-y-3">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-xl font-bold">Access Denied</h1>
+          <p className="text-white/50 text-sm">This page is restricted to administrators.</p>
+        </div>
+      </div>
+    );
+  }
+  return <AdminMetrics />;
+}
+
 function Router() {
   const { user, firebaseUser, loading } = useAuth();
   const [location, setLocation] = useLocation();
@@ -155,24 +172,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/delete-account" component={DeleteAccount} />
-      <Route path="/admin/metrics" component={() => {
-        // Admin gate — only allow access if the user's email matches the configured admin email.
-        // Without a proper backend session, this is the minimal client-side guard.
-        const { user } = useAuth();
-        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-        if (!user || !adminEmail || user.email !== adminEmail) {
-          return (
-            <div className="min-h-screen bg-[#080612] flex items-center justify-center text-white">
-              <div className="text-center space-y-3">
-                <div className="text-4xl">🔒</div>
-                <h1 className="text-xl font-bold">Access Denied</h1>
-                <p className="text-white/50 text-sm">This page is restricted to administrators.</p>
-              </div>
-            </div>
-          );
-        }
-        return <AdminMetrics />;
-      }} />
+      <Route path="/admin/metrics" component={AdminRoute} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
       </Switch>
@@ -185,7 +185,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         {/* Force Dark Mode for High-End Feel */}
-        <div className="dark min-h-screen bg-background text-foreground antialiased selection:bg-primary/30">
+        <div className="dark min-h-[100dvh] bg-background text-foreground antialiased selection:bg-primary/30">
           <AuthProvider>
             <ThemeProvider>
               <TooltipProvider>

@@ -8,6 +8,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 import { Capacitor } from "@capacitor/core";
+import { auth } from "./firebase";
 
 export const getApiUrl = (url: string) => {
   const isNative = Capacitor.isNativePlatform();
@@ -22,9 +23,15 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(getApiUrl(url), {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
   });
 
@@ -38,7 +45,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(getApiUrl(queryKey[0] as string));
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(getApiUrl(queryKey[0] as string), { headers });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

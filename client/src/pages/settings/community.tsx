@@ -11,8 +11,8 @@ import { ArrowLeft, Users, Target, Edit, MapPin, Eye, Heart, MessageSquare, Cale
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { getApiUrl } from "@/lib/queryClient";
-
+import { getApiUrl, apiRequest } from "@/lib/queryClient";
+import { useEffect } from "react";
 export default function CommunitySettings() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,6 +25,12 @@ export default function CommunitySettings() {
     maxDistance: [50],
     minMatchPercentage: [70]
   });
+
+  useEffect(() => {
+    if (user?.discoverySettings) {
+      setDiscoverySettings(prev => ({ ...prev, ...(user.discoverySettings as any) }));
+    }
+  }, [user?.discoverySettings]);
 
   // Load real community data from the API
   const { data: communities, isLoading: communitiesLoading } = useQuery({
@@ -46,8 +52,14 @@ export default function CommunitySettings() {
     toast({ title: `Left ${communityName}`, description: "You can rejoin anytime from the discover page." });
   };
 
-  const handleSaveSettings = () => {
-    toast({ title: "Community preferences saved!" });
+  const handleSaveSettings = async () => {
+    if (!user) return;
+    try {
+      await apiRequest('PATCH', `/api/users/${user.id}`, { discoverySettings });
+      toast({ title: "Community preferences saved!" });
+    } catch (err) {
+      toast({ title: "Failed to save preferences", variant: "destructive" });
+    }
   };
 
   return (

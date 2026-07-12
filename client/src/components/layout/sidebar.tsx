@@ -54,7 +54,7 @@ export function Sidebar() {
   if (!user) return null;
 
   return (
-    <aside className="hidden md:flex md:w-64 glass-panel flex-col border-r-0 h-screen sticky top-0">
+    <aside className="hidden md:flex md:w-64 glass-panel flex-col border-r-0 h-[100dvh] sticky top-0">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
           <Logo size="md" />

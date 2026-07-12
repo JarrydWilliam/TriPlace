@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, AlertCircle } from "lucide-react";
+import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, AlertCircle, Compass } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Community, Event } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
@@ -233,7 +233,7 @@ export default function Discover() {
     .slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-[100dvh] bg-background pb-24">
       {/* ─ Header ─ */}
       <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50 px-4 pt-safe">
         <div className="max-w-lg mx-auto py-4">

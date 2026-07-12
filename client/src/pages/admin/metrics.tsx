@@ -32,7 +32,8 @@ export default function AdminMetrics() {
     queryKey: ["/api/admin/metrics"],
     queryFn: async () => {
       const adminKey = import.meta.env.VITE_ADMIN_SECRET_KEY ?? "";
-      const res = await fetch("/api/admin/metrics", {
+      const { getApiUrl } = await import("@/lib/queryClient");
+      const res = await fetch(getApiUrl("/api/admin/metrics"), {
         headers: { "x-admin-key": adminKey },
       });
       if (!res.ok) throw new Error("Unauthorized");
@@ -42,7 +43,7 @@ export default function AdminMetrics() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-primary/20" />
           <p className="text-muted-foreground animate-pulse">Loading engine metrics...</p>
@@ -63,7 +64,7 @@ export default function AdminMetrics() {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-safe">
+    <div className="min-h-[100dvh] bg-background pb-20 pt-safe">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Header */}
