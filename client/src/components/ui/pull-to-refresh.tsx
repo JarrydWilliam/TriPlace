@@ -24,7 +24,7 @@ export function PullToRefresh({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleTouchStart = (e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0) {
+    if (window.scrollY <= 0) {
       setStartY(e.touches[0].clientY);
       setIsPulling(true);
     }
@@ -36,7 +36,7 @@ export function PullToRefresh({
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY;
 
-    if (diff > 0 && containerRef.current?.scrollTop === 0) {
+    if (diff > 0 && window.scrollY <= 0) {
       e.preventDefault();
       const offset = Math.min(diff / resistance, pullDistance);
       setPullOffset(offset);
@@ -115,7 +115,7 @@ export function PullToRefresh({
   return (
     <div 
       ref={containerRef}
-      className={`mobile-page-container overflow-y-auto overscroll-contain ${className}`}
+      className={`relative w-full ${className}`}
       style={{
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
