@@ -4,7 +4,7 @@
 `CONDITIONALLY READY — TestFlight reviewer validation remains`
 
 ## Release Candidate Details
-- **Git Commit:** 74eb29ba1ef0c636c1ce0b682d7e9e3982acb0d3
+- **Git Commit:** 038b869091a54bbb68ce1fc25ae412d7c4625fe5
 - **App Version (Marketing):** 1.0.3
 - **Build Number:** Controlled by Codemagic pipeline `$BUILD_NUMBER` (auto-incrementing integer)
 - **Production Deployment:** Release Candidate build ready for TestFlight pipeline
