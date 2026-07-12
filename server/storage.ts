@@ -154,19 +154,21 @@ export class DatabaseStorage implements IStorage {
       // First generate dynamic communities using SameVibe's matching agents
       const dynamicCommunities = await this.generateDynamicCommunities(userId);
       
-      // Emergency fallback: if dynamic generation produced nothing, show all active communities
-      // so a new user is never shown a completely empty state
-      const communityPool = dynamicCommunities.length > 0
-        ? dynamicCommunities
-        : await this.getAllCommunities();
       // Get user's current communities to exclude them from recommendations
       const userCommunities = await this.getUserCommunities(userId);
       const userCommunityIds = userCommunities.map(c => c.id);
       
       // Filter out communities user has already joined
-      const availableCommunities = communityPool.filter(community =>
+      let availableCommunities = dynamicCommunities.filter(community =>
         !userCommunityIds.includes(community.id)
       );
+
+      // Emergency fallback: if dynamic generation produced nothing unjoined, show all active communities
+      // so a user is never shown a completely empty state unless they truly joined everything
+      if (availableCommunities.length === 0) {
+        const allComms = await this.getAllCommunities();
+        availableCommunities = allComms.filter(c => !userCommunityIds.includes(c.id));
+      }
       
       // Use SameVibe AI matching for location-aware communities
       try {

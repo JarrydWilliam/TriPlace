@@ -842,7 +842,7 @@ export default function Dashboard() {
                       </div>
                     ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <div className="flex flex-col items-center justify-center py-3 px-4 text-center">
                       <div className="relative mb-4">
                         <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
                         <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-xl backdrop-blur-md">

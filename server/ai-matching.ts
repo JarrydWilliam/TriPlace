@@ -167,7 +167,7 @@ export class SameVibeMatchingEngine {
 
     // Fallback for cold-start / new users with no 70%+ matches
     if (qualified.length === 0 && scored.length > 0) {
-      qualified = scored.sort((a, b) => b.score - a.score).slice(0, 3);
+      qualified = scored.sort((a, b) => b.score - a.score).slice(0, 5);
     }
 
     // ── Step 3: Build recommendation objects with natural-language reasoning ──
