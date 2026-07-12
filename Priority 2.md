@@ -1,58 +1,72 @@
-# SameVibe Production Readiness Audit & Remediation Plan (Post-App Review Roadmap)
+# SameVibe Priority 2 — Post-App Review Roadmap
 
-## AI Dependency Cleanup
-- **Remove Dead Agent Code:** The `openai` dependency has been completely stripped from the production build and `package.json`. However, there are three internal standalone tools in `server/agent/` (`bug-analyzer.ts`, `store-metadata-generator.ts`, `feature-idea-generator.ts`) that were bypassed but not deleted to avoid expanding the scope of the App Store Review sprint. These files (and potentially the entire `server/agent/` folder) should be deleted.
+This document contains all findings, technical debt, legacy code, and non-blocking issues discovered during the Production Readiness Audit. None of these items block Apple App Store approval, so they are deferred until **after** the final release.
 
-The initial parallel audit encountered rate-limit interruptions, but successfully identified 45 frontend-related issues across Critical, High, Medium, and Low severities. 
+---
 
-I will systematically fix the identified issues and complete the remaining audits for the backend and components to deliver a true production-ready app.
+## 1. Security Enhancements & Hardening
+*Recommended Order: Immediate (Post-Launch)*
 
-## Proposed Changes
+- **Remove Exposed Secrets from Git History:** The `.env` file containing live OpenAI, Groq, and Neon DB credentials was historically tracked. Keys must be rotated in external dashboards and git history scrubbed.
+- **Implement Real Authentication (Firebase Admin):** 
+  - Add `firebase-admin` to the backend.
+  - Create `requireAuth` middleware using `verifyIdToken()` on the `Authorization` header.
+  - Apply `requireAuth` to all state-mutating endpoints (`POST /api/users`, `POST /api/messages`, etc.).
+- **Secure Admin Routes:** Update `requireAdmin` middleware to check against a real `process.env.ADMIN_SECRET_KEY`.
+- **Remove Test/Fake Routes in Prod:** Delete `GET /api/communities/seed` and `POST /api/communities/:id/populate-sample-events`.
+- **Secure Agent Endpoints:** Auth-gate all AI/agent endpoints (`/api/agent/run/:userId`, etc.).
+- **Fix RevenueCat Verification:** Ensure `POST /api/checkout/verify-revenuecat` securely validates the receipt via server-side Apple/Google API checks.
+- **CORS Restrictions:** Restrict CORS in `vercel.json` from `*` to the production domain.
 
-### Phase 1: Critical Bug Remediation
-These bugs break the app or result in data loss.
-- **[MODIFY] [admin/metrics.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/admin/metrics.tsx):** Change raw `/api/admin/metrics` fetch to use `getApiUrl()` to fix native Capacitor networking.
-- **[MODIFY] [discover.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/discover.tsx):** Add missing `Compass` import (already completed).
-- **[MODIFY] [settings/*.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/settings):** Update `notifications.tsx`, `profile.tsx`, and `community.tsx` to actually persist changes to the backend via `apiRequest` instead of just showing a success toast.
-- **[MODIFY] [profile-setup.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/profile-setup.tsx):** Remove base64 data URI storage for avatars. Implement proper file upload or disable it safely with a coming soon message to prevent DB bloat/crashes.
-- **[MODIFY] [community.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/community.tsx):** Fix optimistic message deduplication logic and remove redundant `!response.ok` check.
+## 2. Database Cleanup & Schema Optimization
+*Recommended Order: High*
 
-### Phase 2: High/Medium UX & Navigation Remediation
-These bugs severely impact user experience and navigation flow.
-- **[MODIFY] [dashboard.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/dashboard.tsx):** Add debounce to `autoPopulateEvents` to prevent spamming the backend. Remove or implement the empty "Local Kudos Leaders" and "Send messages" challenge widgets.
-- **[MODIFY] [communities.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/communities.tsx):** Remove the hardcoded 3-city location lookup table and use the actual location name. Fix category icon string matching logic.
-- **[MODIFY] [App.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/App.tsx):** Move the admin check from purely client-side routing to properly rely on an API verification, or hide the route completely from non-admins.
-- **[MODIFY] [settings/support.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/settings/support.tsx):** Fix dead links for Guidelines, Privacy, Terms, Safety, and Star Rating widgets.
-- **[MODIFY] [profile.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/profile.tsx) & [community.tsx](file:///Users/jarrydburke/Desktop/TriPlace/client/src/pages/community.tsx):** Ensure proper bottom padding (`pb-24`) and restore `<MobileNav />` where users get stranded.
+- **Drop Unused Schema Tables/Columns:**
+  - Drop the unused `feature_flags` table entirely.
+  - Drop unused monetization columns in `users` (`subscription_status`, `subscription_start`, `subscription_end`).
+  - Drop unused columns in `events` (`is_premium`, `is_promoted`, `is_online_fallback`, `affiliate_url`).
+- **Clean Up One-Off Migration Scripts:** Delete lingering manual patch scripts (`manual-migrate.js`, `patch-db.ts`, `patch-db-2.ts`) from the root directory as they have already been executed.
+- **Fix Avatar Storage (Base64):** Stop saving avatar photos as raw Base64 strings in the database. Migrate to proper cloud storage (e.g., Firebase Storage) to prevent DB bloat.
 
-### Phase 3: Backend Security & API Hardening
-The subagent audit discovered multiple critical security vulnerabilities that must be fixed before launch. I will:
-1. **Remove Exposed Secrets:** Delete `.env` containing live OpenAI, Groq, and Neon DB credentials from git history (recommend rotating keys immediately), and remove Vercel OIDC tokens from `.env.production` / `.env.local`.
-2. **Implement Real Authentication:** 
-   - Add Firebase Admin SDK (`firebase-admin`) to the backend.
-   - Create a `requireAuth` middleware that calls `verifyIdToken()` on the `Authorization: Bearer <token>` header.
-   - Apply `requireAuth` to all state-mutating endpoints (`POST /api/users`, `PATCH /api/users/:id`, `DELETE /api/users/:id`, `POST /api/messages`, `POST /api/events/:id/register`, etc.).
-3. **Secure Admin Routes:** Update the `requireAdmin` middleware to check against a real `process.env.ADMIN_SECRET_KEY` instead of accepting any truthy header, and apply it strictly to telemetry, scraping, and admin functions.
-4. **Remove Test/Fake Routes in Prod:** Delete `GET /api/communities/seed` and `POST /api/communities/:id/populate-sample-events` which currently allow unauthenticated callers to inject fake data with hardcoded passwords into the production database.
-5. **Secure Agent Endpoints:** Auth-gate all AI/agent endpoints (`/api/agent/run/:userId`, `/api/agents/features/run`, `/api/auto-populate-events`, etc.) to prevent unauthenticated token burning.
-6. **Fix RevenueCat Verification:** Ensure `POST /api/checkout/verify-revenuecat` securely validates the receipt instead of trusting client-provided payment tiers.
-7. **Fix CORS & Geocoding:** Restrict CORS in `vercel.json` from `*` to the production domain, and add an `AbortController` timeout to the BigDataCloud geocoding fetch in `ai-matching.ts`.
+## 3. Legacy Code & Architecture Cleanup
+*Recommended Order: Medium*
 
-## User Review Required
+- **Delete Root `storage.ts` Duplicate:** An abandoned, broken duplicate of `server/storage.ts` exists in the root directory. Delete it to prevent developer confusion.
+- **Delete Unused Shadcn UI Primitives:** Delete unused components in `client/src/components/ui/` (accordion, aspect-ratio, drawer, etc.).
+- **Delete Duplicate PWA Checker:** `client/src/components/ui/pwa-update-checker.tsx` conflicts with `app-updater.tsx` and should be removed.
+- **Delete Legacy UI/Layout Components:** Remove the unused `client/src/components/ui/sidebar.tsx` (superseded by `layout/sidebar.tsx`) and `location-prompt.tsx`.
+- **Clean Up Disconnected Services:** Delete `client/src/lib/deployment-checks.ts` and the unused feature flags config in `production-config.ts`.
+- **Remove Server Watchdog:** Delete `scripts/server-watchdog.js` (PM2 or Vercel handles this now).
+- **Remove Redundant Endpoints:** Remove `/api/communities/:id/dynamic-members` (duplicated by `dynamic-info`) and `/api/events/feed` (aliased to `upcoming`).
+- **Remove Scraper Admin Endpoints:** Delete `/api/web-scrape/*` and `/api/admin/refresh-all-communities` from `server/routes.ts` unless the separate admin dashboard is being actively maintained.
 
-> [!CAUTION]  
-> **LIVE SECRETS EXPOSED:** Your `.env` file containing live OpenAI, Groq, and Neon DB credentials has been tracked in git. You **must rotate these keys immediately** in your external dashboards (OpenAI, Neon). I will delete the `.env` file from git tracking, but the historical commits are compromised.
+## 4. AI Cleanup
+*Recommended Order: Medium*
 
-> [!WARNING]  
-> **Firebase Admin Setup:** To implement real backend authentication (preventing any user from deleting or modifying other users' accounts), I need to add `firebase-admin`. You will need to generate a Firebase Admin Service Account JSON key from your Firebase Console and set it as `FIREBASE_SERVICE_ACCOUNT` in your Vercel environment variables. **Do you approve adding Firebase Admin middleware?**
+- **Remove Legacy OpenAI Matching Logic:** OpenAI dependencies were removed from `package.json`, but `server/ai-matching.ts` still contains the branching logic hardcoded to `const llm: any = null`. Safely extract the fallback engine and delete the unreachable AI code.
+- **Remove Dead Agent Generators:** Delete the standalone tools in `server/agent/` (`bug-analyzer.ts`, `store-metadata-generator.ts`, `feature-idea-generator.ts`) if they are no longer in use.
 
-> [!IMPORTANT]  
-> **Avatar Uploads:** The app currently attempts to save avatar photos as raw Base64 strings directly into the database. This will quickly exceed database limits and slow down the app. Do you want me to (A) implement a proper cloud storage upload (e.g., Firebase Storage) or (B) temporarily disable custom photo uploads and use initials/default avatars for launch?
+## 5. Technical Debt & Performance
+*Recommended Order: Low*
 
-> [!IMPORTANT]  
-> **Fake AI Data:** The `reveal.tsx` page hardcodes a "94% Match" score. Do you want this wired up to a real calculation based on user interests, or temporarily hidden until the AI matching system is fully built?
+- **Replace Raw Fetches for Capacitor:** Change raw fetch calls like `/api/admin/metrics` to use `getApiUrl()` to prevent native iOS WebView networking failures.
+- **Optimize Geocoding:** Add an `AbortController` timeout to the BigDataCloud fetch in `ai-matching.ts`.
+- **Dashboard Debounce:** Add debounce to `autoPopulateEvents` on the dashboard to prevent backend spamming.
 
-## Verification Plan
+## 6. UX Improvements & Feature Completion
+*Recommended Order: Low*
 
-### Manual Verification
-After all phases are complete, I will generate a final **SameVibe Production Readiness Score (0-100)** broken down by UX, Performance, App Store Readiness, Security, and Accessibility, listing all remaining launch blockers (if any).
+- **Fix Hardcoded City Locations:** Remove the hardcoded 3-city location lookup table in `communities.tsx` and dynamically render the user's actual location name.
+- **Fix Category Icon Matching:** Improve category string matching in `communities.tsx`.
+- **Persist Settings:** Ensure `notifications.tsx`, `profile.tsx`, and `community.tsx` settings actually persist to the backend rather than just showing a success toast.
+- **Fix Dead Links in Settings:** Fix broken Guidelines, Privacy, Terms, Safety, and Star Rating links in `settings/support.tsx`.
+- **Fix Bottom Padding / Navigation:** Ensure proper bottom padding (`pb-24`) on `profile.tsx` and `community.tsx` and restore `<MobileNav />` where users get stranded.
+- **Fix Duplicate Messages:** Fix optimistic message deduplication logic in `community.tsx`.
+- **Clean Up Dashboard Widgets:** Remove or fully implement the empty "Local Kudos Leaders" and "Send messages" challenge widgets.
+- **Update Reveal Score:** The `reveal.tsx` page hardcodes a "94% Match" score. Wire this up to a real calculation based on user interests.
+
+## 7. Future Roadmap
+
+- Standardize end-to-end testing (replace the disjointed `verify-*.ts` scripts with Cypress/Playwright).
+- Expand push notifications and real-time event updates.
+- Re-introduce AI personalization using a lightweight, latency-optimized provider if needed for scaling.

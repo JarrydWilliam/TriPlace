@@ -16,8 +16,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, AlertCircle, Compass } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, Compass } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Link } from "wouter";
 import { Community, Event } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -180,12 +190,12 @@ export default function Discover() {
     },
   });
 
-  // User's current communities (to mark joined state)
-  const { data: myCommunities = [] } = useQuery<Community[]>({
-    queryKey: ["/api/users", user?.id, "communities"],
+  // User's current communities (to mark joined state and check limits)
+  const { data: myCommunities = [] } = useQuery<any[]>({
+    queryKey: ["/api/users", user?.id, "active-communities"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(getApiUrl(`/api/users/${user?.id}/communities`));
+      const res = await fetch(getApiUrl(`/api/users/${user?.id}/active-communities`));
       return res.ok ? res.json() : [];
     },
   });
@@ -202,13 +212,22 @@ export default function Discover() {
 
   const [showPaywall, setShowPaywall] = useState(false);
 
+  const [rotationConfirm, setRotationConfirm] = useState<{newComm: any, oldComm: any} | null>(null);
+
   const joinMutation = useMutation({
     mutationFn: async (communityId: number) => {
       return apiRequest("POST", `/api/communities/${communityId}/join`, { userId: user?.id });
     },
-    onSuccess: (_, communityId) => {
-      qc.invalidateQueries({ queryKey: ["/api/users", user?.id, "communities"] });
-      toast({ title: "You're in! 🎉", description: "Community joined." });
+    onSuccess: async (res, communityId) => {
+      const data = await res.json();
+      qc.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
+      qc.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id, selectedCategory] });
+      
+      if (data.dropped) {
+        toast({ title: "Community Rotated", description: `Joined new community! ${data.dropped.name} was moved to discoveries to make room.` });
+      } else {
+        toast({ title: "You're in! 🎉", description: "Community joined." });
+      }
     },
     onError: (error: Error) => {
       if (error.message.includes("requiresUpgrade")) {
@@ -218,6 +237,27 @@ export default function Discover() {
       }
     },
   });
+
+  const handleJoinClick = (community: any) => {
+    if (myCommunities && myCommunities.length >= 5) {
+      const leastActive = myCommunities.reduce((least: any, current: any) => {
+        const currScore = current.activityScore || 0;
+        const leastScore = least.activityScore || 0;
+        if (currScore < leastScore) return current;
+        if (currScore > leastScore) return least;
+        
+        const currTime = current.lastActivityAt ? new Date(current.lastActivityAt).getTime() : 0;
+        const leastTime = least.lastActivityAt ? new Date(least.lastActivityAt).getTime() : 0;
+        if (currTime < leastTime) return current;
+        if (currTime > leastTime) return least;
+        
+        return current.id < least.id ? current : least;
+      });
+      setRotationConfirm({ newComm: community, oldComm: leastActive });
+    } else {
+      // Handled in onJoin directly for now, but we can mutate here if not handled there
+    }
+  };
 
   const joinedIds = new Set((myCommunities).map((c: Community) => c.id));
 
@@ -300,7 +340,12 @@ export default function Discover() {
                       onJoin={async (id) => {
                         import('@/lib/haptics').then(({ hapticHeavy }) => hapticHeavy()).catch(console.error);
                         setJoiningId(id);
-                        await joinMutation.mutateAsync(id);
+                        handleJoinClick(community);
+                        // We do not await handleJoinClick because it might just open a modal.
+                        // The modal action will use the mutation directly.
+                        if (myCommunities.length < 5) {
+                           await joinMutation.mutateAsync(id).catch(console.error);
+                        }
                         setJoiningId(null);
                       }}
                     />

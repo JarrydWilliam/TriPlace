@@ -24,6 +24,16 @@ import { Link, useLocation as useRouterLocation } from "wouter";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { InlineErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
@@ -49,6 +59,29 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [rotationConfirm, setRotationConfirm] = useState<{newComm: any, oldComm: any} | null>(null);
+
+  const handleJoinClick = (community: any) => {
+    if (userActiveCommunities && userActiveCommunities.length >= 5) {
+      // Find the least active community
+      const leastActive = userActiveCommunities.reduce((least: any, current: any) => {
+        const currScore = current.activityScore || 0;
+        const leastScore = least.activityScore || 0;
+        if (currScore < leastScore) return current;
+        if (currScore > leastScore) return least;
+        
+        const currTime = current.lastActivityAt ? new Date(current.lastActivityAt).getTime() : 0;
+        const leastTime = least.lastActivityAt ? new Date(least.lastActivityAt).getTime() : 0;
+        if (currTime < leastTime) return current;
+        if (currTime > leastTime) return least;
+        
+        return current.id < least.id ? current : least;
+      });
+      setRotationConfirm({ newComm: community, oldComm: leastActive });
+    } else {
+      joinCommunityMutation.mutate(community.id);
+    }
+  };
 
   // Listen for community updates from service worker
   useEffect(() => {
@@ -792,7 +825,7 @@ export default function Dashboard() {
                             size="sm" 
                             variant="outline" 
                             className="flex-1 min-h-[44px]"
-                            onClick={() => joinCommunityMutation.mutate(community.id)}
+                            onClick={() => handleJoinClick(community)}
                             disabled={joinCommunityMutation.isPending}
                           >
                             {joinCommunityMutation.isPending ? "Joining..." : "Join Community"}
@@ -834,7 +867,32 @@ export default function Dashboard() {
 
           </div>
         </div>
-        </div>
+      </div>
+      
+      {/* Rotation Confirmation Dialog */}
+      <AlertDialog open={!!rotationConfirm} onOpenChange={(open) => !open && setRotationConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Community Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              You already have five communities. Adding <strong>{rotationConfirm?.newComm?.name}</strong> will replace <strong>{rotationConfirm?.oldComm?.name}</strong>, which you have interacted with the least.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (rotationConfirm) {
+                  joinCommunityMutation.mutate(rotationConfirm.newComm.id);
+                }
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Replace and Join
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       </PullToRefresh>
 

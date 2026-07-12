@@ -110,28 +110,9 @@ const serverPromise = (async () => {
   // Dynamic imports: only load agent modules when actually needed.
   // This prevents OpenAI/cron from being instantiated at cold-start on Vercel.
   if (!isVercel) {
-    console.log("[Vercel Startup] Not on Vercel, starting agents and listening on port...");
-    const [
-      { startAgentScheduler },
-      { startAgentSupervisor },
-      { startFeatureGrowthScheduler },
-      { startBugMonitorScheduler },
-      { startDeploymentScheduler },
-    ] = await Promise.all([
-      import("./agent/agent-runner.js"),
-      import("./agent/agent-supervisor.js"),
-      import("./agent/feature-growth/feature-orchestrator.js"),
-      import("./agent/bug-monitor/bug-orchestrator.js"),
-      import("./agent/deployment/deployment-orchestrator.js"),
-    ]);
+    console.log("[Vercel Startup] Not on Vercel, listening on port...");
 
-    startAgentScheduler();
-    startAgentSupervisor();
-    startBugMonitorScheduler(app);
-    startFeatureGrowthScheduler(app);
-    startDeploymentScheduler(app);
-
-    const port = parseInt(process.env.PORT || "5001", 10);
+    const port = parseInt(process.env.PORT || "5000", 10);
     server.listen(
       { port, host: "0.0.0.0" },
       () => { log(`serving on port ${port}`); }

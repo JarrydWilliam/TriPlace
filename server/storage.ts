@@ -221,7 +221,7 @@ export class DatabaseStorage implements IStorage {
       const compatibleCommunities = await this.findCompatibleExistingCommunities(user);
       
       if (compatibleCommunities.length >= 5) {
-        return compatibleCommunities.slice(0, 5);
+        return compatibleCommunities;
       }
 
       // Get all users to analyze collective patterns for remaining slots
@@ -484,9 +484,17 @@ export class DatabaseStorage implements IStorage {
     let dropped: Community | undefined;
     
     if (userCommunities.length >= 5) {
-      const leastActive = userCommunities.reduce((least, current) => 
-        current.activityScore < least.activityScore ? current : least
-      );
+      const leastActive = userCommunities.reduce((least, current) => {
+        if (current.activityScore < least.activityScore) return current;
+        if (current.activityScore > least.activityScore) return least;
+        // Tie-breaker: oldest lastActivityAt
+        const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
+        const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
+        if (currentTime < leastTime) return current;
+        if (currentTime > leastTime) return least;
+        // Final tie-breaker: community ID to ensure absolute stability
+        return current.id < least.id ? current : least;
+      });
       
       await this.leaveCommunity(userId, leastActive.id);
       dropped = leastActive;

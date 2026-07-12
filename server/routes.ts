@@ -366,32 +366,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/communities/:id/join", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { userId } = req.body;
+      const authUserId = (req as any).user?.id;
       
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      if (!authUserId) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(authUserId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Monetization: Free 3 communities + extra purchased communities
-      const activeCommunities = await storage.getUserActiveCommunities(userId);
-      const userTier = user.paymentTier ?? 0;
-      let limit = 3 + userTier;
-
-      if (activeCommunities.length >= limit) {
-        return res.status(403).json({ 
-          requiresUpgrade: true,
-          message: `You have reached your limit of ${limit} communities. Please upgrade to unlock more.` 
-        });
-      }
-
-      const joined = await storage.joinCommunity(userId, communityId);
+      // Implement 5-community rotation limit
+      const result = await storage.joinCommunityWithRotation(authUserId, communityId);
       
-      res.status(201).json({ joined });
+      res.status(201).json(result);
     } catch (error) {
       console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });
