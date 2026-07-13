@@ -9,7 +9,7 @@ export default function Privacy() {
         <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
       </div>
 
-      <div className="relative z-10 max-w-2xl mx-auto px-4 py-12 pb-20">
+      <div className="relative z-10 max-w-2xl mx-auto px-4 py-12 pb-28">
         {/* Header */}
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
