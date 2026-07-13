@@ -46,7 +46,7 @@ export function useLiveMembers(communityIds: number[]) {
   useEffect(() => {
     if (user && isConnected) {
       // Send heartbeat to update user activity
-      fetch(`/api/users/${user.id}/activity`, { method: 'POST' });
+      fetch(getApiUrl(`/api/users/${user.id}/activity`), { method: 'POST' });
     }
   }, [user, isConnected]);
 

@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Capacitor } from "@capacitor/core";
+import { getApiUrl } from "@/lib/queryClient";
 
 interface PaywallModalProps {
   open: boolean;
@@ -49,7 +50,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
       await Purchases.purchasePackage({ aPackage: packageToBuy });
 
       // After successful native purchase, verify with our backend to grant the capacity
-      const res = await fetch("/api/checkout/verify-revenuecat", {
+      const res = await fetch(getApiUrl("/api/checkout/verify-revenuecat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user?.id, tier }),

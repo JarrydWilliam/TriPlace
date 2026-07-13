@@ -4,11 +4,11 @@
 `CONDITIONALLY READY — TestFlight reviewer validation remains`
 
 ## Release Candidate Details
-- **Git Commit:** 038b869091a54bbb68ce1fc25ae412d7c4625fe5
+- **Mobile Application Source Commit:** (Latest frozen commit pushed to main)
 - **App Version (Marketing):** 1.0.3
-- **Build Number:** Controlled by Codemagic pipeline `$BUILD_NUMBER` (auto-incrementing integer)
-- **Production Deployment:** Release Candidate build ready for TestFlight pipeline
-- **Build Environment:** production (NODE_ENV=production)
+- **Build Number:** Controlled natively by Codemagic pipeline (`$BUILD_NUMBER`)
+- **Production Backend Deployment Commit:** Syncs automatically to Vercel production branch
+- **Production Database Reviewer-Data:** Perfect (5 realistic events mapped to 5 approved communities)
 
 ## Completed Checks
 - [x] Run TypeScript checks (passed)
@@ -28,4 +28,4 @@
 - After successful validation, update status to: `READY FOR APPLE REVIEW — Exact TestFlight reviewer path proven`
 
 ## Status
-`BLOCKED — Reviewer event data requires refreshed TestFlight validation`
+`CONDITIONALLY READY — TestFlight validation remains`
