@@ -3,26 +3,26 @@ import { Shield, ArrowLeft } from "lucide-react";
 
 export default function Privacy() {
   return (
-    <div className="min-h-[100dvh] bg-[#080612] text-white">
+    <div className="min-h-[100dvh] bg-background text-foreground">
       {/* Subtle background glow */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-10 blur-[100px]" style={{ background: "hsl(270,70%,55%)" }} />
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-12 pb-20">
         {/* Header */}
         <div className="mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
             <ArrowLeft className="w-4 h-4" />
             Back
           </Link>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[#ff6b35]/20 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-[#ff6b35]" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold">Privacy Policy</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight">Privacy Policy</h1>
           </div>
-          <p className="text-white/40 text-sm ml-[52px]">Last updated: July 2026</p>
+          <p className="text-muted-foreground text-sm ml-[52px]">Last updated: July 2026</p>
         </div>
 
         {/* Content */}
@@ -64,15 +64,15 @@ export default function Privacy() {
           ].map((section, i) => (
             <div
               key={i}
-              className="bg-white/5 border border-white/8 rounded-2xl p-6"
+              className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-md"
             >
-              <h2 className="text-base font-semibold text-white mb-3">{section.title}</h2>
+              <h2 className="text-base font-semibold text-foreground mb-3">{section.title}</h2>
               {section.body ? (
-                <p className="text-sm text-white/60 leading-relaxed">{section.body}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{section.body}</p>
               ) : (
-                <p className="text-sm text-white/60 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   For privacy questions, contact us at{" "}
-                  <a href={`mailto:${section.contact}`} className="text-[#ff6b35] hover:underline">
+                  <a href={`mailto:${section.contact}`} className="text-primary hover:underline">
                     {section.contact}
                   </a>
                 </p>
@@ -83,7 +83,7 @@ export default function Privacy() {
 
         {/* Footer branding */}
         <div className="mt-12 text-center">
-          <p className="text-white/20 text-xs">© 2026 SameVibe. All rights reserved.</p>
+          <p className="text-muted-foreground/30 text-xs">© 2026 SameVibe. All rights reserved.</p>
         </div>
       </div>
     </div>

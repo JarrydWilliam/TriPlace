@@ -277,7 +277,12 @@ export default function Messaging() {
   const showThread = !!selectedUser;
 
   return (
-    <div className="mobile-page-container bg-background pb-20">
+    <div className="mobile-page-container bg-background pb-20 relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
       <div className="max-w-3xl mx-auto h-[calc(100dvh-80px)] flex">
         {/* ── Conversation List ── */}
@@ -338,11 +343,11 @@ export default function Messaging() {
                     <div className="relative mb-6">
                       <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
-                        <MessageCircle className="w-8 h-8 text-white/80" />
+                        <MessageCircle className="w-8 h-8 text-foreground/80" />
                       </div>
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
-                    <p className="text-sm text-white/60 mb-6 max-w-[250px]">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No conversations yet</h3>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-[250px]">
                       Connect with people in your communities to start messaging.
                     </p>
                   </motion.div>

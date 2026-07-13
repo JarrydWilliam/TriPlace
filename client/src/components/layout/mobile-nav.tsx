@@ -65,16 +65,15 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+      className="fixed z-50 md:hidden rounded-full shadow-2xl bg-background/80 backdrop-blur-xl border border-white/10"
       style={{
-        background: "rgba(8, 6, 18, 0.92)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(255,255,255,0.08)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        bottom: "calc(env(safe-area-inset-bottom, 12px) + 16px)",
+        left: "1rem",
+        right: "1rem",
+        boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)",
       }}
     >
-      <div className="flex justify-around items-center py-2">
+      <div className="flex justify-around items-center py-1.5 px-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -91,19 +90,19 @@ export function MobileNav() {
                   />
                 )}
 
-                <div className="relative z-10">
+                <div className="relative z-10 flex flex-col items-center">
                   <Icon
                     className={`h-5 w-5 mb-1 transition-all duration-300 ${
                       item.active
-                        ? "text-[#ff6b35] scale-110"
-                        : "text-white/40"
+                        ? "text-primary scale-110"
+                        : "text-muted-foreground"
                     }`}
                   />
                 </div>
 
                 <span
                   className={`text-[10px] font-medium z-10 transition-colors duration-300 ${
-                    item.active ? "text-[#ff6b35]" : "text-white/30"
+                    item.active ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   {item.label}

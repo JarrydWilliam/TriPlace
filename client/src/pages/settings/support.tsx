@@ -72,8 +72,14 @@ export default function SupportSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="mobile-page-container bg-background relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center space-x-4 mb-6">
           <Link href="/dashboard">
@@ -81,12 +87,12 @@ export default function SupportSettings() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Help & Support</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Help & Support</h1>
         </div>
 
         <div className="space-y-6">
           {/* Quick Actions */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <HelpCircle className="w-5 h-5" />
@@ -100,7 +106,7 @@ export default function SupportSettings() {
                     <Book className="w-6 h-6 text-blue-500" />
                     <div className="text-center">
                       <p className="font-medium">Email Support</p>
-                      <p className="text-sm text-gray-500">support@samevibe.app</p>
+                      <p className="text-sm text-muted-foreground">support@samevibe.app</p>
                     </div>
                   </Button>
                 </a>
@@ -109,27 +115,27 @@ export default function SupportSettings() {
           </Card>
 
           {/* FAQ */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle>Frequently Asked Questions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {faqItems.map((category) => (
                 <div key={category.category} className="space-y-2">
-                  <h3 className="font-medium text-lg text-gray-900 dark:text-white">{category.category}</h3>
+                  <h3 className="font-medium text-lg text-foreground">{category.category}</h3>
                   <div className="space-y-2">
                     {category.questions.map((item, index) => {
                       const faqId = `${category.category}-${index}`;
                       return (
-                        <div key={index} className="border rounded-lg">
+                        <div key={index} className="border border-white/10 rounded-lg bg-background/50">
                           <button
-                            className="w-full p-4 text-left font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="w-full p-4 text-left font-medium hover:bg-white/5 transition-colors"
                             onClick={() => setExpandedFAQ(expandedFAQ === faqId ? null : faqId)}
                           >
                             {item.q}
                           </button>
                           {expandedFAQ === faqId && (
-                            <div className="px-4 pb-4 text-gray-600 dark:text-gray-400">
+                            <div className="px-4 pb-4 text-muted-foreground/90">
                               {item.a}
                             </div>
                           )}
@@ -143,7 +149,7 @@ export default function SupportSettings() {
           </Card>
 
           {/* Contact Form */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Send className="w-5 h-5" />
@@ -158,7 +164,7 @@ export default function SupportSettings() {
                     id="type"
                     value={feedbackForm.type}
                     onChange={(e) => setFeedbackForm({...feedbackForm, type: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-white/20 bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="feedback">General Feedback</option>
                     <option value="bug">Bug Report</option>
@@ -210,7 +216,7 @@ export default function SupportSettings() {
           </Card>
 
           {/* Resources */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Book className="w-5 h-5" />
@@ -224,7 +230,7 @@ export default function SupportSettings() {
                     <FileText className="mr-3 h-5 w-5 text-blue-500" />
                     <div className="text-left">
                       <p className="font-medium">Community Guidelines</p>
-                      <p className="text-sm text-gray-500">Learn about our community standards</p>
+                      <p className="text-sm text-muted-foreground">Learn about our community standards</p>
                     </div>
                     <ExternalLink className="ml-auto h-4 w-4" />
                   </Button>
@@ -235,7 +241,7 @@ export default function SupportSettings() {
                     <Shield className="mr-3 h-5 w-5 text-green-500" />
                     <div className="text-left">
                       <p className="font-medium">Privacy Policy</p>
-                      <p className="text-sm text-gray-500">How we protect your data</p>
+                      <p className="text-sm text-muted-foreground">How we protect your data</p>
                     </div>
                     <ExternalLink className="ml-auto h-4 w-4" />
                   </Button>
@@ -246,7 +252,7 @@ export default function SupportSettings() {
                     <FileText className="mr-3 h-5 w-5 text-purple-500" />
                     <div className="text-left">
                       <p className="font-medium">Terms of Service</p>
-                      <p className="text-sm text-gray-500">Your rights and responsibilities</p>
+                      <p className="text-sm text-muted-foreground">Your rights and responsibilities</p>
                     </div>
                     <ExternalLink className="ml-auto h-4 w-4" />
                   </Button>
@@ -257,7 +263,7 @@ export default function SupportSettings() {
                     <Star className="mr-3 h-5 w-5 text-yellow-500" />
                     <div className="text-left">
                       <p className="font-medium">What's New</p>
-                      <p className="text-sm text-gray-500">Latest features and updates</p>
+                      <p className="text-sm text-muted-foreground">Latest features and updates</p>
                     </div>
                     <ExternalLink className="ml-auto h-4 w-4" />
                   </Button>
@@ -267,7 +273,7 @@ export default function SupportSettings() {
           </Card>
 
           {/* App Information */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle>App Information</CardTitle>
             </CardHeader>
@@ -275,34 +281,34 @@ export default function SupportSettings() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <p className="font-medium">Version</p>
-                  <p className="text-sm text-gray-500">1.0.0</p>
+                  <p className="text-sm text-muted-foreground">1.0.0</p>
                 </div>
                 <div>
                   <p className="font-medium">Platform</p>
-                  <p className="text-sm text-gray-500">Web</p>
+                  <p className="text-sm text-muted-foreground">Web</p>
                 </div>
                 <div>
                   <p className="font-medium">Last Updated</p>
-                  <p className="text-sm text-gray-500">July 2026</p>
+                  <p className="text-sm text-muted-foreground">July 2026</p>
                 </div>
                 <div>
                   <p className="font-medium">Build</p>
-                  <p className="text-sm text-gray-500">{import.meta.env.VITE_APP_VERSION || "1.0.0"}</p>
+                  <p className="text-sm text-muted-foreground">{import.meta.env.VITE_APP_VERSION || "1.0.0"}</p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Rate SameVibe</p>
-                    <p className="text-sm text-gray-500">Help us improve with your feedback</p>
+                    <p className="text-sm text-muted-foreground">Help us improve with your feedback</p>
                   </div>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star 
                         key={star} 
                         onClick={() => handleRate(star)}
-                        className={`w-5 h-5 cursor-pointer hover:scale-110 transition-transform ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                        className={`w-5 h-5 cursor-pointer hover:scale-110 transition-transform ${star <= rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground/30'}`} 
                       />
                     ))}
                   </div>
@@ -312,7 +318,7 @@ export default function SupportSettings() {
           </Card>
 
           {/* Emergency Contact */}
-          <Card className="border-red-200 dark:border-red-800">
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-red-500/20 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-red-600">
                 <AlertTriangle className="w-5 h-5" />
@@ -320,8 +326,8 @@ export default function SupportSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm text-red-700 dark:text-red-300">
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-sm text-red-500/90">
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
                   If you're experiencing harassment or feel unsafe, please contact us immediately.
                 </p>
@@ -344,7 +350,7 @@ export default function SupportSettings() {
               </div>
               
               <div className="text-center pt-2">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Emergency Support: <a href="mailto:safety@samevibe.app" className="text-blue-600 hover:underline">safety@samevibe.app</a>
                 </p>
               </div>

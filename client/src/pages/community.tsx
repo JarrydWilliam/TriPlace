@@ -6,6 +6,8 @@ import { AggregatedEventsTab } from "@/components/community/aggregated-events-ta
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SharedCommunityCard } from "@/components/ui/community-card";
+import { CATEGORIES, categoryColor, defaultCategoryColors, CATEGORY_EMOJIS } from "@/lib/constants";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -432,17 +434,59 @@ export default function CommunityPage() {
         <div className="glass-panel border-0 bg-transparent min-h-[100dvh]">
           <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
 
-          {/* Minimal Navigation */}
-          <div className="flex items-center justify-between mb-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="p-2 text-white hover:bg-white/10">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </Link>
+          {/* Premium Edge-to-Edge Hero */}
+          <div className="relative -mx-4 -mt-safe mb-8 pb-4">
+            {/* Dynamic Category Background */}
+            <div 
+              className={`absolute inset-0 bg-gradient-to-br ${
+                categoryColor[community.category]?.gradient || defaultCategoryColors.gradient
+              } opacity-40`}
+            >
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px]" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+            </div>
+
+            {/* Navigation Overlay */}
+            <div className="relative px-4 pt-safe mt-2 flex items-center justify-between mb-8">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              {community.category && (
+                <Badge className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm ${
+                  categoryColor[community.category]?.badge || defaultCategoryColors.badge
+                }`}>
+                  {CATEGORY_EMOJIS[community.category]} {CATEGORIES.find(c => c.id === community.category)?.label || community.category}
+                </Badge>
+              )}
+            </div>
+
+            {/* Hero Content (Floating overlapping card effect) */}
+            <div className="relative px-4 pt-4">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <h1 className="text-3xl font-extrabold tracking-tight text-foreground shadow-sm">
+                  {community.name}
+                </h1>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  {community.description}
+                </p>
+                <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80 pt-2">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{community.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{community.memberCount || 0} members</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Glass Card Container for Content */}
-          <Card className="glass-card border-white/5 overflow-hidden">
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl overflow-hidden rounded-3xl mb-8">
             <div className="w-full">
               {/* Glass Tabs */}
               <div className="grid w-full grid-cols-4 rounded-none bg-white/5 border-b border-white/10">

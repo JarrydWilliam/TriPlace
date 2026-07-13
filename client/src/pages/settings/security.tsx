@@ -15,8 +15,14 @@ export default function SecuritySettings() {
   const isAppleUser = providers.some((p) => p === "apple.com");
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="mobile-page-container bg-background relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center space-x-4 mb-6">
           <Link href="/dashboard">
@@ -24,12 +30,12 @@ export default function SecuritySettings() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Security Settings</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Security Settings</h1>
         </div>
 
         <div className="space-y-6">
           {/* Sign-In Method */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="w-5 h-5" />
@@ -37,18 +43,18 @@ export default function SecuritySettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="p-4 bg-muted/30 border border-white/10 rounded-lg space-y-2">
+                <p className="text-sm text-muted-foreground">
                   Your account is secured via:
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {isGoogleUser && (
-                    <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                    <Badge className="bg-primary/20 text-primary border-primary/30">
                       Google Sign-In
                     </Badge>
                   )}
                   {isAppleUser && (
-                    <Badge className="bg-gray-900 text-white border-gray-700">
+                    <Badge className="bg-primary/20 text-primary border-primary/30">
                       Apple Sign-In
                     </Badge>
                   )}
@@ -56,7 +62,7 @@ export default function SecuritySettings() {
                     <Badge variant="secondary">Email / Password</Badge>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground/80 mt-2">
                   Authentication is handled securely by{" "}
                   {isGoogleUser ? "Google" : isAppleUser ? "Apple" : "Firebase"}.
                   SameVibe does not store your password.
@@ -68,7 +74,7 @@ export default function SecuritySettings() {
 
 
           {/* Security Alerts / Report */}
-          <Card className="border-yellow-200 dark:border-yellow-800">
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-yellow-500/20 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-yellow-600">
                 <AlertTriangle className="w-5 h-5" />
@@ -76,8 +82,8 @@ export default function SecuritySettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm text-yellow-500/90">
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
                   If you notice any suspicious activity on your account, please contact
                   us immediately so we can help secure it.

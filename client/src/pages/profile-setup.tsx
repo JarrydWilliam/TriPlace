@@ -87,26 +87,32 @@ export default function ProfileSetup() {
 
   if (updateProfileMutation.isPending) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <ComponentLoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 safe-area-top safe-area-bottom">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 safe-area-top safe-area-bottom relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-8 space-y-3">
           <Logo size="lg" className="mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground shadow-sm">
             Complete Your Profile
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Help others recognize you in communities
           </p>
         </div>
 
-        <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700">
+        <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl rounded-3xl">
           <CardHeader>
             <CardTitle className="text-center text-lg">Profile Information</CardTitle>
           </CardHeader>
@@ -116,15 +122,15 @@ export default function ProfileSetup() {
               {/* Avatar Upload */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
-                  <Avatar className="w-24 h-24 border-4 border-white dark:border-gray-700 shadow-lg">
+                  <Avatar className="w-24 h-24 border border-white/10 shadow-lg bg-muted">
                     <AvatarImage src={avatarPreview} alt="Profile picture" />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-2xl">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl font-semibold">
                       {formData.name ? formData.name.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
                     </AvatarFallback>
                   </Avatar>
                   <label 
                     htmlFor="avatar-upload"
-                    className="absolute bottom-0 right-0 p-2 bg-primary rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
+                    className="absolute bottom-0 right-0 p-2 bg-primary rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-transform hover:scale-105"
                   >
                     <Camera className="w-4 h-4 text-white" />
                   </label>
@@ -136,14 +142,14 @@ export default function ProfileSetup() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                <p className="text-sm text-muted-foreground/80 text-center">
                   Tap the camera icon to add a profile picture
                 </p>
               </div>
 
               {/* Name Input */}
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
+                <Label htmlFor="name" className="text-sm font-medium text-foreground">
                   Full Name *
                 </Label>
                 <Input
@@ -152,14 +158,14 @@ export default function ProfileSetup() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter your full name"
-                  className="min-h-[44px]"
+                  className="bg-muted/30 border-white/10 text-foreground min-h-[44px] focus:border-primary"
                   required
                 />
               </div>
 
               {/* Bio Input */}
               <div className="space-y-2">
-                <Label htmlFor="bio" className="text-sm font-medium">
+                <Label htmlFor="bio" className="text-sm font-medium text-foreground">
                   Bio (Optional)
                 </Label>
                 <Textarea
@@ -167,19 +173,19 @@ export default function ProfileSetup() {
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   placeholder="Tell others a bit about yourself..."
-                  className="min-h-[80px] resize-none"
+                  className="bg-muted/30 border-white/10 text-foreground min-h-[80px] resize-none focus:border-primary"
                   maxLength={150}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-right">
+                <p className="text-xs text-muted-foreground/80 text-right">
                   {formData.bio.length}/150 characters
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2">
                 <Button 
                   type="submit" 
-                  className="w-full min-h-[44px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="w-full min-h-[44px] bg-primary hover:bg-primary/90 text-white shadow-lg transition-all hover:scale-[1.02]"
                   disabled={!formData.name.trim()}
                 >
                   Continue to Quiz
@@ -190,7 +196,7 @@ export default function ProfileSetup() {
                   type="button"
                   variant="ghost" 
                   onClick={handleSkip}
-                  className="w-full min-h-[44px] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="w-full min-h-[44px] text-muted-foreground hover:text-foreground hover:bg-white/5"
                 >
                   Skip for now
                 </Button>

@@ -290,12 +290,11 @@ export default function Onboarding() {
   const currentQ = QUIZ_SECTIONS[step];
 
   return (
-    <div className="min-h-[100dvh] w-full text-white overflow-y-auto relative flex flex-col items-center justify-center" style={{ background: "radial-gradient(ellipse at 40% 0%, hsl(260,60%,20%) 0%, hsl(250,50%,8%) 50%, hsl(240,40%,4%) 100%)" }}>
-      {/* Rich background bokeh */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-25 blur-[80px]" style={{ background: "hsl(270,70%,55%)" }} />
-        <div className="absolute bottom-[-10%] right-[-15%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px]" style={{ background: "hsl(290,60%,45%)" }} />
-        <div className="absolute top-[50%] left-[60%] w-[30vw] h-[30vw] rounded-full opacity-15 blur-[60px]" style={{ background: "hsl(240,80%,65%)" }} />
+    <div className="min-h-[100dvh] w-full bg-background text-foreground overflow-y-auto relative flex flex-col items-center justify-center">
+      {/* Rich background bokeh matching Login */}
+      <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
       </div>
 
       {/* Header */}
@@ -308,9 +307,9 @@ export default function Onboarding() {
               key={i}
               className={`rounded-full transition-all duration-300 ${
                 i === step
-                  ? "w-5 h-2 bg-white"
+                  ? "w-5 h-2 bg-primary"
                   : i < step
-                  ? "w-2 h-2 bg-white/60"
+                  ? "w-2 h-2 bg-primary/60"
                   : "w-2 h-2 bg-white/20"
               }`}
             />
@@ -334,16 +333,16 @@ export default function Onboarding() {
               animate={{ opacity: 1 }} 
               className="inline-flex items-center justify-center p-2 bg-white/5 rounded-full mb-4 border border-white/10"
             >
-              <Sparkles className="w-4 h-4 text-purple-400 mr-2" />
-              <span className="text-xs font-medium text-purple-200 uppercase tracking-widest">
+              <Sparkles className="w-4 h-4 text-primary mr-2" />
+              <span className="text-xs font-medium text-primary uppercase tracking-widest">
                 Step {step + 1} of {QUIZ_SECTIONS.length}
               </span>
             </motion.div>
             
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground shadow-sm">
               {currentQ.question}
             </h1>
-            <p className="text-lg text-white/50">{currentQ.subtitle}</p>
+            <p className="text-lg text-muted-foreground">{currentQ.subtitle}</p>
           </div>
 
           {/* Options Grid */}
@@ -438,8 +437,8 @@ export default function Onboarding() {
                       flex items-center gap-4 min-h-[64px]
                       ${
                         isSelected
-                          ? "bg-white/12 border-2 border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-[1.01]"
-                          : "bg-white/5 border border-white/8 hover:bg-white/9 hover:border-white/15"
+                          ? "bg-card/40 backdrop-blur-xl border border-primary shadow-sm scale-[1.01]"
+                          : "bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10"
                       }
                     `}
                   >
@@ -459,7 +458,7 @@ export default function Onboarding() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className={`font-semibold text-base leading-tight ${
-                          isSelected ? "text-white" : "text-white/85"
+                          isSelected ? "text-foreground" : "text-foreground/80"
                         }`}>
                           {option.label}
                         </span>
@@ -467,13 +466,13 @@ export default function Onboarding() {
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
                           isSelected
                             ? "border-primary bg-primary"
-                            : "border-white/20"
+                            : "border-white/10"
                         }`}>
                           {isSelected && <Check className="w-3 h-3 text-white" />}
                         </div>
                       </div>
                       {option.description && (
-                        <p className="text-xs text-white/45 mt-0.5 leading-snug">
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
                           {option.description}
                         </p>
                       )}
@@ -490,7 +489,7 @@ export default function Onboarding() {
               variant="ghost"
               onClick={handleBack}
               disabled={step === 0}
-              className={`text-white/40 hover:text-white hover:bg-white/5 ${step === 0 ? 'opacity-0' : 'opacity-100'}`}
+              className={`text-muted-foreground hover:text-foreground hover:bg-white/5 ${step === 0 ? 'opacity-0' : 'opacity-100'}`}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back

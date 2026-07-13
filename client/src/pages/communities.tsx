@@ -98,7 +98,7 @@ export default function CommunitiesPage() {
   return (
     <div className="mobile-page-container">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-[100dvh] pb-24">
+        <div className="bg-background min-h-[100dvh] pb-28">
           <div className="container-responsive responsive-padding safe-area-top max-w-6xl mx-auto">
         
         {/* Header with Back Button and Theme Toggle */}

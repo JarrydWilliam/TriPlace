@@ -99,13 +99,10 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-[100dvh] relative overflow-hidden bg-background flex items-center justify-center px-4 py-8">
       {/* Background gradients */}
-      <div className="absolute inset-0" style={{
-        background: "radial-gradient(ellipse at center, hsl(260,60%,14%) 0%, hsl(260,40%,8%) 50%, hsl(220,50%,6%) 100%)"
-      }} />
-      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-15 blur-[90px]" style={{ background: "hsl(270,70%,55%)" }} />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-15 blur-[90px]" style={{ background: "hsl(300,60%,45%)" }} />
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-primary/30" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-accent/30" />
 
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -114,21 +111,21 @@ export default function Signup() {
         className="w-full max-w-sm space-y-6 relative z-10 group"
       >
         {/* Logo and header */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center mb-3 hover:scale-105 transition-transform duration-300">
+        <div className="text-center space-y-3">
+          <div className="flex justify-center mb-6 hover:scale-105 transition-transform duration-300">
             <Logo size="lg" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-white/95 to-white/70 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Join SameVibe
           </h1>
-          <p className="text-sm text-white/50">Discover your people, locally.</p>
+          <p className="text-sm text-muted-foreground">Discover your people, locally.</p>
         </div>
 
         {/* Dynamic Card Container */}
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-secondary rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-700"></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition duration-700"></div>
           
-          <div className="relative bg-[#0d0a1a]/85 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl p-6 space-y-4">
+          <div className="relative bg-card/40 backdrop-blur-3xl border border-white/5 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-5">
             
             {/* Apple Sign-Up (Primary) */}
             <Button
@@ -159,23 +156,23 @@ export default function Signup() {
             </Button>
 
             <div className="flex items-center gap-3 py-1">
-              <div className="flex-1 h-[1px] bg-white/10" />
-              <span className="text-white/30 text-xs font-semibold uppercase tracking-widest">or</span>
-              <div className="flex-1 h-[1px] bg-white/10" />
+              <div className="flex-1 h-[1px] bg-border/50" />
+              <span className="text-muted-foreground text-xs font-semibold uppercase tracking-widest">or</span>
+              <div className="flex-1 h-[1px] bg-border/50" />
             </div>
 
             {/* Email Signup Form */}
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-white/60 text-xs font-medium tracking-wide">FULL NAME</Label>
+                <Label htmlFor="name" className="text-muted-foreground text-xs font-medium tracking-wide">FULL NAME</Label>
                 <div className="relative group/input">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
                   <Input
                     id="name"
                     type="text"
                     autoComplete="name"
                     placeholder="Your name"
-                    className="pl-9 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -183,16 +180,16 @@ export default function Signup() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-white/60 text-xs font-medium tracking-wide">EMAIL ADDRESS</Label>
+                <Label htmlFor="email" className="text-muted-foreground text-xs font-medium tracking-wide">EMAIL ADDRESS</Label>
                 <div className="relative group/input">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
                   <Input
                     id="email"
                     type="email"
                     inputMode="email"
                     autoComplete="email"
                     placeholder="you@example.com"
-                    className="pl-9 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -200,14 +197,14 @@ export default function Signup() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-white/60 text-xs font-medium tracking-wide">PASSWORD</Label>
+                <Label htmlFor="password" className="text-muted-foreground text-xs font-medium tracking-wide">PASSWORD</Label>
                 <div className="relative group/input">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-primary transition-colors" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="Min. 6 characters"
-                    className="pl-9 bg-black/40 border-white/10 text-white placeholder:text-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -235,17 +232,17 @@ export default function Signup() {
         </div>
 
         {/* Footer links */}
-        <p className="text-center text-sm text-white/40">
+        <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:text-primary/80 font-semibold underline-offset-4 hover:underline transition-all duration-200">
             Sign in
           </Link>
         </p>
-        <p className="text-center text-xs text-white/30">
+        <p className="text-center text-xs text-muted-foreground/70">
           By creating an account you agree to our{" "}
-          <Link href="/terms" className="hover:underline hover:text-white/60">Terms</Link>
+          <Link href="/terms" className="hover:underline hover:text-foreground">Terms</Link>
           {" "}and{" "}
-          <Link href="/privacy" className="hover:underline hover:text-white/60">Privacy Policy</Link>.
+          <Link href="/privacy" className="hover:underline hover:text-foreground">Privacy Policy</Link>.
         </p>
       </motion.div>
     </div>

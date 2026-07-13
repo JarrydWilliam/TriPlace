@@ -63,8 +63,14 @@ export default function CommunitySettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="mobile-page-container bg-background relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center space-x-4 mb-6">
           <Link href="/dashboard">
@@ -72,12 +78,12 @@ export default function CommunitySettings() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Community Preferences</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Community Preferences</h1>
         </div>
 
         <div className="space-y-6">
           {/* My Communities — live from API */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Users className="w-5 h-5" />
@@ -103,7 +109,7 @@ export default function CommunitySettings() {
               ) : (
                 <div className="space-y-3">
                   {communities.map((community: any) => (
-                  <div key={community.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div key={community.id} className="flex items-center justify-between p-4 border border-white/10 rounded-lg hover:bg-white/5">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-bold text-lg">
@@ -119,7 +125,7 @@ export default function CommunitySettings() {
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                           <span>Joined {community.joinDate}</span>
                           <span>•</span>
                           <span>{community.memberCount} members</span>
@@ -162,7 +168,7 @@ export default function CommunitySettings() {
               </div>
               )}
               
-              <div className="pt-4 border-t">
+              <div className="pt-4 border-t border-white/10">
                 <Button variant="outline" className="w-full">
                   <Users className="mr-2 h-4 w-4" />
                   Discover More Communities
@@ -172,7 +178,7 @@ export default function CommunitySettings() {
           </Card>
 
           {/* Matching Preferences */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Target className="w-5 h-5" />
@@ -194,7 +200,7 @@ export default function CommunitySettings() {
                     onValueChange={(val) => setDiscoverySettings({...discoverySettings, maxDistance: val})}
                     className="w-full my-4"
                   />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
                     <span>10 miles</span>
                     <span>200 miles</span>
                   </div>
@@ -213,7 +219,7 @@ export default function CommunitySettings() {
                     onValueChange={(val) => setDiscoverySettings({...discoverySettings, minMatchPercentage: val})}
                     className="w-full my-4"
                   />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <div className="flex justify-between text-sm text-muted-foreground mt-1">
                     <span>50%</span>
                     <span>95%</span>
                   </div>
@@ -225,7 +231,7 @@ export default function CommunitySettings() {
                   <Target className="mr-3 h-5 w-5 text-blue-500" />
                   <div className="text-left">
                     <p className="font-medium">Retake Matching Quiz</p>
-                    <p className="text-sm text-gray-500">Update your preferences and interests</p>
+                    <p className="text-sm text-muted-foreground">Update your preferences and interests</p>
                   </div>
                 </Button>
                 
@@ -233,7 +239,7 @@ export default function CommunitySettings() {
                   <Edit className="mr-3 h-5 w-5 text-green-500" />
                   <div className="text-left">
                     <p className="font-medium">Edit Quiz Answers</p>
-                    <p className="text-sm text-gray-500">Modify specific responses</p>
+                    <p className="text-sm text-muted-foreground">Modify specific responses</p>
                   </div>
                 </Button>
               </div>
@@ -241,7 +247,7 @@ export default function CommunitySettings() {
           </Card>
 
           {/* Discovery Settings */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Eye className="w-5 h-5" />
@@ -255,7 +261,7 @@ export default function CommunitySettings() {
                     <Users className="w-4 h-4 text-blue-500" />
                     <div>
                       <p className="font-medium">Show me in member discovery</p>
-                      <p className="text-sm text-gray-500">Allow other users to find your profile</p>
+                      <p className="text-sm text-muted-foreground/80">Allow other users to find your profile</p>
                     </div>
                   </div>
                   <Switch
@@ -269,7 +275,7 @@ export default function CommunitySettings() {
                     <Heart className="w-4 h-4 text-red-500" />
                     <div>
                       <p className="font-medium">Allow community invitations</p>
-                      <p className="text-sm text-gray-500">Let moderators invite you to relevant communities</p>
+                      <p className="text-sm text-muted-foreground/80">Let moderators invite you to relevant communities</p>
                     </div>
                   </div>
                   <Switch
@@ -283,7 +289,7 @@ export default function CommunitySettings() {
                     <MapPin className="w-4 h-4 text-green-500" />
                     <div>
                       <p className="font-medium">Share approximate location</p>
-                      <p className="text-sm text-gray-500">Show your city to help find local communities</p>
+                      <p className="text-sm text-muted-foreground/80">Show your city to help find local communities</p>
                     </div>
                   </div>
                   <Switch
@@ -297,7 +303,7 @@ export default function CommunitySettings() {
                     <MessageSquare className="w-4 h-4 text-purple-500" />
                     <div>
                       <p className="font-medium">Show activity status</p>
-                      <p className="text-sm text-gray-500">Let others see when you're active</p>
+                      <p className="text-sm text-muted-foreground/80">Let others see when you're active</p>
                     </div>
                   </div>
                   <Switch
@@ -310,7 +316,7 @@ export default function CommunitySettings() {
           </Card>
 
           {/* Interest Categories */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Settings className="w-5 h-5" />
@@ -334,14 +340,14 @@ export default function CommunitySettings() {
                     className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                       category.active 
                         ? `${category.color} text-white border-transparent` 
-                        : 'border-gray-300 hover:border-gray-400'
+                        : 'border-white/10 hover:border-white/20'
                     }`}
                   >
                     <p className="font-medium text-sm">{category.name}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground/80">
                 Select the categories you're interested in to get better community recommendations.
               </p>
             </CardContent>

@@ -56,8 +56,14 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="mobile-page-container bg-background relative overflow-hidden">
+      {/* Rich ambient bokeh */}
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+      </div>
+
+      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center space-x-4 mb-6">
           <Link href="/dashboard">
@@ -65,12 +71,12 @@ export default function ProfileSettings() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Profile</h1>
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Edit Profile</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Photo Section */}
-          <Card>
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
             <CardHeader>
               <CardTitle>Profile Photo</CardTitle>
             </CardHeader>
@@ -90,7 +96,7 @@ export default function ProfileSettings() {
                   Remove Photo
                 </Button>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 JPG, PNG or GIF. Max size 10MB.
               </p>
             </CardContent>
@@ -98,7 +104,7 @@ export default function ProfileSettings() {
 
           {/* Basic Information */}
           <div className="lg:col-span-2 space-y-6">
-            <Card>
+            <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
@@ -116,13 +122,13 @@ export default function ProfileSettings() {
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                       <Input
                         id="location"
                         value={profileData.location}
                         onChange={(e) => setProfileData({...profileData, location: e.target.value})}
                         placeholder="City, State"
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-white/10"
                       />
                     </div>
                   </div>
@@ -138,7 +144,7 @@ export default function ProfileSettings() {
                     rows={4}
                     className="resize-none"
                   />
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground mt-2">
                     {profileData.bio.length}/160 characters
                   </p>
                 </div>
@@ -147,26 +153,26 @@ export default function ProfileSettings() {
                   <div className="space-y-2">
                     <Label htmlFor="website">Website</Label>
                     <div className="relative">
-                      <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                       <Input
                         id="website"
                         value={profileData.website}
                         onChange={(e) => setProfileData({...profileData, website: e.target.value})}
                         placeholder="https://yourwebsite.com"
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-white/10"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="birthday">Birthday</Label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                       <Input
                         id="birthday"
                         type="date"
                         value={profileData.birthday}
                         onChange={(e) => setProfileData({...profileData, birthday: e.target.value})}
-                        className="pl-10"
+                        className="pl-10 bg-background/50 border-white/10"
                       />
                     </div>
                   </div>
@@ -175,7 +181,7 @@ export default function ProfileSettings() {
             </Card>
 
             {/* Interests */}
-            <Card>
+            <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
               <CardHeader>
                 <CardTitle>Interests</CardTitle>
               </CardHeader>
@@ -226,7 +232,7 @@ export default function ProfileSettings() {
             </Card>
 
             {/* Privacy Settings */}
-            <Card>
+            <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
               <CardHeader>
                 <CardTitle>Privacy</CardTitle>
               </CardHeader>
@@ -235,7 +241,7 @@ export default function ProfileSettings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Show profile in discovery</p>
-                      <p className="text-sm text-gray-500">Allow others to find your profile</p>
+                      <p className="text-sm text-muted-foreground">Allow others to find your profile</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
@@ -243,7 +249,7 @@ export default function ProfileSettings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Show location</p>
-                      <p className="text-sm text-gray-500">Display your city to other users</p>
+                      <p className="text-sm text-muted-foreground">Display your city to other users</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
@@ -251,7 +257,7 @@ export default function ProfileSettings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Show activity status</p>
-                      <p className="text-sm text-gray-500">Let others see when you're active</p>
+                      <p className="text-sm text-muted-foreground">Let others see when you're active</p>
                     </div>
                     <Switch defaultChecked />
                   </div>

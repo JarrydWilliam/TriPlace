@@ -12,6 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { SharedCommunityCard } from "@/components/ui/community-card";
+import { PremiumEventCard } from "@/components/ui/event-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   MapPin,
   Settings,
@@ -39,6 +42,7 @@ import {
   Lock,
   Smartphone,
   AlertTriangle,
+  Compass,
 } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
@@ -505,68 +509,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mobile-page-container">
+    <div className="mobile-page-container bg-background">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="glass-panel border-0 bg-transparent container-responsive responsive-padding safe-area-top max-w-6xl mx-auto min-h-[100dvh] pb-24">
-          {/* ── Hero Banner ── */}
-          <div
-            className="mb-5 rounded-3xl overflow-hidden relative"
-            style={{
-              background:
-                "linear-gradient(135deg, hsl(270,60%,30%) 0%, hsl(280,70%,25%) 40%, hsl(300,50%,20%) 100%)",
-              boxShadow:
-                "0 20px 60px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
-            }}
-          >
-            {/* Mesh overlay */}
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 80% 20%, hsl(300,70%,60%) 0%, transparent 50%), radial-gradient(circle at 20% 80%, hsl(240,80%,60%) 0%, transparent 50%)",
-              }}
-            />
-
-            <div className="relative p-5">
-              <div className="flex items-center gap-4">
-                <Avatar className="w-14 h-14 border-[3px] border-white/30 shadow-xl flex-shrink-0">
+        <div className="min-h-[100dvh] pb-28">
+          
+          {/* ── Premium Editorial Hero ── */}
+          <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50 px-4 pt-safe pb-4">
+            <div className="max-w-lg mx-auto pt-4">
+              {/* Top Row: Avatar & Settings */}
+              <div className="flex items-center justify-between mb-6">
+                <Avatar className="w-10 h-10 border border-border shadow-sm">
                   <AvatarImage src={user.avatar || undefined} />
-                  <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
+                  <AvatarFallback className="bg-white/10 text-white text-sm font-semibold">
                     {user.name?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg font-bold text-white leading-tight truncate">
-                    Welcome back, {user.name?.split(" ")[0] || "friend"}!
-                  </h1>
-                  <p className="text-sm text-white/60 italic">
-                    Your third place awaits.
-                  </p>
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <div className="flex items-center gap-1 text-white/70 text-xs">
-                      <MapPin className="w-3 h-3" />
-                      <span>{locationName || "Detecting..."}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {/* [THEME_TOGGLE_HIDDEN] Uncomment to restore Light/Dark mode toggle
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9"
-                >
-                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </Button>
-                */}
+                <div className="flex items-center gap-1">
                   <ShareQR />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-white/60 hover:text-white hover:bg-white/15 w-9 h-9"
+                        className="text-muted-foreground hover:text-foreground w-9 h-9 rounded-full"
                       >
                         <Settings className="w-4 h-4" />
                       </Button>
@@ -665,92 +630,97 @@ export default function Dashboard() {
                   </DropdownMenu>
                 </div>
               </div>
+
+              {/* Editorial Greeting */}
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">
+                  {new Date().getHours() < 12 
+                    ? "Good morning" 
+                    : new Date().getHours() < 17 
+                      ? "Good afternoon" 
+                      : "Good evening"}, {user.name?.split(" ")[0] || "there"}
+                </p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Your scene awaits
+                </h1>
+                
+                {/* Location display */}
+                <div className="flex items-center gap-1.5 text-primary mt-1.5">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="text-sm font-medium">{locationName || "Detecting..."}</span>
+                </div>
+              </div>
             </div>
           </div>
+          
+          <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
 
           <div className="grid-responsive">
             {/* Event Calendar Widget */}
             <div className="lg:col-span-2">
-              <Card className="glass-card border-white/5">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-white/5 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                        <CardTitle className="text-lg sm:text-xl text-white flex items-center justify-between w-full sm:w-auto">
-                          <div className="flex items-center space-x-2">
-                            <CalendarDays className="w-5 h-5" />
-                            <span>My Events</span>
-                            <Badge variant="secondary" className="ml-2">
-                              {
-                                (userJoinedEvents || []).filter(
-                                  (event: any) => {
-                                    const eventDate = new Date(event.date);
-                                    const now = new Date();
-                                    return (
-                                      eventDate.getMonth() === now.getMonth() &&
-                                      eventDate.getFullYear() ===
-                                        now.getFullYear()
-                                    );
-                                  }
-                                ).length
-                              }{" "}
-                              this month
-                            </Badge>
-                          </div>
-                          <ChevronDown className="w-4 h-4 text-gray-500 sm:hidden" />
-                        </CardTitle>
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block absolute right-4 top-1/2 transform -translate-y-1/2" />
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      {eventsLoading ? (
-                        <div className="animate-pulse space-y-3">
-                          {["event-1", "event-2", "event-3"].map(
-                            (loadingId) => (
-                              <div
-                                key={`loading-${loadingId}`}
-                                className="h-16 bg-gray-200 dark:bg-gray-700 rounded"
-                              />
-                            )
-                          )}
-                        </div>
-                      ) : (
-                        <EventCalendar
-                          events={userJoinedEvents || []}
-                          onEventClick={(event) => {
-                            setSelectedEvent(event);
-                            setIsEventModalOpen(true);
-                          }}
-                        />
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
+              <section className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">My Events</h2>
+                  </div>
+                  <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
+                    {
+                      (userJoinedEvents || []).filter(
+                        (event: any) => {
+                          const eventDate = new Date(event.date);
+                          const now = new Date();
+                          return (
+                            eventDate.getMonth() === now.getMonth() &&
+                            eventDate.getFullYear() === now.getFullYear()
+                          );
+                        }
+                      ).length
+                    } this month
+                  </Badge>
+                </div>
+                {eventsLoading ? (
+                  <div className="animate-pulse space-y-3">
+                    {["event-1", "event-2"].map((loadingId) => (
+                      <div
+                        key={`loading-${loadingId}`}
+                        className="h-16 bg-muted/30 rounded-xl"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EventCalendar
+                    events={userJoinedEvents || []}
+                    onEventClick={(event) => {
+                      setSelectedEvent(event);
+                      setIsEventModalOpen(true);
+                    }}
+                  />
+                )}
+              </section>
             </div>
 
             {/* Today's Suggestions / Discoveries Panel */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-8">
               {/* User's Active Communities */}
-              <Card className="glass-card border-white/5">
-                <CardHeader>
-                  <CardTitle className="text-lg text-white flex items-center space-x-2">
-                    <Users className="w-5 h-5" />
-                    <span>
-                      {user.name?.split(" ")[0] || "Your"}'s Communities
-                    </span>
-                  </CardTitle>
-                  <Badge variant="secondary" className="text-xs">
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">
+                      My Communities
+                    </h2>
+                  </div>
+                  <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
                     {Array.isArray(userActiveCommunities)
                       ? userActiveCommunities.length
                       : 0}{" "}
                     joined
                   </Badge>
-                </CardHeader>
+                </div>
+                
                 {/* Community cards */}
-                <CardContent className="space-y-3 pt-0">
+                <div className="space-y-3">
                   {userCommunitiesLoading ? (
                     <div className="animate-pulse space-y-3">
                       {[0, 1, 2].map((i) => (
@@ -759,110 +729,41 @@ export default function Dashboard() {
                     </div>
                   ) : Array.isArray(userActiveCommunities) &&
                     userActiveCommunities.length > 0 ? (
-                    userActiveCommunities.map((community: any) => {
-                      const dotColor =
-                        communityColors[
-                          community.category as keyof typeof communityColors
-                        ] || "bg-violet-500";
-                      return (
-                        <div
-                          key={community.id}
-                          className="relative rounded-2xl bg-white/5 border border-white/8 overflow-hidden hover:bg-white/8 transition-all duration-200"
-                        >
-                          {/* Left accent stripe */}
-                          <div
-                            className={`absolute left-0 top-0 bottom-0 w-1 ${dotColor} rounded-l-2xl`}
-                          />
-                          <div className="pl-4 pr-4 pt-3 pb-3 ml-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <h4 className="font-semibold text-white text-sm truncate">
-                                  {community.name}
-                                </h4>
-                              </div>
-                              <span className="text-[10px] text-white/50 flex-shrink-0 ml-2">
-                                {community.memberCount || 1} members
-                              </span>
-                            </div>
-                            <p className="text-xs text-white/45 mb-3 capitalize">
-                              {community.category}
-                            </p>
-                            <Link href={`/community/${community.id}`}>
-                              <Button
-                                size="sm"
-                                className="w-full h-8 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-xl border-0 transition-all group"
-                              >
-                                Enter
-                                <svg
-                                  className="w-3 h-3 ml-1.5 transition-transform group-hover:translate-x-0.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2.5}
-                                    d="M13 7l5 5-5 5M6 12h12"
-                                  />
-                                </svg>
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    })
+                    userActiveCommunities.map((community: any) => (
+                      <SharedCommunityCard
+                        key={community.id}
+                        community={community}
+                        joined={true}
+                        onJoin={() => {}}
+                      />
+                    ))
                   ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-center justify-center py-10 px-4 text-center"
-                    >
-                      <div className="relative mb-5">
-                        <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center relative z-10">
-                          <Users className="w-8 h-8 text-white/80" />
-                        </div>
-                      </div>
-                      <h3 className="text-lg font-semibold text-white mb-2">
-                        It's a bit quiet here!
-                      </h3>
-                      <p className="text-sm text-white/60 mb-6 max-w-[250px]">
-                        Your social circle is a blank canvas. Discover local
-                        communities below to start connecting.
-                      </p>
-                      <Link href="/discover">
-                        <Button className="rounded-full shadow-lg shadow-primary/20 group">
-                          Explore Communities
-                          <ChevronDown className="w-4 h-4 ml-2 group-hover:-translate-y-0.5 transition-transform" />
-                        </Button>
-                      </Link>
-                    </motion.div>
+                    <EmptyState
+                      icon={<Users className="w-6 h-6 text-gray-500" />}
+                      title="It's a bit quiet here!"
+                      description="Your social circle is a blank canvas. Discover local communities below to start connecting."
+                      action={{
+                        label: "Explore Communities",
+                        onClick: () => setRouterLocation("/discover"),
+                      }}
+                    />
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
               {/* Discovery Suggestions */}
-              <Card className="glass-card border-white/5">
-                <CardHeader>
-                  <CardTitle className="text-lg text-white flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-5 h-5" />
-                      <span>Discover Communities</span>
-                    </div>
-                    <Link href="/discover">
-                      <Button variant="outline" size="sm" className="text-xs">
-                        View All
-                      </Button>
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Trending Events */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      🔥 Upcoming Local Events
-                    </h4>
+              <section className="pt-2">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">Trending Local Events</h2>
+                  </div>
+                  <Link href="/events">
+                    <span className="text-xs text-primary hover:underline cursor-pointer">View all</span>
+                  </Link>
+                </div>
+                
+                <div className="space-y-3">
                     {trendingLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
@@ -870,41 +771,13 @@ export default function Dashboard() {
                           Finding popular events...
                         </p>
                       </div>
-                    ) : Array.isArray(trendingEvents) &&
-                      trendingEvents.length > 0 ? (
+                    ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
                       trendingEvents.slice(0, 3).map((event: any) => (
-                        <div
+                        <PremiumEventCard
                           key={event.id}
-                          className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <h5 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {event.title}
-                            </h5>
-                            <div className="flex items-center space-x-1">
-                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                {event.joinCount} joined
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 truncate">
-                            {new Date(event.date).toLocaleDateString()} •{" "}
-                            {event.location || "Online"}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full min-h-[44px] text-xs"
-                            onClick={() =>
-                              setRouterLocation(
-                                `/community/${event.communityId || ""}`
-                              )
-                            }
-                          >
-                            View Event
-                          </Button>
-                        </div>
+                          event={event}
+                          onClick={() => setRouterLocation(`/community/${event.communityId || ""}`)}
+                        />
                       ))
                     ) : (
                       <div className="p-4 text-center text-gray-500 dark:text-gray-400">
@@ -913,24 +786,22 @@ export default function Dashboard() {
                         </p>
                       </div>
                     )}
-                  </div>
+                </div>
+              </section>
 
-                  {/* New Communities */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        🔍 New Communities
-                      </h4>
-                      <Link href="/discover">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                          View All
-                        </Button>
-                      </Link>
-                    </div>
+              {/* New Communities */}
+              <section className="pt-2">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">New Communities</h2>
+                  </div>
+                  <Link href="/discover">
+                    <span className="text-xs text-primary hover:underline cursor-pointer">Explore</span>
+                  </Link>
+                </div>
+                
+                <div className="space-y-3">
                     {recommendationsLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
@@ -955,107 +826,52 @@ export default function Dashboard() {
                       recommendations
                         .slice(0, 5)
                         .map((community: Community) => (
-                          <div
+                          <SharedCommunityCard
                             key={community.id}
-                            className="p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors"
-                          >
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="text-sm">🌟</span>
-                              <h5 className="text-sm font-medium text-white">
-                                {community.name}
-                              </h5>
-                            </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                              {community.memberCount} members •{" "}
-                              {community.category}
-                            </p>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1 min-h-[44px]"
-                                onClick={() => handleJoinClick(community)}
-                                disabled={joinCommunityMutation.isPending}
-                              >
-                                {joinCommunityMutation.isPending
-                                  ? "Joining..."
-                                  : "Join Community"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="min-h-[44px] min-w-[44px]"
-                                onClick={() =>
-                                  setRouterLocation(
-                                    `/community/${community.id}`
-                                  )
-                                }
-                              >
-                                View
-                              </Button>
-                            </div>
-                          </div>
+                            community={community}
+                            joined={false}
+                            joining={joinCommunityMutation.isPending}
+                            onJoin={() => handleJoinClick(community)}
+                          />
                         ))
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-3 px-4 text-center">
-                        <div className="relative mb-4">
-                          <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-xl backdrop-blur-md">
-                            <svg
-                              className="w-6 h-6 text-primary/80"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                              <circle cx="9" cy="7" r="4" />
-                              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                          </div>
-                        </div>
-                        <p className="text-sm font-medium text-white/60">
-                          You've joined all available communities!
-                        </p>
-                        <Link href="/discover">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-4 text-xs"
-                          >
-                            Explore Communities
-                          </Button>
-                        </Link>
-                      </div>
+                      <EmptyState
+                        icon={<Users className="w-6 h-6 text-gray-500" />}
+                        title="You're all caught up!"
+                        description="You've joined all available communities."
+                        action={{
+                          label: "Explore Communities",
+                          onClick: () => setRouterLocation("/discover"),
+                        }}
+                      />
                     )}
                   </div>
-                </CardContent>
-              </Card>
-              <div className="pt-6 border-t border-white/5 space-y-6">
-                <h3 className="text-sm font-semibold text-white/50 px-2 uppercase tracking-wider">
-                  My Activity
-                </h3>
-                {/* Streak Card */}
-                <StreakCard userId={user.id} />
-                {/* Weekly Challenges */}
-                <Card className="glass-card border-white/5">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center space-x-2">
-                      <Target className="w-5 h-5" />
-                      <span>Weekly Challenges</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+              </section>
+
+              {/* My Activity & Challenges */}
+              <section className="pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">My Activity & Challenges</h2>
+                  </div>
+                </div>
+                
+                <div className="space-y-5">
+                  {/* Streak Card */}
+                  <StreakCard userId={user.id} />
+                  
+                  {/* Weekly Challenges */}
+                  <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-2xl p-4 space-y-4">
                     {currentChallenges.length > 0 ? (
                       <div className="space-y-4">
                         {currentChallenges.map((challenge) => (
                           <div key={challenge.id} className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              <span className="text-sm font-medium text-foreground">
                                 {challenge.title}
                               </span>
-                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                              <span className="text-xs text-muted-foreground">
                                 {challenge.current}/{challenge.target}
                               </span>
                             </div>
@@ -1067,19 +883,20 @@ export default function Dashboard() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No active challenges</p>
-                        <p className="text-sm">
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No active challenges</p>
+                        <p className="text-xs mt-1">
                           Stay active to unlock weekly challenges!
                         </p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
+        </div>
         </div>
 
         {/* Rotation Confirmation Dialog */}
