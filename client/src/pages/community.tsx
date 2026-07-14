@@ -438,7 +438,7 @@ export default function CommunityPage() {
           <div className="relative -mx-4 -mt-safe mb-8 pb-4">
             {/* Dynamic Category Background */}
             <div 
-              className={`absolute inset-0 bg-gradient-to-br ${
+              className={`absolute inset-0 pointer-events-none bg-gradient-to-br ${
                 categoryColor[community.category]?.gradient || defaultCategoryColors.gradient
               } opacity-40`}
             >

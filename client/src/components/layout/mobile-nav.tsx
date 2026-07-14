@@ -65,11 +65,9 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed z-50 md:hidden rounded-full shadow-2xl bg-background/80 backdrop-blur-xl border border-white/10"
+      className="fixed z-[100] rounded-full shadow-2xl bg-background/80 backdrop-blur-xl border border-white/10 w-[calc(100%-2rem)] max-w-md left-1/2 -translate-x-1/2"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 12px) + 16px)",
-        left: "1rem",
-        right: "1rem",
         boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)",
       }}
     >
