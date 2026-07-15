@@ -22,7 +22,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: main
+        - pattern: release/ios*
           include: true
     scripts:
       - name: Install Node dependencies
