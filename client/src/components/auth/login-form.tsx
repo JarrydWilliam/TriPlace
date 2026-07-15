@@ -163,7 +163,7 @@ export function LoginForm({
                       placeholder="First name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="pl-10.5 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
+                      className="samevibe-premium-input pl-10.5 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                     />
                   </div>
                 </div>
@@ -182,7 +182,7 @@ export function LoginForm({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="pl-10.5 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
+                    className="samevibe-premium-input pl-10.5 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                   />
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function LoginForm({
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={isLogin ? 1 : 8}
-                    className="pl-10.5 pr-10 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
+                    className="samevibe-premium-input pl-10.5 pr-10 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                   />
                   <button
                     type="button"
