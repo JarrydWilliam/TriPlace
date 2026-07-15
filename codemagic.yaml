@@ -128,12 +128,33 @@ workflows:
             npx cap add android
           fi
 
+      - name: Inject Google Services JSON
+        script: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "ERROR: GOOGLE_SERVICES_JSON_BASE64 environment variable is missing"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+          
+          # Validate package name without printing the full JSON
+          if ! grep -q '"package_name": "com.samevibe.app"' android/app/google-services.json; then
+            echo "ERROR: Invalid package name in google-services.json"
+            rm android/app/google-services.json
+            exit 1
+          fi
+
       - name: Sync Capacitor to Android
         script: npx cap sync android
 
       - name: Set up keystore
         script: |
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+
+      - name: Auto-increment Android versionCode
+        script: |
+          # Use an offset (e.g. 10000) + BUILD_NUMBER to ensure it's always higher than any old manual uploads
+          NEW_VERSION_CODE=$((10000 + BUILD_NUMBER))
+          sed -i -e "s/versionCode [0-9]*/versionCode $NEW_VERSION_CODE/" android/app/build.gradle
 
       - name: Build Android App Bundle
         script: |
