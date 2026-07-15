@@ -1,0 +1,207 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { box-sizing: border-box; }
+    body { margin: 0; background-color: #000; font-family: 'Inter', sans-serif; color: #fff; padding: 40px; display:flex; gap: 40px; flex-wrap:wrap; }
+
+    .device { width: 393px; height: 852px; background-color: #0c0b14; border-radius: 50px; position: relative; overflow: hidden; box-shadow: 0 0 0 12px #222, 0 0 0 14px #444; flex-shrink:0; }
+
+    /* BACKGROUND DEPTH (as requested: purple top-left, blue/cyan opposite) */
+    .dashboard-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 10% 10%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
+                  radial-gradient(circle at 90% 90%, rgba(56, 189, 248, 0.12) 0%, transparent 50%);
+      background-color: #0d0b16; /* Deep navy base */
+      z-index: 0;
+    }
+
+    /* LOADING SCREEN */
+    .loading-bg { position: absolute; inset: 0; background: radial-gradient(circle at 45% 40%, rgba(168,85,247,0.15) 0%, transparent 50%), radial-gradient(circle at 55% 40%, rgba(56,189,248,0.15) 0%, transparent 50%); background-color: #0d0b16; }
+    .loading-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%); display: flex; flex-direction: column; align-items: center; width: 100%; z-index: 10; }
+    
+    .loading-icon { width: 144px; height: 144px; border-radius: 33px; margin-bottom: 34px; box-shadow: 0 0 60px rgba(168,85,247,0.2), 0 0 60px rgba(56,189,248,0.2); overflow: hidden; display:flex; justify-content:center; align-items:center; background:#000; position:relative; }
+    /* Subtle faint halo as preferred */
+    .loading-icon::before { content: ''; position: absolute; inset: -20px; background: radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%); z-index: -1; }
+    .loading-icon img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.4); } 
+    
+    .app-name { font-size: 46px; font-weight: 600; letter-spacing: -0.5px; margin: 0 0 16px 0; }
+    .app-tagline { font-size: 19px; font-weight: 400; background: linear-gradient(90deg, #f472b6, #c084fc, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; opacity: 0.95; margin: 0; }
+
+    /* DASHBOARD */
+    .dashboard-content { position: absolute; inset: 0; padding: 60px 18px 0; z-index: 10; display:flex; flex-direction: column; }
+    
+    /* COMPACT FLOATING HEADER */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 12px 16px; border-radius: 20px;
+      /* Apple-style glass base */
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(24px) saturate(150%);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    
+    .header-icon { width: 26px; height: 26px; border-radius: 6px; overflow: hidden; background:#000; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+    .header-icon img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.4); }
+    
+    .header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    .header-bell { width: 20px; height: 20px; -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>') center/contain no-repeat; background: white; opacity: 0.9; }
+
+    .welcome { margin-bottom: 30px; padding: 0 8px; }
+    .welcome-greeting { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 8px; font-weight: 500; }
+    .welcome-headline { font-size: 38px; font-weight: 700; line-height: 1.05; letter-spacing: -0.5px; margin: 0; }
+    .welcome-headline span { color: #a855f7; }
+
+    /* REAL PRODUCTION GLASS STYLE + APPLE TREATMENT */
+    .glass-card { 
+      background: rgba(20, 24, 42, 0.45); /* SameVibe dark translucent */
+      backdrop-filter: blur(22px) saturate(135%);
+      border: 1px solid rgba(255, 255, 255, 0.08); /* bg-white/5 border */
+      border-radius: 24px; /* rounded-3xl approx */
+      padding: 18px; 
+      margin-bottom: 24px; 
+      box-shadow: 0 14px 38px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    /* Subtle purple reflection corner */
+    .glass-card::before {
+      content: ''; position: absolute; top: -50px; left: -50px; width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%); z-index: 0; pointer-events: none;
+    }
+
+    .section-header { display: flex; justify-content: space-between; margin-bottom: 16px; position:relative; z-index: 1; }
+    .section-title { font-size: 16px; font-weight: 600; margin: 0; }
+    .see-all { font-size: 13px; color: #c084fc; opacity: 0.9; font-weight: 500; }
+
+    .comm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 12px; position:relative; z-index: 1; }
+    .comm-item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+    .comm-circle { width: 68px; height: 68px; border-radius: 50%; background: rgba(255,255,255,0.06); box-shadow: 0 4px 12px rgba(0,0,0,0.2); overflow: hidden; display:flex; align-items:center; justify-content:center;}
+    
+    /* Fake real images with colorful gradients for mockup visually */
+    .comm-circle.img-1 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .comm-circle.img-2 { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .comm-circle.img-3 { background: linear-gradient(135deg, #10b981, #059669); }
+    .comm-circle.img-4 { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .comm-circle.img-5 { background: linear-gradient(135deg, #ec4899, #be185d); }
+    
+    .comm-name { font-size: 11px; color: rgba(255,255,255,0.9); line-height: 1.25; font-weight:500; }
+    .comm-add { display: flex; align-items: center; justify-content: center; font-size: 24px; color: rgba(255,255,255,0.5); border: 1.5px dashed rgba(255,255,255,0.2); background:transparent; box-shadow:none;}
+
+    .event-row { display: flex; align-items: center; gap: 14px; position:relative; z-index: 1; 
+      /* Lighter translucent sub-surface */
+      background: rgba(255,255,255,0.03); padding: 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.04);
+    }
+    .event-thumb { width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #f43f5e, #be123c); flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .event-info { flex: 1; }
+    .event-title { font-size: 15px; font-weight: 600; margin: 0 0 4px 0; color: #fff;}
+    .event-meta { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.4; }
+    .event-status { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #4ade80; font-weight: 600; background: rgba(74, 222, 128, 0.1); padding: 4px 8px; border-radius: 8px; }
+    .event-status svg { width: 12px; height: 12px; }
+
+    /* BOTTOM NAV APPLE GLASS */
+    .bottom-nav { 
+      position: absolute; bottom: 0; left: 0; right: 0; height: 90px; 
+      /* Floating glass nav */
+      background: rgba(14, 16, 26, 0.65); 
+      backdrop-filter: blur(24px) saturate(150%); 
+      border-top: 1px solid rgba(255,255,255,0.1); 
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+      display: flex; justify-content: space-around; padding: 14px 16px 0; 
+      z-index: 50;
+      border-top-left-radius: 30px;
+      border-top-right-radius: 30px;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: rgba(255,255,255,0.4); }
+    .nav-item.active { color: #c084fc; }
+    .nav-icon { width: 24px; height: 24px; background: currentColor; }
+    .nav-label { font-size: 10px; font-weight: 500; }
+    
+    /* Navigation Icons Masking */
+    .icon-home { -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>') center/contain no-repeat; }
+    .icon-discover { -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>') center/contain no-repeat; }
+    .icon-events { -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>') center/contain no-repeat; }
+    .icon-messages { -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>') center/contain no-repeat; }
+    .icon-profile { -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>') center/contain no-repeat; }
+
+  </style>
+</head>
+<body>
+  <!-- LOADING SCREEN -->
+  <div class="device" id="device-loading">
+    <div class="loading-bg"></div>
+    <div class="loading-content">
+      <div class="loading-icon" id="loading-icon-target"><img src="./assets/correct_logo.png"></div>
+      <h1 class="app-name">SameVibe</h1>
+      <p class="app-tagline">Find your people. Live your vibe.</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD SCREEN -->
+  <div class="device" id="device-dashboard">
+    <div class="dashboard-bg"></div>
+    <div class="dashboard-content">
+      
+      <div class="header" id="header-target">
+        <div class="header-left">
+          <div class="header-icon" id="header-icon-target"><img src="./assets/correct_logo.png"></div>
+          <div class="header-title">SameVibe</div>
+        </div>
+        <div class="header-bell"></div>
+      </div>
+      
+      <div class="welcome">
+        <div class="welcome-greeting">Good morning, Alex 👋</div>
+        <h2 class="welcome-headline">Find your people.<br>Live <span>your vibe.</span></h2>
+      </div>
+      
+      <div class="glass-card" id="communities-target">
+        <div class="section-header">
+          <h3 class="section-title">My Communities</h3>
+          <div class="see-all">See All</div>
+        </div>
+        <div class="comm-grid">
+          <div class="comm-item"><div class="comm-circle img-1"></div><div class="comm-name">Local<br>Adventurers</div></div>
+          <div class="comm-item"><div class="comm-circle img-2"></div><div class="comm-name">Creative<br>Collaborators</div></div>
+          <div class="comm-item"><div class="comm-circle img-3"></div><div class="comm-name">Wellness &<br>Mindfulness</div></div>
+          <div class="comm-item"><div class="comm-circle img-4"></div><div class="comm-name">New in<br>Town</div></div>
+          <div class="comm-item"><div class="comm-circle img-5"></div><div class="comm-name">Weekend<br>Plans</div></div>
+          <div class="comm-item"><div class="comm-circle comm-add">+</div></div>
+        </div>
+      </div>
+      
+      <div class="glass-card" style="padding:16px" id="events-target">
+        <div class="section-header" style="margin-bottom:12px">
+          <h3 class="section-title">My Events</h3>
+          <div class="see-all">See All</div>
+        </div>
+        <div class="event-row">
+          <div class="event-thumb"></div>
+          <div class="event-info">
+            <h4 class="event-title">Sunset Hike & Coffee</h4>
+            <div class="event-meta">Sat, Aug 10 • 7:00 AM<br>Rock Canyon Trail</div>
+          </div>
+          <div class="event-status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Going
+          </div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <div class="bottom-nav" id="nav-target">
+      <div class="nav-item active"><div class="nav-icon icon-home"></div><div class="nav-label">Home</div></div>
+      <div class="nav-item"><div class="nav-icon icon-discover"></div><div class="nav-label">Discover</div></div>
+      <div class="nav-item"><div class="nav-icon icon-events"></div><div class="nav-label">Events</div></div>
+      <div class="nav-item"><div class="nav-icon icon-messages"></div><div class="nav-label">Messages</div></div>
+      <div class="nav-item"><div class="nav-icon icon-profile"></div><div class="nav-label">Profile</div></div>
+    </div>
+  </div>
+
+</body>
+</html>

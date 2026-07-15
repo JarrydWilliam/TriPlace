@@ -158,7 +158,7 @@ export default function ProfileSetup() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter your full name"
-                  className="bg-muted/30 border-white/10 text-foreground min-h-[44px] focus:border-primary"
+                  className="px-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                   required
                 />
               </div>
@@ -173,7 +173,7 @@ export default function ProfileSetup() {
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   placeholder="Tell others a bit about yourself..."
-                  className="bg-muted/30 border-white/10 text-foreground min-h-[80px] resize-none focus:border-primary"
+                  className="px-4 py-3 min-h-[80px] resize-none bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                   maxLength={150}
                 />
                 <p className="text-xs text-muted-foreground/80 text-right">

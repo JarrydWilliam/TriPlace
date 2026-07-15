@@ -386,7 +386,7 @@ export default function Onboarding() {
                         value={manualLocationInput}
                         onChange={(e) => setManualLocationInput(e.target.value)}
                         placeholder="e.g. Denver, CO"
-                        className="flex-1 bg-white/5 border-white/20 text-white placeholder:text-white/30 focus:border-primary"
+                        className="flex-1 px-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleManualLocationSubmit();
                         }}
