@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { hasActiveOverlay } from "@/hooks/use-safe-navigate";
+import { AnimatePresence } from "framer-motion";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -144,26 +144,9 @@ function Router() {
   }
 
 
-  useEffect(() => {
-    // Wait until the next animation frame for the route to fully render
-    requestAnimationFrame(() => {
-      // If no valid overlay is active but the body is locked, safely clean it up
-      if (!hasActiveOverlay()) {
-        const body = document.body;
-        if (body.style.pointerEvents === 'none') {
-          body.style.pointerEvents = '';
-        }
-        if (body.hasAttribute('data-scroll-locked')) {
-          body.removeAttribute('data-scroll-locked');
-          body.style.overflow = '';
-          document.documentElement.style.overflow = '';
-        }
-      }
-    });
-  }, [location]);
-
   return (
-    <Switch>
+    <AnimatePresence mode="wait">
+      <Switch>
       <Route path="/" component={Landing} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
@@ -192,7 +175,8 @@ function Router() {
       <Route path="/admin/metrics" component={AdminRoute} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
-    </Switch>
+      </Switch>
+    </AnimatePresence>
   );
 }
 

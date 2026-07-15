@@ -33,13 +33,13 @@ export default function Landing() {
   return (
     <section className="mobile-page-container relative overflow-hidden bg-gray-900 no-pull-refresh">
       {/* Background: pure CSS gradient — no external image dependency for offline/Capacitor builds */}
-      <div className="absolute inset-0 pointer-events-none" style={{
+      <div className="absolute inset-0" style={{
         background: "radial-gradient(ellipse at 20% 50%, hsl(260,60%,18%) 0%, hsl(260,40%,8%) 45%, hsl(220,50%,6%) 100%)"
       }} />
       {/* Decorative bokeh blobs */}
-      <div className="absolute top-[-15%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[80px] pointer-events-none" style={{ background: "hsl(270,70%,55%)" }} />
-      <div className="absolute bottom-[-10%] left-[-15%] w-[55vw] h-[55vw] rounded-full opacity-15 blur-[100px] pointer-events-none" style={{ background: "hsl(300,60%,45%)" }} />
-      <div className="absolute top-[40%] left-[30%] w-[30vw] h-[30vw] rounded-full opacity-10 blur-[60px] pointer-events-none" style={{ background: "hsl(240,80%,70%)" }} />
+      <div className="absolute top-[-15%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[80px]" style={{ background: "hsl(270,70%,55%)" }} />
+      <div className="absolute bottom-[-10%] left-[-15%] w-[55vw] h-[55vw] rounded-full opacity-15 blur-[100px]" style={{ background: "hsl(300,60%,45%)" }} />
+      <div className="absolute top-[40%] left-[30%] w-[30vw] h-[30vw] rounded-full opacity-10 blur-[60px]" style={{ background: "hsl(240,80%,70%)" }} />
       
       <div className="relative z-10 container mx-auto px-4 py-8 min-h-[100dvh] flex flex-col">
         {/* Header */}

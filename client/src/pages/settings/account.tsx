@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, AlertTriangle, ArrowLeft, Mail, ExternalLink, Shield, Smartphone, Trash2 } from "lucide-react";
-import { useSafeNavigate } from "@/hooks/use-safe-navigate";
+import { ArrowLeft, Mail, Shield, Smartphone, Trash2, AlertTriangle, ExternalLink, CheckCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useMutation } from "@tanstack/react-query";
@@ -17,7 +16,7 @@ import { signOutUser, deleteFirebaseAccount } from "@/lib/firebase";
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const navigateAfterClose = useSafeNavigate();
+  const [, navigate] = useLocation();
   
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
@@ -28,19 +27,22 @@ export default function AccountSettings() {
     setIsDeleting(true);
     try {
       await apiRequest('DELETE', `/api/users/${user.id}`);
+      // Also delete from Firebase Auth to meet strict App Store requirements
       try {
         await deleteFirebaseAccount();
       } catch (fbErr: any) {
         console.warn("Firebase deletion failed:", fbErr);
+        // If it's a re-auth error, we might still want to log them out
+        // but we've already deleted their DB record, so they are effectively gone from SameVibe
       }
       await signOut();
       toast({ title: "Account deleted", description: "Your account and all data have been permanently deleted." });
-      navigateAfterClose(() => setShowDeleteDialog(false), '/');
+      navigate('/');
     } catch (err) {
       toast({ title: "Deletion failed", description: err instanceof Error ? err.message : "Please try again or contact privacy@samevibe.app", variant: "destructive" });
-      setShowDeleteDialog(false);
     } finally {
       setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
