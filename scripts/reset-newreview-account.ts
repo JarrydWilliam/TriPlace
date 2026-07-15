@@ -1,5 +1,5 @@
 import { db } from "../server/db";
-import { users, userResponses, userCommunities } from "@shared/schema";
+import { users, communityMembers } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const NEW_REVIEW_EMAIL = "samevibe.newreview@gmail.com";
@@ -21,19 +21,17 @@ async function resetNewReviewAccount() {
 
   // Use a transaction to ensure all resets happen atomically
   await db.transaction(async (tx) => {
-    console.log("Deleting quiz responses...");
-    await tx.delete(userResponses).where(eq(userResponses.userId, userId));
-
     console.log("Deleting joined communities...");
-    await tx.delete(userCommunities).where(eq(userCommunities.userId, userId));
+    await tx.delete(communityMembers).where(eq(communityMembers.userId, userId));
 
-    console.log("Resetting onboarding and location state...");
+    console.log("Resetting onboarding, interests, and location state...");
     await tx.update(users)
       .set({
         onboardingCompleted: false,
         latitude: null,
         longitude: null,
         locationName: null,
+        interests: [],
       })
       .where(eq(users.id, userId));
   });
