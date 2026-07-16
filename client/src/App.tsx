@@ -89,25 +89,36 @@ function Router() {
   }, [user]);
 
   useEffect(() => {
-    if (!loading && firebaseUser && user) {
+    if (loading) return;
+
+    const publicAuthPages = ['/', '', '/login', '/signup'];
+    const publicLegalPages = ['/terms', '/privacy', '/support', '/delete-account'];
+    const isPublicRoute = publicAuthPages.includes(location) || publicLegalPages.includes(location);
+
+    if (!user) {
+      if (!isPublicRoute) {
+        setLocation('/login', { replace: true });
+      }
+      return;
+    }
+
+    if (user && firebaseUser) {
       const needsOnboarding = !user.onboardingCompleted;
       const needsProfileSetup = !user.name || user.name === user.email?.split('@')[0];
       const isGoogleUser = firebaseUser.providerId === 'google.com' || firebaseUser.providerData.some(p => p.providerId === 'google.com');
       
       const requiresProfile = !isGoogleUser && needsProfileSetup;
-      
-      const publicRoutes = ['/terms', '/privacy', '/delete-account'];
-      const isPublicRoute = publicRoutes.includes(location);
 
-      if (!isPublicRoute) {
+      if (!publicLegalPages.includes(location)) {
         if (requiresProfile && location !== '/profile-setup') {
-          setLocation('/profile-setup');
+          setLocation('/profile-setup', { replace: true });
         } else if (!requiresProfile && needsOnboarding && location !== '/onboarding') {
-          setLocation('/onboarding');
-        } else if (!requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup', '/onboarding', '/profile-setup'].includes(location)) {
-          setLocation('/dashboard');
+          setLocation('/onboarding', { replace: true });
+        } else if (!requiresProfile && !needsOnboarding && publicAuthPages.includes(location)) {
+          setLocation('/dashboard', { replace: true });
         }
       }
+
       // Register for push notifications on native devices
       if (user.onboardingCompleted) {
         registerForPushNotifications(user.id).catch(console.error);

@@ -18,7 +18,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     };
   };
 
-  test('Test A - Perfect tap', async ({ page }) => {
+  test('Test A - Perfect tap @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x, y);
     await page.mouse.down();
@@ -27,7 +27,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(isPortalMounted).toBe(true);
   });
 
-  test('Test B - 1 px movement', async ({ page }) => {
+  test('Test B - 1 px movement @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x, y);
     await page.mouse.down();
@@ -37,7 +37,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(isPortalMounted).toBe(true);
   });
 
-  test('Test C - 3 px movement', async ({ page }) => {
+  test('Test C - 3 px movement @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x, y);
     await page.mouse.down();
@@ -47,7 +47,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(isPortalMounted).toBe(true);
   });
 
-  test('Test D - Threshold boundary (7px)', async ({ page }) => {
+  test('Test D - Threshold boundary (7px) @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x, y);
     await page.mouse.down();
@@ -57,7 +57,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(isPortalMounted).toBe(true);
   });
 
-  test('Test E - Genuine pull from blank area', async ({ page }) => {
+  test('Test E - Genuine pull from blank area @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x - 50, y + 100);
     await page.mouse.down();
@@ -67,7 +67,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(isPortalMounted).toBe(false);
   });
 
-  test('Test F - Pull starting on Settings', async ({ page }) => {
+  test('Test F - Pull starting on Settings @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x, y);
     await page.mouse.down();
@@ -77,7 +77,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(ptrOffset).toBeFalsy();
   });
 
-  test('Test G - Horizontal movement', async ({ page }) => {
+  test('Test G - Horizontal movement @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     await page.mouse.move(x - 50, y + 100);
     await page.mouse.down();
@@ -87,7 +87,7 @@ test.describe('Apple Review Functional Audit - SameVibe', () => {
     expect(ptrOffset).toBeFalsy();
   });
 
-  test('Test H - Repeated taps (20 times)', async ({ page }) => {
+  test('Test H - Repeated taps (20 times) @readonly @native-required', async ({ page }) => {
     const { x, y } = await getSettingsCoords(page);
     for (let i = 0; i < 20; i++) {
       await page.mouse.move(x, y);

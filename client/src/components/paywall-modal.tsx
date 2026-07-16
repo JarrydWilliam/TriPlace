@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Capacitor } from "@capacitor/core";
-import { getApiUrl } from "@/lib/queryClient";
+import { getApiUrl, apiRequest } from "@/lib/queryClient";
 
 interface PaywallModalProps {
   open: boolean;
@@ -50,11 +50,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
       await Purchases.purchasePackage({ aPackage: packageToBuy });
 
       // After successful native purchase, verify with our backend to grant the capacity
-      const res = await fetch(getApiUrl("/api/checkout/verify-revenuecat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id, tier }),
-      });
+      const res = await apiRequest("POST", "/api/checkout/verify-revenuecat", { userId: user?.id, tier });
 
       if (!res.ok) throw new Error("Failed to verify purchase on backend");
       

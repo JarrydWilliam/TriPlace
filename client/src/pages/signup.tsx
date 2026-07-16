@@ -60,7 +60,10 @@ export default function Signup() {
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
       if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        const token = await cred.getIdToken();
+        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`), {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         if (res.ok) {
           const existingUser = await res.json();
           setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
@@ -83,7 +86,10 @@ export default function Signup() {
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
       if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        const token = await cred.getIdToken();
+        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`), {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         if (res.ok) {
           const existingUser = await res.json();
           setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");

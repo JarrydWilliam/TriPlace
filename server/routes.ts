@@ -163,8 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/firebase/:uid", async (req, res) => {
+  app.get("/api/users/firebase/:uid", requireAuth, async (req, res) => {
     try {
+      if ((req as any).firebaseUser?.uid !== req.params.uid) {
+        return res.status(403).json({ message: "Unauthorized profile access" });
+      }
+
       const user = await storage.getUserByFirebaseUid(req.params.uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -211,6 +215,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const dbUser = await storage.getUserByFirebaseUid((req as any).firebaseUser.uid);
+      if (!dbUser) {
+        return res.status(404).json({ message: "Authenticated user not found" });
+      }
+      if (dbUser.id !== id) {
+        return res.status(403).json({ message: "Unauthorized deletion attempt" });
       }
       const success = await storage.deleteUser(id);
       if (!success) {

@@ -64,3 +64,9 @@ temp/
 *.pem
 *.key
 cert_key.pem
+playwright-report/  
+test-results/  
+test-results.json  
+controls_audit*.txt  
+files_list.txt  
+scratch_inventory.js  
