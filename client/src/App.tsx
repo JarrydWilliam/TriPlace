@@ -151,6 +151,9 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/profile-setup" component={ProfileSetup} />
+      <Route path="/reveal" component={Reveal} />
+
+      {/* Protected Main Routes */}
       <Route path="/profile" component={Profile} />
       <Route path="/profile/:userId" component={Profile} />
       <Route path="/messaging" component={Messaging} />
