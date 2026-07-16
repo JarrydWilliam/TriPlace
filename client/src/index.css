@@ -73,7 +73,7 @@
 }
 
 @layer utilities {
-    .safe-area-top {
+    .safe-area-top, .pt-safe {
         padding-top: env(safe-area-inset-top, 0px);
     }
     .safe-area-bottom {
