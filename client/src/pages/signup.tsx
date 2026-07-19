@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { Mail, Lock, User, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { CURRENT_TERMS_VERSION } from "@shared/schema";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -17,8 +18,28 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [agreedToEula, setAgreedToEula] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const validateAgeAndEula = () => {
+    if (!dateOfBirth) {
+      setError("Please enter your date of birth");
+      return false;
+    }
+    const dob = new Date(dateOfBirth);
+    const age = (Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    if (age < 18) {
+      setError("You must be at least 18 years old to join SameVibe.");
+      return false;
+    }
+    if (!agreedToEula) {
+      setError("You must agree to the Terms of Service and Privacy Policy.");
+      return false;
+    }
+    return true;
+  };
 
   // Guard: redirect already-logged-in users to their destination
   useEffect(() => {
@@ -30,6 +51,7 @@ export default function Signup() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!validateAgeAndEula()) return;
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -39,7 +61,7 @@ export default function Signup() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
       // Create user record in our DB
-      await apiRequest("POST", "/api/auth/register", { firebaseUid: cred.user.uid, email, name }).catch((err) => {
+      await apiRequest("POST", "/api/users", { firebaseUid: cred.user.uid, email, name, dateOfBirth, termsVersion: CURRENT_TERMS_VERSION }).catch((err) => {
         if (!err.message.includes("already exists") && !err.message.includes("409")) {
           throw err;
         }
@@ -54,8 +76,11 @@ export default function Signup() {
 
   const handleGoogleSignup = async () => {
     setError("");
+    if (!validateAgeAndEula()) return;
     setLoading(true);
     try {
+      sessionStorage.setItem("pendingDOB", dateOfBirth);
+      sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
       await signInWithGoogle();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
@@ -77,8 +102,11 @@ export default function Signup() {
 
   const handleAppleSignup = async () => {
     setError("");
+    if (!validateAgeAndEula()) return;
     setLoading(true);
     try {
+      sessionStorage.setItem("pendingDOB", dateOfBirth);
+      sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
       await signInWithApple();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
@@ -163,6 +191,32 @@ export default function Signup() {
 
             {/* Email Signup Form */}
             <form onSubmit={handleSignup} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <Label htmlFor="dob" className="text-muted-foreground text-xs font-medium tracking-wide">DATE OF BIRTH (18+)</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    className="samevibe-premium-input px-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all block w-full"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-start space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="eula"
+                  checked={agreedToEula}
+                  onChange={(e) => setAgreedToEula(e.target.checked)}
+                  className="mt-1 rounded border-white/15 bg-white/10 text-primary focus:ring-primary/30 focus:ring-offset-0"
+                  required
+                />
+                <Label htmlFor="eula" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                  I agree to the <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>, <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>, and the EULA. I understand that abuse, harassment, or inappropriate content will result in immediate termination.
+                </Label>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="name" className="text-muted-foreground text-xs font-medium tracking-wide">FULL NAME</Label>
                 <div className="relative group/input">

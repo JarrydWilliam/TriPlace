@@ -72,14 +72,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
                 avatar: firebaseUser.photoURL,
                 interests: [],
+                dateOfBirth: sessionStorage.getItem('pendingDOB') || null,
+                termsVersion: sessionStorage.getItem('pendingTermsVersion') || null,
               };
               
               const createResponse = await apiRequest('POST', '/api/users', newUserData);
               if (createResponse.ok) {
                 const createdUser = await createResponse.json();
                 setUser(createdUser);
+                // Clear the session storage
+                sessionStorage.removeItem('pendingDOB');
+                sessionStorage.removeItem('pendingTermsVersion');
               } else {
-                throw new Error("Failed to create user profile. The server may be experiencing issues.");
+                const errorData = await createResponse.json().catch(() => null);
+                // If the backend rejects the user creation (e.g. under 18, missing EULA)
+                // we must sign them out of Firebase so they aren't stuck in a ghost state.
+                await auth.signOut();
+                setFirebaseUser(null);
+                setUser(null);
+                throw new Error(errorData?.message || "Failed to create user profile. Please check your eligibility and try again.");
               }
             } else {
               throw new Error(`Server returned ${response.status}: Unable to load profile.`);

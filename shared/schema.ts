@@ -10,11 +10,16 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const CURRENT_TERMS_VERSION = "1.0";
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   firebaseUid: text("firebase_uid").notNull().unique(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
+  dateOfBirth: text("date_of_birth"),
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+  termsVersion: text("terms_version"),
   avatar: text("avatar"),
   bio: text("bio"),
   location: text("location"),

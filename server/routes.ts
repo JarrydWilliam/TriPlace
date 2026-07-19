@@ -7,7 +7,7 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
 import { z } from "zod";
 
 import express from "express";
@@ -70,6 +70,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const decodedToken = await adminApp.auth().verifyIdToken(idToken);
       req.firebaseUser = decodedToken;
+      
+      // Enforce Adult Eligibility / Profile Completion Gate for existing users
+      const { storage } = await import("./storage.js");
+      const dbUser = await storage.getUserByFirebaseUid(decodedToken.uid);
+      req.user = dbUser;
+      
+      let isCompliant = true;
+      if (dbUser) {
+        if (!dbUser.dateOfBirth || dbUser.termsVersion !== CURRENT_TERMS_VERSION || !dbUser.termsAcceptedAt) {
+          isCompliant = false;
+        }
+      }
+
+      if (dbUser && !isCompliant) {
+        // Strict allowlist for incomplete profiles
+        const isAllowedUserRoute = req.path === `/api/users/${dbUser.id}` && 
+          (req.method === 'GET' || req.method === 'PATCH' || req.method === 'DELETE');
+        
+        if (!isAllowedUserRoute) {
+          return res.status(403).json({ 
+            message: "Action restricted: You must complete your profile setup (18+ Date of Birth and Terms of Service).",
+            requiresCompletion: true 
+          });
+        }
+      }
+
       next();
     } catch (error) {
       console.error('[SameVibe] verifyIdToken error:', error);
@@ -178,6 +204,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      
+      // Enforce 18+ Age Gate (Strict compliance)
+      if (!userData.dateOfBirth) {
+        return res.status(400).json({ message: "Date of birth is required to join SameVibe." });
+      }
+      
+      const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dobRegex.test(userData.dateOfBirth)) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+      }
+
+      const [year, month, day] = userData.dateOfBirth.split('-').map(Number);
+      const today = new Date();
+      let age = today.getFullYear() - year;
+      const m = today.getMonth() + 1 - month;
+      if (m < 0 || (m === 0 && today.getDate() < day)) {
+        age--;
+      }
+
+      if (age < 18) {
+        return res.status(403).json({ message: "You must be at least 18 years old to join SameVibe." });
+      }
+
+      if (!userData.termsVersion || userData.termsVersion !== CURRENT_TERMS_VERSION) {
+        return res.status(400).json({ message: "You must accept the current Terms of Service." });
+      }
+      
+      // Enforce EULA timestamp
+      userData.termsAcceptedAt = new Date();
+
       const user = await storage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
@@ -191,7 +247,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = insertUserSchema.partial().parse(req.body);
+
+      if (!(req as any).user || (req as any).user.id !== id) {
+        return res.status(403).json({ message: "Forbidden: You can only update your own profile." });
+      }
+
+      // Strictly allowlist acceptable update fields to prevent mass-assignment
+      const allowedFields = [
+        'name', 'bio', 'avatar', 'location', 'latitude', 'longitude', 
+        'interests', 'discoverySettings', 'notificationSettings', 
+        'dateOfBirth', 'termsVersion'
+      ];
+      
+      const filteredUpdates: any = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) {
+          filteredUpdates[key] = req.body[key];
+        }
+      }
+
+      const updates = insertUserSchema.partial().parse(filteredUpdates);
+
+      // Enforce 18+ Age Gate for existing users completing their profile
+      if (updates.dateOfBirth) {
+        const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dobRegex.test(updates.dateOfBirth)) {
+          return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+        }
+
+        const [year, month, day] = updates.dateOfBirth.split('-').map(Number);
+        const today = new Date();
+        let age = today.getFullYear() - year;
+        const m = today.getMonth() + 1 - month;
+        if (m < 0 || (m === 0 && today.getDate() < day)) {
+          age--;
+        }
+
+        if (age < 18) {
+          return res.status(403).json({ message: "You must be at least 18 years old to use SameVibe." });
+        }
+      }
+
+      if (updates.termsVersion) {
+        if (updates.termsVersion !== CURRENT_TERMS_VERSION) {
+          return res.status(400).json({ message: "You must accept the current Terms of Service." });
+        }
+        updates.termsAcceptedAt = new Date();
+      }
+
       const user = await storage.updateUser(id, updates);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
