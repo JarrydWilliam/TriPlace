@@ -72,6 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
                 avatar: firebaseUser.photoURL,
                 interests: [],
+                dateOfBirth: sessionStorage.getItem('pendingDOB') || null,
               };
               
               const createResponse = await apiRequest('POST', '/api/users', newUserData);

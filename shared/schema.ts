@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   firebaseUid: text("firebase_uid").notNull().unique(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
+  dateOfBirth: text("date_of_birth"),
   avatar: text("avatar"),
   bio: text("bio"),
   location: text("location"),

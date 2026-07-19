@@ -178,6 +178,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      
+      // Enforce 18+ Age Gate (Strict compliance)
+      if (!userData.dateOfBirth) {
+        return res.status(400).json({ message: "Date of birth is required to join SameVibe." });
+      }
+      
+      const dob = new Date(userData.dateOfBirth);
+      const age = (Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (age < 18) {
+        return res.status(403).json({ message: "You must be at least 18 years old to join SameVibe." });
+      }
+
       const user = await storage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
