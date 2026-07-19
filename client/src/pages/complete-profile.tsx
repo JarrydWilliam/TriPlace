@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ComponentLoadingSpinner } from '@/components/loading-spinner';
+import { CURRENT_TERMS_VERSION } from '@shared/schema';
 
 export default function CompleteProfile() {
   const { user } = useAuth();
@@ -74,7 +75,7 @@ export default function CompleteProfile() {
 
     updateComplianceMutation.mutate({
       dateOfBirth,
-      termsVersion: '1.0'
+      termsVersion: CURRENT_TERMS_VERSION
     });
   };
 

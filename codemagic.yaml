@@ -10,7 +10,7 @@ workflows:
       
     environment:
       node: 20.11.0
-      xcode: latest
+      xcode: 26.6
       cocoapods: default
       groups:
         - samevibe_env        # VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
@@ -81,18 +81,20 @@ workflows:
 
       - name: Auto-increment build number (App Store Connect API)
         script: |
-          # Fetch the latest build number from TestFlight to guarantee uniqueness
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" || echo "")
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID")
           
-          if [ -z "$LATEST_BUILD_NUMBER" ]; then
-            echo "No previous TestFlight build found. Using Codemagic Build ID."
-            NEW_BUILD_NUMBER=$BUILD_NUMBER
-          else
-            NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
-            echo "Latest TestFlight build is $LATEST_BUILD_NUMBER. Incrementing to $NEW_BUILD_NUMBER."
+          if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Unable to determine the latest TestFlight build number."
+            exit 1
           fi
           
-          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $NEW_BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+          NEXT_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+          
+          cd ios/App
+          agvtool new-version -all "$NEXT_BUILD_NUMBER"
+          
+          echo "Latest TestFlight build: $LATEST_BUILD_NUMBER"
+          echo "Assigned candidate build: $NEXT_BUILD_NUMBER"
 
       - name: Build IPA
         script: |

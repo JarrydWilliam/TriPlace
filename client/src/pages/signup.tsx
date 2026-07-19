@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { Mail, Lock, User, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { CURRENT_TERMS_VERSION } from "@shared/schema";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -60,7 +61,7 @@ export default function Signup() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
       // Create user record in our DB
-      await apiRequest("POST", "/api/users", { firebaseUid: cred.user.uid, email, name, dateOfBirth, termsVersion: "1.0" }).catch((err) => {
+      await apiRequest("POST", "/api/users", { firebaseUid: cred.user.uid, email, name, dateOfBirth, termsVersion: CURRENT_TERMS_VERSION }).catch((err) => {
         if (!err.message.includes("already exists") && !err.message.includes("409")) {
           throw err;
         }
@@ -79,7 +80,7 @@ export default function Signup() {
     setLoading(true);
     try {
       sessionStorage.setItem("pendingDOB", dateOfBirth);
-      sessionStorage.setItem("pendingTermsVersion", "1.0");
+      sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
       await signInWithGoogle();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
@@ -105,7 +106,7 @@ export default function Signup() {
     setLoading(true);
     try {
       sessionStorage.setItem("pendingDOB", dateOfBirth);
-      sessionStorage.setItem("pendingTermsVersion", "1.0");
+      sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
       await signInWithApple();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;

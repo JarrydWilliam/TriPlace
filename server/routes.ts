@@ -7,7 +7,7 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
 import { z } from "zod";
 
 import express from "express";
@@ -76,7 +76,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dbUser = await storage.getUserByFirebaseUid(decodedToken.uid);
       req.user = dbUser;
       
-      if (dbUser && (!dbUser.dateOfBirth || !dbUser.termsVersion)) {
+      let isCompliant = true;
+      if (dbUser) {
+        if (!dbUser.dateOfBirth || dbUser.termsVersion !== CURRENT_TERMS_VERSION || !dbUser.termsAcceptedAt) {
+          isCompliant = false;
+        }
+      }
+
+      if (dbUser && !isCompliant) {
         // Strict allowlist for incomplete profiles
         const isAllowedUserRoute = req.path === `/api/users/${dbUser.id}` && 
           (req.method === 'GET' || req.method === 'PATCH' || req.method === 'DELETE');
@@ -220,8 +227,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You must be at least 18 years old to join SameVibe." });
       }
 
-      if (!userData.termsVersion) {
-        return res.status(400).json({ message: "You must accept the Terms of Service." });
+      if (!userData.termsVersion || userData.termsVersion !== CURRENT_TERMS_VERSION) {
+        return res.status(400).json({ message: "You must accept the current Terms of Service." });
       }
       
       // Enforce EULA timestamp
@@ -282,6 +289,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (updates.termsVersion) {
+        if (updates.termsVersion !== CURRENT_TERMS_VERSION) {
+          return res.status(400).json({ message: "You must accept the current Terms of Service." });
+        }
         updates.termsAcceptedAt = new Date();
       }
 
