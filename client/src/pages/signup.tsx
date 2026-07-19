@@ -226,7 +226,7 @@ export default function Signup() {
                     type="text"
                     autoComplete="name"
                     placeholder="Your name"
-                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="samevibe-premium-input pl-9 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -243,7 +243,7 @@ export default function Signup() {
                     inputMode="email"
                     autoComplete="email"
                     placeholder="you@example.com"
-                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="samevibe-premium-input pl-9 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -258,7 +258,7 @@ export default function Signup() {
                     id="password"
                     type="password"
                     placeholder="Min. 6 characters"
-                    className="pl-9 bg-muted/30 border-border/50 text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-primary/20 rounded-xl transition-all min-h-[44px]"
+                    className="samevibe-premium-input pl-9 pr-10 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
