@@ -60,7 +60,7 @@ export default function Signup() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
       // Create user record in our DB
-      await apiRequest("POST", "/api/users", { firebaseUid: cred.user.uid, email, name, dateOfBirth }).catch((err) => {
+      await apiRequest("POST", "/api/users", { firebaseUid: cred.user.uid, email, name, dateOfBirth, termsVersion: "1.0" }).catch((err) => {
         if (!err.message.includes("already exists") && !err.message.includes("409")) {
           throw err;
         }
@@ -79,6 +79,7 @@ export default function Signup() {
     setLoading(true);
     try {
       sessionStorage.setItem("pendingDOB", dateOfBirth);
+      sessionStorage.setItem("pendingTermsVersion", "1.0");
       await signInWithGoogle();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
@@ -104,6 +105,7 @@ export default function Signup() {
     setLoading(true);
     try {
       sessionStorage.setItem("pendingDOB", dateOfBirth);
+      sessionStorage.setItem("pendingTermsVersion", "1.0");
       await signInWithApple();
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;

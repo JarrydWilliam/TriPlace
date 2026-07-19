@@ -16,6 +16,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   dateOfBirth: text("date_of_birth"),
+  termsAcceptedAt: timestamp("terms_accepted_at"),
+  termsVersion: text("terms_version"),
   avatar: text("avatar"),
   bio: text("bio"),
   location: text("location"),

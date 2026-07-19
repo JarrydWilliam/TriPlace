@@ -33,6 +33,7 @@ import Signup from "@/pages/signup";
 import Reveal from "@/pages/reveal";
 import Discover from "@/pages/discover";
 import DeleteAccount from "@/pages/delete-account";
+import CompleteProfile from "@/pages/complete-profile";
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
 import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
@@ -95,16 +96,19 @@ function Router() {
       const isGoogleUser = firebaseUser.providerId === 'google.com' || firebaseUser.providerData.some(p => p.providerId === 'google.com');
       
       const requiresProfile = !isGoogleUser && needsProfileSetup;
+      const needsCompliance = !user.dateOfBirth || !user.termsVersion;
       
       const publicRoutes = ['/terms', '/privacy', '/delete-account'];
       const isPublicRoute = publicRoutes.includes(location);
 
       if (!isPublicRoute) {
-        if (requiresProfile && location !== '/profile-setup') {
+        if (needsCompliance && location !== '/complete-profile') {
+          setLocation('/complete-profile');
+        } else if (!needsCompliance && requiresProfile && location !== '/profile-setup') {
           setLocation('/profile-setup');
-        } else if (!requiresProfile && needsOnboarding && location !== '/onboarding') {
+        } else if (!needsCompliance && !requiresProfile && needsOnboarding && location !== '/onboarding') {
           setLocation('/onboarding');
-        } else if (!requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup', '/onboarding', '/profile-setup'].includes(location)) {
+        } else if (!needsCompliance && !requiresProfile && !needsOnboarding && ['/', '', '/login', '/signup', '/onboarding', '/profile-setup', '/complete-profile'].includes(location)) {
           setLocation('/dashboard');
         }
       }
@@ -151,6 +155,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/profile-setup" component={ProfileSetup} />
+      <Route path="/complete-profile" component={CompleteProfile} />
       <Route path="/profile" component={Profile} />
       <Route path="/profile/:userId" component={Profile} />
       <Route path="/messaging" component={Messaging} />

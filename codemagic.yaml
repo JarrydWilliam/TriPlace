@@ -43,6 +43,12 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Verify Xcode Version (Compliance)
+        script: |
+          echo "Expected: Xcode 26 or later, iOS 26 SDK or later (July 2026 requirement)"
+          xcodebuild -version
+          xcodebuild -showsdks
+
       - name: Set up keychain and code signing
         script: |
           # Fail immediately if any command fails
@@ -73,11 +79,20 @@ workflows:
           echo "Code signing setup successful. Downloaded profiles:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      - name: Auto-increment build number
+      - name: Auto-increment build number (App Store Connect API)
         script: |
-          # Dynamically set the Xcode build number to match the Codemagic Build ID
-          # This prevents Apple from rejecting the upload due to duplicate build numbers.
-          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+          # Fetch the latest build number from TestFlight to guarantee uniqueness
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" || echo "")
+          
+          if [ -z "$LATEST_BUILD_NUMBER" ]; then
+            echo "No previous TestFlight build found. Using Codemagic Build ID."
+            NEW_BUILD_NUMBER=$BUILD_NUMBER
+          else
+            NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+            echo "Latest TestFlight build is $LATEST_BUILD_NUMBER. Incrementing to $NEW_BUILD_NUMBER."
+          fi
+          
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $NEW_BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
 
       - name: Build IPA
         script: |
