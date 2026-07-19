@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { ChevronLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import { ComponentLoadingSpinner } from '@/components/loading-spinner';
 import { CURRENT_TERMS_VERSION } from '@shared/schema';
 
 export default function CompleteProfile() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -21,6 +22,7 @@ export default function CompleteProfile() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const updateComplianceMutation = useMutation({
     mutationFn: async (data: { dateOfBirth: string; termsVersion: string }) => {
@@ -93,6 +95,22 @@ export default function CompleteProfile() {
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#9b87f5]/20 blur-[120px]" />
+      </div>
+
+      <div className="absolute top-safe-pt left-4 z-10" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full w-10 h-10 bg-black/20 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-black/40 mt-4"
+          onClick={async () => {
+            setIsSigningOut(true);
+            await signOut();
+            setIsSigningOut(false);
+          }}
+          disabled={isSigningOut || updateComplianceMutation.isPending}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </Button>
       </div>
 
       <Card className="w-full max-w-md bg-card/40 backdrop-blur-xl border-white/10 shadow-2xl">
