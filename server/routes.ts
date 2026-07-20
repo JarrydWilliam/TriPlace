@@ -709,8 +709,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req as any).user.id;
       const { status = "interested" } = req.body;
       
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      const attendees = await storage.getEventAttendees(eventId);
+      if (attendees.some(a => a.id === userId)) {
+        return res.status(409).json({ message: "Already registered" });
+      }
+
+      if (event.maxAttendees && attendees.length >= event.maxAttendees) {
+        return res.status(403).json({ message: "Event is at capacity" });
+      }
+
       const registration = await storage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/events/:id/register", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      
+      if (!(req as any).user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      const userId = (req as any).user.id;
+      
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      const success = await storage.unregisterFromEvent(userId, eventId);
+      if (success) {
+        res.status(200).json({ message: "Successfully unregistered" });
+      } else {
+        res.status(404).json({ message: "Registration not found" });
+      }
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
