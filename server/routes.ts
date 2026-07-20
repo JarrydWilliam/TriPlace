@@ -58,6 +58,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const adminApp = getAdminApp();
     if (!adminApp) {
       console.warn('[SameVibe] Auth bypassed: Firebase Admin is not configured. Trusting client.');
+      if (req.headers['x-mock-user-id']) {
+        const { storage } = await import("./storage.js");
+        req.user = await storage.getUser(parseInt(req.headers['x-mock-user-id']));
+      }
       return next(); 
     }
 
