@@ -616,30 +616,67 @@ export class DatabaseStorage implements IStorage {
   }
 
   async registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee> {
-    const result = await db.execute(sql`
-      INSERT INTO event_attendees (user_id, event_id, status, registered_at)
-      SELECT ${userId}, ${eventId}, ${status}, NOW()
+    const lockEventQuery = `
+      SELECT id, status, date, max_attendees
       FROM events
-      WHERE events.id = ${eventId}
-      AND events.status = 'active'
-      AND events.date > NOW()
-      AND (
-        events.max_attendees IS NULL OR 
-        events.max_attendees > (SELECT COUNT(*) FROM event_attendees WHERE event_id = ${eventId})
-      )
-      RETURNING *
-    `);
+      WHERE id = $1
+        AND status = 'active'
+        AND date > NOW()
+      FOR UPDATE
+    `;
 
-    if (result.rows.length === 0) {
-      throw new Error('Event is at capacity, unavailable, or does not exist');
+    const insertAttendanceQuery = `
+      INSERT INTO event_attendees (user_id, event_id, status, registered_at)
+      SELECT $2, e.id, $3, NOW()
+      FROM events e
+      WHERE e.id = $1
+        AND e.status = 'active'
+        AND e.date > NOW()
+        AND (
+          e.max_attendees IS NULL
+          OR (
+            SELECT COUNT(*)
+            FROM event_attendees ea
+            WHERE ea.event_id = e.id
+          ) < e.max_attendees
+        )
+      RETURNING *
+    `;
+
+    // Use the underlying neon query function to guarantee a batched HTTP transaction
+    const { neon } = await import('@neondatabase/serverless');
+    const sqlNeon = neon(process.env.DATABASE_URL!);
+
+    let results;
+    try {
+      results = await sqlNeon.transaction([
+        sqlNeon(lockEventQuery, [eventId]),
+        sqlNeon(insertAttendanceQuery, [eventId, userId, status])
+      ], {
+        isolationMode: "ReadCommitted",
+        readOnly: false
+      });
+    } catch (error: any) {
+      throw error;
+    }
+
+    const lockResult = results[0];
+    const insertResult = results[1];
+
+    if (lockResult.length === 0) {
+      throw new Error('Event not found or unavailable'); // Translated to 404 in routes.ts
+    }
+
+    if (insertResult.length === 0) {
+      throw new Error('Event is at capacity'); // Translated to 409 in routes.ts
     }
 
     return {
-      id: result.rows[0].id as number,
-      userId: result.rows[0].user_id as number,
-      eventId: result.rows[0].event_id as number,
-      status: result.rows[0].status as string,
-      registeredAt: new Date(result.rows[0].registered_at as string)
+      id: insertResult[0].id as number,
+      userId: insertResult[0].user_id as number,
+      eventId: insertResult[0].event_id as number,
+      status: insertResult[0].status as string,
+      registeredAt: new Date(insertResult[0].registered_at as string)
     };
   }
 

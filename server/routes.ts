@@ -716,7 +716,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const registration = await storage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
     } catch (error: any) {
-      if (error.code === '23505' || error.message.includes('Already registered')) {
+      if (error.code === '23505' && error.constraint === 'event_attendees_event_user_unique') {
         return res.status(409).json({ message: "Already registered" });
       }
       if (error.message.includes('capacity')) {
