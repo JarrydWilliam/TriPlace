@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin, Clock, Users, DollarSign } from "lucide-react";
@@ -63,6 +63,9 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
           <DialogTitle className="text-xl font-bold text-foreground">
             {event.title}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Event details and available actions
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
