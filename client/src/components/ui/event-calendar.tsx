@@ -23,13 +23,7 @@ export function EventCalendar({ events, onEventClick }: EventCalendarProps) {
 
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
-      const response = await fetch(getApiUrl(`/api/events/${eventId}/mark-attended`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, attended: true })
-      });
+      const response = await apiRequest('POST', `/api/events/${eventId}/mark-attended`, { userId: user!.id });
       
       if (!response.ok) {
         throw new Error('Failed to mark attendance');

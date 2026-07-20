@@ -109,7 +109,7 @@ function DMThread({
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentUserId, otherUser.id],
     queryFn: async () => {
-      const res = await fetch(getApiUrl(`/api/conversations/${currentUserId}/${otherUser.id}`));
+      const res = await apiRequest("GET", `/api/conversations/${currentUserId}/${otherUser.id}`);
       return res.ok ? res.json() : [];
     },
     refetchInterval: 3000, // Poll every 3s for new messages

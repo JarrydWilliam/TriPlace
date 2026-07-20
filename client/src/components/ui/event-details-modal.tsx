@@ -7,7 +7,7 @@ import { Event } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { getApiUrl } from "@/lib/queryClient";
+import { getApiUrl, apiRequest } from "@/lib/queryClient";
 
 interface EventDetailsModalProps {
   event: Event | null;
@@ -22,13 +22,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
 
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
-      const response = await fetch(getApiUrl(`/api/events/${eventId}/mark-attended`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, attended: true })
-      });
+      const response = await apiRequest('POST', `/api/events/${eventId}/mark-attended`, { userId: user?.id });
       
       if (!response.ok) {
         throw new Error('Failed to mark attendance');

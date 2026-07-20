@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from './use-websocket';
 import { useAuth } from './use-auth';
 import { useEffect, useState } from 'react';
-import { getApiUrl } from '@/lib/queryClient';
+import { getApiUrl, apiRequest } from '@/lib/queryClient';
 
 interface LiveMemberData {
   communityId: number;
@@ -20,7 +20,7 @@ export function useLiveMembers(communityIds: number[]) {
     queryFn: async () => {
       const results = await Promise.all(
         communityIds.map(async (id) => {
-          const response = await fetch(getApiUrl(`/api/communities/${id}/members/live`));
+          const response = await apiRequest("GET", `/api/communities/${id}/members/live`);
           const data = await response.json();
           return { communityId: id, liveCount: data.totalLive || 0 };
         })
@@ -46,7 +46,7 @@ export function useLiveMembers(communityIds: number[]) {
   useEffect(() => {
     if (user && isConnected) {
       // Send heartbeat to update user activity
-      fetch(getApiUrl(`/api/users/${user.id}/activity`), { method: 'POST' });
+      apiRequest("POST", `/api/users/${user.id}/activity`).catch(console.error);
     }
   }, [user, isConnected]);
 

@@ -93,15 +93,9 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
 
     try {
       setJoiningEventId(eventId);
-      const response = await fetch(getApiUrl(`/api/events/${eventId}/register`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          userId: user.id,
-          status: "going"
-        })
+      const response = await apiRequest('POST', `/api/events/${eventId}/register`, {
+        userId: user.id,
+        status: "going"
       });
 
       if (!response.ok) {
@@ -317,7 +311,7 @@ export default function CommunityPage() {
     queryKey: ["/api/communities", communityId, "messages"],
     enabled: !!communityId,
     queryFn: async () => {
-      const response = await fetch(getApiUrl(`/api/communities/${communityId}/messages`));
+      const response = await apiRequest("GET", `/api/communities/${communityId}/messages`);
       if (!response.ok) throw new Error('Failed to fetch messages');
       return response.json();
     },

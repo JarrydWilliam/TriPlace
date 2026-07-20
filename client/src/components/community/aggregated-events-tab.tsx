@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { trackEvent } from "@/lib/telemetry";
-import { getApiUrl } from "@/lib/queryClient";
+import { getApiUrl, apiRequest } from "@/lib/queryClient";
 
 interface Event {
   id: number;
@@ -50,13 +50,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
   const handleJoinEvent = async (eventId: number, eventTitle: string) => {
     try {
       setJoiningEventId(eventId);
-      const response = await fetch(getApiUrl(`/api/events/${eventId}/register`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user?.id || 1 }),
-      });
+      const response = await apiRequest('POST', `/api/events/${eventId}/register`, { userId: user?.id || 1 });
 
       if (!response.ok) {
         throw new Error('Failed to join event');
