@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  unique
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -117,7 +118,9 @@ export const eventAttendees = pgTable("event_attendees", {
     .notNull(),
   status: text("status").default("interested"), // interested, going, attended
   registeredAt: timestamp("registered_at").defaultNow(),
-});
+}, (t) => ({
+  unq: unique("event_attendees_event_user_unique").on(t.eventId, t.userId),
+}));
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),

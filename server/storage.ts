@@ -616,13 +616,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee> {
-    const [attendee] = await db.insert(eventAttendees).values({
-      userId,
-      eventId,
-      status,
-      registeredAt: new Date()
-    }).returning();
-    return attendee;
+    const result = await db.execute(sql`
+      INSERT INTO event_attendees (user_id, event_id, status, registered_at)
+      SELECT ${userId}, ${eventId}, ${status}, NOW()
+      FROM events
+      WHERE events.id = ${eventId}
+      AND events.status = 'active'
+      AND events.date > NOW()
+      AND (
+        events.max_attendees IS NULL OR 
+        events.max_attendees > (SELECT COUNT(*) FROM event_attendees WHERE event_id = ${eventId})
+      )
+      RETURNING *
+    `);
+
+    if (result.rows.length === 0) {
+      throw new Error('Event is at capacity, unavailable, or does not exist');
+    }
+
+    return {
+      id: result.rows[0].id as number,
+      userId: result.rows[0].user_id as number,
+      eventId: result.rows[0].event_id as number,
+      status: result.rows[0].status as string,
+      registeredAt: new Date(result.rows[0].registered_at as string)
+    };
   }
 
   async unregisterFromEvent(userId: number, eventId: number): Promise<boolean> {

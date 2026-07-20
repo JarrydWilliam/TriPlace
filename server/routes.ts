@@ -31,7 +31,11 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
   });
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export interface RouteOptions {
+  authMiddleware?: any;
+}
+
+export async function registerRoutes(app: Express, options?: RouteOptions): Promise<Server> {
   // --- Admin Security Middleware ---
   // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
   // Any non-empty header is NOT sufficient — the value must match the secret exactly.
@@ -53,16 +57,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  const requireAuth = async (req: any, res: any, next: any) => {
+  const requireAuth = options?.authMiddleware || (async (req: any, res: any, next: any) => {
     const { getAdminApp } = await import("./utils/firebase-admin.js");
     const adminApp = getAdminApp();
     if (!adminApp) {
-      console.warn('[SameVibe] Auth bypassed: Firebase Admin is not configured. Trusting client.');
-      if (req.headers['x-mock-user-id']) {
-        const { storage } = await import("./storage.js");
-        req.user = await storage.getUser(parseInt(req.headers['x-mock-user-id']));
-      }
-      return next(); 
+      console.error('[SameVibe] Auth failed: Firebase Admin is not configured.');
+      return res.status(401).json({ message: "Firebase Admin is not configured." });
     }
 
     const authHeader = req.headers.authorization;
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('[SameVibe] verifyIdToken error:', error);
       return res.status(401).json({ message: "Invalid or expired authentication token." });
     }
-  };
+  });
 
   // Telemetry routes
   app.post("/api/telemetry", async (req, res) => {
@@ -713,23 +713,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req as any).user.id;
       const { status = "interested" } = req.body;
       
-      const event = await storage.getEvent(eventId);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-
-      const attendees = await storage.getEventAttendees(eventId);
-      if (attendees.some(a => a.id === userId)) {
-        return res.status(409).json({ message: "Already registered" });
-      }
-
-      if (event.maxAttendees && attendees.length >= event.maxAttendees) {
-        return res.status(403).json({ message: "Event is at capacity" });
-      }
-
       const registration = await storage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === '23505' || error.message.includes('Already registered')) {
+        return res.status(409).json({ message: "Already registered" });
+      }
+      if (error.message.includes('capacity')) {
+        return res.status(409).json({ message: "Event is at capacity" });
+      }
+      if (error.message.includes('unavailable') || error.message.includes('not exist')) {
+        return res.status(404).json({ message: "Event not found or unavailable" });
+      }
       res.status(500).json({ message: "Internal server error" });
     }
   });
