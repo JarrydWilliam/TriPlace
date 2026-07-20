@@ -183,14 +183,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
+      
+      // Strip sensitive PII fields for public profile viewing
+      const {
+        firebaseUid,
+        email,
+        dateOfBirth,
+        termsVersion,
+        termsAcceptedAt,
+        subscriptionStatus,
+        paymentTier,
+        ...publicUser
+      } = user;
+      
+      res.json(publicUser);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.get("/api/users/firebase/:uid", async (req, res) => {
+  app.get("/api/users/firebase/:uid", requireAuth, async (req, res) => {
     try {
+      if ((req as any).firebaseUser?.uid !== req.params.uid) {
+        return res.status(403).json({ message: "Unauthorized profile access" });
+      }
       const user = await storage.getUserByFirebaseUid(req.params.uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -315,6 +331,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
+      
+      const authUser = (req as any).user;
+      if (!authUser || authUser.id !== id) {
+        return res.status(403).json({ message: "Unauthorized deletion attempt" });
+      }
+
       const success = await storage.deleteUser(id);
       if (!success) {
         return res.status(404).json({ message: "User not found" });
@@ -546,16 +568,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dynamic community members based on location and interests
-  app.get("/api/communities/:id/dynamic-members", async (req, res) => {
+  app.get("/api/communities/:id/dynamic-members", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { latitude, longitude, userId } = req.query;
+      const { latitude, longitude } = req.query;
+      const userId = (req as any).user?.id;
       
       if (isNaN(id) || !latitude || !longitude || !userId) {
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      const user = await storage.getUser(parseInt(userId as string));
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -872,10 +895,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get("/api/conversations/:userId1/:userId2", async (req, res) => {
+  app.get("/api/conversations/:userId1/:userId2", requireAuth, async (req, res) => {
     try {
       const userId1 = parseInt(req.params.userId1);
       const userId2 = parseInt(req.params.userId2);
+      
+      const authUser = (req as any).user;
+      if (!authUser || (authUser.id !== userId1 && authUser.id !== userId2)) {
+        return res.status(403).json({ message: "Unauthorized access to messages" });
+      }
+
       const messages = await storage.getConversation(userId1, userId2);
       res.json(messages);
     } catch (error) {
@@ -883,9 +912,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/conversations", async (req, res) => {
+  app.get("/api/users/:id/conversations", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const authUser = (req as any).user;
+      
+      if (!authUser || authUser.id !== userId) {
+        return res.status(403).json({ message: "Unauthorized access to conversations" });
+      }
+
       const rawConversations = await storage.getUserConversations(userId);
       
       // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
@@ -1307,13 +1342,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Community messaging routes
-  app.get("/api/communities/:id/messages", async (req, res) => {
+  app.get("/api/communities/:id/messages", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       if (isNaN(communityId)) {
         return res.status(400).json({ message: "Invalid community ID" });
       }
       
+      const authUser = (req as any).user;
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Verify membership
+      const userCommunities = await storage.getUserCommunities(authUser.id);
+      const isMember = userCommunities.some((c: any) => c.communityId === communityId || c.id === communityId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Only members can view community messages" });
+      }
+
       const messages = await storage.getCommunityMessages(communityId);
       res.json(messages);
     } catch (error) {
