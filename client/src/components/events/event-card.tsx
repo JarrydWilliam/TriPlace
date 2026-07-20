@@ -18,7 +18,6 @@ import { Calendar, MapPin, Users, Heart, DollarSign, ExternalLink, Check, Sparkl
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { VerificationModal } from "../trust/verification-modal";
 import { openExternalUrl } from "@/lib/utils";
 import { trackEvent } from "@/lib/telemetry";
 
@@ -42,7 +41,6 @@ export function EventCard({
   loading = false 
 }: EventCardProps) {
   const { user } = useAuth();
-  const [showVerification, setShowVerification] = useState(false);
   const [showExternalWarning, setShowExternalWarning] = useState(false);
   const [dontShowExternalWarning, setDontShowExternalWarning] = useState(false);
 
@@ -232,12 +230,7 @@ export function EventCard({
                       return;
                     }
 
-                    // Native RSVP Flow with Progressive Trust
-                    if (!user || user.trustLevel === 0) {
-                      setShowVerification(true);
-                      return;
-                    }
-
+                    // Native RSVP Flow
                     onRegister();
                   }}
                   disabled={loading}
@@ -260,18 +253,8 @@ export function EventCard({
         </div>
       </CardContent>
       
-      {user && (
-        <VerificationModal 
-          isOpen={showVerification}
-          onClose={() => setShowVerification(false)}
-          userId={user.id}
-          onVerified={() => {
-            setShowVerification(false);
-            if (onRegister) onRegister();
-          }}
-        />
-      )}
-
+      {/* VerificationModal Removed */}
+      
       <AlertDialog open={showExternalWarning} onOpenChange={setShowExternalWarning}>
         <AlertDialogContent className="bg-gray-900 border-gray-800 text-white">
           <AlertDialogHeader>
