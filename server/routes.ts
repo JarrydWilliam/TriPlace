@@ -184,7 +184,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Strip sensitive PII fields for public profile viewing
       const {
         firebaseUid,
         email,
@@ -192,7 +191,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         termsVersion,
         termsAcceptedAt,
         subscriptionStatus,
+        subscriptionStart,
+        subscriptionEnd,
         paymentTier,
+        trustLevel,
+        notificationSettings,
+        discoverySettings,
+        quizAnswers,
         ...publicUser
       } = user;
       
