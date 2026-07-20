@@ -697,11 +697,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const eventId = parseInt(req.params.id);
       
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ message: "User not found" });
       }
       
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
       const { status = "interested" } = req.body;
       
       const registration = await storage.registerForEvent(userId, eventId, status);

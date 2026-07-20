@@ -55,7 +55,7 @@ export default function SupportSettings() {
       questions: [
         { q: "How do community events work?", a: "Communities can host paid or free events. Revenue from paid events supports community organizers." },
         { q: "What are kudos?", a: "A way to show appreciation to community members for helpful contributions or positive interactions." },
-        { q: "Can I create my own community?", a: "Community creation is currently limited to verified users. Contact support for more information." }
+        { q: "Can I create my own community?", a: "Community creation is currently limited to approved partner organizers. Contact support for more information." }
       ]
     }
   ];
