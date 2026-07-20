@@ -696,11 +696,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/register", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId, status = "interested" } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      if (!req.user) {
+        return res.status(401).json({ message: "User not found" });
       }
+      
+      const userId = req.user.id;
+      const { status = "interested" } = req.body;
       
       const registration = await storage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
