@@ -120,17 +120,11 @@ export const signInWithApple = async () => {
       if (nativeResult.credential.authorizationCode && result.user) {
         try {
           const token = await result.user.getIdToken();
-          await fetch('/api/auth/apple/exchange', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ 
-              authorizationCode: nativeResult.credential.authorizationCode,
-              identityToken: nativeResult.credential.idToken,
-              nonce: nativeResult.credential.nonce
-            })
+          const { apiRequest } = await import('./queryClient');
+          await apiRequest('POST', '/api/auth/apple/exchange', {
+            authorizationCode: nativeResult.credential.authorizationCode,
+            identityToken: nativeResult.credential.idToken,
+            nonce: nativeResult.credential.nonce
           });
         } catch (error) {
           console.error("Failed to send Apple authorization code to backend:", error);
