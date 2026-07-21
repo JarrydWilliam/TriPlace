@@ -48,27 +48,6 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       appAdminApp = getAdminApp();
     } catch(e) {}
   }
-  // --- Admin Security Middleware ---
-  // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
-  // Any non-empty header is NOT sufficient — the value must match the secret exactly.
-  const requireAdmin = (req: any, res: any, next: any) => {
-    const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
-
-    // If ADMIN_SECRET_KEY is not configured, lock down all admin routes completely.
-    if (!ADMIN_SECRET) {
-      console.error('[SameVibe] ADMIN_SECRET_KEY is not set — all admin routes are locked.');
-      return res.status(503).json({ message: "Admin routes are not configured on this server." });
-    }
-
-    const providedKey = req.headers['x-admin-key'] || req.body?.adminKey;
-
-    if (!providedKey || providedKey !== ADMIN_SECRET) {
-      return res.status(403).json({ message: "Forbidden: Invalid or missing admin key." });
-    }
-
-    next();
-  };
-
   const requireAuth = options?.authMiddleware || (async (req: any, res: any, next: any) => {
     let adminApp = appAdminApp;
     if (!adminApp) {
@@ -117,6 +96,32 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       return res.status(401).json({ message: "Invalid or expired authentication token." });
     }
   });
+
+  // --- Admin Security Middleware ---
+  const requireAdmin = (req: any, res: any, next: any) => {
+    // Authenticate the user first
+    requireAuth(req, res, async () => {
+      const allowedUidsStr = process.env.ADMIN_FIREBASE_UIDS;
+      if (!allowedUidsStr) {
+        console.error('[SameVibe] ADMIN_FIREBASE_UIDS is not set — all admin routes are locked.');
+        return res.status(403).json({ message: "Admin routes are not configured on this server." });
+      }
+
+      const allowedUids = allowedUidsStr.split(',').map(s => s.trim()).filter(Boolean);
+      if (allowedUids.length === 0) {
+        return res.status(403).json({ message: "Admin routes are not configured on this server." });
+      }
+
+      const userUid = req.user?.firebaseUid || req.firebaseUser?.uid;
+      
+      // Exact membership required. Substring does not match implicitly because we use strict array includes.
+      if (!userUid || !allowedUids.includes(userUid)) {
+        return res.status(403).json({ message: "Forbidden: Not an authorized admin." });
+      }
+
+      next();
+    });
+  };
 
   // Telemetry routes
   app.post("/api/telemetry", async (req, res) => {
@@ -1045,6 +1050,36 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
+  app.get("/api/admin/reports/:id/evidence", requireAdmin, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const report = await appStorage.getReportById(reportId);
+      if (!report) return res.status(404).json({ message: "Not found" });
+      
+      let evidence: any = { report };
+      if (report.targetType === 'message') {
+        const message = await appStorage.getMessage(report.targetId);
+        if (message) {
+          evidence.message = message;
+          // Bounded context to minimize exposure (e.g. 50 messages around target)
+          const convo = await appStorage.getConversation(message.senderId, message.receiverId || report.reporterId);
+          evidence.boundedContext = convo.filter((m: any) => Math.abs(m.id - message.id) <= 25);
+        }
+      } else if (report.targetType === 'user') {
+        // Do not return entire account history or all conversations
+        evidence.priorReports = [];
+        evidence.explicitEvidence = report.details ? [{ type: 'reference', content: report.details }] : [];
+      } else {
+        // For events, communities, posts
+        evidence.targetObject = report.targetId;
+      }
+      
+      res.json(evidence);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch evidence" });
+    }
+  });
+
   app.patch("/api/admin/reports/:id/status", requireAdmin, async (req, res) => {
     try {
       const { status, details } = req.body;
@@ -1163,18 +1198,34 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.patch("/api/messages/:id/read", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const authUser = (req as any).user!;
+
+      // Check community messages
+      const commMsg = await appStorage.getCommunityMessage(id);
+      if (commMsg) {
+        const userCommunities = await appStorage.getUserCommunities(authUser.id);
+        const isMember = userCommunities.some((c: any) => c.communityId === commMsg.communityId || c.id === commMsg.communityId);
+        if (!isMember) return res.status(403).json({ message: "Not a community member." });
+        return res.json({ message: "Community message marked as read" });
+      }
+
+      // Check event messages
+      const evtMsg = await appStorage.getEventMessage(id);
+      if (evtMsg) {
+        const attendees = await appStorage.getEventAttendees(evtMsg.eventId);
+        const isAttendee = attendees.some((a: any) => a.userId === authUser.id && (a.status === 'going' || a.status === 'interested' || a.status === 'attended'));
+        if (!isAttendee) return res.status(403).json({ message: "Not an event attendee." });
+        return res.json({ message: "Event message marked as read" });
+      }
+
       const message = await appStorage.getMessage(id);
       if (!message) {
         return res.status(404).json({ message: "Message not found" });
       }
-      if (message.receiverId !== (req as any).user!.id) {
-        return res.status(403).json({ message: "Cannot mark another user's message as read" });
-      }
-      const success = await appStorage.markMessageAsRead(id);
-      if (!success) {
-        return res.status(404).json({ message: "Message not found" });
-      }
-      res.json({ message: "Message marked as read" });
+
+      // Historical direct message -> 403 for ordinary users
+      return res.status(403).json({ message: "Historical direct messages cannot be marked as read." });
+
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }

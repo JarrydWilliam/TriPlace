@@ -7,7 +7,9 @@ import {
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent,
-  type UserBlock, type InsertUserBlock, Report, InsertReport
+  type UserBlock, type InsertUserBlock, Report, InsertReport,
+  type EventMessage, InsertEventMessage,
+  eventMessages
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -65,7 +67,9 @@ export interface IStorage {
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
+  getCommunityMessage(id: number): Promise<CommunityMessage | undefined>;
   getCommunityMessages(communityId: number): Promise<(CommunityMessage & { sender: User, resonateCount: number })[]>;
+  getEventMessage(id: number): Promise<EventMessage | undefined>;
   sendCommunityMessage(message: InsertCommunityMessage): Promise<CommunityMessage>;
   resonateMessage(messageId: number, userId: number): Promise<boolean>;
   
@@ -823,6 +827,14 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
+  async getCommunityMessage(id: number): Promise<CommunityMessage | undefined> {
+    const [msg] = await db.select().from(communityMessages).where(eq(communityMessages.id, id));
+    return msg;
+  }
+  async getEventMessage(id: number): Promise<EventMessage | undefined> {
+    const [msg] = await db.select().from(eventMessages).where(eq(eventMessages.id, id));
+    return msg;
+  }
   async getCommunityMessages(communityId: number): Promise<(CommunityMessage & { sender: User, resonateCount: number })[]> {
     // Get messages for specific community only
     const result = await db
