@@ -652,10 +652,7 @@ export class DatabaseStorage implements IStorage {
       results = await sqlNeon.transaction([
         sqlNeon(lockEventQuery, [eventId]),
         sqlNeon(insertAttendanceQuery, [eventId, userId, status])
-      ], {
-        isolationMode: "ReadCommitted",
-        readOnly: false
-      });
+      ]);
     } catch (error: any) {
       throw error;
     }

@@ -9,8 +9,8 @@ import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
 import { z } from "zod";
-
 import express from "express";
+import { filterUGC } from "./utils/content-filter.js";
 
 // Track active WebSocket connections for real-time member detection
 const activeConnections = new Map<number, { ws: WebSocket, lastActivity: Date }>();
@@ -33,9 +33,21 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
 
 export interface RouteOptions {
   authMiddleware?: any;
+  storage?: any;
+  appleAuthService?: any;
+  adminApp?: any;
 }
 
 export async function registerRoutes(app: Express, options?: RouteOptions): Promise<Server> {
+  const appStorage = options?.storage || (await import("./storage.js")).storage;
+  const appAppleAuthService = options?.appleAuthService || (await import("./services/apple-auth-service.js")).appleAuthService;
+  let appAdminApp = options?.adminApp;
+  if (!appAdminApp) {
+    try {
+      const { getAdminApp } = await import("./utils/firebase-admin.js");
+      appAdminApp = getAdminApp();
+    } catch(e) {}
+  }
   // --- Admin Security Middleware ---
   // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
   // Any non-empty header is NOT sufficient — the value must match the secret exactly.
@@ -58,8 +70,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   };
 
   const requireAuth = options?.authMiddleware || (async (req: any, res: any, next: any) => {
-    const { getAdminApp } = await import("./utils/firebase-admin.js");
-    const adminApp = getAdminApp();
+    let adminApp = appAdminApp;
     if (!adminApp) {
       console.error('[SameVibe] Auth failed: Firebase Admin is not configured.');
       return res.status(401).json({ message: "Firebase Admin is not configured." });
@@ -76,8 +87,8 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       req.firebaseUser = decodedToken;
       
       // Enforce Adult Eligibility / Profile Completion Gate for existing users
-      const { storage } = await import("./storage.js");
-      const dbUser = await storage.getUserByFirebaseUid(decodedToken.uid);
+      
+      const dbUser = await appStorage.getUserByFirebaseUid(decodedToken.uid);
       req.user = dbUser;
       
       let isCompliant = true;
@@ -111,7 +122,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.post("/api/telemetry", async (req, res) => {
     try {
       const eventData = insertTelemetryEventSchema.parse(req.body);
-      const event = await storage.createTelemetryEvent(eventData);
+      const event = await appStorage.createTelemetryEvent(eventData);
       res.status(201).json(event);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -123,7 +134,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
   app.get("/api/admin/metrics", requireAdmin, async (req, res) => {
     try {
-      const allEvents = await storage.getTelemetryEvents();
+      const allEvents = await appStorage.getTelemetryEvents();
       
       // Calculate Funnel Metrics
       const counts = {
@@ -136,7 +147,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         external_source_click: 0,
       };
 
-      allEvents.forEach(e => {
+      allEvents.forEach((e: any) => {
         if (counts.hasOwnProperty(e.eventType)) {
           (counts as any)[e.eventType]++;
         }
@@ -153,11 +164,11 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
       // Average "Would You Go?" Score (mocked if no metadata)
       const intentScores = allEvents
-        .filter(e => e.eventType === 'rsvp_intent' && e.metadata && (e.metadata as any).score)
-        .map(e => (e.metadata as any).score as number);
+        .filter((e: any) => e.eventType === 'rsvp_intent' && e.metadata && (e.metadata as any).score)
+        .map((e: any) => (e.metadata as any).score as number);
       
       const avgWouldYouGo = intentScores.length > 0
-        ? intentScores.reduce((a, b) => a + b, 0) / intentScores.length
+        ? intentScores.reduce((a: any, b: any) => a + b, 0) / intentScores.length
         : 0;
 
       res.json({
@@ -183,7 +194,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
-      const user = await storage.getUser(userId);
+      const user = await appStorage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -216,7 +227,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if ((req as any).firebaseUser?.uid !== req.params.uid) {
         return res.status(403).json({ message: "Unauthorized profile access" });
       }
-      const user = await storage.getUserByFirebaseUid(req.params.uid);
+      const user = await appStorage.getUserByFirebaseUid(req.params.uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -259,7 +270,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       // Enforce EULA timestamp
       userData.termsAcceptedAt = new Date();
 
-      const user = await storage.createUser(userData);
+      const user = await appStorage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -269,7 +280,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  app.patch("/api/users/:id", requireAuth, async (req, res) => {
+  app.patch("/api/users/:id", requireAuth, filterUGC(['bio', 'displayName', 'interests']), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
 
@@ -320,7 +331,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         updates.termsAcceptedAt = new Date();
       }
 
-      const user = await storage.updateUser(id, updates);
+      const user = await appStorage.updateUser(id, updates);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -346,14 +357,117 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(403).json({ message: "Unauthorized deletion attempt" });
       }
 
-      const success = await storage.deleteUser(id);
-      if (!success) {
+      // 1. Fetch user to get Firebase UID and Apple Token
+      const dbUser = await appStorage.getUser(id);
+      if (!dbUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json({ message: "Account and all associated data deleted successfully" });
+
+      let adminApp = appAdminApp;
+      
+      let appleRevocationStatus = "not_apple";
+      let firebaseDeletionSuccess = false;
+
+      // 2. Determine if Apple Account via Firebase
+      if (adminApp && dbUser.firebaseUid) {
+        try {
+          const fbUser = await adminApp.auth().getUser(dbUser.firebaseUid);
+          const isApple = fbUser.providerData.some((p: any) => p.providerId === 'apple.com');
+          
+          if (isApple) {
+            // 3. Revoke Apple Token if available
+            if (dbUser.appleRefreshTokenEncrypted) {
+              const revoked = await appAppleAuthService.revokeToken(dbUser.appleRefreshTokenEncrypted, process.env.APPLE_CLIENT_ID || 'com.samevibe.app');
+              appleRevocationStatus = revoked ? "revoked" : "apple_revocation_failed_account_deleted";
+            } else {
+              // Legacy Apple account
+              appleRevocationStatus = "legacy_no_token";
+            }
+          }
+          
+          // 4. Delete Firebase Identity
+          await adminApp.auth().deleteUser(dbUser.firebaseUid);
+          firebaseDeletionSuccess = true;
+        } catch (e: any) {
+          console.error("Firebase/Apple Deletion Error:", e.message || e);
+          // Do not block SameVibe DB deletion if Firebase fails, but log it.
+        }
+      }
+
+      // 5. Delete from SameVibe Database
+      const success = await appStorage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found during database deletion" });
+      }
+      
+      // 6. Invalidate server session
+      (req as any).logout((err: any) => {
+        if (err) console.error("Error destroying session", err);
+        res.json({ 
+          message: "Account and all associated data deleted successfully", 
+          appleRevocationStatus,
+          firebaseDeletionSuccess
+        });
+      });
     } catch (error) {
-      console.error("Error deleting user account:", error);
+      console.error("Error deleting user account");
       res.status(500).json({ message: "Failed to delete account. Please try again." });
+    }
+  });
+
+  const appleExchangeRateLimits = new Map<number, { count: number; resetAt: number }>();
+
+  // Store Apple authorization code and exchange for refresh token
+  app.post("/api/auth/apple/exchange", requireAuth, async (req, res) => {
+    try {
+      const authUser = (req as any).user;
+      if (!authUser || !authUser.id) return res.status(403).json({ message: "Unauthorized" });
+
+      const now = Date.now();
+      const limit = appleExchangeRateLimits.get(authUser.id);
+      
+      if (limit) {
+        if (now > limit.resetAt) {
+          appleExchangeRateLimits.set(authUser.id, { count: 1, resetAt: now + 15 * 60 * 1000 });
+        } else if (limit.count >= 5) {
+          return res.status(429).json({ message: "Too many requests, please try again later" });
+        } else {
+          limit.count += 1;
+        }
+      } else {
+        appleExchangeRateLimits.set(authUser.id, { count: 1, resetAt: now + 15 * 60 * 1000 });
+      }
+
+      const { authorizationCode, identityToken, nonce } = req.body;
+      if (!authorizationCode || !identityToken) return res.status(400).json({ message: "Missing required Apple credentials" });
+      if (authorizationCode.length > 2000 || identityToken.length > 4000) return res.status(400).json({ message: "Invalid token length" });
+
+      
+      const clientId = process.env.APPLE_CLIENT_ID || 'com.samevibe.app';
+      
+      // Ensure the user actually has an Apple provider in Firebase
+      const admin = appAdminApp || (await import('firebase-admin'));
+      const userRecord = await admin.auth().getUser(authUser.firebaseUid);
+      const appleProvider = userRecord.providerData.find((p: any) => p.providerId === 'apple.com');
+      if (!appleProvider || !appleProvider.uid) {
+        return res.status(403).json({ message: "No Apple provider linked to this account" });
+      }
+
+      // Validate the identity token
+      const isValid = await appAppleAuthService.validateIdentityToken(identityToken, clientId, appleProvider.uid, nonce);
+      if (!isValid) return res.status(403).json({ message: "Invalid Apple identity token" });
+      
+      const refreshTokenEncrypted = await appAppleAuthService.exchangeAuthorizationCode(authorizationCode, clientId);
+      if (refreshTokenEncrypted) {
+        await appStorage.updateUser(authUser.id, { appleRefreshTokenEncrypted: refreshTokenEncrypted });
+        return res.json({ success: true, message: "Apple credentials secured" });
+      } else {
+        return res.status(500).json({ message: "Failed to exchange Apple authorization code" });
+      }
+    } catch (error: any) {
+      // Do not log the raw authorizationCode or token
+      console.error("Error securing Apple credentials:", error.message || error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -387,7 +501,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       // We only register a signal if it was an explicit request OR valid dwell time
       if (signalType === 'explicit_interest' || signalType === 'explicit' || (signalType === 'view' && dwellTimeMs > 10000)) {
         // Log the interaction for the agent
-        await storage.addActivityItem(sourceUserId, "connection_signal", {
+        await appStorage.addActivityItem(sourceUserId, "connection_signal", {
           targetUserId,
           signalType,
           detail,
@@ -406,7 +520,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   // Community routes
   app.get("/api/communities", async (req, res) => {
     try {
-      const communities = await storage.getAllCommunities();
+      const communities = await appStorage.getAllCommunities();
       res.json(communities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -431,7 +545,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const userIdNum = userId ? parseInt(userId) : authUserId;
       
       
-      const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
+      const communities = await appStorage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
       
       // Add cache headers to ensure fresh data for PWA users
       res.set({
@@ -450,7 +564,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/communities/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const community = await storage.getCommunity(id);
+      const community = await appStorage.getCommunity(id);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
@@ -468,13 +582,13 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Missing userId or tier" });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await appStorage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
       // In a production environment, we should verify the receipt with RevenueCat's REST API here
       // For now, we trust the native Capacitor client that just completed the StoreKit transaction
       const currentLimit = user.paymentTier ?? 0;
-      await storage.updateUser(userId, { paymentTier: currentLimit + 1 });
+      await appStorage.updateUser(userId, { paymentTier: currentLimit + 1 });
       console.log(`Successfully upgraded user ${userId} capacity by 1 (total extra: ${currentLimit + 1}) via RevenueCat`);
 
       res.status(200).json({ success: true, newTier: currentLimit + 1 });
@@ -484,10 +598,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  app.post("/api/communities", requireAuth, async (req, res) => {
+  app.post("/api/communities", requireAuth, filterUGC(['name', 'description']), async (req, res) => {
     try {
       const communityData = insertCommunitySchema.parse(req.body);
-      const community = await storage.createCommunity(communityData);
+      const community = await appStorage.createCommunity(communityData);
       res.status(201).json(community);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -506,13 +620,13 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const user = await storage.getUser(authUserId);
+      const user = await appStorage.getUser(authUserId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
       // Implement 5-community rotation limit
-      const result = await storage.joinCommunityWithRotation(authUserId, communityId);
+      const result = await appStorage.joinCommunityWithRotation(authUserId, communityId);
       
       res.status(201).json(result);
     } catch (error) {
@@ -525,7 +639,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/active-communities", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const activeCommunities = await storage.getUserActiveCommunities(userId);
+      const activeCommunities = await appStorage.getUserActiveCommunities(userId);
       res.json(activeCommunities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -542,7 +656,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "User ID is required" });
       }
       
-      await storage.updateCommunityActivity(userId, communityId);
+      await appStorage.updateCommunityActivity(userId, communityId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -559,7 +673,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "User ID is required" });
       }
       
-      const updatedUser = await storage.updateUser(userId, { 
+      const updatedUser = await appStorage.updateUser(userId, { 
         location,
         latitude: latitude?.toString(),
         longitude: longitude?.toString(),
@@ -587,7 +701,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await appStorage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -598,7 +712,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       };
       
       const userInterests = user.interests || [];
-      const members = await storage.getDynamicCommunityMembers(id, userLocation, userInterests);
+      const members = await appStorage.getDynamicCommunityMembers(id, userLocation, userInterests);
       
       res.json(members);
     } catch (error) {
@@ -616,7 +730,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "User ID is required" });
       }
       
-      const success = await storage.leaveCommunity(userId, communityId);
+      const success = await appStorage.leaveCommunity(userId, communityId);
       if (!success) {
         return res.status(404).json({ message: "Membership not found" });
       }
@@ -629,7 +743,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/communities", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const communities = await storage.getUserCommunities(userId);
+      const communities = await appStorage.getUserCommunities(userId);
       res.json(communities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -639,7 +753,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   // Event routes
   app.get("/api/events", async (req, res) => {
     try {
-      const events = await storage.getAllEvents();
+      const events = await appStorage.getAllEvents();
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -649,7 +763,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/events/upcoming", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-      const events = await storage.getUpcomingEvents(userId);
+      const events = await appStorage.getUpcomingEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -664,7 +778,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Latitude and longitude are required" });
       }
       
-      const events = await storage.getEventsByLocation(
+      const events = await appStorage.getEventsByLocation(
         latitude as string, 
         longitude as string, 
         parseInt(radius as string),
@@ -679,7 +793,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/events/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const event = await storage.getEvent(id);
+      const event = await appStorage.getEvent(id);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -689,10 +803,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  app.post("/api/events", requireAuth, async (req, res) => {
+  app.post("/api/events", requireAuth, filterUGC(['title', 'description', 'location', 'address'], { allowAddresses: true, allowLinks: true }), async (req, res) => {
     try {
       const eventData = insertEventSchema.parse(req.body);
-      const event = await storage.createEvent(eventData);
+      const event = await appStorage.createEvent(eventData);
       res.status(201).json(event);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -713,7 +827,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const userId = (req as any).user.id;
       const { status = "interested" } = req.body;
       
-      const registration = await storage.registerForEvent(userId, eventId, status);
+      const registration = await appStorage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
     } catch (error: any) {
       if (error.code === '23505' && error.constraint === 'event_attendees_event_user_unique') {
@@ -739,12 +853,12 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       
       const userId = (req as any).user.id;
       
-      const event = await storage.getEvent(eventId);
+      const event = await appStorage.getEvent(eventId);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
       
-      const success = await storage.unregisterFromEvent(userId, eventId);
+      const success = await appStorage.unregisterFromEvent(userId, eventId);
       if (success) {
         res.status(200).json({ message: "Successfully unregistered" });
       } else {
@@ -755,7 +869,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  app.post("/api/events/:id/review", requireAuth, async (req, res) => {
+  app.post("/api/events/:id/review", requireAuth, filterUGC(['reviewText']), async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { userId, rating, feltSafe, feedback } = req.body;
@@ -769,7 +883,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "rating must be between 1 and 5" });
       }
 
-      const review = await storage.createEventReview(
+      const review = await appStorage.createEventReview(
         parseInt(userId),
         eventId,
         numRating,
@@ -779,7 +893,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
       // Safety guard: if user did not feel safe, auto-file a safety report
       if (feltSafe === false && feedback) {
-        await storage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
+        await appStorage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
       }
 
       res.status(201).json({ success: true, review, message: "Review submitted" });
@@ -801,7 +915,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if (blockerId === blockedId) {
         return res.status(400).json({ message: "Cannot block yourself" });
       }
-      const block = await storage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
+      const block = await appStorage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
       res.status(201).json({ success: true, block });
     } catch (error) {
       console.error("Block user error:", error);
@@ -821,7 +935,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportUser(parseInt(reporterId), targetUserId, reason, details);
+      const report = await appStorage.reportUser(parseInt(reporterId), targetUserId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report user error:", error);
@@ -841,7 +955,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportEvent(parseInt(reporterId), eventId, reason, details);
+      const report = await appStorage.reportEvent(parseInt(reporterId), eventId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report event error:", error);
@@ -853,7 +967,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/events/feed", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-      const events = await storage.getUpcomingEvents(userId);
+      const events = await appStorage.getUpcomingEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -861,7 +975,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   });
 
   // Create global revenue-generating event
-  app.post("/api/events/create-global", requireAuth, async (req, res) => {
+  app.post("/api/events/create-global", requireAuth, filterUGC(['title', 'description', 'location', 'address'], { allowAddresses: true, allowLinks: true }), async (req, res) => {
     try {
       const {
         title,
@@ -905,10 +1019,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         status: "pending_review" // Global events require review
       };
 
-      const event = await storage.createEvent(eventData);
+      const event = await appStorage.createEvent(eventData);
       
       // Add activity feed item for event creation
-      await storage.addActivityItem(creatorId, "event_created", {
+      await appStorage.addActivityItem(creatorId, "event_created", {
         eventId: event.id,
         eventTitle: title,
         eventType,
@@ -933,7 +1047,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/events", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const events = await storage.getUserEvents(userId);
+      const events = await appStorage.getUserEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -951,7 +1065,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(403).json({ message: "Unauthorized access to messages" });
       }
 
-      const messages = await storage.getConversation(userId1, userId2);
+      const messages = await appStorage.getConversation(userId1, userId2);
       res.json(messages);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -967,14 +1081,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(403).json({ message: "Unauthorized access to conversations" });
       }
 
-      const rawConversations = await storage.getUserConversations(userId);
+      const rawConversations = await appStorage.getUserConversations(userId);
       
       // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
-      const normalized = await Promise.all(rawConversations.map(async (c) => {
+      const normalized = await Promise.all(rawConversations.map(async (c: any) => {
         // Count unread messages from this user to the current user
-        const conversation = await storage.getConversation(userId, c.user.id);
+        const conversation = await appStorage.getConversation(userId, c.user.id);
         const unreadCount = conversation.filter(
-          (m) => m.receiverId === userId && !m.isRead
+          (m: any) => m.receiverId === userId && !m.isRead
         ).length;
         return {
           otherUser: c.user,
@@ -990,10 +1104,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   });
 
 
-  app.post("/api/messages", requireAuth, async (req, res) => {
+  app.post("/api/messages", requireAuth, filterUGC(['content']), async (req, res) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
-      const message = await storage.sendMessage(messageData);
+      const message = await appStorage.sendMessage(messageData);
       res.status(201).json(message);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1006,7 +1120,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.patch("/api/messages/:id/read", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.markMessageAsRead(id);
+      const success = await appStorage.markMessageAsRead(id);
       if (!success) {
         return res.status(404).json({ message: "Message not found" });
       }
@@ -1020,17 +1134,17 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/kudos/received", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const kudos = await storage.getUserKudosReceived(userId);
+      const kudos = await appStorage.getUserKudosReceived(userId);
       res.json(kudos);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.post("/api/kudos", requireAuth, async (req, res) => {
+  app.post("/api/kudos", requireAuth, filterUGC(['message']), async (req, res) => {
     try {
       const kudosData = insertKudosSchema.parse(req.body);
-      const kudos = await storage.giveKudos(kudosData);
+      const kudos = await appStorage.giveKudos(kudosData);
       res.status(201).json(kudos);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1044,7 +1158,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/activity", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const activities = await storage.getUserActivityFeed(userId);
+      const activities = await appStorage.getUserActivityFeed(userId);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -1061,7 +1175,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "User ID and location required" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await appStorage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -1083,7 +1197,6 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  // Event scraping routes
   app.post("/api/communities/:id/scrape-events", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
@@ -1093,7 +1206,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Invalid community ID or location data" });
       }
       
-      const community = await storage.getCommunity(communityId);
+      const community = await appStorage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
@@ -1119,14 +1232,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Invalid community ID" });
       }
       
-      const community = await storage.getCommunity(communityId);
+      const community = await appStorage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
       
       // Get all events for this community
-      const events = await storage.getCommunityEvents(communityId);
-      const upcomingEvents = events.filter(event => 
+      const events = await appStorage.getCommunityEvents(communityId);
+      const upcomingEvents = events.filter((event: any) => 
         new Date(event.date) >= new Date() // Future events only
       );
       
@@ -1144,14 +1257,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Invalid community ID" });
       }
       
-      const community = await storage.getCommunity(communityId);
+      const community = await appStorage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
       
       // Get events specifically associated with this community
-      const events = await storage.getCommunityEvents(communityId);
-      const recentEvents = events.filter(event => 
+      const events = await appStorage.getCommunityEvents(communityId);
+      const recentEvents = events.filter((event: any) => 
         new Date(event.date) >= new Date() && // Future events only
         new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
       );
@@ -1233,13 +1346,13 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       }
       
       // Verify the community exists
-      const community = await storage.getCommunity(communityId);
+      const community = await appStorage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
       
       // Get organizer details
-      const organizer = await storage.getUser(parseInt(organizerId));
+      const organizer = await appStorage.getUser(parseInt(organizerId));
       if (!organizer) {
         return res.status(404).json({ message: "Organizer not found" });
       }
@@ -1258,10 +1371,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         attendeeCount: 0
       };
       
-      const newEvent = await storage.createEvent(eventData);
+      const newEvent = await appStorage.createEvent(eventData);
       
       // Add activity to organizer's feed
-      await storage.addActivityItem(parseInt(organizerId), 'event_created', {
+      await appStorage.addActivityItem(parseInt(organizerId), 'event_created', {
         eventId: newEvent.id,
         eventTitle: newEvent.title,
         communityName: community.name
@@ -1284,7 +1397,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Event ID and user ID required" });
       }
       
-      const event = await storage.getEvent(eventId);
+      const event = await appStorage.getEvent(eventId);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -1297,10 +1410,10 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       }
       
       // Register/update attendance status
-      const attendance = await storage.registerForEvent(parseInt(userId), eventId, "attended");
+      const attendance = await appStorage.registerForEvent(parseInt(userId), eventId, "attended");
       
       // Add to activity feed for algorithm learning
-      await storage.addActivityItem(parseInt(userId), 'event_attended', {
+      await appStorage.addActivityItem(parseInt(userId), 'event_attended', {
         eventId: eventId,
         eventTitle: event.title,
         eventCategory: event.category,
@@ -1331,15 +1444,15 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await appStorage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
       // Get all events where user has "attended" status
-      const attendedEvents = await storage.getUserEvents(userId);
+      const attendedEvents = await appStorage.getUserEvents(userId);
       // Filter to only events that have actually passed (cannot attend future events)
-      const confirmedAttended = attendedEvents.filter(event => 
+      const confirmedAttended = attendedEvents.filter((event: any) => 
         new Date(event.date) < new Date()
       );
       
@@ -1355,8 +1468,8 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     try {
       // Get partner/global events only — events explicitly marked isGlobal or type=partner.
       // The previous implementation had an OR clause that matched ALL future events.
-      const allEvents = await storage.getAllEvents();
-      const globalEvents = allEvents.filter(event => 
+      const allEvents = await appStorage.getAllEvents();
+      const globalEvents = allEvents.filter((event: any) => 
         (event.isGlobal === true || event.eventType === "partner") &&
         new Date(event.date) >= new Date()
       ).slice(0, 10);
@@ -1378,7 +1491,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       }
       
       const userLocation = { lat: parseFloat(latitude as string), lon: parseFloat(longitude as string) };
-      const trendingEvents = await storage.getTrendingEventsByLocation(userLocation, parseInt(radius as string));
+      const trendingEvents = await appStorage.getTrendingEventsByLocation(userLocation, parseInt(radius as string));
       
       res.json(trendingEvents);
     } catch (error) {
@@ -1401,13 +1514,13 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       }
       
       // Verify membership
-      const userCommunities = await storage.getUserCommunities(authUser.id);
+      const userCommunities = await appStorage.getUserCommunities(authUser.id);
       const isMember = userCommunities.some((c: any) => c.communityId === communityId || c.id === communityId);
       if (!isMember) {
         return res.status(403).json({ message: "Only members can view community messages" });
       }
 
-      const messages = await storage.getCommunityMessages(communityId);
+      const messages = await appStorage.getCommunityMessages(communityId);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching community messages:", error);
@@ -1415,7 +1528,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  app.post("/api/communities/:id/messages", requireAuth, async (req, res) => {
+  app.post("/api/communities/:id/messages", requireAuth, filterUGC(['content']), async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { content, senderId } = req.body;
@@ -1430,7 +1543,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         communityId: communityId
       };
       
-      const message = await storage.sendCommunityMessage(messageData);
+      const message = await appStorage.sendCommunityMessage(messageData);
       res.status(201).json(message);
 
       // Trigger AI learning
@@ -1453,12 +1566,12 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         return res.status(400).json({ message: "Missing required parameter: userId" });
       }
 
-      const community = await storage.getCommunity(communityId);
+      const community = await appStorage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
 
-      const user = await storage.getUser(parseInt(userId as string));
+      const user = await appStorage.getUser(parseInt(userId as string));
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -1471,7 +1584,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         };
         
         const userInterests = user.interests || [];
-        const dynamicMembers = await storage.getDynamicCommunityMembers(communityId, userLocation, userInterests);
+        const dynamicMembers = await appStorage.getDynamicCommunityMembers(communityId, userLocation, userInterests);
         
         return res.json({
           ...community,
@@ -1569,14 +1682,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       
       // Pass the requesting user ID for geolocation filtering
       const requestingUserId = userId ? parseInt(userId as string) : undefined;
-      const membersWithStatus = await storage.getCommunityMembersWithStatus(communityId, requestingUserId);
+      const membersWithStatus = await appStorage.getCommunityMembersWithStatus(communityId, requestingUserId);
       
       // Only return live members (online within last 15 minutes)
-      const liveMembers = membersWithStatus.filter(member => member.isOnline);
+      const liveMembers = membersWithStatus.filter((member: any) => member.isOnline);
       
       res.json({
         online: liveMembers,
-        offline: membersWithStatus.filter(member => !member.isOnline),
+        offline: membersWithStatus.filter((member: any) => !member.isOnline),
         totalLive: liveMembers.length
       });
     } catch (error) {
@@ -1589,7 +1702,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.post("/api/users/:id/activity", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      await storage.updateUserActivity(userId);
+      await appStorage.updateUserActivity(userId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating user activity:", error);
@@ -1602,7 +1715,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     try {
       const userId = parseInt(req.params.id);
       const { isOnline } = req.body;
-      await storage.setUserOnlineStatus(userId, Boolean(isOnline));
+      await appStorage.setUserOnlineStatus(userId, Boolean(isOnline));
       res.json({ success: true });
     } catch (error) {
       console.error("Error setting user status:", error);
@@ -1638,7 +1751,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const goals = Array.isArray(hopingToFind) ? hopingToFind : [hopingToFind];
       const personalityTraits = [personalityVibe, communityFeel, activityLevel, resonateStatement].filter(Boolean);
       
-      const updatedUser = await storage.updateUser(parseInt(userId), {
+      const updatedUser = await appStorage.updateUser(parseInt(userId), {
         interests,
         quizAnswers: {
           goals,
@@ -1687,7 +1800,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         if (data.type === 'auth' && data.userId) {
           userId = parseInt(data.userId);
           activeConnections.set(userId, { ws, lastActivity: new Date() });
-          await storage.setUserOnlineStatus(userId, true);
+          await appStorage.setUserOnlineStatus(userId, true);
           
           // Broadcast online status update to all clients
           broadcastMemberUpdate(userId, true);
@@ -1695,7 +1808,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         
         if (data.type === 'heartbeat' && userId) {
           activeConnections.set(userId, { ws, lastActivity: new Date() });
-          await storage.updateUserActivity(userId);
+          await appStorage.updateUserActivity(userId);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -1705,7 +1818,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     ws.on('close', async () => {
       if (userId) {
         activeConnections.delete(userId);
-        await storage.setUserOnlineStatus(userId, false);
+        await appStorage.setUserOnlineStatus(userId, false);
         broadcastMemberUpdate(userId, false);
       }
     });
@@ -1720,7 +1833,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         if (connection.lastActivity < fiveMinutesAgo) {
           connection.ws.close();
           activeConnections.delete(userId);
-          await storage.setUserOnlineStatus(userId, false);
+          await appStorage.setUserOnlineStatus(userId, false);
           broadcastMemberUpdate(userId, false);
         }
       });
@@ -1735,14 +1848,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/communities/:id/posts", async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const posts = await storage.getCommunityPosts(communityId);
+      const posts = await appStorage.getCommunityPosts(communityId);
       res.json(posts);
     } catch (error) {
       res.status(500).json({ message: "Failed to get posts" });
     }
   });
 
-  app.post("/api/communities/:id/posts", requireAuth, async (req, res) => {
+  app.post("/api/communities/:id/posts", requireAuth, filterUGC(['content']), async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const { authorId, content } = req.body;
@@ -1775,7 +1888,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
         });
       }
 
-      const post = await storage.createPost(communityId, parseInt(authorId), String(content));
+      const post = await appStorage.createPost(communityId, parseInt(authorId), String(content));
       res.status(201).json(post);
 
       // Trigger AI learning
@@ -1792,7 +1905,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const postId = parseInt(req.params.id);
       const { giverId } = req.body;
       if (!giverId) return res.status(400).json({ message: "giverId required" });
-      const result = await storage.givePostKudos(postId, parseInt(giverId));
+      const result = await appStorage.givePostKudos(postId, parseInt(giverId));
       res.json(result);
 
       // Trigger AI learning
@@ -1809,7 +1922,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/streak", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const streak = await storage.getStreak(userId);
+      const streak = await appStorage.getStreak(userId);
       res.json(streak);
     } catch (error) {
       res.status(500).json({ message: "Failed to get streak" });
@@ -1819,7 +1932,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.post("/api/users/:id/checkin", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const streak = await storage.checkin(userId);
+      const streak = await appStorage.checkin(userId);
       res.json(streak);
     } catch (error) {
       res.status(500).json({ message: "Failed to checkin" });
@@ -1831,7 +1944,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/users/:id/agent-insights", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const insights = await storage.getAgentInsights(userId);
+      const insights = await appStorage.getAgentInsights(userId);
       res.json(insights);
     } catch (error) {
       res.status(500).json({ message: "Failed to get agent insights" });
@@ -1853,7 +1966,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/agent/status/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const run = await storage.getLatestAgentRun(userId);
+      const run = await appStorage.getLatestAgentRun(userId);
       res.json(run ?? { status: "never_run" });
     } catch (error) {
       res.status(500).json({ message: "Failed to get agent status" });

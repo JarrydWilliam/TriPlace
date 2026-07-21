@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   subscriptionEnd: timestamp("subscription_end"),
   paymentTier: integer("payment_tier").default(0), // Number of extra communities purchased ($0.99 each)
   createdAt: timestamp("created_at").defaultNow(),
+  appleRefreshTokenEncrypted: text("apple_refresh_token_encrypted"),
 });
 
 export const communities = pgTable("communities", {
