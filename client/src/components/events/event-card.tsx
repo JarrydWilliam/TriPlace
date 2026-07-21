@@ -144,7 +144,7 @@ export function EventCard({
                   )}
                 </div>
                 <p className="text-gray-400 dark:text-gray-400 text-sm">
-                  {event.organizer}
+                  {event.creatorId ? event.organizer : "Organizer unavailable"}
                 </p>
               </div>
               

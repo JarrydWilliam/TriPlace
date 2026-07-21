@@ -25,6 +25,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { CommunityPosts } from "@/components/ui/community-posts";
+import { ReportDialog } from "@/components/safety/report-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Flag, MoreVertical } from "lucide-react";
 
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
@@ -243,7 +251,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    <span>by {event.organizer}</span>
+                    <span>{event.creatorId ? `by ${event.organizer}` : "Organizer unavailable"}</span>
                   </div>
                 </div>
 
@@ -276,7 +284,8 @@ export default function CommunityPage() {
 
   const [newMessage, setNewMessage] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "events" | "posts" | "members">("chat");
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -447,13 +456,30 @@ export default function CommunityPage() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
-              {community.category && (
-                <Badge className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm ${
-                  categoryColor[community.category]?.badge || defaultCategoryColors.badge
-                }`}>
-                  {CATEGORY_EMOJIS[community.category]} {CATEGORIES.find(c => c.id === community.category)?.label || community.category}
-                </Badge>
-              )}
+              <div className="flex items-center space-x-2">
+                {community.category && (
+                  <Badge className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm ${
+                    categoryColor[community.category]?.badge || defaultCategoryColors.badge
+                  }`}>
+                    {CATEGORY_EMOJIS[community.category]} {CATEGORIES.find(c => c.id === community.category)?.label || community.category}
+                  </Badge>
+                )}
+                {user && user.id !== community.creatorId && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10">
+                        <MoreVertical className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setIsReportOpen(true)} className="text-destructive focus:text-destructive cursor-pointer">
+                        <Flag className="w-4 h-4 mr-2" />
+                        Report Community
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
 
             {/* Hero Content (Floating overlapping card effect) */}
@@ -680,6 +706,12 @@ export default function CommunityPage() {
           </div>
         </div>
       </PullToRefresh>
+      <ReportDialog 
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        targetType="community" 
+        targetId={community.id} 
+      />
     </div>
   );
 }

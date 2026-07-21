@@ -198,6 +198,14 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      // Block enforcement
+      if ((req as any).user) {
+        const isBlocked = await appStorage.isEitherUserBlocked((req as any).user.id, userId);
+        if (isBlocked) {
+          return res.status(404).json({ message: "User not found" });
+        }
+      }
       
       const {
         firebaseUid,
@@ -753,7 +761,8 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   // Event routes
   app.get("/api/events", async (req, res) => {
     try {
-      const events = await appStorage.getAllEvents();
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const events = await appStorage.getAllEvents(userId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -825,7 +834,11 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       }
       
       const userId = (req as any).user.id;
-      const { status = "interested" } = req.body;
+      const { status = "interested", userId: bodyUserId } = req.body;
+      
+      if (bodyUserId && parseInt(bodyUserId) !== userId) {
+        return res.status(403).json({ message: "Cannot RSVP for another user" });
+      }
       
       const registration = await appStorage.registerForEvent(userId, eventId, status);
       res.status(201).json(registration);
@@ -893,7 +906,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
       // Safety guard: if user did not feel safe, auto-file a safety report
       if (feltSafe === false && feedback) {
-        await appStorage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
+        await appStorage.createReport({ reporterId: parseInt(userId), targetType: 'event', targetId: eventId, reason: 'safety_concern', details: feedback });
       }
 
       res.status(201).json({ success: true, review, message: "Review submitted" });
@@ -908,14 +921,15 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   // Block a user
   app.post("/api/users/block", requireAuth, async (req, res) => {
     try {
-      const { blockerId, blockedId, reason } = req.body;
-      if (!blockerId || !blockedId) {
-        return res.status(400).json({ message: "blockerId and blockedId are required" });
+      const { blockedId, reason } = req.body;
+      const blockerId = (req as any).user.id; 
+      if (!blockedId) {
+        return res.status(400).json({ message: "blockedId is required" });
       }
-      if (blockerId === blockedId) {
+      if (blockerId === parseInt(blockedId)) {
         return res.status(400).json({ message: "Cannot block yourself" });
       }
-      const block = await appStorage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
+      const block = await appStorage.blockUser(blockerId, parseInt(blockedId), reason);
       res.status(201).json({ success: true, block });
     } catch (error) {
       console.error("Block user error:", error);
@@ -923,19 +937,69 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  // Report a user
+  // Unblock a user
+  app.post("/api/users/unblock", requireAuth, async (req, res) => {
+    try {
+      const { blockedId } = req.body;
+      const blockerId = (req as any).user.id;
+      if (!blockedId) return res.status(400).json({ message: "blockedId is required" });
+      
+      const success = await appStorage.unblockUser(blockerId, parseInt(blockedId));
+      res.status(200).json({ success });
+    } catch (error) {
+      console.error("Unblock user error:", error);
+      res.status(500).json({ message: "Failed to unblock user" });
+    }
+  });
+
+  // Unified reporting endpoint
+  app.post("/api/reports", requireAuth, async (req, res) => {
+    try {
+      const reporterId = (req as any).user.id; 
+      const { targetType, targetId, reason, details } = req.body;
+      
+      if (!targetType || !targetId || !reason) {
+        return res.status(400).json({ message: "targetType, targetId, and reason are required" });
+      }
+      
+      // Fetch evidence snapshot depending on targetType
+      let evidenceSnapshot = null;
+      if (targetType === 'event') {
+        const event = await appStorage.getEvent(parseInt(targetId));
+        if (event) evidenceSnapshot = { title: event.title, description: event.description };
+      } else if (targetType === 'user') {
+        const user = await appStorage.getUser(parseInt(targetId));
+        if (user) evidenceSnapshot = { name: user.name, bio: user.bio };
+      } else if (targetType === 'post') {
+        // assuming community post
+        // mock evidence fetch
+        evidenceSnapshot = { type: 'post' };
+      }
+
+      const report = await appStorage.createReport({
+        reporterId,
+        targetType,
+        targetId: parseInt(targetId),
+        reason,
+        details,
+        evidenceSnapshot
+      });
+      res.status(201).json({ success: true, report, message: "Report submitted for review" });
+    } catch (error) {
+      console.error("Unified report error:", error);
+      res.status(500).json({ message: "Failed to submit report" });
+    }
+  });
+
+  // Legacy wrappers for native app backward compatibility
   app.post("/api/users/:id/report", requireAuth, async (req, res) => {
     try {
-      const targetUserId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
-      }
-      const validReasons = ['harassment', 'spam', 'fake_profile', 'inappropriate_content', 'other'];
-      if (!validReasons.includes(reason)) {
-        return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
-      }
-      const report = await appStorage.reportUser(parseInt(reporterId), targetUserId, reason, details);
+      const targetId = parseInt(req.params.id);
+      const reporterId = (req as any).user.id; 
+      const { reason, details } = req.body;
+      if (!reason) return res.status(400).json({ message: "reason is required" });
+      
+      const report = await appStorage.createReport({ reporterId, targetType: 'user', targetId, reason, details });
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report user error:", error);
@@ -943,23 +1007,52 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  // Report an event
   app.post("/api/events/:id/report", requireAuth, async (req, res) => {
     try {
-      const eventId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
-      }
-      const validReasons = ['misleading', 'spam', 'inappropriate', 'cancelled', 'safety_concern', 'other'];
-      if (!validReasons.includes(reason)) {
-        return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
-      }
-      const report = await appStorage.reportEvent(parseInt(reporterId), eventId, reason, details);
+      const targetId = parseInt(req.params.id);
+      const reporterId = (req as any).user.id; 
+      const { reason, details } = req.body;
+      if (!reason) return res.status(400).json({ message: "reason is required" });
+      
+      const report = await appStorage.createReport({ reporterId, targetType: 'event', targetId, reason, details });
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report event error:", error);
       res.status(500).json({ message: "Failed to submit report" });
+    }
+  });
+
+  // Admin Reporting Workflow (using the existing requireAdmin middleware)
+
+  app.get("/api/admin/reports", requireAdmin, async (req, res) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    try {
+      const result = await appStorage.getReports(page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  app.get("/api/admin/reports/:id", requireAdmin, async (req, res) => {
+    try {
+      const report = await appStorage.getReportById(parseInt(req.params.id));
+      if (!report) return res.status(404).json({ message: "Not found" });
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch report" });
+    }
+  });
+
+  app.patch("/api/admin/reports/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const { status, details } = req.body;
+      if (!status) return res.status(400).json({ message: "status required" });
+      const updated = await appStorage.updateReportStatus(parseInt(req.params.id), status, (req as any).user.id, details);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update report status" });
     }
   });
 
@@ -1056,70 +1149,27 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
   // Message routes
   app.get("/api/conversations/:userId1/:userId2", requireAuth, async (req, res) => {
-    try {
-      const userId1 = parseInt(req.params.userId1);
-      const userId2 = parseInt(req.params.userId2);
-      
-      const authUser = (req as any).user;
-      if (!authUser || (authUser.id !== userId1 && authUser.id !== userId2)) {
-        return res.status(403).json({ message: "Unauthorized access to messages" });
-      }
-
-      const messages = await appStorage.getConversation(userId1, userId2);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    return res.status(403).json({ error: "Direct messaging is not available at launch. Use a shared community, activity, or event group." });
   });
 
   app.get("/api/users/:id/conversations", requireAuth, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const authUser = (req as any).user;
-      
-      if (!authUser || authUser.id !== userId) {
-        return res.status(403).json({ message: "Unauthorized access to conversations" });
-      }
-
-      const rawConversations = await appStorage.getUserConversations(userId);
-      
-      // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
-      const normalized = await Promise.all(rawConversations.map(async (c: any) => {
-        // Count unread messages from this user to the current user
-        const conversation = await appStorage.getConversation(userId, c.user.id);
-        const unreadCount = conversation.filter(
-          (m: any) => m.receiverId === userId && !m.isRead
-        ).length;
-        return {
-          otherUser: c.user,
-          lastMessage: c.lastMessage,
-          unreadCount,
-        };
-      }));
-      
-      res.json(normalized);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
+    return res.json([]);
   });
 
-
   app.post("/api/messages", requireAuth, filterUGC(['content']), async (req, res) => {
-    try {
-      const messageData = insertMessageSchema.parse(req.body);
-      const message = await appStorage.sendMessage(messageData);
-      res.status(201).json(message);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid message data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
+    return res.status(403).json({ error: "Direct messaging is not available at launch. Use a shared community, activity, or event group." });
   });
 
   app.patch("/api/messages/:id/read", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const message = await appStorage.getMessage(id);
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      if (message.receiverId !== (req as any).user!.id) {
+        return res.status(403).json({ message: "Cannot mark another user's message as read" });
+      }
       const success = await appStorage.markMessageAsRead(id);
       if (!success) {
         return res.status(404).json({ message: "Message not found" });
@@ -1387,12 +1437,83 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
     }
   });
 
-  // Event attendance tracking
+  app.get("/api/events/:id/attendees", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const authUser = (req as any).user;
+      
+      const attendees = await appStorage.getEventAttendees(eventId);
+      
+      // Enforce attendance-identity suppression
+      const uniqueUserIds = [...new Set(attendees.map((a: any) => a.userId))];
+      const allowedUserIds = new Set(await appStorage.filterBlockedUsers(authUser.id, uniqueUserIds));
+      const filtered = attendees.filter((a: any) => allowedUserIds.has(a.userId));
+      
+      res.json(filtered);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch attendees" });
+    }
+  });
+
+  app.get("/api/events/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const authUser = (req as any).user;
+      
+      // Verify SameVibe attendance-group membership
+      const attendees = await appStorage.getEventAttendees(eventId);
+      const isMember = attendees.some((a: any) => a.userId === authUser.id);
+      if (!isMember) {
+        return res.status(403).json({ message: "Join the SameVibe group attending this event to participate in the conversation." });
+      }
+
+      let messages = await appStorage.getEventMessages(eventId);
+      
+      // Enforce block suppression
+      if (messages.length > 0) {
+        const uniqueSenderIds = [...new Set(messages.map((m: any) => m.senderId))];
+        const allowedSenderIds = new Set(await appStorage.filterBlockedUsers(authUser.id, uniqueSenderIds));
+        messages = messages.filter((m: any) => allowedSenderIds.has(m.senderId));
+      }
+
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/events/:id/messages", requireAuth, filterUGC(['content']), async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const { content } = req.body;
+      const authUser = (req as any).user;
+      
+      if (!content) return res.status(400).json({ message: "Content is required" });
+      
+      // Verify SameVibe attendance-group membership
+      const attendees = await appStorage.getEventAttendees(eventId);
+      const isMember = attendees.some((a: any) => a.userId === authUser.id);
+      if (!isMember) {
+        return res.status(403).json({ message: "Join the SameVibe group attending this event to participate in the conversation." });
+      }
+
+      const messageData = {
+        content: content.trim(),
+        senderId: authUser.id,
+        eventId: eventId
+      };
+      
+      const message = await appStorage.sendEventMessage(messageData);
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/events/:id/mark-attended", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
       const { userId } = req.body;
-      
       if (isNaN(eventId) || !userId) {
         return res.status(400).json({ message: "Event ID and user ID required" });
       }
@@ -1504,23 +1625,27 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.get("/api/communities/:id/messages", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ message: "Invalid community ID" });
-      }
+      if (isNaN(communityId)) return res.status(400).json({ message: "Invalid community ID" });
       
       const authUser = (req as any).user;
-      if (!authUser) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      if (!authUser) return res.status(401).json({ message: "Unauthorized" });
       
-      // Verify membership
+      // Verify membership server-side
       const userCommunities = await appStorage.getUserCommunities(authUser.id);
       const isMember = userCommunities.some((c: any) => c.communityId === communityId || c.id === communityId);
       if (!isMember) {
         return res.status(403).json({ message: "Only members can view community messages" });
       }
 
-      const messages = await appStorage.getCommunityMessages(communityId);
+      let messages = await appStorage.getCommunityMessages(communityId);
+      
+      // Enforce block suppression
+      if (messages.length > 0) {
+        const uniqueSenderIds = [...new Set(messages.map((m: any) => m.senderId))];
+        const allowedSenderIds = new Set(await appStorage.filterBlockedUsers(authUser.id, uniqueSenderIds));
+        messages = messages.filter((m: any) => allowedSenderIds.has(m.senderId));
+      }
+
       res.json(messages);
     } catch (error) {
       console.error("Error fetching community messages:", error);
@@ -1531,15 +1656,22 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
   app.post("/api/communities/:id/messages", requireAuth, filterUGC(['content']), async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { content, senderId } = req.body;
+      const { content } = req.body;
+      const authUser = (req as any).user;
       
-      if (!content || !senderId) {
-        return res.status(400).json({ message: "Content and senderId are required" });
+      if (!authUser) return res.status(401).json({ message: "Unauthorized" });
+      if (!content) return res.status(400).json({ message: "Content is required" });
+      
+      // Verify membership server-side
+      const userCommunities = await appStorage.getUserCommunities(authUser.id);
+      const isMember = userCommunities.some((c: any) => c.communityId === communityId || c.id === communityId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Only members can post community messages" });
       }
-      
+
       const messageData = {
         content: content.trim(),
-        senderId: parseInt(senderId),
+        senderId: authUser.id, // Enforce sender identity from auth token
         communityId: communityId
       };
       
@@ -1548,7 +1680,7 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
 
       // Trigger AI learning
       import("./agent/agent-runner").then(({ agentRunner }) => {
-        agentRunner.runAgentForUser(parseInt(senderId)).catch(err => console.error("[Agent] Trigger failed:", err));
+        agentRunner.runAgentForUser(authUser.id).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
       console.error("Error sending community message:", error);
@@ -1905,6 +2037,9 @@ export async function registerRoutes(app: Express, options?: RouteOptions): Prom
       const postId = parseInt(req.params.id);
       const { giverId } = req.body;
       if (!giverId) return res.status(400).json({ message: "giverId required" });
+      if (parseInt(giverId) !== (req as any).user.id) {
+        return res.status(403).json({ message: "Cannot give kudos as another user" });
+      }
       const result = await appStorage.givePostKudos(postId, parseInt(giverId));
       res.json(result);
 

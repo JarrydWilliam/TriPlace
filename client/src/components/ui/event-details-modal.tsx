@@ -8,7 +8,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl, apiRequest } from "@/lib/queryClient";
-
+import { ReportDialog } from "@/components/safety/report-dialog";
+import { MoreVertical, Flag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
 interface EventDetailsModalProps {
   event: Event | null;
   isOpen: boolean;
@@ -19,6 +27,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const markAttendanceMutation = useMutation({
     mutationFn: async ({ eventId, userId }: { eventId: number; userId: number }) => {
@@ -57,15 +66,36 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
   const isToday = eventDate.toDateString() === new Date().toDateString();
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-foreground">
-            {event.title}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Event details and available actions
-          </DialogDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <DialogTitle className="text-xl font-bold text-foreground">
+                {event.title}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Event details and available actions
+              </DialogDescription>
+            </div>
+            {user && user.id !== event.creatorId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 text-muted-foreground hover:text-foreground">
+                    <MoreVertical className="h-5 w-5" />
+                    <span className="sr-only">Event actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsReportOpen(true)} className="text-destructive focus:text-destructive">
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report Event
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -110,7 +140,12 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
               
               <div className="flex items-center space-x-3 text-muted-foreground">
                 <Users className="w-4 h-4" />
-                <span>Organized by {event.organizer}</span>
+                <span>
+                  Organized by{' '}
+                  {event.sourceName 
+                    ? event.organizer 
+                    : (event.creatorId ? event.organizer : "Organizer unavailable")}
+                </span>
               </div>
             </div>
             
@@ -171,5 +206,12 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
         </div>
       </DialogContent>
     </Dialog>
+    <ReportDialog 
+      open={isReportOpen} 
+      onOpenChange={setIsReportOpen} 
+      targetType="event" 
+      targetId={event.id} 
+    />
+    </>
   );
 }

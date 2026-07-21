@@ -5,29 +5,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { MoreHorizontal, AlertTriangle, ShieldOff } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-const REPORT_REASONS = [
-  { value: "harassment", label: "Harassment or bullying" },
-  { value: "spam", label: "Spam or fake account" },
-  { value: "fake_profile", label: "Impersonation / fake profile" },
-  { value: "inappropriate_content", label: "Inappropriate content" },
-  { value: "other", label: "Other" },
-];
+import { ReportDialog } from "./report-dialog";
 
 interface ReportBlockMenuProps {
   targetUserId: number;
@@ -39,14 +22,11 @@ export function ReportBlockMenu({ targetUserId, currentUserId }: ReportBlockMenu
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [selectedReason, setSelectedReason] = useState("");
-  const [reportDetails, setReportDetails] = useState("");
 
   const blockMutation = useMutation({
     mutationFn: async () => {
       if (!currentUserId) throw new Error("Must be logged in");
       const response = await apiRequest("POST", "/api/users/block", {
-        blockerId: currentUserId,
         blockedId: targetUserId,
         reason: "User manually blocked from profile UI",
       });
@@ -65,34 +45,6 @@ export function ReportBlockMenu({ targetUserId, currentUserId }: ReportBlockMenu
       toast({
         title: "Error",
         description: "Failed to block user. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const reportMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentUserId) throw new Error("Must be logged in");
-      const response = await apiRequest("POST", `/api/users/${targetUserId}/report`, {
-        reporterId: currentUserId,
-        reason: selectedReason,
-        details: reportDetails.trim() || undefined,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Report Submitted",
-        description: "Our trust & safety team will review this report. Thank you for keeping SameVibe safe.",
-      });
-      setIsReportDialogOpen(false);
-      setSelectedReason("");
-      setReportDetails("");
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to submit report. Please try again.",
         variant: "destructive",
       });
     },
@@ -144,70 +96,12 @@ export function ReportBlockMenu({ targetUserId, currentUserId }: ReportBlockMenu
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Report Reason Dialog */}
-      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Report User</DialogTitle>
-            <DialogDescription>
-              Help us keep SameVibe safe. Select a reason and our team will review this report.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Reason</Label>
-              <div className="space-y-2">
-                {REPORT_REASONS.map((reason) => (
-                  <button
-                    key={reason.value}
-                    onClick={() => setSelectedReason(reason.value)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors ${
-                      selectedReason === reason.value
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border bg-background hover:bg-muted/50 text-muted-foreground"
-                    }`}
-                  >
-                    {reason.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="report-details">Additional details (optional)</Label>
-              <Textarea
-                id="report-details"
-                placeholder="Describe what happened..."
-                value={reportDetails}
-                onChange={(e) => setReportDetails(e.target.value)}
-                maxLength={500}
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsReportDialogOpen(false);
-                setSelectedReason("");
-                setReportDetails("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => reportMutation.mutate()}
-              disabled={!selectedReason || reportMutation.isPending}
-            >
-              {reportMutation.isPending ? "Submitting..." : "Submit Report"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReportDialog 
+        open={isReportDialogOpen} 
+        onOpenChange={setIsReportDialogOpen} 
+        targetType="user"
+        targetId={targetUserId}
+      />
     </>
   );
 }

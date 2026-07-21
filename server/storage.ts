@@ -1,14 +1,13 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
-  telemetryEvents, userBlocks, userReports, eventReports, eventReviews,
+  telemetryEvents, userBlocks, reports, eventReviews,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
   type Kudos, type InsertKudos, type CommunityMember, type InsertCommunityMember,
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent,
-  type UserBlock, type UserReport, type InsertUserReport,
-  type EventReport, type InsertEventReport
+  type UserBlock, type InsertUserBlock, Report, InsertReport
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -48,10 +47,10 @@ export interface IStorage {
   joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
   
   getEvent(id: number): Promise<Event | undefined>;
-  getAllEvents(): Promise<Event[]>;
-  getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]>;
+  getAllEvents(userId?: number): Promise<Event[]>;
+  getEventsByLocation(latitude: string, longitude: string, radiusMiles: number, userId?: number): Promise<Event[]>;
   getEventsByCategory(category: string): Promise<Event[]>;
-  getUpcomingEvents(): Promise<Event[]>;
+  getUpcomingEvents(userId?: number): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
@@ -89,8 +88,14 @@ export interface IStorage {
   // Safety & Moderation
   blockUser(blockerId: number, blockedId: number, reason?: string): Promise<UserBlock>;
   isUserBlocked(viewerId: number, targetId: number): Promise<boolean>;
-  reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport>;
-  reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport>;
+  unblockUser(blockerId: number, blockedId: number): Promise<boolean>;
+  isEitherUserBlocked(userAId: number, userBId: number): Promise<boolean>;
+  filterBlockedUsers(viewerId: number, targetIds: number[]): Promise<number[]>;
+  getBlockedUserIds(userId: number): Promise<Set<number>>;
+  createReport(insertReport: InsertReport): Promise<Report>;
+  getReports(page: number, limit: number): Promise<{ reports: Report[], total: number }>;
+  getReportById(id: number): Promise<Report | undefined>;
+  updateReportStatus(id: number, status: string, resolvedBy?: number, details?: string): Promise<Report | undefined>;
   createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any>;
 }
 
@@ -567,16 +572,22 @@ export class DatabaseStorage implements IStorage {
     return event || undefined;
   }
 
-  async getAllEvents(): Promise<Event[]> {
-    return await db.select().from(events).orderBy(asc(events.date));
+  async getAllEvents(userId?: number): Promise<Event[]> {
+    let allEvents = await db.select().from(events).orderBy(asc(events.date));
+    if (userId) {
+      const blockedIds = await this.getBlockedUserIds(userId);
+      if (blockedIds.size > 0) {
+        allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
+      }
+    }
+    return allEvents;
   }
 
   async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number, userId?: number): Promise<Event[]> {
     let allEvents = await this.getAllEvents();
     
     if (userId) {
-      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
-      const blockedIds = new Set(blocks.map(b => b.blockedId));
+      const blockedIds = await this.getBlockedUserIds(userId);
       if (blockedIds.size > 0) {
         allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
       }
@@ -595,8 +606,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(events.date));
       
     if (userId) {
-      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
-      const blockedIds = new Set(blocks.map(b => b.blockedId));
+      const blockedIds = await this.getBlockedUserIds(userId);
       if (blockedIds.size > 0) {
         allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
       }
@@ -1197,12 +1207,7 @@ export class DatabaseStorage implements IStorage {
         );
       } catch {}
       try {
-        await db.delete(userReports).where(
-          or(eq(userReports.reporterId, userId), eq(userReports.targetUserId, userId))
-        );
-      } catch {}
-      try {
-        await db.delete(eventReports).where(eq(eventReports.reporterId, userId));
+        await db.update(events).set({ creatorId: null }).where(eq(events.creatorId, userId));
       } catch {}
       try {
         await db.delete(eventReviews).where(eq(eventReviews.userId, userId));
@@ -1268,20 +1273,68 @@ export class DatabaseStorage implements IStorage {
     return !!block;
   }
 
-  async reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport> {
-    const [report] = await db
-      .insert(userReports)
-      .values({ reporterId, targetUserId, reason, details: details ?? null, status: 'pending' })
-      .returning();
+  async unblockUser(blockerId: number, blockedId: number): Promise<boolean> {
+    const result = await db
+      .delete(userBlocks)
+      .where(and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId)));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async isEitherUserBlocked(userAId: number, userBId: number): Promise<boolean> {
+    return this.isUserBlocked(userAId, userBId); // It already checks both directions
+  }
+
+  async filterBlockedUsers(viewerId: number, targetIds: number[]): Promise<number[]> {
+    if (targetIds.length === 0) return [];
+    const blockedSet = await this.getBlockedUserIds(viewerId);
+    return targetIds.filter(id => !blockedSet.has(id));
+  }
+
+  async getBlockedUserIds(userId: number): Promise<Set<number>> {
+    const blocks = await db.select().from(userBlocks).where(
+      or(
+        eq(userBlocks.blockerId, userId),
+        eq(userBlocks.blockedId, userId)
+      )
+    );
+    const blockedSet = new Set<number>();
+    for (const b of blocks) {
+      if (b.blockerId === userId) blockedSet.add(b.blockedId);
+      if (b.blockedId === userId) blockedSet.add(b.blockerId);
+    }
+    return blockedSet;
+  }
+
+  async createReport(insertReport: InsertReport): Promise<Report> {
+    const [report] = await db.insert(reports).values(insertReport).returning();
     return report;
   }
 
-  async reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport> {
-    const [report] = await db
-      .insert(eventReports)
-      .values({ reporterId, eventId, reason, details: details ?? null, status: 'pending' })
-      .returning();
+  async getReports(page: number, limit: number): Promise<{ reports: Report[], total: number }> {
+    const offset = (page - 1) * limit;
+    const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt)).limit(limit).offset(offset);
+    
+    // Naive count for now
+    const allCount = await db.select().from(reports);
+    return { reports: allReports, total: allCount.length };
+  }
+
+  async getReportById(id: number): Promise<Report | undefined> {
+    const [report] = await db.select().from(reports).where(eq(reports.id, id));
     return report;
+  }
+
+  async updateReportStatus(id: number, status: string, resolvedBy?: number, details?: string): Promise<Report | undefined> {
+    const updatePayload: any = { status, updatedAt: new Date() };
+    if (resolvedBy !== undefined) {
+      updatePayload.resolvedBy = resolvedBy;
+      updatePayload.resolvedAt = new Date();
+    }
+    if (details) {
+      updatePayload.details = details; // append or overwrite depending on logic, let's just overwrite for now
+    }
+    const [updated] = await db.update(reports).set(updatePayload).where(eq(reports.id, id)).returning();
+    return updated;
   }
 
   async createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any> {

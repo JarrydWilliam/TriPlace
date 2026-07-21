@@ -15,6 +15,7 @@ interface Event {
   title: string;
   description: string;
   organizer: string;
+  creatorId?: number | null;
   date: string;
   location: string;
   address: string;
@@ -188,7 +189,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {event.organizer}
+                      {event.creatorId ? event.organizer : "Organizer unavailable"}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
