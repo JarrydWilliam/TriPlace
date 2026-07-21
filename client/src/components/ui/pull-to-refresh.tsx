@@ -191,7 +191,6 @@ export function PullToRefresh({
       className={`relative w-full ${className}`}
       style={{
         WebkitOverflowScrolling: 'touch',
-        touchAction: 'pan-y',
         paddingTop: pullOffset > 0 ? `${pullOffset}px` : '0px',
         transition: isPulling ? 'none' : 'padding-top 0.3s ease-out'
       }}

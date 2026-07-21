@@ -81,10 +81,13 @@ workflows:
 
       - name: Auto-increment build number (App Store Connect API)
         script: |
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID")
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number \
+            "$APP_STORE_APP_ID" \
+            --app-store-version=1.0.3 \
+            --platform=IOS)
           
           if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "Unable to determine the latest TestFlight build number."
+            echo "Unable to determine the latest TestFlight build number for version 1.0.3 / iOS."
             exit 1
           fi
           
@@ -93,8 +96,17 @@ workflows:
           cd ios/App
           agvtool new-version -all "$NEXT_BUILD_NUMBER"
           
-          echo "Latest TestFlight build: $LATEST_BUILD_NUMBER"
+          # Guard: confirm MARKETING_VERSION was not changed by agvtool
+          CURRENT_MV=$(agvtool mvers -terse1)
+          if [ "$CURRENT_MV" != "1.0.3" ]; then
+            echo "ERROR: MARKETING_VERSION is '$CURRENT_MV', expected '1.0.3'. Aborting."
+            exit 1
+          fi
+          
+          echo "Latest TestFlight build (1.0.3 / iOS): $LATEST_BUILD_NUMBER"
           echo "Assigned candidate build: $NEXT_BUILD_NUMBER"
+          echo "Marketing version confirmed: $CURRENT_MV"
+
 
       - name: Build IPA
         script: |
