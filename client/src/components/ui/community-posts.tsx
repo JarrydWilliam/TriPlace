@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import { ReportDialog } from "@/components/safety/report-dialog";
+import { MoreHorizontal, Flag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Post {
   id: number;
@@ -29,6 +37,7 @@ function PostCard({ post, userId }: { post: Post; userId: number }) {
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(false);
   const [localCount, setLocalCount] = useState(post.kudosCount ?? 0);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const giveKudos = useMutation({
     mutationFn: async () => {
@@ -60,11 +69,28 @@ function PostCard({ post, userId }: { post: Post; userId: number }) {
           <AvatarFallback className="text-xs">{post.authorName?.[0] ?? "?"}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold">{post.authorName}</span>
-            <span className="text-[11px] text-muted-foreground">
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-            </span>
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold">{post.authorName}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              </span>
+            </div>
+            {userId !== post.authorId && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsReportOpen(true)} className="text-destructive focus:text-destructive cursor-pointer">
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
           <p className="text-sm text-foreground/90 mt-1 whitespace-pre-wrap break-words">{post.content}</p>
           <div className="flex items-center gap-4 mt-3">
@@ -91,6 +117,12 @@ function PostCard({ post, userId }: { post: Post; userId: number }) {
           </div>
         </div>
       </div>
+      <ReportDialog 
+        open={isReportOpen} 
+        onOpenChange={setIsReportOpen} 
+        targetType="post" 
+        targetId={post.id} 
+      />
     </motion.div>
   );
 }

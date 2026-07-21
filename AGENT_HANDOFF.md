@@ -4,8 +4,8 @@
 We are preparing **Build 97** for TestFlight physical device validation and subsequent Apple App Store Review submission. 
 
 ### Authoritative Candidate
-- **Branch**: `build-97-apple`
-- **Authoritative Commit**: `3c91e4f51a1fbd1a3cb1a6eaca12591e092ece56`
+- **Branch**: `release-set-a-current`
+- **Authoritative Commit**: `851e600ae269622891c62242282b5a6d040f7975`
 - **Native Build Tracking**: Local `project.pbxproj` is currently at `57`. Codemagic handles the increment dynamically using App Store Connect.
 
 ### Completed Work (Recent):

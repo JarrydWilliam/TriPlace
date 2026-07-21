@@ -115,6 +115,23 @@ export const signInWithApple = async () => {
       });
       
       const result = await signInWithCredential(auth, credential);
+      
+      // If we got a server auth code, send it to the backend to exchange for a revocation token
+      if (nativeResult.credential.authorizationCode && result.user) {
+        try {
+          const token = await result.user.getIdToken();
+          const { apiRequest } = await import('./queryClient');
+          await apiRequest('POST', '/api/auth/apple/exchange', {
+            authorizationCode: nativeResult.credential.authorizationCode,
+            identityToken: nativeResult.credential.idToken,
+            nonce: nativeResult.credential.nonce
+          });
+        } catch (error) {
+          console.error("Failed to send Apple authorization code to backend:", error);
+          // Non-fatal error, the user is still signed in to Firebase.
+        }
+      }
+      
       return result;
     }
     

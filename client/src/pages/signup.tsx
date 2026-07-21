@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, signInWithGoogle, signInWithApple } from "@/lib/firebase";
-import { apiRequest, getApiUrl } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,7 +85,7 @@ export default function Signup() {
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
       if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        const res = await apiRequest("GET", `/api/users/firebase/${cred.uid}`);
         if (res.ok) {
           const existingUser = await res.json();
           setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
@@ -111,7 +111,7 @@ export default function Signup() {
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
       if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
+        const res = await apiRequest("GET", `/api/users/firebase/${cred.uid}`);
         if (res.ok) {
           const existingUser = await res.json();
           setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");

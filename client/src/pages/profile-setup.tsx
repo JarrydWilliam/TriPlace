@@ -23,11 +23,7 @@ export default function ProfileSetup() {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     bio: user?.bio || '',
-    avatar: user?.avatar || ''
   });
-
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || '');
 
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
@@ -51,15 +47,6 @@ export default function ProfileSetup() {
     }
   });
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      toast({
-        title: 'Coming Soon',
-        description: 'Photo uploads will be available soon. Using default avatar for now.',
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,33 +106,7 @@ export default function ProfileSetup() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Avatar Upload */}
-              <div className="flex flex-col items-center space-y-4">
-                <div className="relative">
-                  <Avatar className="w-24 h-24 border border-white/10 shadow-lg bg-muted">
-                    <AvatarImage src={avatarPreview} alt="Profile picture" />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl font-semibold">
-                      {formData.name ? formData.name.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <label 
-                    htmlFor="avatar-upload"
-                    className="absolute bottom-0 right-0 p-2 bg-primary rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-transform hover:scale-105"
-                  >
-                    <Camera className="w-4 h-4 text-white" />
-                  </label>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground/80 text-center">
-                  Tap the camera icon to add a profile picture
-                </p>
-              </div>
+
 
               {/* Name Input */}
               <div className="space-y-2">

@@ -8,13 +8,14 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { trackEvent } from "@/lib/telemetry";
-import { getApiUrl } from "@/lib/queryClient";
+import { getApiUrl, apiRequest } from "@/lib/queryClient";
 
 interface Event {
   id: number;
   title: string;
   description: string;
   organizer: string;
+  creatorId?: number | null;
   date: string;
   location: string;
   address: string;
@@ -50,13 +51,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
   const handleJoinEvent = async (eventId: number, eventTitle: string) => {
     try {
       setJoiningEventId(eventId);
-      const response = await fetch(getApiUrl(`/api/events/${eventId}/register`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user?.id || 1 }),
-      });
+      const response = await apiRequest('POST', `/api/events/${eventId}/register`, { userId: user?.id || 1 });
 
       if (!response.ok) {
         throw new Error('Failed to join event');
@@ -194,7 +189,7 @@ export function AggregatedEventsTab({ communityId }: AggregatedEventsTabProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {event.organizer}
+                      {event.creatorId ? event.organizer : "Organizer unavailable"}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />

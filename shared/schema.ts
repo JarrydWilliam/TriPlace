@@ -6,6 +6,8 @@ import {
   boolean,
   timestamp,
   jsonb,
+  unique,
+  index
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -40,6 +42,7 @@ export const users = pgTable("users", {
   subscriptionEnd: timestamp("subscription_end"),
   paymentTier: integer("payment_tier").default(0), // Number of extra communities purchased ($0.99 each)
   createdAt: timestamp("created_at").defaultNow(),
+  appleRefreshTokenEncrypted: text("apple_refresh_token_encrypted"),
 });
 
 export const communities = pgTable("communities", {
@@ -53,6 +56,7 @@ export const communities = pgTable("communities", {
   location: text("location"),
   createdAt: timestamp("created_at").defaultNow(),
   lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  creatorId: integer("creator_id").references(() => users.id, { onDelete: "set null" }),
 });
 
 export const communityMembers = pgTable("community_members", {
@@ -85,7 +89,7 @@ export const events = pgTable("events", {
   maxAttendees: integer("max_attendees"),
   latitude: text("latitude"),
   longitude: text("longitude"),
-  creatorId: integer("creator_id"),
+  creatorId: integer("creator_id").references(() => users.id, { onDelete: "set null" }),
   communityId: integer("community_id").references(() => communities.id),
   isGlobal: boolean("is_global").default(false),
   eventType: text("event_type"),
@@ -117,7 +121,9 @@ export const eventAttendees = pgTable("event_attendees", {
     .notNull(),
   status: text("status").default("interested"), // interested, going, attended
   registeredAt: timestamp("registered_at").defaultNow(),
-});
+}, (t) => ({
+  unq: unique("event_attendees_event_user_unique").on(t.eventId, t.userId),
+}));
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -250,33 +256,24 @@ export const userBlocks = pgTable("user_blocks", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const userReports = pgTable("user_reports", {
+export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
-  reporterId: integer("reporter_id")
-    .references(() => users.id)
-    .notNull(),
-  targetUserId: integer("target_user_id")
-    .references(() => users.id)
-    .notNull(),
-  reason: text("reason").notNull(), // harassment, spam, fake_profile, inappropriate_content, other
+  reporterId: integer("reporter_id").references(() => users.id, { onDelete: "set null" }), // NULL if deleted
+  targetType: text("target_type").notNull(), // user, event, community, post, message
+  targetId: integer("target_id").notNull(),
+  reason: text("reason").notNull(),
   details: text("details"),
-  status: text("status").default("pending"), // pending, reviewed, resolved
+  evidenceSnapshot: jsonb("evidence_snapshot"), // store minimal text/title evidence
+  status: text("status").default("open"), // open, reviewing, resolved, dismissed, escalated
   createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const eventReports = pgTable("event_reports", {
-  id: serial("id").primaryKey(),
-  reporterId: integer("reporter_id")
-    .references(() => users.id)
-    .notNull(),
-  eventId: integer("event_id")
-    .references(() => events.id)
-    .notNull(),
-  reason: text("reason").notNull(), // misleading, spam, inappropriate, cancelled, other
-  details: text("details"),
-  status: text("status").default("pending"), // pending, reviewed, resolved
-  createdAt: timestamp("created_at").defaultNow(),
-});
+  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: integer("resolved_by").references(() => users.id, { onDelete: "set null" }),
+}, (t) => ({
+  statusCreatedIdx: index("reports_status_created_idx").on(t.status, t.createdAt),
+  targetIdx: index("reports_target_idx").on(t.targetType, t.targetId),
+  reporterIdx: index("reports_reporter_idx").on(t.reporterId),
+}));
 
 export const featureFlags = pgTable("feature_flags", {
   id: serial("id").primaryKey(),
@@ -411,14 +408,12 @@ export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
   id: true,
 });
 
-export const insertUserReportSchema = createInsertSchema(userReports).omit({
+export const insertReportSchema = createInsertSchema(reports).omit({
   id: true,
   createdAt: true,
-});
-
-export const insertEventReportSchema = createInsertSchema(eventReports).omit({
-  id: true,
-  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
+  resolvedBy: true,
 });
 
 export const insertEventReviewSchema = createInsertSchema(eventReviews).omit({
@@ -470,10 +465,8 @@ export type AgentRun = typeof agentRuns.$inferSelect;
 export type InsertAgentRun = z.infer<typeof insertAgentRunSchema>;
 export type UserBlock = typeof userBlocks.$inferSelect;
 export type InsertUserBlock = z.infer<typeof insertUserBlockSchema>;
-export type UserReport = typeof userReports.$inferSelect;
-export type InsertUserReport = z.infer<typeof insertUserReportSchema>;
-export type EventReport = typeof eventReports.$inferSelect;
-export type InsertEventReport = z.infer<typeof insertEventReportSchema>;
+export type Report = typeof reports.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
 export type EventReview = typeof eventReviews.$inferSelect;

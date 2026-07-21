@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784574797275,
+      "tag": "0000_event-attendee-uniqueness",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784645890748,
+      "tag": "0001_amazing_tyrannus",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784657654899,
+      "tag": "0002_redundant_cerebro",
+      "breakpoints": true
+    }
+  ]
+}
