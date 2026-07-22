@@ -81,31 +81,38 @@ workflows:
 
       - name: Auto-increment build number (App Store Connect API)
         script: |
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number \
-            "$APP_STORE_APP_ID" \
-            --app-store-version=1.0.3 \
-            --platform=IOS)
-          
+          set -euo pipefail
+
+          TARGET_MARKETING_VERSION="1.0.3"
+
+          LATEST_BUILD_NUMBER=$(
+            app-store-connect get-latest-testflight-build-number \
+              "$APP_STORE_APP_ID" \
+              --pre-release-version "$TARGET_MARKETING_VERSION" \
+              --platform IOS
+          )
+
           if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "Unable to determine the latest TestFlight build number for version 1.0.3 / iOS."
+            echo "ERROR: Invalid TestFlight build number: '$LATEST_BUILD_NUMBER'"
             exit 1
           fi
-          
+
           NEXT_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
-          
+
+          echo "Latest TestFlight build for ${TARGET_MARKETING_VERSION} / iOS: ${LATEST_BUILD_NUMBER}"
+          echo "Assigned candidate build: ${NEXT_BUILD_NUMBER}"
+
           cd ios/App
           agvtool new-version -all "$NEXT_BUILD_NUMBER"
-          
-          # Guard: confirm MARKETING_VERSION was not changed by agvtool
+
           CURRENT_MV=$(agvtool mvers -terse1)
-          if [ "$CURRENT_MV" != "1.0.3" ]; then
-            echo "ERROR: MARKETING_VERSION is '$CURRENT_MV', expected '1.0.3'. Aborting."
+
+          if [ "$CURRENT_MV" != "$TARGET_MARKETING_VERSION" ]; then
+            echo "ERROR: MARKETING_VERSION is '$CURRENT_MV'; expected '$TARGET_MARKETING_VERSION'"
             exit 1
           fi
-          
-          echo "Latest TestFlight build (1.0.3 / iOS): $LATEST_BUILD_NUMBER"
-          echo "Assigned candidate build: $NEXT_BUILD_NUMBER"
-          echo "Marketing version confirmed: $CURRENT_MV"
+
+          echo "Confirmed MARKETING_VERSION: ${CURRENT_MV}"
 
 
       - name: Build IPA
@@ -138,12 +145,6 @@ workflows:
         - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.samevibe.app
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
     scripts:
       - name: Install Node dependencies
         script: npm install
