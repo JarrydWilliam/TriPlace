@@ -145,12 +145,6 @@ workflows:
         - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.samevibe.app
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
     scripts:
       - name: Install Node dependencies
         script: npm install
