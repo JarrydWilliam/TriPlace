@@ -85,6 +85,11 @@ workflows:
 
           TARGET_MARKETING_VERSION="1.0.3"
 
+          if [ -z "${APP_STORE_APP_ID:-}" ]; then
+            echo "ERROR: APP_STORE_APP_ID is required."
+            exit 1
+          fi
+
           LATEST_BUILD_NUMBER=$(
             app-store-connect get-latest-testflight-build-number \
               "$APP_STORE_APP_ID" \
@@ -105,14 +110,52 @@ workflows:
           cd ios/App
           agvtool new-version -all "$NEXT_BUILD_NUMBER"
 
-          CURRENT_MV=$(agvtool mvers -terse1)
+          BUILD_SETTINGS=$(
+            xcodebuild \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -showBuildSettings
+          )
+
+          CURRENT_MV=$(
+            awk -F ' = ' \
+              '/^[[:space:]]*MARKETING_VERSION = / {
+                print $2
+                exit
+              }' <<< "$BUILD_SETTINGS"
+          )
+
+          CURRENT_BV=$(
+            awk -F ' = ' \
+              '/^[[:space:]]*CURRENT_PROJECT_VERSION = / {
+                print $2
+                exit
+              }' <<< "$BUILD_SETTINGS"
+          )
+
+          if [ -z "$CURRENT_MV" ]; then
+            echo "ERROR: Unable to resolve MARKETING_VERSION from Xcode Release settings."
+            exit 1
+          fi
+
+          if [ -z "$CURRENT_BV" ]; then
+            echo "ERROR: Unable to resolve CURRENT_PROJECT_VERSION from Xcode Release settings."
+            exit 1
+          fi
 
           if [ "$CURRENT_MV" != "$TARGET_MARKETING_VERSION" ]; then
-            echo "ERROR: MARKETING_VERSION is '$CURRENT_MV'; expected '$TARGET_MARKETING_VERSION'"
+            echo "ERROR: Resolved MARKETING_VERSION is '$CURRENT_MV'; expected '$TARGET_MARKETING_VERSION'"
+            exit 1
+          fi
+
+          if [ "$CURRENT_BV" != "$NEXT_BUILD_NUMBER" ]; then
+            echo "ERROR: Resolved CURRENT_PROJECT_VERSION is '$CURRENT_BV'; expected '$NEXT_BUILD_NUMBER'"
             exit 1
           fi
 
           echo "Confirmed MARKETING_VERSION: ${CURRENT_MV}"
+          echo "Confirmed CURRENT_PROJECT_VERSION: ${CURRENT_BV}"
 
 
       - name: Build IPA
