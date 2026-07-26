@@ -1,6 +1,6 @@
 # SameVibe - Agent Handoff
 
-## Current Status (July 22, 2026)
+## Current Status (July 25, 2026)
 We have merged the narrow Apple iPad tap hotfix into `main` and applied the direct CI validation fix. The repository is awaiting the automated Codemagic iOS TestFlight build for physical device validation and App Store Review resubmission.
 
 ### Authoritative Candidate
@@ -10,6 +10,8 @@ We have merged the narrow Apple iPad tap hotfix into `main` and applied the dire
 - **Native Build Tracking**: Local `.pbxproj` is configured at `CURRENT_PROJECT_VERSION = 94`. Codemagic dynamically queries App Store Connect for the highest 1.0.3 build and increments via `agvtool new-version`.
 
 ### Completed Work (Recent):
+- **Apple Review Profile Completion Bug**:
+  - Fixed a strict type checking mismatch in `PATCH /api/users/:id` where the database ID (parsed as a string by `neon-http`) failed strict equality (`!==`) against the parsed number `id`, causing `403 Forbidden` errors for reviewer accounts during the compliance gate.
 - **Apple iPad Tap Responsiveness Fix**:
   - Removed remaining `touchAction: 'pan-y'` CSS conflict on `PullToRefresh` wrapper that caused tap interception on native WKWebView.
   - Preserved existing `> 8px` pull-to-refresh threshold, Radix body-lock cleanup in `ErrorBoundary`, and iOS safe-area top padding (`.pt-safe`).

@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
 
-      if (!(req as any).user || (req as any).user.id !== id) {
+      if (!(req as any).user || Number((req as any).user.id) !== id) {
         return res.status(403).json({ message: "Forbidden: You can only update your own profile." });
       }
 
