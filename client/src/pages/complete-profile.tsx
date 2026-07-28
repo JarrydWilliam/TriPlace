@@ -1,88 +1,213 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useLocation, Link } from 'wouter';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ComponentLoadingSpinner } from '@/components/loading-spinner';
 import { CURRENT_TERMS_VERSION } from '@shared/schema';
+import { AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
 
+// ── Scroll-wheel column ──────────────────────────────────────────────────────
+function WheelColumn({
+  items,
+  selected,
+  onSelect,
+  label,
+}: {
+  items: string[];
+  selected: string;
+  onSelect: (v: string) => void;
+  label: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const ITEM_H = 44; // px per row
+
+  const selectedIndex = items.indexOf(selected);
+
+  // Scroll to selected item on mount and when selection changes
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: selectedIndex * ITEM_H, behavior: 'smooth' });
+  }, [selectedIndex]);
+
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollTop / ITEM_H);
+    const clamped = Math.max(0, Math.min(idx, items.length - 1));
+    if (items[clamped] !== selected) onSelect(items[clamped]);
+  };
+
+  const step = (delta: number) => {
+    const next = Math.max(0, Math.min(selectedIndex + delta, items.length - 1));
+    onSelect(items[next]);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1 flex-1">
+      <span className="text-xs text-white/40 uppercase tracking-widest mb-1">{label}</span>
+
+      {/* Up arrow */}
+      <button
+        type="button"
+        onClick={() => step(-1)}
+        disabled={selectedIndex === 0}
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 disabled:opacity-20 transition-colors active:scale-90"
+      >
+        <ChevronUp className="w-5 h-5" />
+      </button>
+
+      {/* Scroll drum */}
+      <div className="relative w-full" style={{ height: ITEM_H * 3 }}>
+        {/* Frosted selection highlight */}
+        <div
+          className="absolute left-0 right-0 bg-white/10 rounded-xl border border-white/15 pointer-events-none z-10"
+          style={{ top: ITEM_H, height: ITEM_H }}
+        />
+
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="absolute inset-0 overflow-y-scroll no-scrollbar scroll-smooth"
+          style={{ scrollSnapType: 'y mandatory' }}
+        >
+          {/* Top padding */}
+          <div style={{ height: ITEM_H }} />
+          {items.map((item) => (
+            <div
+              key={item}
+              onClick={() => onSelect(item)}
+              style={{ height: ITEM_H, scrollSnapAlign: 'center' }}
+              className={`flex items-center justify-center cursor-pointer select-none transition-all duration-150 ${
+                item === selected
+                  ? 'text-white font-semibold text-lg'
+                  : 'text-white/30 text-base'
+              }`}
+            >
+              {item}
+            </div>
+          ))}
+          {/* Bottom padding */}
+          <div style={{ height: ITEM_H }} />
+        </div>
+      </div>
+
+      {/* Down arrow */}
+      <button
+        type="button"
+        onClick={() => step(1)}
+        disabled={selectedIndex === items.length - 1}
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 disabled:opacity-20 transition-colors active:scale-90"
+      >
+        <ChevronDown className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+const MONTH_NUMS: Record<string, string> = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+};
+
+function daysInMonth(month: string, year: string) {
+  const m = parseInt(MONTH_NUMS[month] ?? '01', 10);
+  const y = parseInt(year, 10) || 2000;
+  return new Date(y, m, 0).getDate();
+}
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 1900 + 1 }, (_, i) =>
+  String(currentYear - i)
+);
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function CompleteProfile() {
   const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [dateOfBirth, setDateOfBirth] = useState('');
+  const defaultYear = String(currentYear - 25);
+  const [month, setMonth] = useState('Jan');
+  const [day, setDay] = useState('1');
+  const [year, setYear] = useState(defaultYear);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
 
+  // Clamp day when month/year changes
+  const maxDay = daysInMonth(month, year);
+  const days = Array.from({ length: maxDay }, (_, i) => String(i + 1));
+  useEffect(() => {
+    if (parseInt(day) > maxDay) setDay(String(maxDay));
+  }, [month, year, maxDay, day]);
+
+  const getDateOfBirth = (): string => {
+    const m = MONTH_NUMS[month];
+    const d = day.padStart(2, '0');
+    return `${year}-${m}-${d}`;
+  };
+
+  const getAge = (): number => {
+    const dob = new Date(getDateOfBirth());
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  };
+
   const updateComplianceMutation = useMutation({
     mutationFn: async (data: { dateOfBirth: string; termsVersion: string }) => {
-      // Use the dedicated /me/compliance endpoint so the server identifies
-      // the user from their Firebase token — no client-supplied user ID,
-      // no ownership-check 403 possible.
       const response = await apiRequest('PATCH', '/api/users/me/compliance', data);
       return response.json();
     },
     onSuccess: (updatedUser) => {
-      // Use the returned user's id for the cache key — never rely on
-      // the potentially-stale user?.id from the auth context.
       queryClient.setQueryData(['/api/users', updatedUser.id], updatedUser);
-      // Refresh the auth context so the compliance gate check re-evaluates
       refreshUser();
-      toast({
-        title: 'Success',
-        description: 'Profile requirements completed!'
-      });
+      toast({ title: 'Welcome to SameVibe!', description: 'Your profile is complete.' });
       setLocation('/dashboard');
     },
     onError: (err: any) => {
-      setError(err.message || 'Failed to update. Please try again.');
-    }
+      // Show a clean human-readable message instead of raw JSON
+      const msg: string = err.message ?? '';
+      if (msg.includes('18')) {
+        setError('You must be at least 18 years old to use SameVibe.');
+      } else if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+        setError('Authentication error. Please sign out and sign back in.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!dateOfBirth) {
-      setError('Please enter your date of birth.');
-      return;
-    }
-
     if (!termsAccepted) {
       setError('You must accept the Terms of Service to continue.');
       return;
     }
 
-    const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dobRegex.test(dateOfBirth)) {
-      setError("Invalid date format. Use YYYY-MM-DD.");
-      return;
-    }
-
-    const [year, month, day] = dateOfBirth.split('-').map(Number);
-    const today = new Date();
-    let age = today.getFullYear() - year;
-    const m = today.getMonth() + 1 - month;
-    if (m < 0 || (m === 0 && today.getDate() < day)) {
-      age--;
-    }
-
-    if (age < 18) {
-      setError("You must be at least 18 years old to use SameVibe.");
+    if (getAge() < 18) {
+      setError('You must be at least 18 years old to use SameVibe.');
       return;
     }
 
     updateComplianceMutation.mutate({
-      dateOfBirth,
-      termsVersion: CURRENT_TERMS_VERSION
+      dateOfBirth: getDateOfBirth(),
+      termsVersion: CURRENT_TERMS_VERSION,
     });
   };
 
@@ -96,79 +221,82 @@ export default function CompleteProfile() {
 
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 safe-area-top safe-area-bottom relative overflow-hidden">
-      {/* Rich ambient bokeh */}
+      {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#9b87f5]/20 blur-[120px]" />
       </div>
 
-      <Card className="w-full max-w-md bg-card/40 backdrop-blur-xl border-white/10 shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
-            Action Required
-          </CardTitle>
-          <CardDescription className="text-white/60">
-            SameVibe is a community strictly for adults. Please verify your age and accept our updated terms to continue.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-sm text-center">
-                {error}
-              </div>
-            )}
+      <div className="w-full max-w-sm space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            One quick step
+          </h1>
+          <p className="text-sm text-white/50 leading-relaxed">
+            SameVibe is for adults only. Confirm your date of birth to continue.
+          </p>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <div className="relative">
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  required
-                  value={dateOfBirth}
-                  onChange={(e: any) => setDateOfBirth(e.target.value)}
-                  className="bg-black/20 border-white/10 focus-visible:ring-primary/30 min-h-[48px]"
-                  style={{ colorScheme: "dark" }}
-                />
-              </div>
-              <p className="text-xs text-white/40 ml-1">You must be 18 or older to join.</p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Error banner */}
+          {error && (
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Date wheel picker */}
+          <div className="rounded-2xl bg-card/40 backdrop-blur-xl border border-white/8 p-4">
+            <p className="text-xs text-white/40 uppercase tracking-widest text-center mb-3">
+              Date of Birth
+            </p>
+            <div className="flex gap-2">
+              <WheelColumn items={MONTHS} selected={month} onSelect={setMonth} label="Month" />
+              <WheelColumn items={days} selected={day} onSelect={setDay} label="Day" />
+              <WheelColumn items={YEARS} selected={year} onSelect={setYear} label="Year" />
             </div>
 
-            <div className="flex items-start space-x-3 p-4 rounded-xl bg-black/20 border border-white/5">
-              <Checkbox 
-                id="terms" 
-                checked={termsAccepted}
-                onCheckedChange={(checked: any) => setTermsAccepted(checked === true)}
-                className="mt-1 border-white/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-              <div className="space-y-1 leading-none">
-                <Label 
-                  htmlFor="terms" 
-                  className="text-sm font-medium text-white/90 leading-normal cursor-pointer"
-                >
-                  I am at least 18 years old and accept the{" "}
-                  <Link href="/terms">
-                    <span className="text-primary hover:underline cursor-pointer relative z-10">Terms of Service</span>
-                  </Link>
-                  {" "}and{" "}
-                  <Link href="/privacy">
-                    <span className="text-primary hover:underline cursor-pointer relative z-10">Privacy Policy</span>
-                  </Link>.
-                </Label>
-              </div>
+            {/* Live age preview */}
+            <div className="mt-3 text-center">
+              {getAge() >= 18 ? (
+                <span className="text-xs text-emerald-400/80">✓ Age verified ({getAge()} years old)</span>
+              ) : (
+                <span className="text-xs text-white/30">You must be 18 or older to join</span>
+              )}
             </div>
+          </div>
 
-            <Button 
-              type="submit" 
-              className="w-full min-h-[48px] text-base font-semibold transition-all active:scale-[0.98]"
-              disabled={!dateOfBirth || !termsAccepted || updateComplianceMutation.isPending}
-            >
-              Continue to SameVibe
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          {/* Terms */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-black/20 border border-white/5">
+            <Checkbox
+              id="terms"
+              checked={termsAccepted}
+              onCheckedChange={(checked: any) => setTermsAccepted(checked === true)}
+              className="mt-0.5 border-white/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+            <Label htmlFor="terms" className="text-sm text-white/80 leading-relaxed cursor-pointer">
+              I am at least 18 years old and accept the{' '}
+              <Link href="/terms">
+                <span className="text-primary hover:underline">Terms of Service</span>
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy">
+                <span className="text-primary hover:underline">Privacy Policy</span>
+              </Link>.
+            </Label>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full min-h-[52px] text-base font-semibold transition-all active:scale-[0.98] rounded-xl"
+            disabled={!termsAccepted || updateComplianceMutation.isPending}
+          >
+            Continue to SameVibe
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

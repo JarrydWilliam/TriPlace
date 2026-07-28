@@ -91,4 +91,12 @@
     .responsive-padding {
         @apply px-4 sm:px-6 md:px-8;
     }
+    /* Hide scrollbar on the wheel-picker drum columns */
+    .no-scrollbar {
+        scrollbar-width: none;       /* Firefox */
+        -ms-overflow-style: none;    /* IE/Edge */
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;               /* Chrome/Safari/iOS */
+    }
 }

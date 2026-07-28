@@ -304,7 +304,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
 
-      if (!(req as any).user || Number((req as any).user.id) !== id) {
+      // req.user is set by requireAuth. If it is null (edge case: Firebase UID
+      // authenticated but not matched in DB during middleware), attempt a second
+      // lookup via firebaseUser to keep old client builds working.
+      let authenticatedUser = (req as any).user;
+      if (!authenticatedUser && (req as any).firebaseUser?.uid) {
+        const { storage } = await import("./storage.js");
+        authenticatedUser = await storage.getUserByFirebaseUid((req as any).firebaseUser.uid);
+      }
+
+      if (!authenticatedUser || Number(authenticatedUser.id) !== id) {
         return res.status(403).json({ message: "Forbidden: You can only update your own profile." });
       }
 
