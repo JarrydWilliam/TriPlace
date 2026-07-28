@@ -1,38 +1,71 @@
 # SameVibe - Agent Handoff
 
-## Current Status (July 25, 2026)
-The profile-completion 403 bug blocking Apple reviewer accounts has been fixed and pushed to `main`. Codemagic will auto-trigger an iOS build on this commit. The repository is ready for TestFlight validation and App Store Review resubmission.
+## Current Status (July 27, 2026)
+Two critical Apple Review blockers have been fixed and pushed to `main` (SHA `4adfd7b`). Codemagic will auto-trigger a new iOS build. A separate manual action is required in App Store Connect and Google Cloud Console before resubmitting.
 
 ### Authoritative Candidate
 - **Branch**: `main`
-- **Authoritative Commit**: `cec45a1da915841b775eaf76a3078ec872d03046`
+- **Authoritative Commit**: `4adfd7be...` (run `git rev-parse HEAD` for full SHA)
 - **Marketing Version**: `1.0.3`
-- **Native Build Tracking**: Local `.pbxproj` is configured at `CURRENT_PROJECT_VERSION = 94`. Codemagic dynamically queries App Store Connect for the highest 1.0.3 build and increments via `agvtool new-version`.
+- **Native Build Tracking**: Codemagic auto-increments via App Store Connect API.
 
-### Completed Work (Recent):
-- **Apple Review Profile Completion Bug (July 25, 2026)**:
-  - Fixed a strict type-checking mismatch in `PATCH /api/users/:id` where the database `id` (returned as a string by the `neon-http` serverless driver) failed strict `!==` equality against the parsed `parseInt` number from `req.params.id`.
-  - This caused a `403 Forbidden: You can only update your own profile` error for ALL existing users hitting the compliance gate (`/complete-profile`), including Apple reviewer accounts.
-  - Fix: wrapped `req.user.id` in `Number()` before comparison. TypeScript check and build both pass clean.
-- **Apple iPad Tap Responsiveness Fix**:
-  - Removed remaining `touchAction: 'pan-y'` CSS conflict on `PullToRefresh` wrapper that caused tap interception on native WKWebView.
-  - Preserved existing `> 8px` pull-to-refresh threshold, Radix body-lock cleanup in `ErrorBoundary`, and iOS safe-area top padding (`.pt-safe`).
-  - Added 23 narrow client unit tests (`tests/apple-tap-defect-unit.test.mjs`) covering all tap thresholds, body-lock cleanups, and safe-area utilities (23/23 pass, exit code 0).
-- **Codemagic CI Configuration (`codemagic.yaml`)**:
-  - Scoped TestFlight build-number lookup to version `1.0.3` iOS train using `--pre-release-version 1.0.3 --platform IOS`.
-  - Resolved Xcode build settings validation using `xcodebuild -showBuildSettings` to correctly extract `MARKETING_VERSION` (`1.0.3`) and `CURRENT_PROJECT_VERSION`.
-  - Disabled automatic push triggering for `android-release` on `main` so merges trigger `ios-release` exclusively while leaving Android manually runnable.
-  - Build number auto-incremented via numeric `APP_STORE_APP_ID` (not bundle ID) against App Store Connect API.
-- **Age Gating (18+) & EULA**:
-  - Implemented strict 18+ Age Gating in `shared/schema.ts` (`dateOfBirth`) and `server/routes.ts` (`POST /api/users`).
-  - Required explicit End-User License Agreement (EULA) and Terms of Service acceptance during sign-up to comply with Apple App Review Guidelines.
-  - `termsAcceptedAt` timestamp is injected server-side (not trusted from client).
+---
+
+### Completed Work (This Session — July 27, 2026):
+
+- **CRITICAL: Profile Completion 403 — Root Cause Eliminated**
+  - Previous fix (`Number()` cast) was insufficient because the 403 could also fire when `req.user` was `undefined` (Firebase UID mismatch with DB).
+  - Added a dedicated `PATCH /api/users/me/compliance` endpoint that uses `req.user` from the server's `requireAuth` middleware — **no client-supplied user ID is ever passed**, so no ownership-check comparison can fail.
+  - Updated `requireAuth` middleware allowlist to permit `/api/users/me/compliance` for non-compliant users.
+  - Updated `complete-profile.tsx` to call the new endpoint and call `refreshUser()` on success.
+
+- **CRITICAL: Apple Sign-In Hang on Signup Page — Fixed**
+  - `handleAppleSignup` in `signup.tsx` had no timeout; the native Apple Sign-In sheet could hang the UI indefinitely.
+  - Added a `Promise.race` with a 30-second timeout (mirrors the `login.tsx` pattern that was already in place).
+
+---
+
+### Completed Work (Previous Sessions):
+- **Apple iPad Tap Responsiveness Fix**: Removed `touchAction: 'pan-y'` CSS conflict, 23/23 unit tests pass.
+- **Codemagic CI**: Numeric `APP_STORE_APP_ID`, correct `--pre-release-version 1.0.3 --platform IOS` scoping.
+- **Age Gating (18+) & EULA**: Server-side enforced, `termsAcceptedAt` server-generated.
+
+---
 
 ### Reviewer Accounts:
-1. **Populated account**: `samevibe.review@gmail.com` / `SameVibe2024!` (Populated dashboard, communities, events, messaging, profile, settings).
-2. **New-user account**: `samevibe.newreview@gmail.com` / `SameVibe2024!` (Clean account for onboarding/quiz testing).
+1. **Populated account**: `samevibe.review@gmail.com` / `SameVibe2024!`
+2. **New-user account**: `samevibe.newreview@gmail.com` / `SameVibe2024!`
+
+---
+
+## ⚠️ FOUNDER MANUAL ACTIONS REQUIRED BEFORE RESUBMISSION
+
+These cannot be done in code — the founder must do them:
+
+### ACTION 1 — Update App Store Connect Reviewer Credentials (CRITICAL)
+Apple's reviewer used `samevibe.demo@gmail.com` which does not exist.
+Go to: **App Store Connect → Your App → App Review Information → Demo Account**
+- **Update username to**: `samevibe.review@gmail.com`
+- **Update password to**: `SameVibe2024!`
+- Add these reviewer notes:
+  > "This is an existing user account with a populated profile. Upon first sign-in, the app will ask you to verify your date of birth (enter any date showing you are 18+, e.g. 01/01/1990) and accept Terms of Service. After tapping 'Continue to SameVibe', you will be taken to the full dashboard with communities, events, messaging, and settings pre-loaded."
+
+### ACTION 2 — Fix Google OAuth Consent Screen Showing "TriPlace" (IMPORTANT)
+The Google Sign-In popup shows "Sign in to continue to **TriPlace**" — Apple reviewers can see this.
+Go to: **Google Cloud Console → APIs & Services → OAuth Consent Screen**
+- Change the **App name** from "TriPlace" to "SameVibe"
+- Save and verify
+
+### ACTION 3 — Verify iPad Support Scope (INFORMATIONAL)
+Apple flagged the iPad (unresponsive tap) — our touchAction fix addressed this.
+However, `TARGETED_DEVICE_FAMILY = 1` means iPhone-only. If the app appears on iPad App Store listings, Apple reviewers will test it on iPad.
+Consider: if you want iPhone-only, make sure the App Store Connect listing does NOT select iPad as a supported device.
+
+---
 
 ## Immediate Next Steps:
-1. **Monitor Codemagic iOS Build**: Verify the `ios-release` workflow completes on SHA `cec45a1da915841b775eaf76a3078ec872d03046` and uploads the candidate IPA to TestFlight under Version `1.0.3`.
-2. **Test Reviewer Account on Physical iPhone**: Sign in as `samevibe.review@gmail.com`, submit DOB + Terms on `/complete-profile` — should now pass through to the dashboard without a 403 error.
-3. **Resubmit to App Store Review**: After native verification passes, select the verified TestFlight build for App Store Connect Submission `ac924509-78b8-44ba-87d3-9e35f5609f7c`.
+1. ✅ Wait for Codemagic to build on SHA `4adfd7b` and upload to TestFlight.
+2. ✅ **Founder**: Update App Store Connect demo account credentials (see Action 1 above).
+3. ✅ **Founder**: Fix Google OAuth consent screen (see Action 2 above).
+4. ✅ Test the new TestFlight build: sign in as `samevibe.review@gmail.com`, enter DOB + Terms → should go straight to dashboard.
+5. ✅ Resubmit to App Store Review (Submission ID: `ac924509-78b8-44ba-87d3-9e35f5609f7c`).
