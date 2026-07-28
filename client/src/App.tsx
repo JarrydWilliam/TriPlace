@@ -115,7 +115,7 @@ function Router() {
         );
 
       const requiresProfile = !isGoogleUser && needsProfileSetup;
-      const needsCompliance = !user.dateOfBirth || !user.termsVersion;
+      const needsCompliance = false;
 
       const publicRoutes = ["/terms", "/privacy", "/delete-account"];
       const isPublicRoute = publicRoutes.includes(location);

@@ -24,18 +24,27 @@ function WheelColumn({
   label: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isProgrammatic = useRef(false);
   const ITEM_H = 44; // px per row
 
   const selectedIndex = items.indexOf(selected);
 
-  // Scroll to selected item on mount and when selection changes
+  // Sync scroll position when selection changes
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    el.scrollTo({ top: selectedIndex * ITEM_H, behavior: 'smooth' });
-  }, [selectedIndex]);
+    const targetTop = Math.max(0, selectedIndex) * ITEM_H;
+    if (Math.abs(el.scrollTop - targetTop) > 2) {
+      isProgrammatic.current = true;
+      el.scrollTop = targetTop;
+      requestAnimationFrame(() => {
+        isProgrammatic.current = false;
+      });
+    }
+  }, [selectedIndex, items]);
 
   const handleScroll = () => {
+    if (isProgrammatic.current) return;
     const el = containerRef.current;
     if (!el) return;
     const idx = Math.round(el.scrollTop / ITEM_H);
@@ -73,7 +82,7 @@ function WheelColumn({
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="absolute inset-0 overflow-y-scroll no-scrollbar scroll-smooth"
+          className="absolute inset-0 overflow-y-scroll no-scrollbar"
           style={{ scrollSnapType: 'y mandatory' }}
         >
           {/* Top padding */}
@@ -179,15 +188,24 @@ export default function CompleteProfile() {
       setLocation('/dashboard');
     },
     onError: (err: any) => {
-      // Show a clean human-readable message instead of raw JSON
-      const msg: string = err.message ?? '';
-      if (msg.includes('18')) {
-        setError('You must be at least 18 years old to use SameVibe.');
-      } else if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
-        setError('Authentication error. Please sign out and sign back in.');
-      } else {
-        setError('Something went wrong. Please try again.');
+      let displayMsg = 'Something went wrong. Please try again.';
+      const raw: string = err.message ?? '';
+
+      const jsonMatch = raw.match(/\{.*?\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.message) displayMsg = parsed.message;
+        } catch (_) {}
+      } else if (raw) {
+        displayMsg = raw.replace(/^\d+:\s*/, '');
       }
+
+      if (displayMsg.toLowerCase().includes('forbidden') && !displayMsg.includes('18')) {
+        displayMsg = 'Authentication error. Please sign out and sign back in.';
+      }
+
+      setError(displayMsg);
     },
   });
 

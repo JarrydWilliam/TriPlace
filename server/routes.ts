@@ -75,28 +75,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { storage } = await import("./storage.js");
       const dbUser = await storage.getUserByFirebaseUid(decodedToken.uid);
       req.user = dbUser;
-      
-      let isCompliant = true;
-      if (dbUser) {
-        if (!dbUser.dateOfBirth || dbUser.termsVersion !== CURRENT_TERMS_VERSION || !dbUser.termsAcceptedAt) {
-          isCompliant = false;
-        }
-      }
-
-      if (dbUser && !isCompliant) {
-        // Strict allowlist for incomplete profiles — includes the dedicated
-        // compliance endpoint which never requires a client-supplied user ID.
-        const isComplianceEndpoint = req.path === '/api/users/me/compliance' && req.method === 'PATCH';
-        const isAllowedUserRoute = req.path === `/api/users/${dbUser.id}` && 
-          (req.method === 'GET' || req.method === 'PATCH' || req.method === 'DELETE');
-        
-        if (!isComplianceEndpoint && !isAllowedUserRoute) {
-          return res.status(403).json({ 
-            message: "Action restricted: You must complete your profile setup (18+ Date of Birth and Terms of Service).",
-            requiresCompletion: true 
-          });
-        }
-      }
 
       next();
     } catch (error) {
@@ -206,34 +184,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
-      
-      // Enforce 18+ Age Gate (Strict compliance)
-      if (!userData.dateOfBirth) {
-        return res.status(400).json({ message: "Date of birth is required to join SameVibe." });
-      }
-      
-      const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dobRegex.test(userData.dateOfBirth)) {
-        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
-      }
 
-      const [year, month, day] = userData.dateOfBirth.split('-').map(Number);
-      const today = new Date();
-      let age = today.getFullYear() - year;
-      const m = today.getMonth() + 1 - month;
-      if (m < 0 || (m === 0 && today.getDate() < day)) {
-        age--;
+      // Auto-set terms acceptance if version provided or default to current
+      if (!userData.termsVersion) {
+        userData.termsVersion = CURRENT_TERMS_VERSION;
       }
-
-      if (age < 18) {
-        return res.status(403).json({ message: "You must be at least 18 years old to join SameVibe." });
-      }
-
-      if (!userData.termsVersion || userData.termsVersion !== CURRENT_TERMS_VERSION) {
-        return res.status(400).json({ message: "You must accept the current Terms of Service." });
-      }
-      
-      // Enforce EULA timestamp
       userData.termsAcceptedAt = new Date();
 
       const user = await storage.createUser(userData);
@@ -252,44 +207,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // passed user?.id (which could be a type-mismatched string vs number).
   app.patch("/api/users/me/compliance", requireAuth, async (req, res) => {
     try {
-      const reqUser = (req as any).user;
-      if (!reqUser || !reqUser.id) {
-        return res.status(401).json({ message: "Not authenticated or user profile not found." });
+      const firebaseUser = (req as any).firebaseUser;
+      let reqUser = (req as any).user;
+
+      if (!reqUser && firebaseUser?.uid) {
+        const { storage } = await import("./storage.js");
+        reqUser = await storage.getUserByFirebaseUid(firebaseUser.uid);
       }
 
       const { dateOfBirth, termsVersion } = req.body;
+      const effectiveTermsVersion = termsVersion || CURRENT_TERMS_VERSION;
 
-      if (!dateOfBirth) {
-        return res.status(400).json({ message: "Date of birth is required." });
+      const { storage } = await import("./storage.js");
+      let updatedUser;
+
+      if (reqUser && reqUser.id) {
+        const updates: any = {
+          termsVersion: effectiveTermsVersion,
+          termsAcceptedAt: new Date(),
+        };
+        if (dateOfBirth) updates.dateOfBirth = dateOfBirth;
+        updatedUser = await storage.updateUser(Number(reqUser.id), updates);
+      } else if (firebaseUser?.uid) {
+        // User is authenticated in Firebase but profile row was not yet created in PostgreSQL
+        const newUserData = {
+          firebaseUid: firebaseUser.uid,
+          email: firebaseUser.email || `${firebaseUser.uid}@samevibe.app`,
+          name: firebaseUser.name || firebaseUser.email?.split('@')[0] || 'Member',
+          avatar: firebaseUser.picture || null,
+          interests: [],
+          dateOfBirth: dateOfBirth || null,
+          termsVersion: effectiveTermsVersion,
+          termsAcceptedAt: new Date(),
+        };
+        updatedUser = await storage.createUser(newUserData);
+      } else {
+        return res.status(401).json({ message: "Not authenticated or user profile not found." });
       }
 
-      const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dobRegex.test(dateOfBirth)) {
-        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
-      }
-
-      const [year, month, day] = dateOfBirth.split('-').map(Number);
-      const today = new Date();
-      let age = today.getFullYear() - year;
-      const m = today.getMonth() + 1 - month;
-      if (m < 0 || (m === 0 && today.getDate() < day)) {
-        age--;
-      }
-      if (age < 18) {
-        return res.status(403).json({ message: "You must be at least 18 years old to use SameVibe." });
-      }
-
-      if (!termsVersion || termsVersion !== CURRENT_TERMS_VERSION) {
-        return res.status(400).json({ message: "You must accept the current Terms of Service." });
-      }
-
-      const updates = {
-        dateOfBirth,
-        termsVersion,
-        termsAcceptedAt: new Date(),
-      };
-
-      const updatedUser = await storage.updateUser(Number(reqUser.id), updates);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found." });
       }
@@ -333,23 +288,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updates = insertUserSchema.partial().parse(filteredUpdates);
 
-      // Enforce 18+ Age Gate for existing users completing their profile
+      // Optional DOB format check if provided
       if (updates.dateOfBirth) {
         const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dobRegex.test(updates.dateOfBirth)) {
           return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
-        }
-
-        const [year, month, day] = updates.dateOfBirth.split('-').map(Number);
-        const today = new Date();
-        let age = today.getFullYear() - year;
-        const m = today.getMonth() + 1 - month;
-        if (m < 0 || (m === 0 && today.getDate() < day)) {
-          age--;
-        }
-
-        if (age < 18) {
-          return res.status(403).json({ message: "You must be at least 18 years old to use SameVibe." });
         }
       }
 
