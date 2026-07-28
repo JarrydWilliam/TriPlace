@@ -483,15 +483,15 @@ export default function Dashboard() {
   ];
 
   // Color coding for communities
-  const communityColors = {
-    wellness: "bg-purple-500",
-    tech: "bg-blue-500",
-    arts: "bg-pink-500",
-    fitness: "bg-green-500",
-    music: "bg-yellow-500",
-    food: "bg-orange-500",
-    outdoor: "bg-emerald-500",
-    social: "bg-indigo-500",
+  const communityColors: Record<string, string> = {
+    default: "from-cyan-500/20 to-indigo-500/20",
+    sports: "from-cyan-500/20 to-blue-500/20",
+    music: "from-violet-500/20 to-purple-500/20",
+    art: "from-pink-500/20 to-rose-500/20",
+    food: "from-amber-500/20 to-orange-500/20",
+    tech: "from-cyan-500/20 to-teal-500/20",
+    outdoors: "from-emerald-500/20 to-green-500/20",
+    social: "from-indigo-500/20 to-violet-500/20",
   };
 
   useEffect(() => {
@@ -621,7 +621,7 @@ export default function Dashboard() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => signOut()}
-                        className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
                       >
                         <LogOut className="mr-2 h-4 w-4" />
                         Log out
@@ -724,7 +724,7 @@ export default function Dashboard() {
                   {userCommunitiesLoading ? (
                     <div className="animate-pulse space-y-3">
                       {[0, 1, 2].map((i) => (
-                        <div key={i} className="h-20 bg-white/5 rounded-2xl" />
+                        <div key={i} className="h-20 skeleton rounded-2xl" />
                       ))}
                     </div>
                   ) : Array.isArray(userActiveCommunities) &&
@@ -739,7 +739,7 @@ export default function Dashboard() {
                     ))
                   ) : (
                     <EmptyState
-                      icon={<Users className="w-6 h-6 text-gray-500" />}
+                      icon={<Users className="w-6 h-6 text-muted-foreground" />}
                       title="It's a bit quiet here!"
                       description="Your social circle is a blank canvas. Discover local communities below to start connecting."
                       action={{
@@ -767,7 +767,7 @@ export default function Dashboard() {
                     {trendingLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           Finding popular events...
                         </p>
                       </div>
@@ -780,7 +780,7 @@ export default function Dashboard() {
                         />
                       ))
                     ) : (
-                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      <div className="p-4 text-center text-muted-foreground">
                         <p className="text-sm">
                           No trending events in your area yet
                         </p>
@@ -805,7 +805,7 @@ export default function Dashboard() {
                     {recommendationsLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           Finding your perfect communities...
                         </p>
                       </div>
@@ -836,7 +836,7 @@ export default function Dashboard() {
                         ))
                     ) : (
                       <EmptyState
-                        icon={<Users className="w-6 h-6 text-gray-500" />}
+                        icon={<Users className="w-6 h-6 text-muted-foreground" />}
                         title="You're all caught up!"
                         description="You've joined all available communities."
                         action={{
@@ -849,7 +849,7 @@ export default function Dashboard() {
               </section>
 
               {/* My Activity & Challenges */}
-              <section className="pt-4 border-t border-white/5">
+              <section className="pt-4 border-t border-border/40">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-primary" />
@@ -862,7 +862,7 @@ export default function Dashboard() {
                   <StreakCard userId={user.id} />
                   
                   {/* Weekly Challenges */}
-                  <div className="bg-card/40 backdrop-blur-md border border-white/5 rounded-2xl p-4 space-y-4">
+                  <div className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-4 space-y-4">
                     {currentChallenges.length > 0 ? (
                       <div className="space-y-4">
                         {currentChallenges.map((challenge) => (

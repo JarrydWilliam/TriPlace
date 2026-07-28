@@ -84,12 +84,12 @@ export default function CommunitiesPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-pulse">
             <Logo size="xl" />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading communities...</p>
+          <p className="text-sm text-muted-foreground">Loading communities...</p>
         </div>
       </div>
     );
@@ -102,7 +102,7 @@ export default function CommunitiesPage() {
           <div className="container-responsive responsive-padding safe-area-top max-w-6xl mx-auto">
         
         {/* Header with Back Button and Theme Toggle */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="sticky top-0 z-50 glass-panel flex items-center justify-between mb-6 p-4 -mx-4 rounded-b-2xl">
           <div className="flex items-center space-x-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="flex items-center space-x-2">
@@ -110,7 +110,7 @@ export default function CommunitiesPage() {
                 <span>Back to Dashboard</span>
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
+            <h1 className="text-3xl font-bold font-display text-foreground">My Groups</h1>
           </div>
         </div>
 
@@ -119,11 +119,11 @@ export default function CommunitiesPage() {
           <div className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
               <Sparkles className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Featured Partner Events</h2>
+              <h2 className="text-xl font-semibold text-foreground">Featured Partner Events</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {partnerEvents.slice(0, 3).map((event: Event) => (
-                <Card key={event.id} className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
+                <Card key={event.id} className="glass-card hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <Badge variant="secondary" className="bg-primary/10 text-primary">
@@ -135,13 +135,13 @@ export default function CommunitiesPage() {
                         </span>
                       )}
                     </div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                    <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
                       {event.title}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                       {event.description}
                     </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Calendar className="w-3 h-3" />
                         <span>{new Date(event.date).toLocaleDateString()}</span>
@@ -160,7 +160,7 @@ export default function CommunitiesPage() {
 
         {/* Communities Grid */}
         <div className="mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
             Communities You've Joined
           </h2>
         </div>
@@ -168,14 +168,14 @@ export default function CommunitiesPage() {
         {communitiesLoading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="glass-card animate-pulse">
                 <CardContent className="p-6">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                  <div className="h-6 skeleton rounded mb-3"></div>
+                  <div className="h-4 skeleton rounded mb-2"></div>
+                  <div className="h-4 skeleton rounded mb-4"></div>
                   <div className="flex space-x-2">
-                    <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    <div className="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-5 w-16 skeleton rounded"></div>
+                    <div className="h-5 w-20 skeleton rounded"></div>
                   </div>
                 </CardContent>
               </Card>
@@ -185,14 +185,14 @@ export default function CommunitiesPage() {
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
             <div className="relative mb-6">
               <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-2xl backdrop-blur-md">
+              <div className="w-16 h-16 rounded-2xl glass-panel flex items-center justify-center relative z-10 shadow-2xl">
                 <Users className="w-8 h-8 text-primary/80" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               No Groups Yet
             </h3>
-            <p className="text-sm text-white/50 max-w-[280px] mb-6">
+            <p className="text-sm text-muted-foreground max-w-[280px] mb-6">
               You haven't joined any communities yet. Head to Discover to find your people!
             </p>
             <Link href="/discover">
@@ -205,7 +205,7 @@ export default function CommunitiesPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allCommunities?.map((community: Community) => (
               <Link key={community.id} href={`/community/${community.id}`}>
-                <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer h-full">
+                <Card className="glass-card hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer h-full">
                   <CardContent className="p-6">
                     {/* Community Icon */}
                     <div className="flex items-start justify-between mb-4">
@@ -222,7 +222,7 @@ export default function CommunitiesPage() {
                         {!["fitness", "wellness", "tech", "outdoor", "arts", "food", "music", "business", "social"].includes(community.category?.toLowerCase() || "") && "🌟"}
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                           <Users className="w-3 h-3" />
                           <span>{community.memberCount || 0}</span>
                         </div>
@@ -230,16 +230,16 @@ export default function CommunitiesPage() {
                     </div>
 
                     {/* Community Info */}
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2 line-clamp-2">
+                    <h3 className="font-semibold text-lg text-foreground mb-2 line-clamp-2">
                       {community.name}
                     </h3>
                     
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                       {community.description}
                     </p>
 
                     {/* Location */}
-                    <div className="flex items-center space-x-1 mb-3 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-1 mb-3 text-sm text-muted-foreground">
                       <MapPin className="w-3 h-3" />
                       <span>{getLocationDisplay(community.location || "")}</span>
                     </div>
@@ -260,7 +260,7 @@ export default function CommunitiesPage() {
         )}
 
         {/* Smooth scroll fade at bottom */}
-        <div className="h-8 bg-gradient-to-t from-gray-50 dark:from-gray-900 to-transparent pointer-events-none"></div>
+        <div className="h-8 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
         </div>
         </div>
 

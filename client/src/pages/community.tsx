@@ -25,6 +25,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { CommunityPosts } from "@/components/ui/community-posts";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
@@ -174,9 +175,9 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
   if (events.length === 0) {
     return (
       <div className="responsive-padding text-center py-12">
-        <Calendar className="mx-auto h-12 w-12 text-white/30 mb-4" />
-        <h3 className="text-lg font-semibold mb-2 text-white">No Events Found</h3>
-        <p className="text-white/60 mb-4">
+        <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2 text-foreground">No Events Found</h3>
+        <p className="text-muted-foreground mb-4">
           We're continuously discovering new events for this community.
           <br />
           Check back soon for upcoming activities!
@@ -184,7 +185,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
         <Button
           onClick={() => refetch()}
           variant="outline"
-          className="gap-2 border-white/10 text-white hover:bg-white/10"
+          className="gap-2 border-white/10 text-foreground hover:bg-white/10"
         >
           <Calendar className="h-4 w-4" />
           Refresh Events
@@ -213,7 +214,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
           {/* Date header */}
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-white/8" />
-            <span className="text-xs font-semibold text-white/40 uppercase tracking-widest whitespace-nowrap">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
               {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
             </span>
             <div className="h-px flex-1 bg-white/8" />
@@ -226,7 +227,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
             >
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h4 className="text-sm font-bold text-white leading-tight">{event.title}</h4>
+                  <h4 className="text-sm font-bold text-foreground leading-tight">{event.title}</h4>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
                     parseFloat(event.price ?? "0") === 0
                       ? "bg-emerald-500/20 text-emerald-300"
@@ -236,9 +237,9 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
                   </span>
                 </div>
 
-                <p className="text-xs text-white/55 leading-relaxed mb-3 line-clamp-2">{event.description}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{event.description}</p>
 
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/40 mb-4">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mb-4">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     <span>{formatEventDate(typeof event.date === 'string' ? event.date : event.date.toISOString())}</span>
@@ -256,7 +257,7 @@ function EventsDisplay({ communityId }: EventsDisplayProps) {
                 <Button
                   onClick={() => handleJoinEvent(event.id, event.title)}
                   disabled={joiningEventId === event.id}
-                  className="w-full h-9 rounded-xl bg-gradient-to-r from-primary/80 to-accent/80 hover:from-primary hover:to-accent text-white text-xs font-semibold transition-all"
+                  className="w-full h-9 rounded-xl bg-gradient-to-r from-primary/80 to-accent/80 hover:from-primary hover:to-accent text-foreground text-xs font-semibold transition-all"
                 >
                   {joiningEventId === event.id ? (
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -415,8 +416,8 @@ export default function CommunityPage() {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center glass-panel">
         <div className="text-center px-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Community Not Found</h1>
-          <p className="text-white/60 mb-6">This community couldn't be loaded right now.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Community Not Found</h1>
+          <p className="text-muted-foreground mb-6">This community couldn't be loaded right now.</p>
           <Link href="/discover">
             <Button className="rounded-full">
               Explore Communities
@@ -428,7 +429,7 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="mobile-page-container">
+    <div className="mobile-page-container pb-nav">
       <PullToRefresh onRefresh={handleRefresh}>
         {/* Main Glass Layout */}
         <div className="glass-panel border-0 bg-transparent min-h-[100dvh]">
@@ -449,7 +450,7 @@ export default function CommunityPage() {
             {/* Navigation Overlay */}
             <div className="relative px-4 pt-safe mt-2 flex items-center justify-between mb-8">
               <Link href="/dashboard">
-                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10">
+                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-foreground hover:bg-black/40 border border-white/10">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
@@ -495,7 +496,7 @@ export default function CommunityPage() {
                   className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
                     activeTab === "chat" 
                       ? "border-primary text-primary bg-primary/5" 
-                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
@@ -506,7 +507,7 @@ export default function CommunityPage() {
                   className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
                     activeTab === "events" 
                       ? "border-primary text-primary bg-primary/5" 
-                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -517,7 +518,7 @@ export default function CommunityPage() {
                   className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
                     activeTab === "members" 
                       ? "border-primary text-primary bg-primary/5" 
-                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   <Users className="w-4 h-4 mr-2" />
@@ -528,7 +529,7 @@ export default function CommunityPage() {
                   className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
                     activeTab === "posts" 
                       ? "border-primary text-primary bg-primary/5" 
-                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
                   <Pin className="w-4 h-4 mr-2" />
@@ -544,15 +545,15 @@ export default function CommunityPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary via-accent to-secondary flex items-center justify-center text-foreground font-bold text-lg shadow-lg">
                           {community.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#080612] shadow" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white text-sm leading-tight">{community.name}</h3>
+                        <h3 className="font-bold text-foreground text-sm leading-tight">{community.name}</h3>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-white/50">{community.memberCount} members</span>
+                          <span className="text-xs text-muted-foreground">{community.memberCount} members</span>
                         </div>
                       </div>
                     </div>
@@ -569,11 +570,11 @@ export default function CommunityPage() {
                       <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
                     </div>
                   ) : messages?.length === 0 ? (
-                    <div className="text-center py-12 text-white/40">
+                    <div className="text-center py-12 text-muted-foreground">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
                         <MessageCircle className="w-8 h-8 text-primary/60" />
                       </div>
-                      <h3 className="font-semibold text-lg mb-2 text-white">Welcome to {community.name}!</h3>
+                      <h3 className="font-semibold text-lg mb-2 text-foreground">Welcome to {community.name}!</h3>
                       <p>Be the first to start the conversation</p>
                     </div>
                   ) : (
@@ -583,7 +584,7 @@ export default function CommunityPage() {
                           <button className="flex-shrink-0 hover:scale-105 transition-transform mt-1">
                             <Avatar className="w-8 h-8 ring-2 ring-white/10 shadow-sm">
                               <AvatarImage src={message.sender?.avatar} />
-                              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-xs">
+                              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-foreground font-semibold text-xs">
                                 {formatDisplayName(message.sender?.name).charAt(0)}
                               </AvatarFallback>
                             </Avatar>
@@ -592,21 +593,21 @@ export default function CommunityPage() {
                             {/* Glass Message Bubble */}
                             <div className="glass-card rounded-2xl rounded-tl-sm p-3 hover:bg-white/10 transition-all duration-200 group-hover:scale-[1.01]">
                               <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-semibold text-white text-xs">
+                                <span className="font-semibold text-foreground text-xs">
                                   {formatDisplayName(message.sender?.name)}
                                 </span>
-                                <span className="text-[10px] text-white/40">
+                                <span className="text-[10px] text-muted-foreground">
                                   {format(parseISO(message.createdAt), 'h:mm a')}
                                 </span>
                               </div>
-                              <p className="text-white/90 text-sm leading-relaxed">{message.content}</p>
+                              <p className="text-foreground text-sm leading-relaxed">{message.content}</p>
                               
                               {/* Message Actions */}
                               <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
                                 <div className="flex items-center space-x-4">
                                   <button
                                     onClick={() => resonateMutation.mutate(message.id)}
-                                    className="flex items-center space-x-1.5 text-xs text-white/40 hover:text-red-400 transition-colors group/resonate"
+                                    className="flex items-center space-x-1.5 text-xs text-muted-foreground hover:text-red-400 transition-colors group/resonate"
                                     disabled={resonateMutation.isPending}
                                   >
                                     <Heart className={`w-3 h-3 group-hover/resonate:scale-110 transition-transform ${message.resonateCount > 0 ? 'fill-red-400 text-red-400' : ''}`} />
@@ -631,7 +632,7 @@ export default function CommunityPage() {
                           placeholder={`Message ${community.name}...`}
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          className="min-h-[44px] max-h-32 resize-none rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-white/30 focus:ring-2 focus:ring-primary/50 focus:border-transparent pr-12 text-sm glass-input"
+                          className="min-h-[44px] max-h-32 resize-none rounded-2xl border-white/10 bg-white/5 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-transparent pr-12 text-sm glass-input"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
@@ -639,7 +640,7 @@ export default function CommunityPage() {
                             }
                           }}
                         />
-                        <div className="absolute bottom-2 right-3 text-[10px] text-white/30">
+                        <div className="absolute bottom-2 right-3 text-[10px] text-muted-foreground">
                           {newMessage.length}/500
                         </div>
                       </div>
@@ -686,6 +687,7 @@ export default function CommunityPage() {
           </div>
         </div>
       </PullToRefresh>
+      <MobileNav />
     </div>
   );
 }

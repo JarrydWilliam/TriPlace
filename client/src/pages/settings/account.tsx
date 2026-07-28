@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { signOutUser, deleteFirebaseAccount } from "@/lib/firebase";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
@@ -56,7 +57,7 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden">
+    <div className="mobile-page-container bg-background relative overflow-hidden pb-nav">
       {/* Rich ambient bokeh */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
@@ -93,7 +94,7 @@ export default function AccountSettings() {
                       disabled
                       className="bg-muted/30 border-white/10 text-foreground"
                     />
-                    <Badge variant="secondary" className="text-green-600 bg-green-100">
+                    <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
@@ -266,6 +267,7 @@ export default function AccountSettings() {
           </Card>
         </div>
       </div>
+      <MobileNav />
     </div>
   );
 }

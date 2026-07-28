@@ -65,12 +65,12 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed z-50 md:hidden rounded-full shadow-2xl bg-background/80 backdrop-blur-xl border border-white/10"
+      className="fixed z-50 md:hidden rounded-full bg-[#050d1a]/90 backdrop-blur-xl border border-white/[0.08]"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 12px) + 16px)",
         left: "1rem",
         right: "1rem",
-        boxShadow: "0 10px 40px -10px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.06)",
       }}
     >
       <div className="flex justify-around items-center py-1.5 px-2">
@@ -85,8 +85,9 @@ export function MobileNav() {
                 {item.active && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-xl bg-white/10"
+                    className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/25"
                     transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+                    style={{ boxShadow: "0 0 12px -4px rgba(0,212,255,0.4)" }}
                   />
                 )}
 
@@ -112,7 +113,7 @@ export function MobileNav() {
                 {item.badge && (
                   <Badge
                     variant="secondary"
-                    className="absolute top-0 right-1 min-w-[16px] h-[16px] p-0 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full border-0"
+                    className="absolute top-0 right-0 min-w-[16px] h-[16px] p-0 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full border border-background"
                   >
                     {item.badge}
                   </Badge>

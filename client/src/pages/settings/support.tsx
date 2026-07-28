@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, HelpCircle, Mail, MessageSquare, AlertTriangle, Book, ExternalLink, Send, FileText, Shield, Star } from "lucide-react";
 import { Link } from "wouter";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 export default function SupportSettings() {
   const { toast } = useToast();
@@ -72,7 +73,7 @@ export default function SupportSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden">
+    <div className="mobile-page-container bg-background relative overflow-hidden pb-nav">
       {/* Rich ambient bokeh */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
@@ -103,7 +104,7 @@ export default function SupportSettings() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <a href="mailto:support@samevibe.app?subject=Help%20Request">
                   <Button variant="outline" className="w-full h-20 flex-col space-y-2">
-                    <Book className="w-6 h-6 text-blue-500" />
+                    <Book className="w-6 h-6 text-cyan-400" />
                     <div className="text-center">
                       <p className="font-medium">Email Support</p>
                       <p className="text-sm text-muted-foreground">support@samevibe.app</p>
@@ -227,7 +228,7 @@ export default function SupportSettings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Link href="/terms">
                   <Button variant="outline" className="w-full justify-start h-auto p-4">
-                    <FileText className="mr-3 h-5 w-5 text-blue-500" />
+                    <FileText className="mr-3 h-5 w-5 text-cyan-400" />
                     <div className="text-left">
                       <p className="font-medium">Community Guidelines</p>
                       <p className="text-sm text-muted-foreground">Learn about our community standards</p>
@@ -238,7 +239,7 @@ export default function SupportSettings() {
                 
                 <Link href="/privacy">
                   <Button variant="outline" className="w-full justify-start h-auto p-4">
-                    <Shield className="mr-3 h-5 w-5 text-green-500" />
+                    <Shield className="mr-3 h-5 w-5 text-emerald-400" />
                     <div className="text-left">
                       <p className="font-medium">Privacy Policy</p>
                       <p className="text-sm text-muted-foreground">How we protect your data</p>
@@ -249,7 +250,7 @@ export default function SupportSettings() {
                 
                 <Link href="/terms">
                   <Button variant="outline" className="w-full justify-start h-auto p-4">
-                    <FileText className="mr-3 h-5 w-5 text-purple-500" />
+                    <FileText className="mr-3 h-5 w-5 text-accent" />
                     <div className="text-left">
                       <p className="font-medium">Terms of Service</p>
                       <p className="text-sm text-muted-foreground">Your rights and responsibilities</p>
@@ -351,13 +352,14 @@ export default function SupportSettings() {
               
               <div className="text-center pt-2">
                 <p className="text-sm text-muted-foreground">
-                  Emergency Support: <a href="mailto:safety@samevibe.app" className="text-blue-600 hover:underline">safety@samevibe.app</a>
+                  Emergency Support: <a href="mailto:safety@samevibe.app" className="text-cyan-400 hover:underline">safety@samevibe.app</a>
                 </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      <MobileNav />
     </div>
   );
 }

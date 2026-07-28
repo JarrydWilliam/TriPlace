@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useRef } from "react";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 export default function ProfileSettings() {
   const { user } = useAuth();
@@ -28,6 +30,25 @@ export default function ProfileSettings() {
   
   const [interests, setInterests] = useState(user?.interests || []);
   const [newInterest, setNewInterest] = useState('');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64String = event.target?.result as string;
+      try {
+        await apiRequest('PATCH', `/api/users/${user.id}`, { avatar: base64String });
+        toast({ title: "Photo updated" });
+      } catch (error) {
+        toast({ title: "Failed to update photo", variant: "destructive" });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -56,7 +77,7 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden">
+    <div className="mobile-page-container bg-background relative overflow-hidden pb-nav">
       {/* Rich ambient bokeh */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
@@ -88,7 +109,8 @@ export default function ProfileSettings() {
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
-                <Button className="w-full">
+                <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                <Button className="w-full" onClick={() => fileInputRef.current?.click()}>
                   <Camera className="mr-2 h-4 w-4" />
                   Change Photo
                 </Button>
@@ -275,7 +297,7 @@ export default function ProfileSettings() {
           </div>
         </div>
       </div>
-
+      <MobileNav />
     </div>
   );
 }

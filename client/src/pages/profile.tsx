@@ -37,7 +37,7 @@ const interestColors = [
   "bg-blue-500/20 text-blue-400",
   "bg-pink-500/20 text-pink-400",
   "bg-orange-500/20 text-orange-400",
-  "bg-purple-500/20 text-purple-400",
+  "bg-accent/20 text-accent",
   "bg-cyan-500/20 text-cyan-400",
   "bg-yellow-500/20 text-yellow-400",
 ];
@@ -292,7 +292,7 @@ export default function Profile() {
                           <Button
                             onClick={handleCancel}
                             variant="outline"
-                            className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                            className="border-border/30 text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                           >
                             <X className="h-4 w-4 mr-2" />
                             Cancel
@@ -440,7 +440,7 @@ export default function Profile() {
                   </div>
                 ) : (
                   <InlineEmptyState
-                    icon={<Heart className="w-5 h-5 text-gray-500" />}
+                    icon={<Heart className="w-5 h-5 text-muted-foreground" />}
                     title="No interests yet"
                     description="Complete your onboarding to add interests."
                   />

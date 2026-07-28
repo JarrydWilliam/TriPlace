@@ -1,41 +1,65 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (July 28, 2026)
-**🟡 AWAITING APPLE REVIEW** — Resubmission sent. All known blockers fixed. Build 1.0.3 in TestFlight.
-
-### Authoritative Candidate
-- **Branch**: `main`
-- **HEAD SHA**: `e9d03bf9946654c99364f4b33b49fef6561fe41d`
-- **Marketing Version**: `1.0.3`
-- **Native Build**: Codemagic auto-incremented (~build 105)
+**Active Branch**: `Jarryd`  
+**Status**: 🎨 **PREMIUM DESIGN SYSTEM & STYLING OVERHAUL COMPLETED** + 🔓 **AGE RESTRICTION REMOVED FROM SIGNUP** + 📱 **PROPER MOBILENAV ON ALL PAGES**
 
 ---
 
-## What Was Fixed Before Resubmission
+## Branch Details
+- **Active Branch**: `Jarryd` (pushed to `origin/Jarryd`)
+- **Base Version**: `1.0.3` (Build 114)
+- **Primary Focus**: High-end Midnight Navy & Electric Cyan visual design system, age gate removal from signup, avatar upload integration, and mobile navigation completeness across all settings and community pages.
 
-### Fix 1 — iPad Tap Unresponsiveness (Guideline 2.1(a))
-- **Root cause**: Global `touch-action: pan-y` CSS rule blocked all tap events on iPadOS.
-- **Fix**: Removed the conflicting `touchAction` override. 23/23 unit tests pass.
+---
 
-### Fix 2 — Sign in with Apple Infinite Hang (Guideline 2.1(a))
-- **Root cause**: `handleAppleSignup` had no timeout. Native auth sheet dismissal left UI hung.
-- **Fix**: Added `Promise.race` with 30-second timeout in `signup.tsx`. Matches pattern in `login.tsx`.
+## Summary of Accomplished Work
 
-### Fix 3 — Wrong Demo Account Credentials (Guideline 2.1)
-- Old credentials (`samevibe.demo@gmail.com`) did not exist.
-- **Fix**: Account updated to `samevibe.review@gmail.com` / `SameVibe2024!`.
-- App Store Connect demo account field updated by founder.
+### 1. Age Restriction Removal (Signup Flow)
+- **File**: `client/src/pages/signup.tsx`
+- **Changes**:
+  - Removed `dateOfBirth` state and input field from the signup form.
+  - Removed 18+ age validation checks.
+  - Retained Terms of Service / EULA agreement checkbox.
+  - Social sign-in buttons (Apple / Google) now proceed directly without DOB prompts.
+  - `needsCompliance` remains hardcoded `false` in `App.tsx`.
 
-### Fix 4 — Age Verification Gate Removed
-- DOB/compliance gate (`needsCompliance`) removed from routing in `App.tsx`.
-- Reviewers go straight to Dashboard on login.
-- `dateOfBirth` made optional across all relevant endpoints.
+### 2. Premium Design System Overhaul (Midnight Navy + Electric Cyan)
+- **Palette**:
+  - **Background**: Midnight Navy (`#050d1a`) with a soft `#0a192f` top-center radial gradient.
+  - **Primary & Secondary Accent**: Electric Cyan (`#00d4ff`) to Teal (`#00ffcc`) gradient system for buttons, focus rings, and active indicators.
+  - **Ambient Glow Nodes**: Indigo/Violet blurred backdrop nodes.
+- **Typography**:
+  - Headings use **Plus Jakarta Sans** (`font-display`).
+  - Body text uses **Inter** (`font-sans`).
+  - Mapped directly in `index.html` and `tailwind.config.ts`.
+- **CSS Utilities (`index.css`)**:
+  - Cleaned up `:root` variables and design tokens.
+  - Updated `.glass-panel`, `.glass-card`, `.glass-card-active`, and `.glass-input`.
+  - Added `.text-gradient-primary`, `.glow-primary`, `.glow-cyan`, `.badge-cyan`, `.skeleton`, and keyframe animations (`shimmer`, `float`, `pulse-glow`, `slide-up`).
+  - Updated iOS Safari/Capacitor input autofill shadow to `#050d1a`.
 
-### Fix 5 — Reviewer Account Fully Populated
-- Firebase: `KZF2qV18HsRAx8PhMzHaEC5oVGk1`
-- DB User ID: `3`
-- Name: SameVibe Reviewer | Location: San Francisco, CA
-- Onboarding: ✅ Complete | Communities: ✅ 10 joined
+### 3. Page-Level Visual Refinements & Fixes
+- **`communities.tsx`**: Refactored from legacy `dark:text-gray-900` pattern (rated 4.5/10) to proper CSS tokens (`bg-background`, `text-foreground`, `text-muted-foreground`), added sticky glass header, and updated skeletons to `.skeleton`.
+- **`dashboard.tsx`**: Updated `communityColors` object to use translucent CSS-variable gradients, replaced legacy `text-gray-*` with `text-muted-foreground`, updated logout dropdown to `text-destructive`, and polished section borders to `border-border/40`.
+- **`profile.tsx`**: Updated `interestColors` to use `bg-accent/20 text-accent`, updated edit mode buttons to theme tokens, and cleaned up empty state icons.
+- **`community.tsx`**: Imported and rendered `<MobileNav />`, added `pb-nav` bottom padding, and normalized hardcoded `white/*` text opacities to theme tokens.
+- **`mobile-nav.tsx`**: Upgraded active tab indicator pill to glow in Electric Cyan (`bg-cyan-500/15 border-cyan-500/25`), added cyan-tinted glass border and shadow.
+
+### 4. Settings Pages & MobileNav Completeness
+- Added `<MobileNav />` and `pb-nav` bottom padding to **5 previously missing pages**:
+  - `client/src/pages/community.tsx`
+  - `client/src/pages/settings/account.tsx`
+  - `client/src/pages/settings/notifications.tsx`
+  - `client/src/pages/settings/profile.tsx`
+  - `client/src/pages/settings/support.tsx`
+- **Account Settings**: Fixed verified badge from light green (`bg-green-100`) to dark-mode-friendly `bg-emerald-500/20 text-emerald-400`.
+- **Notification & Support Settings**: Fixed hardcoded raw icon colors to use theme tokens (`text-accent`, `text-cyan-400`, `text-emerald-400`, `text-destructive`).
+- **Profile Settings Avatar Upload**:
+  - Implemented hidden file input (`ref={fileInputRef}`).
+  - Connected "Change Photo" button to trigger file picker.
+  - Reads image as Base64/DataURL and sends `PATCH /api/users/${user.id}` with `{ avatar: dataUrl }`.
+  - Shows success toast on save.
 
 ---
 
@@ -47,15 +71,19 @@
 
 ---
 
-## ⚠️ FOUNDER MANUAL ACTIONS — COMPLETED ✅
-- [x] App Store Connect demo account updated to `samevibe.review@gmail.com`
-- [x] Reply sent to Apple reviewer via App Store Connect message thread
-- [x] New build submitted for review
-
----
-
-## Pending / Next Steps
-1. **Wait for Apple review decision** (typically 1–3 business days).
-2. If approved → coordinate App Store release date.
-3. If rejected again → read the new rejection message carefully and report here before making changes.
-4. **Google OAuth Consent Screen**: Change app name from "TriPlace" → "SameVibe" in Google Cloud Console (not yet confirmed done).
+## Next Steps for Working on Another PC
+1. **Pull the `Jarryd` Branch**:
+   ```bash
+   git fetch origin
+   git checkout Jarryd
+   git pull origin Jarryd
+   ```
+2. **Verify Local Build**:
+   ```bash
+   npm run check
+   node node_modules/vite/bin/vite.js build
+   ```
+3. **Priority 2 Work Roadmap (Post-Approval Hardening)**:
+   - **Security**: Rotate API keys (`OPENAI_API_KEY`, `GROQ_API_KEY`, `DATABASE_URL`) in external dashboards.
+   - **Avatar Migration**: Transition avatar storage from raw Base64 strings to Firebase Storage file upload returning download URLs.
+   - **Security Settings**: Wire up backend password change endpoints if needed.
