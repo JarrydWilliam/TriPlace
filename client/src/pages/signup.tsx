@@ -107,7 +107,14 @@ export default function Signup() {
     try {
       sessionStorage.setItem("pendingDOB", dateOfBirth);
       sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
-      await signInWithApple();
+      // Race against a 30-second timeout so the UI is never permanently frozen
+      // if the native Apple Sign-In sheet hangs without rejecting.
+      await Promise.race([
+        signInWithApple(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Sign in timed out. Please try again.")), 30000)
+        ),
+      ]);
       // auth-context resolves user; check if they already have an account
       const cred = auth.currentUser;
       if (cred) {

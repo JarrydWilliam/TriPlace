@@ -13,7 +13,7 @@ import { ComponentLoadingSpinner } from '@/components/loading-spinner';
 import { CURRENT_TERMS_VERSION } from '@shared/schema';
 
 export default function CompleteProfile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -24,11 +24,18 @@ export default function CompleteProfile() {
 
   const updateComplianceMutation = useMutation({
     mutationFn: async (data: { dateOfBirth: string; termsVersion: string }) => {
-      const response = await apiRequest('PATCH', `/api/users/${user?.id}`, data);
+      // Use the dedicated /me/compliance endpoint so the server identifies
+      // the user from their Firebase token — no client-supplied user ID,
+      // no ownership-check 403 possible.
+      const response = await apiRequest('PATCH', '/api/users/me/compliance', data);
       return response.json();
     },
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(['/api/users', user?.id], updatedUser);
+      // Use the returned user's id for the cache key — never rely on
+      // the potentially-stale user?.id from the auth context.
+      queryClient.setQueryData(['/api/users', updatedUser.id], updatedUser);
+      // Refresh the auth context so the compliance gate check re-evaluates
+      refreshUser();
       toast({
         title: 'Success',
         description: 'Profile requirements completed!'

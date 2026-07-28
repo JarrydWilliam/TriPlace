@@ -84,11 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (dbUser && !isCompliant) {
-        // Strict allowlist for incomplete profiles
+        // Strict allowlist for incomplete profiles — includes the dedicated
+        // compliance endpoint which never requires a client-supplied user ID.
+        const isComplianceEndpoint = req.path === '/api/users/me/compliance' && req.method === 'PATCH';
         const isAllowedUserRoute = req.path === `/api/users/${dbUser.id}` && 
           (req.method === 'GET' || req.method === 'PATCH' || req.method === 'DELETE');
         
-        if (!isAllowedUserRoute) {
+        if (!isComplianceEndpoint && !isAllowedUserRoute) {
           return res.status(403).json({ 
             message: "Action restricted: You must complete your profile setup (18+ Date of Birth and Terms of Service).",
             requiresCompletion: true 
@@ -240,6 +242,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ── Compliance endpoint: PATCH /api/users/me/compliance ──────────────────────
+  // Uses req.user set by requireAuth — no client-provided user ID needed.
+  // This eliminates the ownership-check 403 that occurred when the frontend
+  // passed user?.id (which could be a type-mismatched string vs number).
+  app.patch("/api/users/me/compliance", requireAuth, async (req, res) => {
+    try {
+      const reqUser = (req as any).user;
+      if (!reqUser || !reqUser.id) {
+        return res.status(401).json({ message: "Not authenticated or user profile not found." });
+      }
+
+      const { dateOfBirth, termsVersion } = req.body;
+
+      if (!dateOfBirth) {
+        return res.status(400).json({ message: "Date of birth is required." });
+      }
+
+      const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dobRegex.test(dateOfBirth)) {
+        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+      }
+
+      const [year, month, day] = dateOfBirth.split('-').map(Number);
+      const today = new Date();
+      let age = today.getFullYear() - year;
+      const m = today.getMonth() + 1 - month;
+      if (m < 0 || (m === 0 && today.getDate() < day)) {
+        age--;
+      }
+      if (age < 18) {
+        return res.status(403).json({ message: "You must be at least 18 years old to use SameVibe." });
+      }
+
+      if (!termsVersion || termsVersion !== CURRENT_TERMS_VERSION) {
+        return res.status(400).json({ message: "You must accept the current Terms of Service." });
+      }
+
+      const updates = {
+        dateOfBirth,
+        termsVersion,
+        termsAcceptedAt: new Date(),
+      };
+
+      const updatedUser = await storage.updateUser(Number(reqUser.id), updates);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found." });
+      }
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('[SameVibe] compliance update error:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
