@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -45,9 +45,9 @@
   <body class="bg-[#050d1a] text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Service Worker Registration for PWA background sync -->
+    <!-- Service Worker Registration for PWA background sync (web only) -->
     <script>
-      if ('serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) {
         window.addEventListener('load', async () => {
           try {
             const registration = await navigator.serviceWorker.register('/sw.js');

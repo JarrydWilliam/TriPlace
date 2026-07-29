@@ -25,24 +25,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("theme");
-      if (stored === "light" || stored === "dark") {
-        setTheme(stored);
-      }
-    } catch (error) {
-      // localStorage not available
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
       const root = document.documentElement;
-      if (theme === "dark") {
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-      }
-      localStorage.setItem("theme", theme);
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } catch (error) {
       // localStorage not available
     }
