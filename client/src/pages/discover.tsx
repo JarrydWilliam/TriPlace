@@ -253,12 +253,12 @@ export default function Discover() {
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="relative mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-2xl backdrop-blur-md">
+                <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center relative z-10 shadow-2xl">
                   <Compass className="w-8 h-8 text-primary/80" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">No Communities Found</h3>
-              <p className="text-sm text-white/50 max-w-[280px]">
+              <h3 className="text-xl font-bold text-foreground mb-2">No Communities Found</h3>
+              <p className="text-sm text-muted-foreground max-w-[280px]">
                 We couldn't find any communities for this category right now. Check back later or try another category!
               </p>
             </div>

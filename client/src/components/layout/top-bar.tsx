@@ -21,13 +21,13 @@ export function TopBar() {
       <div className="flex items-center justify-between">
         <div className="flex-1 max-w-md">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 h-4 w-4" />
             <Input
               type="text"
               placeholder="Search events, communities..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder-white/40 focus:border-primary glass-input"
+              className="glass-input w-full rounded-xl py-2 pl-10 pr-4"
             />
           </form>
         </div>
@@ -36,12 +36,12 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="sm"
-            className="relative p-2 text-white/60 hover:text-white hover:bg-white/10"
+            className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-white/10"
           >
             <Bell className="h-5 w-5" />
             <Badge 
               variant="secondary" 
-              className="absolute -top-1 -right-1 w-4 h-4 p-0 bg-accent text-white text-xs flex items-center justify-center"
+              className="absolute -top-1 -right-1 w-4 h-4 p-0 bg-primary text-primary-foreground text-xs flex items-center justify-center"
             >
               3
             </Badge>
@@ -50,7 +50,7 @@ export function TopBar() {
           <div className="md:hidden">
             <Avatar className="w-8 h-8">
               <AvatarImage src={user.avatar || undefined} alt={user.name} />
-              <AvatarFallback className="bg-primary text-white text-sm">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                 {user.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>

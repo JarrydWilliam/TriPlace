@@ -47,8 +47,8 @@ function ConvoItem({
       whileTap={{ scale: 0.98 }}
       className={`w-full flex items-center gap-3 p-4 text-left transition-colors rounded-xl ${
         selected
-          ? "bg-primary/15 border border-primary/20"
-          : "hover:bg-white/5 border border-transparent"
+          ? "glass-card-active"
+          : "hover:bg-muted/30 border border-transparent hover:border-border/30"
       }`}
     >
       <div className="relative flex-shrink-0">
@@ -229,7 +229,7 @@ function DMThread({
               }
             }}
             placeholder={`Message ${otherUser.name?.split(" ")[0]}...`}
-            className="flex-1 bg-muted/30 border-white/10 rounded-full px-4 h-10 text-sm focus-visible:ring-primary/30"
+            className="flex-1 glass-input rounded-full px-4 h-10 text-sm"
           />
           <Button
             size="icon"
@@ -280,8 +280,8 @@ export default function Messaging() {
     <div className="mobile-page-container bg-background pb-20 relative overflow-hidden">
       {/* Rich ambient bokeh */}
       <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
+        <div className="ambient-top" />
+        <div className="ambient-bottom" />
       </div>
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
       <div className="max-w-3xl mx-auto h-[calc(100dvh-80px)] flex">
@@ -306,7 +306,7 @@ export default function Messaging() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search conversations..."
-                    className="pl-9 bg-muted/30 border-white/10 h-9 text-sm"
+                    className="glass-input pl-9 h-9 text-sm"
                   />
                 </div>
               </div>

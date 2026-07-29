@@ -351,9 +351,9 @@ export default function Onboarding() {
               // Location Step — auto-detect with manual fallback
               <div className="glass-card p-6 rounded-xl border border-white/10 text-center space-y-5">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                  answers.location ? "bg-green-500/20" : "bg-blue-500/20 animate-pulse"
+                  answers.location ? "bg-primary/20" : "bg-cyan-500/20 animate-pulse"
                 }`}>
-                  <MapPin className={`w-8 h-8 ${answers.location ? "text-green-400" : "text-blue-400"}`} />
+                  <MapPin className={`w-8 h-8 ${answers.location ? "text-primary" : "text-cyan-400"}`} />
                 </div>
 
                 {answers.location ? (
@@ -361,15 +361,15 @@ export default function Onboarding() {
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <Check className="w-4 h-4 text-green-400" />
-                      <h3 className="text-xl font-semibold text-white">{answers.location}</h3>
+                      <h3 className="text-xl font-semibold text-foreground">{answers.location}</h3>
                     </div>
-                    <p className="text-sm text-white/40">We'll find communities near you.</p>
+                    <p className="text-sm text-muted-foreground/60">We'll find communities near you.</p>
                     <button
                       onClick={() => {
                         setAnswers(prev => ({ ...prev, location: "" }));
                         setShowManualInput(true);
                       }}
-                      className="text-xs text-white/30 hover:text-white/60 transition-colors mt-3 underline underline-offset-2"
+                      className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-3 underline underline-offset-2"
                     >
                       Change location
                     </button>
@@ -378,8 +378,8 @@ export default function Onboarding() {
                   // Manual entry UI
                   <div className="space-y-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white mb-1">Where are you based?</h3>
-                      <p className="text-sm text-white/40">Enter your city and state or country.</p>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">Where are you based?</h3>
+                      <p className="text-sm text-muted-foreground">Enter your city and state or country.</p>
                     </div>
                     <div className="flex gap-2">
                       <Input
@@ -404,15 +404,15 @@ export default function Onboarding() {
                 ) : (
                   // GPS detecting state
                   <div>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl font-semibold text-foreground">
                       Detecting location...
                     </h3>
-                    <p className="text-sm text-white/40 mt-1">
+                    <p className="text-sm text-muted-foreground/70 mt-1">
                       We use this to find communities near you.
                     </p>
                     <button
                       onClick={() => setShowManualInput(true)}
-                      className="mt-4 text-sm text-white/50 hover:text-white border border-white/10 rounded-full px-4 py-2 transition-all hover:bg-white/10"
+                      className="mt-4 text-sm text-muted-foreground hover:text-foreground border border-border/40 rounded-full px-4 py-2 transition-all hover:bg-muted/30"
                     >
                       Enter manually instead
                     </button>
@@ -448,7 +448,7 @@ export default function Onboarding() {
                       transition-all duration-200
                       ${
                         isSelected
-                          ? "bg-primary/30 shadow-[inset_0_0_10px_rgba(124,58,237,0.3)]"
+                          ? "bg-primary/25 shadow-[inset_0_0_12px_hsl(var(--primary)/0.25)]"
                           : "bg-white/8 group-hover:bg-white/12"
                       }
                     `}>
@@ -498,7 +498,7 @@ export default function Onboarding() {
             <Button
               onClick={handleNext}
               disabled={!canProceed() || (step === QUIZ_SECTIONS.length - 1 && submitQuizMutation.isPending)}
-              className="bg-white text-black hover:bg-white/90 px-8 rounded-full font-semibold shadow-lg shadow-white/10 transition-all hover:scale-105"
+              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground px-8 rounded-full font-semibold shadow-lg shadow-primary/30 transition-all hover:scale-105 hover:shadow-primary/45"
             >
               {submitQuizMutation.isPending ? (
                 "Creating Profile..."
