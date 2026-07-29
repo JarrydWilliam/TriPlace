@@ -24,6 +24,8 @@ workflows:
       branch_patterns:
         - pattern: main
           include: true
+        - pattern: Jarryd
+          include: true
     scripts:
       - name: Install Node dependencies
         script: |
