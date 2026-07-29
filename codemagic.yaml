@@ -171,7 +171,7 @@ workflows:
         script: |
           app-store-connect publish \
             --path build/ios/ipa/*.ipa \
-            --whats-new "SameVibe beta – initial build"
+            --whats-new "SameVibe [JARRYD BRANCH] - Premium UI & Design System Upgrade"
 
     artifacts:
       - build/ios/ipa/*.ipa
