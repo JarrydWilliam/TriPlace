@@ -108,15 +108,22 @@ export default function ProfileSettings() {
                   {user?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                <Button className="w-full" onClick={() => fileInputRef.current?.click()}>
-                  <Camera className="mr-2 h-4 w-4" />
-                  Change Photo
-                </Button>
-                <Button variant="outline" className="w-full">
-                  Remove Photo
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    className="rounded-full px-5 text-sm font-semibold bg-white/10 border border-white/20 text-foreground hover:bg-white/20"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Change Photo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-5 text-sm font-semibold border-white/20 text-muted-foreground hover:text-foreground"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground">
                 JPG, PNG or GIF. Max size 10MB.
@@ -210,17 +217,14 @@ export default function ProfileSettings() {
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {interests.map((interest) => (
-                    <Badge key={interest} variant="secondary" className="flex items-center gap-1">
+                    <button
+                      key={interest}
+                      onClick={() => removeInterest(interest)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-sm shadow-primary/20 hover:bg-primary/85 transition-colors"
+                    >
                       {interest}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => removeInterest(interest)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
+                      <X className="h-3 w-3 opacity-75" />
+                    </button>
                   ))}
                 </div>
                 
@@ -287,12 +291,14 @@ export default function ProfileSettings() {
               </CardContent>
             </Card>
 
-            {/* Save Button */}
-            <div className="flex justify-end space-x-3">
-              <Link href="/dashboard">
-                <Button variant="outline">Cancel</Button>
-              </Link>
-              <Button onClick={handleSave}>Save Changes</Button>
+            {/* Full-width Fixed Bottom Save Button — matches mockup */}
+            <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 z-20">
+              <Button
+                onClick={handleSave}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl py-4 min-h-[52px] text-base shadow-xl shadow-primary/30 transition-all active:scale-[0.99]"
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
         </div>

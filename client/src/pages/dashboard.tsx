@@ -633,15 +633,17 @@ export default function Dashboard() {
 
               {/* Editorial Greeting */}
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">
+                {/* 'YOUR COMMUNITIES' eyebrow — matches mockup */}
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-1">
+                  Your Communities
+                </p>
+                {/* Big greeting as primary h1 — matches mockup */}
+                <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
                   {new Date().getHours() < 12 
                     ? "Good morning" 
                     : new Date().getHours() < 17 
                       ? "Good afternoon" 
-                      : "Good evening"}, {user.name?.split(" ")[0] || "there"}
-                </p>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Your scene awaits
+                      : "Good evening"}, {user.name?.split(" ")[0] || "there"} ✦
                 </h1>
                 
                 {/* Location display */}

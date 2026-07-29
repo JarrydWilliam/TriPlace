@@ -283,7 +283,7 @@ export default function CommunityPage() {
 
   const [newMessage, setNewMessage] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState("events");
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -435,53 +435,49 @@ export default function CommunityPage() {
         <div className="glass-panel border-0 bg-transparent min-h-[100dvh]">
           <div className="container-responsive responsive-padding safe-area-top safe-area-bottom max-w-6xl mx-auto">
 
-          {/* Premium Edge-to-Edge Hero */}
-          <div className="relative -mx-4 -mt-safe mb-8 pb-4">
+          {/* ── Premium Left-Aligned Hero — matches mockup ── */}
+          <div className="relative -mx-4 -mt-safe pb-4">
             {/* Dynamic Category Background */}
             <div 
               className={`absolute inset-0 bg-gradient-to-br ${
                 categoryColor[community.category]?.gradient || defaultCategoryColors.gradient
-              } opacity-40`}
+              } opacity-30`}
             >
-              <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px]" />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px]" />
+              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" />
             </div>
 
-            {/* Navigation Overlay */}
-            <div className="relative px-4 pt-safe mt-2 flex items-center justify-between mb-8">
-              <Link href="/dashboard">
+            {/* Top navigation row: back arrow + Join button */}
+            <div className="relative px-4 pt-safe mt-2 flex items-center justify-between mb-4">
+              <Link href="/discover">
                 <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-foreground hover:bg-black/40 border border-white/10">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
               </Link>
-              {community.category && (
-                <Badge className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm ${
-                  categoryColor[community.category]?.badge || defaultCategoryColors.badge
-                }`}>
-                  {CATEGORY_EMOJIS[community.category]} {CATEGORIES.find(c => c.id === community.category)?.label || community.category}
-                </Badge>
+              {/* Join / Joined button — prominent cyan pill */}
+              {community.isMember ? (
+                <Button
+                  className="rounded-full px-5 py-2 text-sm font-semibold bg-white/10 text-foreground border border-white/20 hover:bg-white/20"
+                >
+                  ✓ Joined
+                </Button>
+              ) : (
+                <Button
+                  className="rounded-full px-6 py-2 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/30"
+                >
+                  Join
+                </Button>
               )}
             </div>
 
-            {/* Hero Content (Floating overlapping card effect) */}
-            <div className="relative px-4 pt-4">
-              <div className="flex flex-col items-center text-center space-y-3">
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground shadow-sm">
-                  {community.name}
-                </h1>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  {community.description}
-                </p>
-                <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground/80 pt-2">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{community.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{community.memberCount || 0} members</span>
-                  </div>
-                </div>
+            {/* Left-aligned community info */}
+            <div className="relative px-4 pb-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-foreground mb-1">
+                {community.name}
+              </h1>
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                <span>{community.location || "Location not set"}</span>
               </div>
             </div>
           </div>
@@ -489,55 +485,78 @@ export default function CommunityPage() {
           {/* Glass Card Container for Content */}
           <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl overflow-hidden rounded-3xl mb-8">
             <div className="w-full">
-              {/* Glass Tabs */}
+              {/* Tabs: Overview | Events | Members | Chat — matches mockup order */}
               <div className="grid w-full grid-cols-4 rounded-none bg-white/5 border-b border-white/10">
                 <button
-                  onClick={() => setActiveTab("chat")}
-                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
-                    activeTab === "chat" 
+                  onClick={() => setActiveTab("overview")}
+                  className={`flex items-center justify-center py-4 px-2 rounded-none border-b-2 transition-all duration-300 text-sm font-medium ${
+                    activeTab === "overview" 
                       ? "border-primary text-primary bg-primary/5" 
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Chat</span>
+                  Overview
                 </button>
                 <button
                   onClick={() => setActiveTab("events")}
-                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                  className={`flex items-center justify-center py-4 px-2 rounded-none border-b-2 transition-all duration-300 text-sm font-medium ${
                     activeTab === "events" 
                       ? "border-primary text-primary bg-primary/5" 
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Events</span>
+                  Events
                 </button>
                 <button
                   onClick={() => setActiveTab("members")}
-                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
+                  className={`flex items-center justify-center py-4 px-2 rounded-none border-b-2 transition-all duration-300 text-sm font-medium ${
                     activeTab === "members" 
                       ? "border-primary text-primary bg-primary/5" 
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
-                  <Users className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Members</span>
+                  Members
                 </button>
                 <button
-                  onClick={() => setActiveTab("posts")}
-                  className={`flex items-center justify-center py-4 px-4 rounded-none border-b-2 transition-all duration-300 ${
-                    activeTab === "posts" 
+                  onClick={() => setActiveTab("chat")}
+                  className={`flex items-center justify-center py-4 px-2 rounded-none border-b-2 transition-all duration-300 text-sm font-medium ${
+                    activeTab === "chat" 
                       ? "border-primary text-primary bg-primary/5" 
                       : "border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                 >
-                  <Pin className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Board</span>
+                  Chat
                 </button>
               </div>
 
               {/* Conditionally render active tab content */}
+
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+              <div className="p-4 space-y-4">
+                <div className="glass-card rounded-2xl p-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">About</p>
+                  <p className="text-sm text-foreground leading-relaxed">{community.description || "No description available."}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="glass-card rounded-2xl p-4 text-center">
+                    <p className="text-2xl font-extrabold text-primary">{community.memberCount || 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Members</p>
+                  </div>
+                  <div className="glass-card rounded-2xl p-4 text-center">
+                    <p className="text-2xl font-extrabold text-primary">{community.category || "—"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Category</p>
+                  </div>
+                </div>
+                {community.location && (
+                  <div className="glass-card rounded-2xl p-4 flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm text-foreground">{community.location}</span>
+                  </div>
+                )}
+              </div>
+              )}
+
               {activeTab === "chat" && (
               <div className="mt-0 h-[70vh] flex flex-col relative">
                 {/* Chat Header */}
