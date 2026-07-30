@@ -555,10 +555,15 @@ export default function Profile() {
                         <p className="font-semibold text-sm text-white">Show Profile in Community Discovery</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">Allow members to find your profile in local interest groups</p>
                       </div>
-                      <Switch 
-                        checked={privacySettings.showProfileInDiscovery}
-                        onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showProfileInDiscovery: checked }))}
-                      />
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showProfileInDiscovery ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showProfileInDiscovery ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showProfileInDiscovery}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showProfileInDiscovery: checked }))}
+                        />
+                      </div>
                     </div>
                     
                     {/* Toggle 2: Show Location */}
@@ -567,10 +572,15 @@ export default function Profile() {
                         <p className="font-semibold text-sm text-white">Show Approximate Location</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">Display your city name to group members</p>
                       </div>
-                      <Switch 
-                        checked={privacySettings.showLocation}
-                        onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showLocation: checked }))}
-                      />
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showLocation ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showLocation ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showLocation}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showLocation: checked }))}
+                        />
+                      </div>
                     </div>
                     
                     {/* Toggle 3: Show Activity Status */}
@@ -579,10 +589,15 @@ export default function Profile() {
                         <p className="font-semibold text-sm text-white">Show Live Online Activity Status</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">Let community members see when you're active</p>
                       </div>
-                      <Switch 
-                        checked={privacySettings.showActivityStatus}
-                        onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showActivityStatus: checked }))}
-                      />
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showActivityStatus ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showActivityStatus ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showActivityStatus}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showActivityStatus: checked }))}
+                        />
+                      </div>
                     </div>
 
                     {/* Toggle 4: Allow Direct Messages */}
@@ -591,10 +606,15 @@ export default function Profile() {
                         <p className="font-semibold text-sm text-white">Allow Direct Messaging</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">Permit group members from shared events to message you</p>
                       </div>
-                      <Switch 
-                        checked={privacySettings.allowDirectMessages}
-                        onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, allowDirectMessages: checked }))}
-                      />
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.allowDirectMessages ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.allowDirectMessages ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.allowDirectMessages}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, allowDirectMessages: checked }))}
+                        />
+                      </div>
                     </div>
 
                     {/* Toggle 5: Show Joined Events */}
@@ -603,10 +623,15 @@ export default function Profile() {
                         <p className="font-semibold text-sm text-white">Show Joined Events on Profile</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">Display upcoming events on your public profile card</p>
                       </div>
-                      <Switch 
-                        checked={privacySettings.showJoinedEvents}
-                        onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showJoinedEvents: checked }))}
-                      />
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showJoinedEvents ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showJoinedEvents ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showJoinedEvents}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showJoinedEvents: checked }))}
+                        />
+                      </div>
                     </div>
                   </div>
                 </CardContent>
