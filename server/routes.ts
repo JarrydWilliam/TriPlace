@@ -182,9 +182,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+function checkIs16OrOlder(dateOfBirthStr: string): boolean {
+  const dob = new Date(dateOfBirthStr);
+  if (isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age >= 16;
+}
+
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+
+      if (userData.dateOfBirth) {
+        if (!checkIs16OrOlder(userData.dateOfBirth)) {
+          return res.status(400).json({ message: "SameVibe requires members to be at least 16 years old." });
+        }
+      }
 
       // Auto-set terms acceptance if version provided or default to current
       if (!userData.termsVersion) {
@@ -202,10 +220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── Compliance endpoint: PATCH /api/users/me/compliance ──────────────────────
-  // Uses req.user set by requireAuth — no client-provided user ID needed.
-  // This eliminates the ownership-check 403 that occurred when the frontend
-  // passed user?.id (which could be a type-mismatched string vs number).
   app.patch("/api/users/me/compliance", requireAuth, async (req, res) => {
     try {
       const firebaseUser = (req as any).firebaseUser;
@@ -218,6 +232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { dateOfBirth, termsVersion } = req.body;
       const effectiveTermsVersion = termsVersion || CURRENT_TERMS_VERSION;
+
+      if (dateOfBirth && !checkIs16OrOlder(dateOfBirth)) {
+        return res.status(400).json({ message: "SameVibe requires members to be at least 16 years old." });
+      }
 
       const { storage } = await import("./storage.js");
       let updatedUser;

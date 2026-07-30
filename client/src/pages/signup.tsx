@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
-import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, AlertCircle, Calendar } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { CURRENT_TERMS_VERSION } from "@shared/schema";
 
@@ -18,9 +18,22 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [agreedToEula, setAgreedToEula] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const calculateAge = (dob: string) => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const validateEula = () => {
     if (!agreedToEula) {
@@ -41,6 +54,14 @@ export default function Signup() {
     e.preventDefault();
     setError("");
     if (!validateEula()) return;
+    if (!dateOfBirth) {
+      setError("Please enter your date of birth.");
+      return;
+    }
+    if (calculateAge(dateOfBirth) < 16) {
+      setError("SameVibe requires members to be at least 16 years old.");
+      return;
+    }
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -50,11 +71,12 @@ export default function Signup() {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(credential.user, { displayName: name });
 
-      // Create user profile in our DB
+      // Create user profile in our DB with DOB and terms version
       await apiRequest("POST", "/api/users", {
         firebaseUid: credential.user.uid,
         email,
         name,
+        dateOfBirth,
         termsVersion: CURRENT_TERMS_VERSION,
       });
 
@@ -230,6 +252,20 @@ export default function Signup() {
                     className="samevibe-premium-input pl-9 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="dateOfBirth" className="text-muted-foreground text-xs font-medium tracking-wide">DATE OF BIRTH (16+)</Label>
+                <div className="relative group/input">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    className="samevibe-premium-input pl-9 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all [color-scheme:dark]"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
                     required
                   />
                 </div>
