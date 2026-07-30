@@ -185,9 +185,9 @@ export default function AccountSettings() {
           </Card>
 
           {/* Account Actions */}
-          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-red-500/20 shadow-md">
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-destructive/20 shadow-md">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-red-600">
+              <CardTitle className="flex items-center space-x-2 text-destructive">
                 <AlertTriangle className="w-5 h-5" />
                 <span>Account Actions</span>
               </CardTitle>
@@ -206,7 +206,7 @@ export default function AccountSettings() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle className="text-red-600">Delete SameVibe Account</DialogTitle>
+                      <DialogTitle className="text-destructive">Delete SameVibe Account</DialogTitle>
                       <DialogDescription>
                         This action cannot be undone. All your data, communities, messages, and connections will be permanently deleted.
                       </DialogDescription>
@@ -221,8 +221,8 @@ export default function AccountSettings() {
                           placeholder="DELETE"
                         />
                       </div>
-                      <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                        <p className="text-sm text-red-500">
+                      <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                        <p className="text-sm text-destructive">
                           <AlertTriangle className="w-4 h-4 inline mr-1" />
                           This will immediately delete your account and cannot be reversed.
                         </p>
@@ -244,8 +244,8 @@ export default function AccountSettings() {
                 </Dialog>
               </div>
 
-              <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <p className="text-sm text-yellow-500/90">
+              <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <p className="text-sm text-amber-400">
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
                   Account actions are permanent and cannot be undone. Please contact support if you need help.
                 </p>

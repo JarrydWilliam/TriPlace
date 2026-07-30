@@ -24,7 +24,7 @@ export default function Events() {
 
       <VibePageHeader mode="home" locationName="NYC" unreadCount={6} />
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display font-extrabold text-2xl text-white tracking-tight flex items-center gap-2">
