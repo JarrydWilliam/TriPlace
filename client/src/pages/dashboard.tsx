@@ -92,7 +92,6 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { VibeEventCard } from "@/components/ui/vibe-event-card";
-import { VibeConnectionCard } from "@/components/ui/vibe-connection-card";
 
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -110,16 +109,7 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
-  // Fetch top connections for user
-  const { data: topConnections, isLoading: topConnectionsLoading } = useQuery({
-    queryKey: ["/api/users", user?.id, "top-connections"],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      const response = await fetch(getApiUrl(`/api/users/${user?.id}/top-connections`));
-      if (!response.ok) return [];
-      return response.json();
-    },
-  });
+
   const [showPaywall, setShowPaywall] = useState(false);
   const [rotationConfirm, setRotationConfirm] = useState<{
     newComm: any;
@@ -587,61 +577,158 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* ── SECTION 2: Top Vibe Connections (User Connection Cards Carousel) ── */}
+            {/* ── SECTION 2: My Events (EventCalendar Widget) ── */}
             <section className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                  Top Vibe Connections
-                </h2>
-                <Link href="/discover">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    My Events
+                  </h2>
+                </div>
+                <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
+                  {
+                    (userJoinedEvents || []).filter(
+                      (event: any) => {
+                        const eventDate = new Date(event.date);
+                        const now = new Date();
+                        return (
+                          eventDate.getMonth() === now.getMonth() &&
+                          eventDate.getFullYear() === now.getFullYear()
+                        );
+                      }
+                    ).length
+                  } this month
+                </Badge>
+              </div>
+
+              {eventsLoading ? (
+                <div className="animate-pulse space-y-3">
+                  {["event-1", "event-2"].map((loadingId) => (
+                    <div
+                      key={`loading-${loadingId}`}
+                      className="h-16 bg-muted/30 rounded-xl"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EventCalendar
+                  events={userJoinedEvents || []}
+                  onEventClick={(event) => {
+                    setSelectedEvent(event);
+                    setIsEventModalOpen(true);
+                  }}
+                />
+              )}
+            </section>
+
+            {/* ── SECTION 3: Trending Local Events (Vertical List) ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    Trending Local Events
+                  </h2>
+                </div>
+                <Link href="/events">
                   <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
-                    See All
+                    View all
                   </span>
                 </Link>
               </div>
 
-              <div className="flex gap-3 overflow-x-auto snap-x no-scrollbar pb-2">
-                {Array.isArray(topConnections) && topConnections.length > 0 ? (
-                  topConnections.map((userConn: any) => (
-                    <VibeConnectionCard
-                      key={userConn.id}
-                      id={userConn.id}
-                      name={userConn.name}
-                      avatar={userConn.avatar}
-                      matchPercent={userConn.matchPercent}
-                      onMatchClick={() => setRouterLocation(`/profile/${userConn.id}`)}
+              {trendingLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                  Finding popular events...
+                </div>
+              ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {trendingEvents.slice(0, 3).map((event: any) => (
+                    <VibeEventCard
+                      key={event.id}
+                      id={event.id}
+                      title={event.title}
+                      category={event.category}
+                      date={event.date ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "June 15"}
+                      time={event.date ? new Date(event.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "6 PM"}
+                      location={event.location || "Central Park"}
+                      imageUrl={event.imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
+                      attendeeCount={event.attendeeCount || 28}
+                      attendees={event.attendees || []}
+                      actionLabel={event.category === "creative" ? "Collab" : "Explore"}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setIsEventModalOpen(true);
+                      }}
                     />
-                  ))
-                ) : (
-                  <>
-                    <VibeConnectionCard
-                      id={101}
-                      name="Liam C."
-                      avatar="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80"
-                      matchPercent={94}
-                    />
-                    <VibeConnectionCard
-                      id={102}
-                      name="Mia K."
-                      avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
-                      matchPercent={94}
-                    />
-                    <VibeConnectionCard
-                      id={103}
-                      name="Noah R."
-                      avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80"
-                      matchPercent={91}
-                    />
-                  </>
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No trending events in your area yet
+                </p>
+              )}
             </section>
 
-            {/* ── SECTION 3: Popular Vibe Circles (Community Carousel) ── */}
+            {/* ── SECTION 4: New Communities (Vertical List) ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    New Communities
+                  </h2>
+                </div>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    Explore
+                  </span>
+                </Link>
+              </div>
+
+              {recommendationsLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                  Finding your perfect communities...
+                </div>
+              ) : recommendationsError ? (
+                <InlineErrorMessage
+                  message="Could not load community recommendations."
+                  onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
+                />
+              ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
+                <div className="space-y-3">
+                  {recommendations.slice(0, 5).map((community: any) => (
+                    <SharedCommunityCard
+                      key={community.id}
+                      community={community}
+                      joined={userActiveCommunities?.some((c: any) => c.id === community.id) || false}
+                      onJoin={() => handleJoinClick(community)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    You've joined all available communities
+                  </p>
+                  <Button
+                    onClick={() => setRouterLocation("/discover")}
+                    className="bg-primary text-primary-foreground text-xs rounded-full px-4 py-2"
+                  >
+                    Explore
+                  </Button>
+                </div>
+              )}
+            </section>
+
+            {/* ── SECTION 5: My Communities (Horizontal Carousel) ── */}
             <section className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                  Popular Vibe Circles
+                  My Communities
                 </h2>
                 <Link href="/discover">
                   <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
@@ -685,17 +772,54 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* My Activity & Challenges */}
-            <section className="pt-4 border-t border-white/10">
-              <div className="flex items-center justify-between mb-4">
+            {/* ── SECTION 6: My Activity & Challenges ── */}
+            <section className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-cyan-400" />
-                  <h2 className="text-sm font-semibold text-white">My Activity & Challenges</h2>
+                  <Target className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    My Activity & Challenges
+                  </h2>
                 </div>
               </div>
 
               <div className="space-y-5">
                 <StreakCard userId={user.id} />
+
+                {/* Weekly Challenges */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-white">Weekly Challenges</h3>
+                  {currentChallenges.length > 0 ? (
+                    <div className="space-y-3">
+                      {currentChallenges.map((challenge) => (
+                        <div
+                          key={challenge.id}
+                          className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-4 space-y-3"
+                        >
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-foreground">
+                              {challenge.title}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {challenge.current}/{challenge.target}
+                            </span>
+                          </div>
+                          <Progress value={challenge.progress} className="h-2" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-6 text-center space-y-2">
+                      <Target className="w-8 h-8 text-muted-foreground mx-auto" />
+                      <p className="text-sm font-medium text-foreground">
+                        No active challenges
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Stay active to unlock weekly challenges!
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           </div>
