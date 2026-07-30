@@ -403,14 +403,18 @@ export class DatabaseStorage implements IStorage {
     .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
     .orderBy(desc(communityMembers.lastActivityAt));
     
-    if (result.length === 0) {
+    if (result.length < 3) {
       const allComms = await this.getAllCommunities();
-      const default3 = allComms.slice(0, 3);
-      for (const comm of default3) {
-        try {
-          await this.joinCommunity(userId, comm.id);
-        } catch (e) {
-          // ignore if already joined
+      const currentIds = new Set(result.map(r => r.community.id));
+      for (const comm of allComms) {
+        if (currentIds.size >= 3) break;
+        if (!currentIds.has(comm.id)) {
+          try {
+            await this.joinCommunity(userId, comm.id);
+            currentIds.add(comm.id);
+          } catch (e) {
+            // ignore if already inserted
+          }
         }
       }
       const reQueried = await db.select({
