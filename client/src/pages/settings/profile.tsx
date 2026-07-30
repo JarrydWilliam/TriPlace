@@ -14,6 +14,7 @@ import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useRef } from "react";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
 export default function ProfileSettings() {
   const { user } = useAuth();
@@ -77,23 +78,9 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden pb-nav">
-      {/* Rich ambient bokeh */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
-      </div>
-
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
+      <VibePageHeader mode="detail" title="Edit Profile" />
       <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
-        {/* Header */}
-        <div className="flex items-center space-x-4 mb-6">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Edit Profile</h1>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Photo Section */}

@@ -90,6 +90,10 @@ import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
+import { VibeEventCard } from "@/components/ui/vibe-event-card";
+import { VibeConnectionCard } from "@/components/ui/vibe-connection-card";
+
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const {
@@ -98,15 +102,24 @@ export default function Dashboard() {
     locationName,
     loading: locationLoading,
   } = useGeolocation(user?.id);
-  const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
-  const { isConnected } = useWebSocket();
-  const { theme, toggleTheme } = useTheme();
-
+  const [routerLocation, setRouterLocation] = useRouterLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setRouterLocation] = useRouterLocation();
+  const { updateAvailable, markUpdatesApplied } = useCommunityUpdates();
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+
+  // Fetch top connections for user
+  const { data: topConnections, isLoading: topConnectionsLoading } = useQuery({
+    queryKey: ["/api/users", user?.id, "top-connections"],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const response = await fetch(getApiUrl(`/api/users/${user?.id}/top-connections`));
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
   const [showPaywall, setShowPaywall] = useState(false);
   const [rotationConfirm, setRotationConfirm] = useState<{
     newComm: any;
@@ -509,397 +522,185 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mobile-page-container bg-background">
+    <div className="mobile-page-container bg-background min-h-[100dvh] safe-area-bottom pb-nav relative overflow-hidden">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="min-h-[100dvh] pb-28">
-          
-          {/* ── Premium Editorial Hero ── */}
-          <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50 px-4 pt-safe pb-4">
-            <div className="max-w-lg mx-auto pt-4">
-              {/* Top Row: Avatar & Settings */}
-              <div className="flex items-center justify-between mb-6">
-                <Avatar className="w-10 h-10 border border-border shadow-sm">
-                  <AvatarImage src={user.avatar || undefined} />
-                  <AvatarFallback className="bg-white/10 text-white text-sm font-semibold">
-                    {user.name?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-1">
-                  <ShareQR />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground w-9 h-9 rounded-full"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-64" align="end">
-                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
+        <div>
+          {/* Header Mode="Home" matching design mockup: SameVibe + NYC pill + Bell */}
+          <VibePageHeader mode="home" locationName={locationName || "NYC"} unreadCount={6} />
 
-                      {/* Profile Settings */}
-                      <DropdownMenuItem
-                        onClick={() => setRouterLocation("/settings/profile")}
-                      >
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        Profile
-                      </DropdownMenuItem>
-
-                      {/* Account Settings */}
-                      <DropdownMenuItem
-                        onClick={() => setRouterLocation("/settings/account")}
-                      >
-                        <Mail className="mr-2 h-4 w-4" />
-                        Account
-                      </DropdownMenuItem>
-
-                      {/* Notifications */}
-                      <DropdownMenuItem
-                        onClick={() =>
-                          setRouterLocation("/settings/notifications")
-                        }
-                      >
-                        <Bell className="mr-2 h-4 w-4" />
-                        Notifications
-                      </DropdownMenuItem>
-
-                      {/* Community Preferences */}
-                      <DropdownMenuItem
-                        onClick={() => setRouterLocation("/settings/community")}
-                      >
-                        <Users className="mr-2 h-4 w-4" />
-                        Community Preferences
-                      </DropdownMenuItem>
-
-                      {/* Security */}
-                      <DropdownMenuItem
-                        onClick={() => setRouterLocation("/settings/security")}
-                      >
-                        <Shield className="mr-2 h-4 w-4" />
-                        Security
-                      </DropdownMenuItem>
-
-                      <DropdownMenuSeparator />
-
-                      {/* Support */}
-                      <DropdownMenuItem
-                        onClick={() => setRouterLocation("/settings/support")}
-                      >
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        Support
-                      </DropdownMenuItem>
-
-                      {/* About / Legal */}
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <FileText className="mr-2 h-4 w-4" />
-                          About & Legal
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem
-                            onClick={() => setRouterLocation("/terms")}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Terms of Service
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setRouterLocation("/privacy")}
-                          >
-                            <Shield className="mr-2 h-4 w-4" />
-                            Privacy Policy
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Settings className="mr-2 h-4 w-4" />
-                            App Version 1.0.0
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => signOut()}
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Log out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+          <div className="max-w-md mx-auto px-4 py-6 space-y-7">
+            {/* ── SECTION 1: Vibe with Your Community (Event Cards Carousel) ── */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                  Vibe with Your Community
+                </h2>
+                <Link href="/events">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    See All
+                  </span>
+                </Link>
               </div>
 
-              {/* Editorial Greeting */}
-              <div>
-                {/* 'YOUR COMMUNITIES' eyebrow — matches mockup */}
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-1">
-                  Your Communities
-                </p>
-                {/* Big greeting as primary h1 — matches mockup */}
-                <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-                  {new Date().getHours() < 12 
-                    ? "Good morning" 
-                    : new Date().getHours() < 17 
-                      ? "Good afternoon" 
-                      : "Good evening"}, {user.name?.split(" ")[0] || "there"} ✦
-                </h1>
-                
-                {/* Location display */}
-                <div className="flex items-center gap-1.5 text-primary mt-1.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span className="text-sm font-medium">{locationName || "Detecting..."}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
-
-          <div className="grid-responsive">
-            {/* Event Calendar Widget */}
-            <div className="lg:col-span-2">
-              <section className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">My Events</h2>
-                  </div>
-                  <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
-                    {
-                      (userJoinedEvents || []).filter(
-                        (event: any) => {
-                          const eventDate = new Date(event.date);
-                          const now = new Date();
-                          return (
-                            eventDate.getMonth() === now.getMonth() &&
-                            eventDate.getFullYear() === now.getFullYear()
-                          );
-                        }
-                      ).length
-                    } this month
-                  </Badge>
-                </div>
-                {eventsLoading ? (
-                  <div className="animate-pulse space-y-3">
-                    {["event-1", "event-2"].map((loadingId) => (
-                      <div
-                        key={`loading-${loadingId}`}
-                        className="h-16 bg-muted/30 rounded-xl"
-                      />
-                    ))}
-                  </div>
+              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2">
+                {Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
+                  trendingEvents.map((evt: any) => (
+                    <VibeEventCard
+                      key={evt.id}
+                      id={evt.id}
+                      title={evt.title}
+                      category={evt.category}
+                      date={evt.date ? new Date(evt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "June 15"}
+                      time={evt.date ? new Date(evt.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "6 PM"}
+                      location={evt.location || "Central Park"}
+                      imageUrl={evt.imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
+                      attendeeCount={evt.attendeeCount || 28}
+                      attendees={evt.attendees || []}
+                      actionLabel={evt.category === "creative" ? "Collab" : "Explore"}
+                      onClick={() => setRouterLocation(`/events`)}
+                    />
+                  ))
                 ) : (
-                  <EventCalendar
-                    events={userJoinedEvents || []}
-                    onEventClick={(event) => {
-                      setSelectedEvent(event);
-                      setIsEventModalOpen(true);
-                    }}
-                  />
+                  <>
+                    <VibeEventCard
+                      id={1}
+                      title="Local Adventurers: Hiking Trail Mix"
+                      date="June 15"
+                      time="6 PM"
+                      location="Central Park"
+                      imageUrl="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=600&q=80"
+                      attendeeCount={28}
+                      actionLabel="Explore"
+                    />
+                    <VibeEventCard
+                      id={2}
+                      title="Creative Collaborators: Gallery Night"
+                      date="June 16"
+                      time="7 PM"
+                      location="SOHO"
+                      imageUrl="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80"
+                      attendeeCount={19}
+                      actionLabel="Collab"
+                    />
+                  </>
                 )}
-              </section>
-            </div>
+              </div>
+            </section>
 
-            {/* Today's Suggestions / Discoveries Panel */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* User's Active Communities */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">
-                      My Communities
-                    </h2>
-                  </div>
-                  <Badge variant="secondary" className="text-xs bg-muted/50 text-muted-foreground border-0">
-                    {Array.isArray(userActiveCommunities)
-                      ? userActiveCommunities.length
-                      : 0}{" "}
-                    joined
-                  </Badge>
-                </div>
-                
-                {/* Community cards */}
-                <div className="space-y-3">
-                  {userCommunitiesLoading ? (
-                    <div className="animate-pulse space-y-3">
-                      {[0, 1, 2].map((i) => (
-                        <div key={i} className="h-20 skeleton rounded-2xl" />
-                      ))}
-                    </div>
-                  ) : Array.isArray(userActiveCommunities) &&
-                    userActiveCommunities.length > 0 ? (
-                    userActiveCommunities.map((community: any) => (
+            {/* ── SECTION 2: Top Vibe Connections (User Connection Cards Carousel) ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                  Top Vibe Connections
+                </h2>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    See All
+                  </span>
+                </Link>
+              </div>
+
+              <div className="flex gap-3 overflow-x-auto snap-x no-scrollbar pb-2">
+                {Array.isArray(topConnections) && topConnections.length > 0 ? (
+                  topConnections.map((userConn: any) => (
+                    <VibeConnectionCard
+                      key={userConn.id}
+                      id={userConn.id}
+                      name={userConn.name}
+                      avatar={userConn.avatar}
+                      matchPercent={userConn.matchPercent}
+                      onMatchClick={() => setRouterLocation(`/profile/${userConn.id}`)}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <VibeConnectionCard
+                      id={101}
+                      name="Liam C."
+                      avatar="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80"
+                      matchPercent={94}
+                    />
+                    <VibeConnectionCard
+                      id={102}
+                      name="Mia K."
+                      avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
+                      matchPercent={94}
+                    />
+                    <VibeConnectionCard
+                      id={103}
+                      name="Noah R."
+                      avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80"
+                      matchPercent={91}
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+
+            {/* ── SECTION 3: Popular Vibe Circles (Community Carousel) ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                  Popular Vibe Circles
+                </h2>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    See All
+                  </span>
+                </Link>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2">
+                {Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
+                  userActiveCommunities.map((community: any) => (
+                    <div key={community.id} className="min-w-[260px] max-w-[280px] snap-start">
                       <SharedCommunityCard
-                        key={community.id}
                         community={community}
                         joined={true}
                         onJoin={() => {}}
                       />
-                    ))
-                  ) : (
-                    <EmptyState
-                      icon={<Users className="w-6 h-6 text-muted-foreground" />}
-                      title="It's a bit quiet here!"
-                      description="Your social circle is a blank canvas. Discover local communities below to start connecting."
-                      action={{
-                        label: "Explore Communities",
-                        onClick: () => setRouterLocation("/discover"),
-                      }}
-                    />
-                  )}
-                </div>
-              </section>
-
-              {/* Discovery Suggestions */}
-              <section className="pt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">Trending Local Events</h2>
-                  </div>
-                  <Link href="/events">
-                    <span className="text-xs text-primary hover:underline cursor-pointer">View all</span>
-                  </Link>
-                </div>
-                
-                <div className="space-y-3">
-                    {trendingLoading ? (
-                      <div className="p-4 text-center">
-                        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                          Finding popular events...
-                        </p>
-                      </div>
-                    ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
-                      trendingEvents.slice(0, 3).map((event: any) => (
-                        <PremiumEventCard
-                          key={event.id}
-                          event={event}
-                          onClick={() => setRouterLocation(`/community/${event.communityId || ""}`)}
-                        />
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-muted-foreground">
-                        <p className="text-sm">
-                          No trending events in your area yet
-                        </p>
-                      </div>
-                    )}
-                </div>
-              </section>
-
-              {/* New Communities */}
-              <section className="pt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Compass className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">New Communities</h2>
-                  </div>
-                  <Link href="/discover">
-                    <span className="text-xs text-primary hover:underline cursor-pointer">Explore</span>
-                  </Link>
-                </div>
-                
-                <div className="space-y-3">
-                    {recommendationsLoading ? (
-                      <div className="p-4 text-center">
-                        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                          Finding your perfect communities...
-                        </p>
-                      </div>
-                    ) : recommendationsError ? (
-                      <InlineErrorMessage
-                        message="Unable to load community recommendations"
-                        onRetry={() =>
-                          queryClient.invalidateQueries({
-                            queryKey: [
-                              "/api/communities/recommended",
-                              user?.id,
-                            ],
-                          })
-                        }
+                    </div>
+                  ))
+                ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
+                  recommendations.map((community: any) => (
+                    <div key={community.id} className="min-w-[260px] max-w-[280px] snap-start">
+                      <SharedCommunityCard
+                        community={community}
+                        joined={false}
+                        onJoin={() => handleJoinClick(community)}
                       />
-                    ) : Array.isArray(recommendations) &&
-                      recommendations.length > 0 ? (
-                      recommendations
-                        .slice(0, 5)
-                        .map((community: Community) => (
-                          <SharedCommunityCard
-                            key={community.id}
-                            community={community}
-                            joined={false}
-                            joining={joinCommunityMutation.isPending}
-                            onJoin={() => handleJoinClick(community)}
-                          />
-                        ))
-                    ) : (
-                      <EmptyState
-                        icon={<Users className="w-6 h-6 text-muted-foreground" />}
-                        title="You're all caught up!"
-                        description="You've joined all available communities."
-                        action={{
-                          label: "Explore Communities",
-                          onClick: () => setRouterLocation("/discover"),
-                        }}
-                      />
-                    )}
-                  </div>
-              </section>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState
+                    icon={<Users className="w-6 h-6 text-muted-foreground" />}
+                    title="It's a bit quiet here!"
+                    description="Discover local communities to start connecting."
+                    action={{
+                      label: "Explore Communities",
+                      onClick: () => setRouterLocation("/discover"),
+                    }}
+                  />
+                )}
+              </div>
+            </section>
 
-              {/* My Activity & Challenges */}
-              <section className="pt-4 border-t border-border/40">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">My Activity & Challenges</h2>
-                  </div>
+            {/* My Activity & Challenges */}
+            <section className="pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-cyan-400" />
+                  <h2 className="text-sm font-semibold text-white">My Activity & Challenges</h2>
                 </div>
-                
-                <div className="space-y-5">
-                  {/* Streak Card */}
-                  <StreakCard userId={user.id} />
-                  
-                  {/* Weekly Challenges */}
-                  <div className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-4 space-y-4">
-                    {currentChallenges.length > 0 ? (
-                      <div className="space-y-4">
-                        {currentChallenges.map((challenge) => (
-                          <div key={challenge.id} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-foreground">
-                                {challenge.title}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {challenge.current}/{challenge.target}
-                              </span>
-                            </div>
-                            <Progress
-                              value={challenge.progress}
-                              className="h-2"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No active challenges</p>
-                        <p className="text-xs mt-1">
-                          Stay active to unlock weekly challenges!
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
+              </div>
+
+              <div className="space-y-5">
+                <StreakCard userId={user.id} />
+              </div>
+            </section>
           </div>
         </div>
-        </div>
+      </PullToRefresh>
 
         {/* Rotation Confirmation Dialog */}
         <AlertDialog
@@ -931,7 +732,6 @@ export default function Dashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </PullToRefresh>
 
       {/* Event Details Modal */}
       <EventDetailsModal

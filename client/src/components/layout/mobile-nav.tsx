@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
-import { Home, Compass, Users, MessageCircle, User } from "lucide-react";
+import { Home, Compass, CalendarDays, MessageCircle, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -37,14 +37,8 @@ export function MobileNav() {
     { 
       href: "/discover", 
       icon: Compass, 
-      label: "Discover",
+      label: "Explore",
       active: location === "/discover"
-    },
-    { 
-      href: "/communities", 
-      icon: Users, 
-      label: "My Groups",
-      active: location === "/communities"
     },
     { 
       href: "/messages", 
@@ -52,6 +46,12 @@ export function MobileNav() {
       label: "Messages",
       active: location === "/messages" || location === "/messaging",
       badge: unreadCount > 0 ? String(unreadCount > 99 ? "99+" : unreadCount) : undefined,
+    },
+    { 
+      href: "/events", 
+      icon: CalendarDays, 
+      label: "Events",
+      active: location === "/events"
     },
     { 
       href: "/profile", 

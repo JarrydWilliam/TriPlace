@@ -12,6 +12,8 @@ import { useLocation } from "wouter";
 import { ArrowLeft, DollarSign, Users, Globe, Handshake, AlertTriangle } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { getApiUrl } from "@/lib/queryClient";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 
 interface EventCreationData {
@@ -41,56 +43,52 @@ export default function CreateEventPage() {
     date: "",
     time: "",
     location: "",
-    category: "",
+    category: "community-coordinated",
     price: 0,
     maxAttendees: 50,
     eventType: "community-coordinated",
-    revenueSharePercentage: 7, // Default 7% platform fee
-    targetCommunities: []
+    revenueSharePercentage: 10,
+    targetCommunities: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createEventMutation = useMutation({
-    mutationFn: async (eventData: EventCreationData) => {
-      const response = await fetch(getApiUrl("/api/events/create-global"), {
+    mutationFn: async (data: EventCreationData) => {
+      const response = await fetch(getApiUrl("/api/events"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...eventData,
-          creatorId: user?.id,
-          isGlobal: true,
-          isPaid: eventData.price > 0
-        }),
+        body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create event");
+      if (!response.ok) {
+        throw new Error("Failed to create event");
+      }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Event Created Successfully",
-        description: "Your event has been submitted for review and will be distributed to matching communities.",
+        title: "Event Created!",
+        description: "Your event has been submitted and queued for community distribution.",
       });
-      setLocation("/dashboard");
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setLocation("/events");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error Creating Event",
-        description: "Failed to create event. Please try again.",
+        title: "Creation Failed",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (!formData.title.trim()) newErrors.title = "Event title is required";
-    if (!formData.description.trim()) newErrors.description = "Event description is required";
-    if (!formData.date) newErrors.date = "Event date is required";
-    if (!formData.time) newErrors.time = "Event time is required";
-    if (!formData.location.trim()) newErrors.location = "Event location is required";
-    if (!formData.category) newErrors.category = "Event category is required";
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.date) newErrors.date = "Date is required";
+    if (!formData.time) newErrors.time = "Time is required";
+    if (!formData.location.trim()) newErrors.location = "Location is required";
     if (formData.price < 0) newErrors.price = "Price cannot be negative";
     if (formData.maxAttendees < 1) newErrors.maxAttendees = "Must allow at least 1 attendee";
     
@@ -117,23 +115,9 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="mobile-page-container bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Logo size="md" />
-            <Button 
-              variant="ghost" 
-              onClick={() => setLocation("/dashboard")}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-          </div>
-        </div>
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
+      <VibePageHeader mode="detail" title="Create Event" />
+      <div className="max-w-4xl mx-auto space-y-6 px-4 py-6">
 
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create Global Event</h1>
@@ -421,7 +405,7 @@ export default function CreateEventPage() {
           </CardContent>
         </Card>
       </div>
-
+      <MobileNav />
     </div>
   );
 }

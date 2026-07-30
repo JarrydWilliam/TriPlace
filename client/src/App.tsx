@@ -34,6 +34,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Reveal from "@/pages/reveal";
 import Discover from "@/pages/discover";
+import Events from "@/pages/events";
 import DeleteAccount from "@/pages/delete-account";
 import AdminMetrics from "@/pages/admin/metrics";
 
@@ -230,6 +231,7 @@ function Router() {
         <Route path="/settings/security" component={SecuritySettings} />
         <Route path="/settings/support" component={SupportSettings} />
         <Route path="/discover" component={Discover} />
+        <Route path="/events" component={Events} />
         <Route path="/communities" component={Communities} />
         <Route path="/kudos" component={Dashboard} />
         <Route path="/login" component={Login} />

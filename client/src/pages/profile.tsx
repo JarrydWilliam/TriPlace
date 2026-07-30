@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { TopBar } from "@/components/layout/top-bar";
 import { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,9 +207,8 @@ export default function Profile() {
 
       <div className="flex min-h-[100dvh]">
         <Sidebar />
-
-        <main className="flex-1 pb-28 md:pb-8">
-          <TopBar />
+        <main className="flex-1 pb-nav">
+          <VibePageHeader mode="detail" title="Profile" />
 
           <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 relative z-10">
             {/* Profile Header */}

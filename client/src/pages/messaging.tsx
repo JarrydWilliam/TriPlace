@@ -247,6 +247,8 @@ function DMThread({
 
 // ─── Main Messaging page ───────────────────────────────────────────────────────
 
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
+
 export default function Messaging() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -260,9 +262,7 @@ export default function Messaging() {
       const res = await fetch(getApiUrl(`/api/users/${user?.id}/conversations`));
       if (!res.ok) return [];
       const raw = await res.json();
-      // Normalize: backend may return array of messages grouped by peer
       if (Array.isArray(raw) && raw.length > 0 && raw[0].otherUser) return raw;
-      // If backend returns flat message array, group by peer
       return [];
     },
     refetchInterval: 5000,
@@ -277,14 +277,10 @@ export default function Messaging() {
   const showThread = !!selectedUser;
 
   return (
-    <div className="mobile-page-container bg-background pb-20 relative overflow-hidden">
-      {/* Rich ambient bokeh */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="ambient-top" />
-        <div className="ambient-bottom" />
-      </div>
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden flex flex-col">
+      <VibePageHeader mode="home" locationName="NYC" unreadCount={6} />
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
-      <div className="max-w-3xl mx-auto h-[calc(100dvh-80px)] flex">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex">
         {/* ── Conversation List ── */}
         <AnimatePresence initial={false}>
           {(!showThread || !isMobile) && (
@@ -297,9 +293,8 @@ export default function Messaging() {
                 showThread ? "hidden md:flex md:w-72 lg:w-80 flex-shrink-0" : "flex-1"
               }`}
             >
-              {/* List header */}
-              <div className="px-4 pt-safe py-4 border-b border-border/40">
-                <h1 className="text-xl font-bold text-foreground mb-3">Messages</h1>
+              {/* List search */}
+              <div className="px-4 py-3 border-b border-border/40">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input

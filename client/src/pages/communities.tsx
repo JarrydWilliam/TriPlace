@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getApiUrl } from "@/lib/queryClient";
 
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
 
 
@@ -96,23 +97,11 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="mobile-page-container">
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="bg-background min-h-[100dvh] pb-28">
-          <div className="container-responsive responsive-padding safe-area-top max-w-6xl mx-auto">
-        
-        {/* Header with Back Button and Theme Toggle */}
-        <div className="sticky top-0 z-50 glass-panel flex items-center justify-between mb-6 p-4 -mx-4 rounded-b-2xl">
-          <div className="flex items-center space-x-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
-              </Button>
-            </Link>
-            <h1 className="text-3xl font-bold font-display text-foreground">My Groups</h1>
-          </div>
-        </div>
+        <div>
+          <VibePageHeader mode="detail" title="My Groups" />
+          <div className="max-w-md mx-auto px-4 py-4 space-y-6">
 
         {/* Partner Events Section */}
         {partnerEvents && partnerEvents.length > 0 && (
