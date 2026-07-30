@@ -676,25 +676,36 @@ export default function Dashboard() {
 
               <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
                 {Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
-                  userActiveCommunities.map((community: any) => (
-                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
-                      <SharedCommunityCard
-                        community={community}
-                        joined={true}
-                        onJoin={() => {}}
-                      />
+                  <>
+                    {userActiveCommunities.map((community: any) => (
+                      <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+                        <SharedCommunityCard
+                          community={community}
+                          joined={true}
+                          onJoin={() => {}}
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* Explicit $0.99 Expansion Slot Purchase Card */}
+                    <div 
+                      onClick={() => setShowPaywall(true)}
+                      className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0 cursor-pointer group"
+                    >
+                      <div className="w-full h-full rounded-3xl border border-dashed border-cyan-400/40 bg-slate-900/60 backdrop-blur-xl p-6 flex flex-col items-center justify-center text-center space-y-3 hover:border-cyan-400 hover:bg-slate-900/80 transition-all shadow-lg active:scale-[0.98]">
+                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                          <Plus className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-white">Add Expansion Slot</h4>
+                          <p className="text-xs text-cyan-300 font-semibold mt-0.5">$0.99 / month</p>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground leading-snug px-2">
+                          Expand active capacity beyond 3 free base slots (up to 5 max)
+                        </span>
+                      </div>
                     </div>
-                  ))
-                ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
-                  recommendations.map((community: any) => (
-                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
-                      <SharedCommunityCard
-                        community={community}
-                        joined={false}
-                        onJoin={() => handleJoinClick(community)}
-                      />
-                    </div>
-                  ))
+                  </>
                 ) : (
                   <EmptyState
                     icon={<Users className="w-6 h-6 text-muted-foreground" />}
@@ -720,7 +731,7 @@ export default function Dashboard() {
                 </div>
                 <Link href="/discover">
                   <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
-                    Explore
+                    Explore All
                   </span>
                 </Link>
               </div>
@@ -736,17 +747,17 @@ export default function Dashboard() {
                   onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
                 />
               ) : Array.isArray(recommendations) && recommendations.filter((c: any) => !userActiveCommunities?.some((joinedC: any) => joinedC.id === c.id)).length > 0 ? (
-                <div className="space-y-3">
+                <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
                   {recommendations
                     .filter((c: any) => !userActiveCommunities?.some((joinedC: any) => joinedC.id === c.id))
-                    .slice(0, 4)
                     .map((community: any) => (
-                      <SharedCommunityCard
-                        key={community.id}
-                        community={community}
-                        joined={false}
-                        onJoin={() => handleJoinClick(community)}
-                      />
+                      <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+                        <SharedCommunityCard
+                          community={community}
+                          joined={false}
+                          onJoin={() => handleJoinClick(community)}
+                        />
+                      </div>
                     ))}
                 </div>
               ) : (

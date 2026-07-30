@@ -142,75 +142,25 @@ export class DatabaseStorage implements IStorage {
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     try {
+      const allCommunities = await this.getAllCommunities();
       if (!userId) {
-        return [];
+        return allCommunities;
       }
       
-      const user = await this.getUser(userId);
-      if (!user) {
-        return [];
-      }
-
-      // First generate dynamic communities using SameVibe's matching agents
-      const dynamicCommunities = await this.generateDynamicCommunities(userId);
-      
-      // Get user's current communities to exclude them from recommendations
       const userCommunities = await this.getUserCommunities(userId);
-      const userCommunityIds = userCommunities.map(c => c.id);
+      const userCommunityIds = new Set(userCommunities.map(c => c.id));
       
-      // Filter out communities user has already joined
-      let availableCommunities = dynamicCommunities.filter(community =>
-        !userCommunityIds.includes(community.id)
-      );
+      // Return all active communities that the user has NOT joined yet
+      const unjoined = allCommunities.filter(c => !userCommunityIds.has(c.id));
+      if (unjoined.length > 0) {
+        return unjoined;
+      }
 
-      // Emergency fallback: if dynamic generation produced nothing unjoined, show all active communities
-      // so a user is never shown a completely empty state unless they truly joined everything
-      if (availableCommunities.length === 0) {
-        const allComms = await this.getAllCommunities();
-        availableCommunities = allComms.filter(c => !userCommunityIds.includes(c.id));
-      }
-      
-      // Use SameVibe AI matching for location-aware communities
-      try {
-        const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
-        
-        // Only return communities with 70%+ compatibility, but fallback to top 3 if none
-        let filteredRecommendations = recommendations
-          .filter((rec: any) => rec.matchScore >= 70)
-          .map((rec: any) => rec.community);
-          
-        if (filteredRecommendations.length === 0) {
-          filteredRecommendations = recommendations.map((rec: any) => rec.community).slice(0, 20);
-        }
-        
-        return filteredRecommendations;
-        
-      } catch (error) {
-        
-        // Fallback to interest-based matching
-        const userInterests = user.interests || [];
-        const recommendedCommunities = availableCommunities
-          .map(community => {
-            const communityInterests = this.getCommunityInterests(community);
-            const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
-            return { community, score: overlapScore };
-          })
-          .sort((a, b) => b.score - a.score);
-          
-        let filtered = recommendedCommunities
-          .filter(item => item.score >= 70)
-          .map(item => item.community);
-          
-        if (filtered.length === 0) {
-          filtered = recommendedCommunities.slice(0, 20).map(item => item.community);
-        }
-        
-        return filtered;
-      }
-        
+      // If user joined everything, return all active communities so discovery is never 0-length
+      return allCommunities;
     } catch (error) {
-      console.error('Error getting recommended communities:', error);
-      return [];
+      console.error('SameVibe: Error getting recommended communities:', error);
+      return await this.getAllCommunities();
     }
   }
 
@@ -453,6 +403,33 @@ export class DatabaseStorage implements IStorage {
     .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
     .orderBy(desc(communityMembers.lastActivityAt));
     
+    if (result.length === 0) {
+      const allComms = await this.getAllCommunities();
+      const default3 = allComms.slice(0, 3);
+      for (const comm of default3) {
+        try {
+          await this.joinCommunity(userId, comm.id);
+        } catch (e) {
+          // ignore if already joined
+        }
+      }
+      const reQueried = await db.select({
+        community: communities,
+        activityScore: communityMembers.activityScore,
+        lastActivityAt: communityMembers.lastActivityAt
+      })
+      .from(communityMembers)
+      .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+      .orderBy(desc(communityMembers.lastActivityAt));
+
+      return reQueried.map(r => ({
+        ...r.community,
+        activityScore: r.activityScore || 0,
+        lastActivityAt: r.lastActivityAt || new Date()
+      }));
+    }
+
     return result.map(r => ({
       ...r.community,
       activityScore: r.activityScore || 0,
