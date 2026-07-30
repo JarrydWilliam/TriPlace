@@ -1913,17 +1913,17 @@ Never charge for:
 
 ## Official Founder Monetization Decision
 
-SameVibe avoids recurring consumer subscriptions. Consumer monetization begins with an optional **$0.99 one-time purchase** that expands active community capacity by +1 for each payment up to a maximum total of 5 communities (from the 3 free base communities). Recurring revenue initially comes from a low-cost **Organizer Promotion subscription** priced at approximately **$4.99 per month**.
+SameVibe keeps basic social access free while focusing community quality through a **3 free active community limit per month**. Consumer monetization begins with an optional **$0.99 per month per slot** purchase that expands active community capacity by +1 for each payment up to a maximum total of 5 communities. Recurring revenue also comes from a low-cost **Organizer Promotion subscription** priced at **$4.99 per month**.
 
-### 1. No Recurring Consumer Subscriptions
-- Regular users will NOT be pushed into a monthly consumer subscription (no $7.99/mo, $9.99/mo, or $12.99/mo SameVibe+ consumer paywalls).
-- Core social experience (discovering communities/events, joining initial community allowance, creating activities, group chat, RSVP) remains 100% free.
+### 1. 3 Free Base Active Communities (Monthly Focus)
+- Regular users enjoy 3 free active community slots on their dashboard per month.
+- Encourages members to narrow down and actively participate in their true top communities without feed clutter or noise.
 
-### 2. $0.99 One-Time Community Expansion
-- **Format**: $0.99 one-time in-app purchase (NOT a subscription, no recurring charge).
-- **Function**: Expands user active community capacity (+1 slot per purchase up to 5 max communities).
-- **Presentation**: *"Expand Your Circle — $0.99. Add more active community space to your SameVibe dashboard. One-time purchase. No subscription."*
-- **Constraint**: Must preserve focused community quality — limited expansion (+1 up to 5), NOT unlimited noise or artificial paywalls.
+### 2. $0.99 / Month Community Expansion
+- **Format**: $0.99 per month per additional active community slot.
+- **Function**: Expands user active community capacity (+1 slot per payment up to 5 max active communities).
+- **Presentation**: *"Expand Your Circle — $0.99 / month. Focus on your top 3 active communities for free, or add extra monthly community slots (up to 5 max)."*
+- **Constraint**: Must preserve focused community quality — limited expansion (+1 up to 5 max), NOT uncontrolled "join everything" noise.
 
 ### 3. $4.99 / Month Organizer Promotion Subscription
 - **Format**: $4.99 per month recurring organizer subscription.

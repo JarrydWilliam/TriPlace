@@ -109,12 +109,12 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
             Expand Your Circle
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground text-sm">
-            Add more active community space to your SameVibe dashboard. One-time purchase. No subscription.
+            Focus on your top 3 active communities for free, or add extra monthly community slots (up to 5 total).
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* $0.99 One-Time Community Expansion */}
+          {/* $0.99/mo Community Expansion */}
           <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-2xl bg-primary/5 relative overflow-hidden">
             <div className="absolute -top-4 -right-4 p-4 bg-primary/20 rounded-full blur-xl w-24 h-24" />
             <div className="flex items-center justify-between">
@@ -123,16 +123,16 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
                 <h3 className="font-bold text-lg text-foreground">Community Expansion</h3>
               </div>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">
-                One-Time Purchase
+                Monthly Expansion
               </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Add 1 extra active community slot to your dashboard (up to 5 total). One-time payment, no recurring subscription.
+              Add 1 extra active community slot to your dashboard (up to 5 max). Keep your feed focused on your true top communities.
             </p>
             <div className="mt-2 flex items-center justify-between relative z-10">
               <div>
                 <span className="text-2xl font-extrabold text-foreground">$0.99</span>
-                <span className="text-xs text-muted-foreground"> one-time</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
               </div>
               <Button 
                 onClick={() => handleCheckout(1)}
