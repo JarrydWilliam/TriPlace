@@ -72,6 +72,32 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
     }
   };
 
+  const handleRestore = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toast({
+        title: "App Store Only",
+        description: "Restoring purchases is supported inside the native iOS/Android app.",
+      });
+      return;
+    }
+    try {
+      setIsPurchasing(true);
+      const customerInfo = await Purchases.restorePurchases();
+      toast({
+        title: "Purchases Restored",
+        description: "Your past purchases have been verified.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Restore Error",
+        description: error.message || "Could not restore purchases.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white">
@@ -145,6 +171,26 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
               >
                 {isPurchasing ? "Processing..." : "Promote Event"}
               </Button>
+            </div>
+          </div>
+
+          {/* Apple Required Restore Purchases & Terms Links */}
+          <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <button
+              onClick={handleRestore}
+              disabled={isPurchasing}
+              className="hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Restore Purchases
+            </button>
+            <div className="flex items-center gap-3">
+              <a href="https://samevibe.app/terms" target="_blank" rel="noreferrer" className="hover:text-foreground underline underline-offset-2">
+                Terms
+              </a>
+              <span>•</span>
+              <a href="https://samevibe.app/privacy" target="_blank" rel="noreferrer" className="hover:text-foreground underline underline-offset-2">
+                Privacy
+              </a>
             </div>
           </div>
         </div>
