@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,20 @@ export default function ProfileSettings() {
     allowDirectMessages: true,
     showJoinedEvents: true,
   });
-  
+
+  useEffect(() => {
+    if (user?.discoverySettings && typeof user.discoverySettings === "object") {
+      const ds = user.discoverySettings as any;
+      setPrivacySettings({
+        showProfileInDiscovery: ds.showProfileInDiscovery ?? true,
+        showLocation: ds.showLocation ?? true,
+        showActivityStatus: ds.showActivityStatus ?? true,
+        allowDirectMessages: ds.allowDirectMessages ?? true,
+        showJoinedEvents: ds.showJoinedEvents ?? true,
+      });
+    }
+  }, [user]);
+
   const [interests, setInterests] = useState(user?.interests || []);
   const [newInterest, setNewInterest] = useState('');
   

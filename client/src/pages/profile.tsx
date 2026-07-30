@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import {
   MapPin,
@@ -67,6 +67,20 @@ export default function Profile() {
     showJoinedEvents: true,
   });
 
+  // Sync privacySettings state when currentUser loads from PostgreSQL
+  useEffect(() => {
+    if (currentUser?.discoverySettings && typeof currentUser.discoverySettings === "object") {
+      const ds = currentUser.discoverySettings as any;
+      setPrivacySettings({
+        showProfileInDiscovery: ds.showProfileInDiscovery ?? true,
+        showLocation: ds.showLocation ?? true,
+        showActivityStatus: ds.showActivityStatus ?? true,
+        allowDirectMessages: ds.allowDirectMessages ?? true,
+        showJoinedEvents: ds.showJoinedEvents ?? true,
+      });
+    }
+  }, [currentUser]);
+
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userId || userId === currentUser?.id?.toString();
   const targetUserId = isOwnProfile ? currentUser?.id : parseInt(userId!);
@@ -110,23 +124,27 @@ export default function Profile() {
     enabled: !!targetUserId,
   });
 
-  // Update user profile mutation
+  // Update user profile & privacy settings mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: typeof editForm) => {
+    mutationFn: async (updates: any) => {
       if (!currentUser) throw new Error("No user found");
       const response = await apiRequest(
         "PATCH",
         `/api/users/${currentUser.id}`,
-        updates
+        {
+          ...updates,
+          discoverySettings: privacySettings,
+        }
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(["/api/users", currentUser?.id], updatedUser);
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsEditing(false);
       toast({
-        title: "Profile updated!",
-        description: "Your profile has been successfully updated.",
+        title: "Profile & Privacy Updated! 🛡️",
+        description: "Your privacy preferences and profile have been saved to your account.",
       });
     },
     onError: () => {
