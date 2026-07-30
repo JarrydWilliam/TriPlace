@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
-import { ChevronLeft, MapPin, Bell } from "lucide-react";
+import { ChevronLeft, MapPin, Bell, User as UserIcon, Edit3 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface VibePageHeaderProps {
   mode?: "home" | "detail";
@@ -8,6 +10,7 @@ interface VibePageHeaderProps {
   locationName?: string;
   unreadCount?: number;
   onNotificationClick?: () => void;
+  onProfileClick?: () => void;
   backHref?: string;
   rightElement?: React.ReactNode;
 }
@@ -18,10 +21,12 @@ export function VibePageHeader({
   locationName = "NYC",
   unreadCount = 6,
   onNotificationClick,
+  onProfileClick,
   backHref,
   rightElement,
 }: VibePageHeaderProps) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const handleBack = () => {
     if (backHref) {
@@ -33,21 +38,55 @@ export function VibePageHeader({
     }
   };
 
+  const userAvatar = (user as any)?.avatarUrl || user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80";
+  const userInitials = user?.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "SV";
+
+  const handleProfileTap = () => {
+    if (onProfileClick) {
+      onProfileClick();
+    } else {
+      setLocation("/settings/profile");
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#050d1a]/80 backdrop-blur-xl border-b border-white/[0.06] safe-area-top px-4 py-3">
+    <header className="sticky top-0 z-40 w-full bg-[#050d1a]/85 backdrop-blur-xl border-b border-white/[0.08] safe-area-top px-4 py-2.5 shadow-lg">
       <div className="max-w-md mx-auto flex items-center justify-between">
         {mode === "home" ? (
           <>
-            {/* SameVibe Wordmark */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2"
-            >
-              <span className="font-display font-extrabold text-2xl tracking-tight text-white">
-                SameVibe
-              </span>
-            </motion.div>
+            {/* Top Left: Profile Avatar with Glowing Ring + Edit Badge + SameVibe Title */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleProfileTap}
+                className="relative group flex-shrink-0 active:scale-95 transition-transform"
+                title="Edit Profile"
+              >
+                <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_12px_-2px_rgba(0,212,255,0.5)]">
+                  <Avatar className="w-full h-full rounded-full overflow-hidden">
+                    <AvatarImage src={userAvatar} alt={user?.name || "Profile"} className="object-cover" />
+                    <AvatarFallback className="bg-slate-900 text-cyan-300 font-bold text-xs">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                {/* Tiny Edit Pencil Badge */}
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-cyan-400 text-slate-950 rounded-full flex items-center justify-center border border-slate-950 shadow-sm">
+                  <Edit3 className="w-2.5 h-2.5 font-bold" />
+                </div>
+              </button>
+
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-1.5 cursor-pointer"
+                onClick={handleProfileTap}
+              >
+                <span className="font-display font-extrabold text-xl tracking-tight text-white drop-shadow-sm">
+                  SameVibe
+                </span>
+              </motion.div>
+            </div>
 
             {/* Right controls: NYC Location Pill + Bell */}
             <div className="flex items-center gap-2.5">

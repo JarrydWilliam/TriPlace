@@ -22,6 +22,23 @@ interface LiveMembersResponse {
   totalLive: number;
 }
 
+const DEFAULT_MEMBER_AVATARS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=250&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80",
+  "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=250&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80",
+];
+
+function getMemberAvatar(member: { id: number; avatar?: string }) {
+  if (member.avatar && member.avatar.trim().length > 5 && !member.avatar.includes("example.com")) {
+    return member.avatar.trim();
+  }
+  const idx = Math.abs(member.id || 0) % DEFAULT_MEMBER_AVATARS.length;
+  return DEFAULT_MEMBER_AVATARS[idx];
+}
+
 interface LiveMembersTabProps {
   communityId: number;
 }
@@ -132,7 +149,7 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="w-10 h-10">
-                      <AvatarImage src={member.avatar} alt={member.name} />
+                      <AvatarImage src={getMemberAvatar(member)} alt={member.name} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
                         {getInitials(member.name)}
                       </AvatarFallback>
@@ -170,7 +187,7 @@ export function LiveMembersTab({ communityId }: LiveMembersTabProps) {
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="w-10 h-10 opacity-75">
-                      <AvatarImage src={member.avatar} alt={member.name} />
+                      <AvatarImage src={getMemberAvatar(member)} alt={member.name} />
                       <AvatarFallback className="bg-gradient-to-br from-gray-400 to-gray-600 text-white text-sm">
                         {getInitials(member.name)}
                       </AvatarFallback>
