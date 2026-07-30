@@ -79,32 +79,66 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
           <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4">
             <Crown className="w-8 h-8 text-primary" />
           </div>
-          <DialogTitle className="text-center text-2xl font-bold text-zinc-100">
-            Expand Your Network
+          <DialogTitle className="text-center text-2xl font-bold text-foreground">
+            SameVibe+ Premium
           </DialogTitle>
-          <DialogDescription className="text-center text-zinc-400">
-            You've hit the limit of 3 free communities. Unlock more to continue expanding your SameVibe network!
+          <DialogDescription className="text-center text-muted-foreground text-sm">
+            You've reached your 5 active communities limit. Upgrade to SameVibe+ to unlock unlimited communities, Travel Mode, and priority event access!
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-xl bg-primary/5 relative overflow-hidden">
+          {/* SameVibe+ Tier */}
+          <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-2xl bg-primary/5 relative overflow-hidden">
             <div className="absolute -top-4 -right-4 p-4 bg-primary/20 rounded-full blur-xl w-24 h-24" />
-            <div className="absolute top-0 right-0 p-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-lg text-foreground">SameVibe+</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">
+                Most Popular
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg text-primary">Add 1 Community</h3>
-            </div>
-            <p className="text-sm text-zinc-400">Unlock the ability to join another community to expand your network.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Unlimited active communities, Travel Mode to discover scenes in new cities, and early event access.
+            </p>
             <div className="mt-2 flex items-center justify-between relative z-10">
-              <span className="text-2xl font-bold text-white">$0.99</span>
+              <div>
+                <span className="text-2xl font-extrabold text-foreground">$9.99</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
+              </div>
               <Button 
                 onClick={() => handleCheckout(1)}
                 disabled={isPurchasing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[100px]"
+                className="bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 px-5"
               >
-                {isPurchasing ? "Processing..." : "Purchase"}
+                {isPurchasing ? "Processing..." : "Subscribe"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Community Pro Tier */}
+          <div className="flex flex-col gap-3 p-4 border border-border/40 rounded-2xl bg-card/40 relative">
+            <div className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-amber-400" />
+              <h3 className="font-bold text-lg text-foreground">Community Pro</h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              For organizers & hosts — recurring event tools, member analytics, waitlists, and broadcast announcements.
+            </p>
+            <div className="mt-2 flex items-center justify-between relative z-10">
+              <div>
+                <span className="text-2xl font-extrabold text-foreground">$19.99</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
+              </div>
+              <Button 
+                onClick={() => handleCheckout(2)}
+                disabled={isPurchasing}
+                variant="outline"
+                className="font-bold rounded-xl border-border hover:bg-muted px-5"
+              >
+                {isPurchasing ? "Processing..." : "Learn More"}
               </Button>
             </div>
           </div>
