@@ -27,9 +27,8 @@ function formatLocationDisplay(loc?: string | null): string {
 
 export function SharedCommunityCard({ community, joined, onJoin, joining = false }: CommunityCardProps) {
   const meta = getCategoryMeta(community.category);
-  const bgImageUrl = community.image && community.image.trim().length > 5 
-    ? community.image 
-    : meta.bgImage;
+  const hasCustomImage = typeof community.image === "string" && community.image.trim().length > 5 && !community.image.includes("example.com");
+  const bgImageUrl = hasCustomImage ? community.image!.trim() : meta.bgImage;
 
   const displayLocation = formatLocationDisplay(community.location);
 

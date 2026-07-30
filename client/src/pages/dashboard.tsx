@@ -4,6 +4,7 @@ import { useCommunityUpdates } from "@/hooks/use-community-updates";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useLiveMembers } from "@/hooks/use-live-members";
 import { useTheme } from "@/lib/theme-context";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ import {
   Smartphone,
   AlertTriangle,
   Compass,
+  X,
+  Sparkles,
 } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
@@ -79,7 +82,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { motion } from "framer-motion";
 import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { PWAInstall } from "@/components/ui/pwa-install";
@@ -111,6 +113,7 @@ export default function Dashboard() {
 
 
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showCommunityBanner, setShowCommunityBanner] = useState(false);
   const [rotationConfirm, setRotationConfirm] = useState<{
     newComm: any;
     oldComm: any;
@@ -159,18 +162,13 @@ export default function Dashboard() {
     };
   }, [queryClient]);
 
-  // Show update notification when new location-aware communities are available
+  // Show non-intrusive top floating glass pill notification when new location communities are available
   useEffect(() => {
     if (updateAvailable) {
-      toast({
-        title: "New Communities Available",
-        description:
-          "Location-aware communities have been updated. Refreshing your recommendations.",
-        duration: 3000,
-      });
+      setShowCommunityBanner(true);
       markUpdatesApplied();
     }
-  }, [updateAvailable, markUpdatesApplied, toast]);
+  }, [updateAvailable, markUpdatesApplied]);
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -517,8 +515,52 @@ export default function Dashboard() {
         <div>
           {/* Header Mode="Home" matching design mockup: SameVibe + NYC pill + Bell */}
           <VibePageHeader mode="home" locationName={locationName || "NYC"} unreadCount={6} />
-
           <div className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-7">
+            {/* Sleek Non-Intrusive Floating Glass Pill Banner for New Communities */}
+            <AnimatePresence>
+              {showCommunityBanner && (
+                <motion.div
+                  initial={{ opacity: 0, y: -12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.96 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="bg-gradient-to-r from-cyan-950/90 via-slate-900/95 to-cyan-950/90 border border-cyan-400/30 backdrop-blur-xl rounded-2xl p-3.5 flex items-center justify-between shadow-xl shadow-cyan-500/10 mb-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 flex-shrink-0">
+                      <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white leading-tight">
+                        New Local Communities
+                      </h4>
+                      <p className="text-[11px] text-cyan-200/75">
+                        Fresh recommendations updated for your area.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setShowCommunityBanner(false);
+                        setRouterLocation("/discover");
+                      }}
+                      className="bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-[11px] h-7 px-3 rounded-xl shadow-md transition-transform active:scale-95"
+                    >
+                      View
+                    </Button>
+                    <button
+                      onClick={() => setShowCommunityBanner(false)}
+                      className="text-white/40 hover:text-white p-1 transition-colors rounded-lg hover:bg-white/10"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* ── SECTION 1: Vibe with Your Community (Event Cards Carousel) ── */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -602,27 +644,116 @@ export default function Dashboard() {
                 </Badge>
               </div>
 
-              {eventsLoading ? (
-                <div className="animate-pulse space-y-3">
-                  {["event-1", "event-2"].map((loadingId) => (
-                    <div
-                      key={`loading-${loadingId}`}
-                      className="h-16 bg-muted/30 rounded-xl"
-                    />
-                  ))}
-                </div>
-              ) : (
+              <div className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-4">
                 <EventCalendar
                   events={userJoinedEvents || []}
-                  onEventClick={(event) => {
+                  onEventClick={(event: any) => {
                     setSelectedEvent(event);
                     setIsEventModalOpen(true);
                   }}
                 />
+              </div>
+            </section>
+
+            {/* ── SECTION 3: My Communities (Featured First) ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                  My Communities
+                </h2>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    See All
+                  </span>
+                </Link>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
+                {Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
+                  userActiveCommunities.map((community: any) => (
+                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+                      <SharedCommunityCard
+                        community={community}
+                        joined={true}
+                        onJoin={() => {}}
+                      />
+                    </div>
+                  ))
+                ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
+                  recommendations.map((community: any) => (
+                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+                      <SharedCommunityCard
+                        community={community}
+                        joined={false}
+                        onJoin={() => handleJoinClick(community)}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState
+                    icon={<Users className="w-6 h-6 text-muted-foreground" />}
+                    title="It's a bit quiet here!"
+                    description="Discover local communities to start connecting."
+                    action={{
+                      label: "Explore Communities",
+                      onClick: () => setRouterLocation("/discover"),
+                    }}
+                  />
+                )}
+              </div>
+            </section>
+
+            {/* ── SECTION 4: Recommended Scenes ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-primary" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    Recommended For You
+                  </h2>
+                </div>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
+                    Explore
+                  </span>
+                </Link>
+              </div>
+
+              {recommendationsLoading ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                  Finding your perfect communities...
+                </div>
+              ) : recommendationsError ? (
+                <InlineErrorMessage
+                  message="Could not load community recommendations."
+                  onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
+                />
+              ) : Array.isArray(recommendations) && recommendations.filter((c: any) => !userActiveCommunities?.some((joinedC: any) => joinedC.id === c.id)).length > 0 ? (
+                <div className="space-y-3">
+                  {recommendations
+                    .filter((c: any) => !userActiveCommunities?.some((joinedC: any) => joinedC.id === c.id))
+                    .slice(0, 4)
+                    .map((community: any) => (
+                      <SharedCommunityCard
+                        key={community.id}
+                        community={community}
+                        joined={false}
+                        onJoin={() => handleJoinClick(community)}
+                      />
+                    ))}
+                </div>
+              ) : (
+                <div className="glass-card bg-card/30 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-between text-xs text-white/70">
+                  <span>You're in all recommended communities nearby.</span>
+                  <button onClick={() => setRouterLocation("/discover")} className="text-cyan-400 font-semibold hover:underline ml-2">
+                    Explore scenes →
+                  </button>
+                </div>
               )}
             </section>
 
-            {/* ── SECTION 3: Trending Local Events (Vertical List) ── */}
+            {/* ── SECTION 5: Trending Local Events (Vertical List) ── */}
             <section className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -670,106 +801,6 @@ export default function Dashboard() {
                   No trending events in your area yet
                 </p>
               )}
-            </section>
-
-            {/* ── SECTION 4: New Communities (Vertical List) ── */}
-            <section className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-primary" />
-                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                    New Communities
-                  </h2>
-                </div>
-                <Link href="/discover">
-                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
-                    Explore
-                  </span>
-                </Link>
-              </div>
-
-              {recommendationsLoading ? (
-                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                  Finding your perfect communities...
-                </div>
-              ) : recommendationsError ? (
-                <InlineErrorMessage
-                  message="Could not load community recommendations."
-                  onRetry={() => queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id] })}
-                />
-              ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
-                <div className="space-y-3">
-                  {recommendations.slice(0, 5).map((community: any) => (
-                    <SharedCommunityCard
-                      key={community.id}
-                      community={community}
-                      joined={userActiveCommunities?.some((c: any) => c.id === community.id) || false}
-                      onJoin={() => handleJoinClick(community)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    You've joined all available communities
-                  </p>
-                  <Button
-                    onClick={() => setRouterLocation("/discover")}
-                    className="bg-primary text-primary-foreground text-xs rounded-full px-4 py-2"
-                  >
-                    Explore
-                  </Button>
-                </div>
-              )}
-            </section>
-
-            {/* ── SECTION 5: My Communities (Horizontal Carousel) ── */}
-            <section className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                  My Communities
-                </h2>
-                <Link href="/discover">
-                  <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
-                    See All
-                  </span>
-                </Link>
-              </div>
-
-              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
-                {Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
-                  userActiveCommunities.map((community: any) => (
-                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
-                      <SharedCommunityCard
-                        community={community}
-                        joined={true}
-                        onJoin={() => {}}
-                      />
-                    </div>
-                  ))
-                ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
-                  recommendations.map((community: any) => (
-                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
-                      <SharedCommunityCard
-                        community={community}
-                        joined={false}
-                        onJoin={() => handleJoinClick(community)}
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <EmptyState
-                    icon={<Users className="w-6 h-6 text-muted-foreground" />}
-                    title="It's a bit quiet here!"
-                    description="Discover local communities to start connecting."
-                    action={{
-                      label: "Explore Communities",
-                      onClick: () => setRouterLocation("/discover"),
-                    }}
-                  />
-                )}
-              </div>
             </section>
 
             {/* ── SECTION 6: My Activity & Challenges ── */}
