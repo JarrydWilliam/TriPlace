@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Calendar, Users, Clock, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { categoryColor, defaultCategoryColors } from "@/lib/constants";
 
 export interface VibeEventAttendee {
   id: number | string;
@@ -16,6 +17,7 @@ export interface VibeEventCardProps {
   time?: string; // e.g. "6 PM"
   location?: string; // e.g. "Central Park"
   imageUrl?: string;
+  image?: string;
   attendeeCount?: number;
   attendees?: VibeEventAttendee[];
   actionLabel?: "Explore" | "Collab" | "Join" | "View";
@@ -25,15 +27,19 @@ export interface VibeEventCardProps {
 export function VibeEventCard({
   id,
   title,
+  category,
   date = "June 15",
   time = "6 PM",
   location = "Central Park",
-  imageUrl = "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80",
+  imageUrl,
+  image,
   attendeeCount = 28,
   attendees = [],
   actionLabel = "Explore",
   onClick,
 }: VibeEventCardProps) {
+  const imgSrc = image || imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80";
+
   // Default mock attendees if none provided
   const displayAttendees = attendees.length > 0
     ? attendees.slice(0, 3)
@@ -50,12 +56,27 @@ export function VibeEventCard({
     >
       {/* Top Banner Image with Overlay Chips */}
       <div className="relative w-full h-36 rounded-xl overflow-hidden mb-3">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050d1a] via-transparent to-black/30" />
+        <div className="relative w-full h-full">
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+              onError={(e) => {
+                // If image fails to load, hide it and show gradient fallback
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : null}
+          {/* Gradient fallback — always rendered underneath, visible when image is null or broken */}
+          <div
+            className={`absolute inset-0 bg-gradient-to-br ${
+              categoryColor[category as string]?.gradient ?? defaultCategoryColors.gradient
+            } opacity-70`}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050d1a] via-transparent to-black/30 pointer-events-none" />
 
         {/* 📅 Date Chip (Top Left) */}
         <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white flex items-center gap-1.5 font-medium">

@@ -8,6 +8,7 @@ import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
 import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
+import { generateCommunityImage } from "./utils/community-image-gen.js";
 import { z } from "zod";
 
 import express from "express";
@@ -522,6 +523,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const communityData = insertCommunitySchema.parse(req.body);
       const community = await storage.createCommunity(communityData);
       res.status(201).json(community);
+
+      // Fire-and-forget: generate image in background, never blocks the response
+      setImmediate(async () => {
+        try {
+          if (!community.image) {
+            const imageUrl = await generateCommunityImage(community);
+            await storage.updateCommunity(community.id, { image: imageUrl });
+            console.log(`[ImageGen] Generated image for community ${community.id}: ${imageUrl}`);
+          }
+        } catch (err: any) {
+          console.error(`[ImageGen] Background generation failed for community ${community.id}:`, err.message);
+        }
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid community data", errors: error.errors });
@@ -1853,6 +1867,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(run ?? { status: "never_run" });
     } catch (error) {
       res.status(500).json({ message: "Failed to get agent status" });
+    }
+  });
+
+  // POST /api/communities/:id/generate-image
+  // Idempotent: skips if image already exists. Safe to call multiple times.
+  app.post("/api/communities/:id/generate-image", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) return res.status(400).json({ message: "Invalid ID" });
+
+      const community = await storage.getCommunity(communityId);
+      if (!community) return res.status(404).json({ message: "Community not found" });
+
+      // Idempotent — if image already generated, return it immediately
+      if (community.image) {
+        return res.json({ image: community.image, generated: false });
+      }
+
+      const imageUrl = await generateCommunityImage(community);
+      await storage.updateCommunity(communityId, { image: imageUrl });
+
+      res.json({ image: imageUrl, generated: true });
+    } catch (err: any) {
+      console.error("[ImageGen] Failed:", err.message);
+      res.status(500).json({ message: "Image generation failed", error: err.message });
     }
   });
 

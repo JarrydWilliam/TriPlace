@@ -24,8 +24,28 @@ export function SharedCommunityCard({ community, joined, onJoin, joining = false
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-br ${colors.gradient} p-5`}
+      className={`relative overflow-hidden rounded-2xl border border-white/8 p-5`}
     >
+      <div className="absolute inset-0 pointer-events-none -z-10">
+        {community.image ? (
+          <img
+            src={community.image}
+            alt={community.name}
+            className="w-full h-full object-cover opacity-30"
+            loading="lazy"
+            onError={(e) => {
+              // If image fails to load, hide it and show gradient fallback
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        ) : null}
+        {/* Gradient fallback — always rendered underneath, visible when image is null or broken */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${
+            categoryColor[community.category as string]?.gradient ?? defaultCategoryColors.gradient
+          } opacity-70`}
+        />
+      </div>
       {/* Live activity dot */}
       {(community.memberCount ?? 0) > 0 && (
         <span className={`absolute top-4 right-4 flex h-2 w-2`}>
