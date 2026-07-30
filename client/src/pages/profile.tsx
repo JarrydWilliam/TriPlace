@@ -210,7 +210,7 @@ export default function Profile() {
         <main className="flex-1 pb-nav">
           <VibePageHeader mode="detail" title="Profile" />
 
-          <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 relative z-10">
+          <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 relative z-10 pb-36">
             {/* Profile Header */}
             <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl rounded-3xl overflow-hidden">
               <CardContent className="p-6">

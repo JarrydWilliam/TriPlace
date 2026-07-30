@@ -29,6 +29,14 @@ export default function ProfileSettings() {
     phone: ''
   });
   
+  const [privacySettings, setPrivacySettings] = useState({
+    showProfileInDiscovery: true,
+    showLocation: true,
+    showActivityStatus: true,
+    allowDirectMessages: true,
+    showJoinedEvents: true,
+  });
+  
   const [interests, setInterests] = useState(user?.interests || []);
   const [newInterest, setNewInterest] = useState('');
   
@@ -244,47 +252,88 @@ export default function ProfileSettings() {
               </CardContent>
             </Card>
 
-            {/* Privacy Settings */}
-            <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-md">
+            {/* Privacy Settings Container with Full Interactive Toggles */}
+            <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl rounded-3xl overflow-hidden">
               <CardHeader>
-                <CardTitle>Privacy</CardTitle>
+                <CardTitle className="text-xl font-bold text-white flex items-center justify-between">
+                  <span>Privacy Controls</span>
+                  <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
+                    Live Security
+                  </Badge>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Show profile in discovery</p>
-                      <p className="text-sm text-muted-foreground">Allow others to find your profile</p>
+              <CardContent className="space-y-5">
+                <div className="space-y-4 divide-y divide-white/5">
+                  {/* Toggle 1: Show Profile in Discovery */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="pr-4">
+                      <p className="font-semibold text-sm text-white">Show Profile in Community Discovery</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Allow members to find your profile in local interest groups</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={privacySettings.showProfileInDiscovery}
+                      onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showProfileInDiscovery: checked }))}
+                    />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Show location</p>
-                      <p className="text-sm text-muted-foreground">Display your city to other users</p>
+                  {/* Toggle 2: Show Location */}
+                  <div className="flex items-center justify-between pt-3">
+                    <div className="pr-4">
+                      <p className="font-semibold text-sm text-white">Show Approximate Location</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Display your city name to group members</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={privacySettings.showLocation}
+                      onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showLocation: checked }))}
+                    />
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Show activity status</p>
-                      <p className="text-sm text-muted-foreground">Let others see when you're active</p>
+                  {/* Toggle 3: Show Activity Status */}
+                  <div className="flex items-center justify-between pt-3">
+                    <div className="pr-4">
+                      <p className="font-semibold text-sm text-white">Show Live Online Activity Status</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Let community members see when you're active</p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={privacySettings.showActivityStatus}
+                      onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showActivityStatus: checked }))}
+                    />
+                  </div>
+
+                  {/* Toggle 4: Allow Direct Messages */}
+                  <div className="flex items-center justify-between pt-3">
+                    <div className="pr-4">
+                      <p className="font-semibold text-sm text-white">Allow Direct Messaging</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Permit group members from shared events to message you</p>
+                    </div>
+                    <Switch 
+                      checked={privacySettings.allowDirectMessages}
+                      onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, allowDirectMessages: checked }))}
+                    />
+                  </div>
+
+                  {/* Toggle 5: Show Joined Events */}
+                  <div className="flex items-center justify-between pt-3">
+                    <div className="pr-4">
+                      <p className="font-semibold text-sm text-white">Show Joined Events on Profile</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Display upcoming events on your public profile card</p>
+                    </div>
+                    <Switch 
+                      checked={privacySettings.showJoinedEvents}
+                      onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showJoinedEvents: checked }))}
+                    />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Full-width Fixed Bottom Save Button — matches mockup */}
-            <div className="fixed bottom-16 left-0 right-0 px-4 pb-2 z-20">
+            {/* Save Button Container with Proper Bottom Spacing Above Navigation Bar */}
+            <div className="pt-4 pb-12">
               <Button
                 onClick={handleSave}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl py-4 min-h-[52px] text-base shadow-xl shadow-primary/30 transition-all active:scale-[0.99]"
               >
-                Save Changes
+                Save Profile Changes
               </Button>
             </div>
           </div>
