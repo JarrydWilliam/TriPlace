@@ -1636,64 +1636,79 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
     }
   });
 
-  // Onboarding completion route for new quiz structure
+  // Onboarding completion route for comprehensive 12-step quiz structure
   app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
     try {
       const {
         hopingToFind,
-        communityFeel,
-        personalityVibe,
         interestSpaces,
-        activityLevel,
+        priorityInterestIds,
+        preferredGroupSizes,
+        socialComfortPreferences,
+        experiencePace,
         availability,
+        travelRadiusMiles,
+        planningHorizon,
         location,
-        digitalOnly,
-        resonateStatement,
         latitude,
         longitude,
         userId
       } = req.body;
 
-      // Validate required fields
-      if (!hopingToFind || !interestSpaces || !activityLevel || !userId) {
-        return res.status(400).json({ message: "Missing required quiz responses or user ID" });
+      const targetUserId = userId || (req as any).user?.id;
+
+      if (!targetUserId) {
+        return res.status(401).json({ message: "Not authenticated or user ID missing." });
       }
 
-      // Update user with new quiz structure data
-      const interests = Array.isArray(interestSpaces) ? interestSpaces : [interestSpaces];
-      const goals = Array.isArray(hopingToFind) ? hopingToFind : [hopingToFind];
-      const personalityTraits = [personalityVibe, communityFeel, activityLevel, resonateStatement].filter(Boolean);
-      
-      const updatedUser = await storage.updateUser(parseInt(userId), {
-        interests,
-        quizAnswers: {
-          goals,
-          personalityTraits,
-          availability: Array.isArray(availability) ? availability : [availability]
-        },
-        location: location || "",
-        latitude: latitude ? parseFloat(latitude).toString() : null,
-        longitude: longitude ? parseFloat(longitude).toString() : null,
+      // Format arrays safely
+      const interests = Array.isArray(interestSpaces) ? interestSpaces : (interestSpaces ? [interestSpaces] : []);
+      const goals = Array.isArray(hopingToFind) ? hopingToFind : (hopingToFind ? [hopingToFind] : []);
+      const priorities = Array.isArray(priorityInterestIds) ? priorityInterestIds : (priorityInterestIds ? [priorityInterestIds] : []);
+      const groupSizes = Array.isArray(preferredGroupSizes) ? preferredGroupSizes : (preferredGroupSizes ? [preferredGroupSizes] : []);
+      const comfortPrefs = Array.isArray(socialComfortPreferences) ? socialComfortPreferences : (socialComfortPreferences ? [socialComfortPreferences] : []);
+
+      const existingUser = await storage.getUser(parseInt(targetUserId));
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updatedQuizAnswers = {
+        ...(existingUser.quizAnswers as object || {}),
+        goals,
+        priorityInterestIds: priorities,
+        preferredGroupSizes: groupSizes,
+        socialComfortPreferences: comfortPrefs,
+        experiencePace: experiencePace || "casual",
+        availability: Array.isArray(availability) ? availability : (availability ? [availability] : []),
+        travelRadiusMiles: travelRadiusMiles ? Number(travelRadiusMiles) : 25,
+        planningHorizon: planningHorizon || "flexible",
+        completedAt: new Date().toISOString()
+      };
+
+      const updatedUser = await storage.updateUser(parseInt(targetUserId), {
+        interests: interests.length > 0 ? interests : existingUser.interests,
+        quizAnswers: updatedQuizAnswers,
+        location: location || existingUser.location || "Local",
+        latitude: latitude ? parseFloat(latitude).toString() : existingUser.latitude,
+        longitude: longitude ? parseFloat(longitude).toString() : existingUser.longitude,
         onboardingCompleted: true
       });
 
       if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "User update failed" });
       }
 
       // Trigger AI-powered community generation based on new quiz responses
       try {
-        await communityRefreshService.refreshUserCommunities(parseInt(userId));
+        await communityRefreshService.refreshUserCommunities(parseInt(targetUserId));
       } catch (error) {
         console.error("Failed to refresh communities after onboarding:", error);
       }
 
-      res.json({
-        message: "Onboarding completed successfully",
-        user: updatedUser
-      });
+      res.json(updatedUser);
     } catch (error) {
-      console.error("Error completing onboarding:", error);
+      console.error('SameVibe: Error completing onboarding:', error);
       res.status(500).json({ message: "Failed to complete onboarding" });
     }
   });

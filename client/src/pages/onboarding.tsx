@@ -136,10 +136,10 @@ const QUIZ_SECTIONS: QuizQuestion[] = [
     subtitle: "A vibe check.",
     type: "single",
     options: [
-      { value: "deep-talks", label: "I prefer deep 1-on-1 conversations over big groups", emoji: "🗣️" },
-      { value: "doer", label: "I bond with people by doing activities together", emoji: "🏃" },
-      { value: "listener", label: "I'm a great listener and observer", emoji: "👂" },
-      { value: "organizer", label: "I love organizing and bringing people together", emoji: "📋" }
+      { value: "small-group-chats", label: "I prefer small, focused group conversations", emoji: "🗣️" },
+      { value: "doer", label: "I bond with people by doing group activities together", emoji: "🏃" },
+      { value: "listener", label: "I'm a great listener and observer in group settings", emoji: "👂" },
+      { value: "organizer", label: "I love organizing and bringing groups together", emoji: "📋" }
     ]
   },
   {
