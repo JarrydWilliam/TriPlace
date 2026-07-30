@@ -1,8 +1,16 @@
 # SameVibe - Agent Handoff
 
-## Current Status (July 29, 2026)
+## Current Status (July 30, 2026)
 **Active Branch**: `Jarryd`  
-**Status**: 🎨 **FULL PREMIUM DESIGN SYSTEM & 1:1 MOCKUP MATCH COMPLETED** + 🔓 **AGE RESTRICTION REMOVED** + 📱 **PROPER MOBILENAV ON ALL PAGES**
+**Status**: 🎨 **FULL PREMIUM DESIGN SYSTEM & 1:1 MOCKUP MATCH** + 🔒 **FOUNDER MONETIZATION LOCK (No Consumer Subscription, $0.99 One-Time Expansion up to 5, $4.99/mo Organizer Promotion)**
+
+---
+
+## Founder Decision Lock: Updated Monetization Model
+1. **Core Social Experience**: 100% Free (Community/event discovery, joining base 3 communities, creating activities, group chat, RSVP, reporting/blocking/safety).
+2. **No Recurring Consumer Subscriptions**: Removed monthly SameVibe+ consumer subscription paywalls ($7.99/mo, $9.99/mo, $12.99/mo).
+3. **$0.99 One-Time Community Expansion**: Users can purchase +1 active community slot on their dashboard per $0.99 one-time payment up to a total maximum of 5 communities. One-time purchase, no subscription.
+4. **$4.99/Month Organizer Promotion Subscription**: Recurring subscription for event organizers/hosts to promote eligible local events, receive a verified organizer profile badge, enhanced placement, and analytics. Promoted events are clearly labeled and quality-controlled.
 
 ---
 

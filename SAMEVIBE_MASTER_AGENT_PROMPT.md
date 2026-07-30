@@ -428,26 +428,25 @@ The app must recognize:
 
 A low-density user must receive a useful next action, not a dead end.
 
-## 8.5 Five Active Communities
+## 8.5 Three Base & Up to Five Active Communities (FOUNDER DECISION LOCKED)
 
-Users may maintain up to five active communities.
+Users start with 3 free active communities. Users may expand their capacity by +1 slot per $0.99 one-time purchase up to a maximum total of 5 active communities.
 
-The limit exists to:
-
+The community limit exists to:
 - Keep memberships intentional
 - Improve relevance
 - Reduce feed noise
 - Encourage participation
 - Reduce abandoned memberships
-- Make replacement meaningful
+- Make replacement/rotation meaningful
 
-The limit must be explained as a quality feature, not merely as a paywall.
+The limit must be explained as a quality feature, not merely as an artificial paywall.
 
-When a user joins a sixth community:
-
-- Explain the limit.
-- Show the existing communities.
-- Let the user choose which one to replace.
+When a user reaches their community limit (3 base, or expanded up to 5 max):
+- Explain the intentional community limit.
+- Offer the option to rotate out their least-active community or unlock an additional capacity slot for $0.99 one-time.
+- Show existing communities.
+- Let the user choose which community to replace if rotating.
 - Require an intentional confirmation.
 - Update server and client state consistently.
 - Do not silently remove a community.
@@ -1898,86 +1897,54 @@ Analytics must support product decisions, not surveillance.
 
 ---
 
-# 27. Monetization Strategy
+# 27. Monetization Strategy (FOUNDER DECISION LOCKED)
 
 Monetization follows demonstrated value.
 
-Do not paywall basic safety.
+Do not paywall basic safety or core community access.
 
 Never charge for:
-
 - Blocking
 - Reporting
 - Account deletion
 - Basic privacy
 - Core safety guidance
+- Standard community discovery, event creation, group messaging, and RSVP
 
-## Phase 1: Free Activation
+## Official Founder Monetization Decision
 
-Prioritize:
+SameVibe avoids recurring consumer subscriptions. Consumer monetization begins with an optional **$0.99 one-time purchase** that expands active community capacity by +1 for each payment up to a maximum total of 5 communities (from the 3 free base communities). Recurring revenue initially comes from a low-cost **Organizer Promotion subscription** priced at approximately **$4.99 per month**.
 
-- Community joining
-- Event discovery
-- Activity creation
-- Group messaging
-- RSVP
-- Safety
-- Retention
-- Real-world participation
+### 1. No Recurring Consumer Subscriptions
+- Regular users will NOT be pushed into a monthly consumer subscription (no $7.99/mo, $9.99/mo, or $12.99/mo SameVibe+ consumer paywalls).
+- Core social experience (discovering communities/events, joining initial community allowance, creating activities, group chat, RSVP) remains 100% free.
 
-The product must first prove:
+### 2. $0.99 One-Time Community Expansion
+- **Format**: $0.99 one-time in-app purchase (NOT a subscription, no recurring charge).
+- **Function**: Expands user active community capacity (+1 slot per purchase up to 5 max communities).
+- **Presentation**: *"Expand Your Circle — $0.99. Add more active community space to your SameVibe dashboard. One-time purchase. No subscription."*
+- **Constraint**: Must preserve focused community quality — limited expansion (+1 up to 5), NOT unlimited noise or artificial paywalls.
 
-> People return because SameVibe helps them do something they otherwise would not have done.
+### 3. $4.99 / Month Organizer Promotion Subscription
+- **Format**: $4.99 per month recurring organizer subscription.
+- **Target**: Local event organizers and community hosts.
+- **Features**:
+  - Promote eligible local events
+  - Enhanced placement in relevant local discovery areas
+  - Verified organizer profile badge
+  - Basic promotion performance analytics
+  - Management tools for active promotions
+- **Quality Rule**: Promoted events MUST be clearly labeled, relevant, quality-controlled, and must NEVER misrepresent external event ownership or outrank stronger organic recommendations.
 
-## Phase 2: Organizer Revenue
-
-Potential Community Pro features:
-
-- Multiple moderators
-- Recurring event tools
-- Waitlists
-- Analytics
-- Scheduled announcements
-- Attendance insights
-- Community branding
-- Member management
-- Priority support
-
-Historical working price:
-
-Approximately **$19 per month**
-
-This is not final until validated.
-
-## Phase 3: SameVibe+
-
-Potential consumer benefits:
-
-- Travel Mode
-- Advanced filters
-- Better activity-partner preferences
-- Additional planning tools
-- Earlier access to high-demand activities
-- Additional controls over group size and interaction
-- Premium discovery features
-
-Historical working range:
-
-Approximately **$7.99–$12.99 per month**
-
-This is not final until validated.
-
-## Weak Premium Ideas
-
-Avoid:
-
-- Hiding basic communities
-- Charging for safety
-- Artificially degrading recommendations
-- Selling “AI” without meaningful improvement
-- Making the five-community model obviously artificial
-- Unlocking unlimited noise
-- Pay-to-rank low-quality events
+### 4. Monetization Decision Matrix
+| Customer | Feature / Access | Pricing Model |
+|---|---|---|
+| Regular Users | Core App Access & Discovery | **Free** |
+| Regular Users | Additional Community Capacity (+1 up to 5) | **$0.99 One-Time Purchase** |
+| Regular Users | Monthly Consumer Subscriptions | **NONE** |
+| Event Organizers | Organizer Promotion Subscription | **~$4.99 / Month** |
+| Event Organizers | Promoted Event Placement | Included, relevant, labeled, quality-controlled |
+| Safety & Privacy | Reporting, Blocking, Deletion, Safety | **Always Free** |
 
 ## Paid Promotion
 

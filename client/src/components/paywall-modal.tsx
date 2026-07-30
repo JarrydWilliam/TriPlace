@@ -77,59 +77,64 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
       <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white">
         <DialogHeader>
           <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4">
-            <Crown className="w-8 h-8 text-primary" />
+            <Sparkles className="w-8 h-8 text-primary" />
           </div>
           <DialogTitle className="text-center text-2xl font-bold text-foreground">
-            SameVibe+ Premium
+            Expand Your Circle
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground text-sm">
-            You've reached your 5 active communities limit. Upgrade to SameVibe+ to unlock unlimited communities, Travel Mode, and priority event access!
+            Add more active community space to your SameVibe dashboard. One-time purchase. No subscription.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* SameVibe+ Tier */}
+          {/* $0.99 One-Time Community Expansion */}
           <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-2xl bg-primary/5 relative overflow-hidden">
             <div className="absolute -top-4 -right-4 p-4 bg-primary/20 rounded-full blur-xl w-24 h-24" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                <h3 className="font-bold text-lg text-foreground">SameVibe+</h3>
+                <h3 className="font-bold text-lg text-foreground">Community Expansion</h3>
               </div>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">
-                Most Popular
+                One-Time Purchase
               </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Unlimited active communities, Travel Mode to discover scenes in new cities, and early event access.
+              Add 1 extra active community slot to your dashboard (up to 5 total). One-time payment, no recurring subscription.
             </p>
             <div className="mt-2 flex items-center justify-between relative z-10">
               <div>
-                <span className="text-2xl font-extrabold text-foreground">$9.99</span>
-                <span className="text-xs text-muted-foreground"> / month</span>
+                <span className="text-2xl font-extrabold text-foreground">$0.99</span>
+                <span className="text-xs text-muted-foreground"> one-time</span>
               </div>
               <Button 
                 onClick={() => handleCheckout(1)}
                 disabled={isPurchasing}
                 className="bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 px-5"
               >
-                {isPurchasing ? "Processing..." : "Subscribe"}
+                {isPurchasing ? "Processing..." : "Unlock Slot"}
               </Button>
             </div>
           </div>
 
-          {/* Community Pro Tier */}
+          {/* $4.99/mo Organizer Promotion Subscription */}
           <div className="flex flex-col gap-3 p-4 border border-border/40 rounded-2xl bg-card/40 relative">
-            <div className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-amber-400" />
-              <h3 className="font-bold text-lg text-foreground">Community Pro</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-lg text-foreground">Organizer Promotion</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                For Organizers
+              </span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              For organizers & hosts — recurring event tools, member analytics, waitlists, and broadcast announcements.
+              Promote eligible local events, receive a verified organizer badge, enhanced placement, and promotion insights.
             </p>
             <div className="mt-2 flex items-center justify-between relative z-10">
               <div>
-                <span className="text-2xl font-extrabold text-foreground">$19.99</span>
+                <span className="text-2xl font-extrabold text-foreground">$4.99</span>
                 <span className="text-xs text-muted-foreground"> / month</span>
               </div>
               <Button 
@@ -138,7 +143,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
                 variant="outline"
                 className="font-bold rounded-xl border-border hover:bg-muted px-5"
               >
-                {isPurchasing ? "Processing..." : "Learn More"}
+                {isPurchasing ? "Processing..." : "Promote Event"}
               </Button>
             </div>
           </div>
