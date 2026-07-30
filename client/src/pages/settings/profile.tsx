@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon, Save } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useRef } from "react";
@@ -328,12 +328,13 @@ export default function ProfileSettings() {
             </Card>
 
             {/* Save Button Container with Proper Bottom Spacing Above Navigation Bar */}
-            <div className="pt-4 pb-12">
+            <div className="pt-4 pb-20">
               <Button
                 onClick={handleSave}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl py-4 min-h-[52px] text-base shadow-xl shadow-primary/30 transition-all active:scale-[0.99]"
+                className="w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold rounded-2xl min-h-[54px] text-base shadow-2xl shadow-cyan-500/30 border border-cyan-300/40 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                Save Profile Changes
+                <Save className="w-5 h-5 text-slate-950 font-bold" />
+                <span>Save Profile Changes</span>
               </Button>
             </div>
           </div>
