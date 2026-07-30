@@ -737,10 +737,10 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2">
+              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
                 {Array.isArray(userActiveCommunities) && userActiveCommunities.length > 0 ? (
                   userActiveCommunities.map((community: any) => (
-                    <div key={community.id} className="min-w-[260px] max-w-[280px] snap-start">
+                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
                       <SharedCommunityCard
                         community={community}
                         joined={true}
@@ -750,7 +750,7 @@ export default function Dashboard() {
                   ))
                 ) : Array.isArray(recommendations) && recommendations.length > 0 ? (
                   recommendations.map((community: any) => (
-                    <div key={community.id} className="min-w-[260px] max-w-[280px] snap-start">
+                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
                       <SharedCommunityCard
                         community={community}
                         joined={false}

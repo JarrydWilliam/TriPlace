@@ -13,6 +13,7 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
 import { getApiUrl } from "@/lib/queryClient";
 
+import { SharedCommunityCard } from "@/components/ui/community-card";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
@@ -191,59 +192,15 @@ export default function CommunitiesPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {allCommunities?.map((community: Community) => (
-              <Link key={community.id} href={`/community/${community.id}`}>
-                <Card className="glass-card hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer h-full">
-                  <CardContent className="p-6">
-                    {/* Community Icon */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center text-xl">
-                        {community.category?.toLowerCase() === "fitness" && "💪"}
-                        {community.category?.toLowerCase() === "wellness" && "🧘"}
-                        {community.category?.toLowerCase() === "tech" && "💻"}
-                        {community.category?.toLowerCase() === "outdoor" && "🏔️"}
-                        {community.category?.toLowerCase() === "arts" && "🎨"}
-                        {community.category?.toLowerCase() === "food" && "🍳"}
-                        {community.category?.toLowerCase() === "music" && "🎵"}
-                        {community.category?.toLowerCase() === "business" && "💼"}
-                        {community.category?.toLowerCase() === "social" && "👋"}
-                        {!["fitness", "wellness", "tech", "outdoor", "arts", "food", "music", "business", "social"].includes(community.category?.toLowerCase() || "") && "🌟"}
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          <span>{community.memberCount || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Community Info */}
-                    <h3 className="font-semibold text-lg text-foreground mb-2 line-clamp-2">
-                      {community.name}
-                    </h3>
-                    
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                      {community.description}
-                    </p>
-
-                    {/* Location */}
-                    <div className="flex items-center space-x-1 mb-3 text-sm text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>{getLocationDisplay(community.location || "")}</span>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      {getCommunityTags(community).slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <div key={community.id} className="h-[220px]">
+                <SharedCommunityCard
+                  community={community}
+                  joined={true}
+                  onJoin={() => {}}
+                />
+              </div>
             ))}
           </div>
         )}

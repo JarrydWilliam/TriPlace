@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Community } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { categoryColor, CATEGORY_EMOJIS, defaultCategoryColors } from "@/lib/constants";
+import { getCategoryMeta } from "@/lib/constants";
 
 interface CommunityCardProps {
   community: Community;
@@ -14,8 +14,10 @@ interface CommunityCardProps {
 }
 
 export function SharedCommunityCard({ community, joined, onJoin, joining = false }: CommunityCardProps) {
-  const colors = categoryColor[community.category] ?? defaultCategoryColors;
-  const emoji = CATEGORY_EMOJIS[community.category] ?? "✨";
+  const meta = getCategoryMeta(community.category);
+  const bgImageUrl = community.image && community.image.trim().length > 5 
+    ? community.image 
+    : meta.bgImage;
 
   return (
     <motion.div
@@ -24,74 +26,80 @@ export function SharedCommunityCard({ community, joined, onJoin, joining = false
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative overflow-hidden rounded-2xl border border-white/8 p-5`}
+      className="relative overflow-hidden rounded-2xl border border-white/10 p-4.5 h-[220px] min-h-[220px] max-h-[220px] flex flex-col justify-between backdrop-blur-md shadow-xl transition-all duration-300 hover:border-cyan-500/40"
     >
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        {community.image ? (
-          <img
-            src={community.image}
-            alt={community.name}
-            className="w-full h-full object-cover opacity-30"
-            loading="lazy"
-            onError={(e) => {
-              // If image fails to load, hide it and show gradient fallback
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : null}
-        {/* Gradient fallback — always rendered underneath, visible when image is null or broken */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-br ${
-            categoryColor[community.category as string]?.gradient ?? defaultCategoryColors.gradient
-          } opacity-70`}
+      {/* Background Image Layer with Dark Gradient Overlay */}
+      <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden">
+        <img
+          src={bgImageUrl}
+          alt={community.name}
+          className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-500 opacity-40"
+          loading="lazy"
+          onError={(e) => {
+            // Fallback to category default image if custom URL fails
+            (e.target as HTMLImageElement).src = meta.bgImage;
+          }}
         />
+        {/* Dark Vignette & Gradient Overlay */}
+        <div className={`absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/85 to-slate-950/95`} />
+        <div className={`absolute inset-0 bg-gradient-to-br ${meta.colors.gradient} opacity-40 mix-blend-overlay`} />
       </div>
-      {/* Live activity dot */}
+
+      {/* Live activity indicator */}
       {(community.memberCount ?? 0) > 0 && (
-        <span className={`absolute top-4 right-4 flex h-2 w-2`}>
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${colors.dot} opacity-60`} />
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${colors.dot}`} />
+        <span className="absolute top-4 right-4 flex h-2 w-2 z-10">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${meta.colors.dot} opacity-60`} />
+          <span className={`relative inline-flex rounded-full h-2 w-2 ${meta.colors.dot}`} />
         </span>
       )}
 
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-xl flex-shrink-0">
-          {emoji}
-        </div>
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-white text-sm leading-tight">{community.name}</h3>
-            <Badge className={`text-[10px] px-1.5 py-0.5 border ${colors.badge} font-normal`}>
-              {community.category}
-            </Badge>
+      {/* Top Header & Info Area */}
+      <div className="space-y-2 relative z-10">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-lg flex-shrink-0 backdrop-blur-md shadow-inner">
+            {meta.emoji}
           </div>
-          <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">{community.description}</p>
-          <div className="flex items-center gap-3 text-[11px] text-white/30 pt-0.5">
-            <span className="flex items-center gap-1"><Users className="w-3 h-3" />{community.memberCount ?? 0}</span>
-            {community.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{community.location}</span>}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="font-bold text-white text-sm leading-tight truncate max-w-[145px]" title={community.name}>
+                {community.name}
+              </h3>
+              <Badge className={`text-[9px] px-1.5 py-0.2 border ${meta.colors.badge} font-medium`}>
+                {community.category}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2.5 text-[11px] text-white/50 pt-0.5">
+              <span className="flex items-center gap-1 font-medium"><Users className="w-3 h-3 text-cyan-400" />{community.memberCount ?? 0}</span>
+              {community.location && <span className="flex items-center gap-1 font-medium truncate max-w-[90px]"><MapPin className="w-3 h-3 text-cyan-400" />{community.location}</span>}
+            </div>
           </div>
         </div>
+
+        <p className="text-xs text-white/70 line-clamp-2 leading-relaxed min-h-[34px] h-[34px] overflow-hidden">
+          {community.description}
+        </p>
       </div>
 
-      <div className="flex gap-2 mt-4">
+      {/* Bottom Actions Row — Fixed Height */}
+      <div className="flex gap-2 pt-2 border-t border-white/10 relative z-10">
         <Link href={`/community/${community.id}`} className="flex-1">
-          <Button size="sm" variant="ghost" className="w-full text-white/60 hover:text-white hover:bg-white/10 text-xs h-8">
+          <Button size="sm" variant="ghost" className="w-full text-white/70 hover:text-white hover:bg-white/10 text-xs h-8 rounded-xl font-medium border border-white/10">
             View
-            <ChevronRight className="w-3 h-3 ml-1" />
+            <ChevronRight className="w-3 h-3 ml-1 text-cyan-400" />
           </Button>
         </Link>
         <Button
           size="sm"
           onClick={() => onJoin(community.id)}
           disabled={joining || joined}
-          className={`flex-1 text-xs h-8 transition-all ${
+          className={`flex-1 text-xs h-8 rounded-xl font-bold transition-all ${
             joined
-              ? "bg-white/10 text-white/60 cursor-default hover:bg-white/10"
-              : "bg-white/15 hover:bg-white/25 text-white"
+              ? "bg-white/10 text-white/50 border border-white/10 cursor-default hover:bg-white/10"
+              : "bg-primary hover:bg-primary/90 text-white shadow-md shadow-cyan-500/20"
           }`}
         >
           {joined ? (
-            <><Check className="w-3 h-3 mr-1" /> Joined</>
+            <><Check className="w-3 h-3 mr-1 text-green-400" /> Joined</>
           ) : joining ? (
             "Joining..."
           ) : (
