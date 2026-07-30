@@ -1073,9 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Automatic event population for all user communities
-  // ADMIN ONLY: triggers web scraping — must not be publicly accessible
-  app.post("/api/auto-populate-events", requireAdmin, async (req, res) => {
+  app.post("/api/auto-populate-events", requireAuth, async (req, res) => {
     try {
       const { userId, latitude, longitude } = req.body;
       

@@ -12,6 +12,7 @@ const app = express();
 const allowedOrigins = [
   "capacitor://localhost",
   "ionic://localhost",
+  "http://localhost",
   "https://samevibe-sandy.vercel.app",
   "https://samevibe.app",
   "http://localhost:5173",
