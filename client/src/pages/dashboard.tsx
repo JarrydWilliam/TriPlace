@@ -561,12 +561,15 @@ export default function Dashboard() {
               )}
             </AnimatePresence>
 
-            {/* ── SECTION 1: Vibe with Your Community (Event Cards Carousel) ── */}
+            {/* ── SECTION 1: Upcoming Group Events (Event Cards Carousel) ── */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                  Vibe with Your Community
-                </h2>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    Upcoming Group Events
+                  </h2>
+                </div>
                 <Link href="/events">
                   <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
                     See All
@@ -655,12 +658,15 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* ── SECTION 3: My Communities (Featured First) ── */}
+            {/* ── SECTION 3: Vibe with My Communities (Joined Communities Featured First) ── */}
             <section className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                  My Communities
-                </h2>
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-cyan-400" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    Vibe with My Communities
+                  </h2>
+                </div>
                 <Link href="/discover">
                   <span className="text-xs font-semibold text-cyan-400 hover:underline cursor-pointer">
                     See All
@@ -703,13 +709,13 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* ── SECTION 4: Recommended Scenes ── */}
+            {/* ── SECTION 4: Suggested Communities ── */}
             <section className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Compass className="w-5 h-5 text-primary" />
                   <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                    Recommended For You
+                    Suggested Communities
                   </h2>
                 </div>
                 <Link href="/discover">

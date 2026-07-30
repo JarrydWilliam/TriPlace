@@ -150,8 +150,9 @@ export default function CommunitiesPage() {
 
         {/* Communities Grid */}
         <div className="mb-4">
-          <h2 className="text-xl font-semibold text-foreground mb-4">
-            Communities You've Joined
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-cyan-400" />
+            <span>Vibe with My Communities</span>
           </h2>
         </div>
 
