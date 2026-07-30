@@ -518,7 +518,7 @@ export default function Dashboard() {
           {/* Header Mode="Home" matching design mockup: SameVibe + NYC pill + Bell */}
           <VibePageHeader mode="home" locationName={locationName || "NYC"} unreadCount={6} />
 
-          <div className="max-w-md mx-auto px-4 py-6 space-y-7">
+          <div className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-7">
             {/* ── SECTION 1: Vibe with Your Community (Event Cards Carousel) ── */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">

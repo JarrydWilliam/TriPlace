@@ -176,7 +176,7 @@
     .section-eyebrow { @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5; }
 
     /* Nav bottom spacer */
-    .pb-nav { padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 12px) + 8px); }
+    .pb-nav { padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 12px) + 32px); }
 
     /* Semantic badges */
     .badge-cyan {
