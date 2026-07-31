@@ -10,11 +10,16 @@ dotenv.config();
  */
 
 const IS_PROD_URL = (process.env.DATABASE_URL || '').includes('production') || (process.env.TARGET_HOST || '').includes('samevibe.app');
-const HAS_OVERRIDE = process.argv.includes('--force-staging-override');
+const IS_APPROVED = process.env.SAMEVIBE_LOAD_TEST_APPROVED === 'true' || process.argv.includes('--force-staging-override');
 
-if (IS_PROD_URL && !HAS_OVERRIDE) {
-  console.error('🔴 BLOCKED BY SAFETY GUARD: Load test harness refuses to run against production domain/database.');
-  console.error('   To run on an approved staging clone, supply --force-staging-override');
+if (!IS_APPROVED) {
+  console.error('🔴 BLOCKED BY SAFETY GUARD: Load test harness requires SAMEVIBE_LOAD_TEST_APPROVED=true environment variable.');
+  console.error('   This ensures the harness strictly runs against an isolated staging database and environment.');
+  process.exit(1);
+}
+
+if (IS_PROD_URL) {
+  console.error('🔴 BLOCKED BY SAFETY GUARD: Target database or host contains production signature. Refusing execution.');
   process.exit(1);
 }
 
