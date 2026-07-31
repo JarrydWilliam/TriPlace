@@ -2,8 +2,8 @@
 
 ## Current Status (July 31, 2026)
 **Active Branch**: `Jarryd`  
-**Commit SHA**: `827d0f8`  
-**Status**: 🔒 **SECURITY HARDENING COMPLETE** + 🤝 **SHARED CANONICAL 3-COMMUNITY ONBOARDING IMPLEMENTED** — Zero data-isolation flaws. Every new user starts with 3 questionnaire-matched shared communities. Zero duplicate community creation under concurrent load. TypeScript check passes.
+**Commit SHA**: `6782b0e`  
+**Status**: 🎉 **10,000-USER MISSION & STRESS TEST HARDENING COMPLETE** — All 11 post-test database invariants passing with 0 violations on Neon. All automated security & core-loop tests passing. 10,000-user staging stress test harness active with safety guard. Capacitor iOS synced cleanly.
 
 ---
 
@@ -29,7 +29,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS communities_canonical_key_unique
   WHERE canonical_key IS NOT NULL;
 ```
 
-Files are at: `migrations/001_unique_constraints.sql` and `migrations/002_canonical_community_key.sql`
+Files are at: `migrations/001_unique_constraints.sql`, `migrations/002_canonical_community_key.sql`, and `migrations/003_post_test_invariants.sql`
 
 ---
 
