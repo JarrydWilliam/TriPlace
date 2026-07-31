@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -480,3 +481,29 @@ export type EventReview = typeof eventReviews.$inferSelect;
 export type InsertEventReview = z.infer<typeof insertEventReviewSchema>;
 export type EventMessage = typeof eventMessages.$inferSelect;
 export type InsertEventMessage = z.infer<typeof insertEventMessageSchema>;
+
+// ── Slot Grants (RevenueCat idempotency) ──────────────────────────────────────
+// One row per verified, granted RevenueCat purchase. txn_key is the RC purchase
+// ID, enforced UNIQUE so a duplicate call (webhook retry, client retry) can
+// INSERT ON CONFLICT DO NOTHING without double-granting a slot.
+export const slotGrants = pgTable(
+  "slot_grants",
+  {
+    id:        serial("id").primaryKey(),
+    userId:    integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    txnKey:    text("txn_key").notNull(),   // RevenueCat purchase id
+    productId: text("product_id"),           // RC product_identifier for audit
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqTxn: uniqueIndex("slot_grants_txn_key_unique").on(t.txnKey),
+  })
+);
+
+export const insertSlotGrantSchema = createInsertSchema(slotGrants).pick({
+  userId: true,
+  txnKey: true,
+  productId: true,
+});
+export type SlotGrant = typeof slotGrants.$inferSelect;
+export type InsertSlotGrant = z.infer<typeof insertSlotGrantSchema>;

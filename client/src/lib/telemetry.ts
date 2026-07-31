@@ -15,7 +15,15 @@ export type TelemetryEventType =
   | 'report_event' 
   | 'report_user'
   | 'external_handoff_warning_shown'
-  | 'external_handoff_confirmed';
+  | 'external_handoff_confirmed'
+  // Community participation loop analytics
+  | 'community_card_viewed'
+  | 'community_join_tapped'
+  | 'rotation_dialog_shown'
+  | 'rotation_confirmed'
+  | 'rotation_cancelled'
+  | 'upgrade_slot_tapped'
+  | 'empty_state_shown';
 
 export async function trackEvent(
   eventType: TelemetryEventType, 

@@ -13,6 +13,7 @@ import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon, Save } 
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useRef } from "react";
+import { uploadAvatarToStorage } from "@/lib/firebase";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
@@ -55,21 +56,23 @@ export default function ProfileSettings() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64String = event.target?.result as string;
-      try {
-        await apiRequest('PATCH', `/api/users/${user.id}`, { avatar: base64String });
-        toast({ title: "Photo updated" });
-      } catch (error) {
-        toast({ title: "Failed to update photo", variant: "destructive" });
-      }
-    };
-    reader.readAsDataURL(file);
+
+    // Show uploading feedback
+    toast({ title: "Uploading photo..." });
+
+    try {
+      // Upload to Firebase Storage — returns a permanent HTTPS URL
+      const downloadUrl = await uploadAvatarToStorage(user.id, file);
+      // Persist the URL (not Base64) to the users table
+      await apiRequest('PATCH', `/api/users/${user.id}`, { avatar: downloadUrl });
+      toast({ title: "Photo updated" });
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      toast({ title: "Failed to update photo", variant: "destructive" });
+    }
   };
 
   const handleSave = async () => {

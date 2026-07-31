@@ -7,8 +7,10 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants } from "../shared/schema.js";
 import { generateCommunityImage } from "./utils/community-image-gen.js";
+import { db } from "./db.js";
+import { sql as drizzleSql } from "drizzle-orm";
 import { z } from "zod";
 
 import express from "express";
@@ -512,27 +514,171 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
     }
   });
 
-  // ── Monetization Routes ──────────────────────────────────────────────────
+  // ── Monetization Routes ───────────────────────────────────────────────
+  /**
+   * POST /api/checkout/verify-revenuecat
+   *
+   * Hardened RevenueCat v2 verification with DB-level idempotency.
+   *
+   * Flow:
+   *   1. Client sends { userId, appUserId, productId, purchaseId } after a
+   *      successful native StoreKit / Google Play transaction.
+   *   2. Server calls RC API v2 to confirm the purchase exists and is 'owned'.
+   *   3. Server inserts (user_id, txn_key=purchaseId) with ON CONFLICT DO NOTHING.
+   *      If the row already exists the slot was already granted — return 200 immediately.
+   *   4. Only on first insert does the server increment paymentTier.
+   *
+   * Returns:
+   *   200 { success: true, newTier, alreadyGranted? }  — success or duplicate
+   *   400  missing params
+   *   402  RC verification failed / no matching 'owned' purchase
+   *   404  user not found
+   *   500  unexpected error
+   *
+   * Required env vars (server-only, NEVER sent to client):
+   *   RC_PROJECT_ID   — RevenueCat project UUID
+   *   RC_V2_SECRET_KEY — RevenueCat v2 secret API key (Bearer token)
+   */
   app.post("/api/checkout/verify-revenuecat", requireAuth, async (req, res) => {
     try {
-      const { userId, tier } = req.body;
-      if (!userId || tier === undefined) {
-        return res.status(400).json({ message: "Missing userId or tier" });
+      const { userId, appUserId, productId, purchaseId } = req.body as {
+        userId?: number;
+        appUserId?: string;   // RC customer alias (usually firebaseUid or userId)
+        productId?: string;   // e.g. "samevibe_slot_expansion"
+        purchaseId?: string;  // RC purchase id — used as idempotency key
+      };
+
+      // ── 1. Input validation ───────────────────────────────────
+      if (!userId || !appUserId || !productId || !purchaseId) {
+        return res.status(400).json({
+          message: "Missing required fields: userId, appUserId, productId, purchaseId",
+        });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // In a production environment, we should verify the receipt with RevenueCat's REST API here
-      // For now, we trust the native Capacitor client that just completed the StoreKit transaction
-      const currentLimit = user.paymentTier ?? 0;
-      await storage.updateUser(userId, { paymentTier: currentLimit + 1 });
-      console.log(`Successfully upgraded user ${userId} capacity by 1 (total extra: ${currentLimit + 1}) via RevenueCat`);
+      // ── 2. Idempotency check ────────────────────────────────
+      // If this purchaseId was already recorded, the slot was already granted.
+      // Return success immediately without touching paymentTier again.
+      const existing = await db
+        .select({ id: slotGrants.id })
+        .from(slotGrants)
+        .where(drizzleSql`${slotGrants.txnKey} = ${purchaseId}`)
+        .limit(1);
 
-      res.status(200).json({ success: true, newTier: currentLimit + 1 });
+      if (existing.length > 0) {
+        console.log(`[RevenueCat] Duplicate grant attempt for txn ${purchaseId} — already granted, skipping.`);
+        return res.status(200).json({
+          success: true,
+          newTier: user.paymentTier ?? 0,
+          alreadyGranted: true,
+        });
+      }
+
+      // ── 3. Verify with RevenueCat REST API v2 ────────────────────
+      const rcProjectId  = process.env.RC_PROJECT_ID;
+      const rcSecretKey  = process.env.RC_V2_SECRET_KEY;
+
+      if (!rcProjectId || !rcSecretKey) {
+        console.error("[RevenueCat] RC_PROJECT_ID or RC_V2_SECRET_KEY env vars not set.");
+        return res.status(402).json({
+          message: "Payment verification service not configured. Contact support.",
+        });
+      }
+
+      const rcUrl = `https://api.revenuecat.com/v2/projects/${rcProjectId}/customers/${encodeURIComponent(appUserId)}/purchases`;
+
+      let rcResponse: Response;
+      try {
+        rcResponse = await fetch(rcUrl, {
+          headers: {
+            Authorization: `Bearer ${rcSecretKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (networkErr) {
+        console.error("[RevenueCat] Network error calling RC API:", networkErr);
+        return res.status(402).json({
+          message: "Could not reach payment verification service. Please retry.",
+        });
+      }
+
+      if (!rcResponse.ok) {
+        const errorBody = await rcResponse.text().catch(() => "");
+        console.error(`[RevenueCat] RC API returned ${rcResponse.status}: ${errorBody}`);
+        return res.status(402).json({
+          message: "Payment verification failed. Please restore purchases and try again.",
+        });
+      }
+
+      const rcData = await rcResponse.json() as {
+        items?: Array<{
+          id: string;
+          product_identifier: string;
+          status: string; // "owned" | "expired" | "refunded" etc.
+        }>;
+      };
+
+      // ── 4. Find a matching owned purchase ────────────────────────
+      const purchases = rcData.items ?? [];
+      const matchingPurchase = purchases.find(
+        (p) =>
+          p.product_identifier === productId &&
+          p.status === "owned"
+      );
+
+      if (!matchingPurchase) {
+        console.warn(
+          `[RevenueCat] No owned purchase found for user ${userId}, product ${productId}. ` +
+          `RC returned ${purchases.length} purchases.`
+        );
+        return res.status(402).json({
+          message: "No valid owned purchase found for this product. " +
+                   "If you just purchased, please wait a moment and try again.",
+        });
+      }
+
+      // Use the RC purchase id from the verified response as the canonical txn key.
+      // This handles cases where the client sends a local receipt id but RC has
+      // normalised it to a different id.
+      const canonicalTxnKey = matchingPurchase.id ?? purchaseId;
+
+      // ── 5. Idempotent insert (ON CONFLICT DO NOTHING) ────────────
+      // If two concurrent requests race here, the one that wins the unique
+      // constraint grants the slot; the loser's result set will be empty.
+      const insertResult = await db
+        .insert(slotGrants)
+        .values({ userId, txnKey: canonicalTxnKey, productId })
+        .onConflictDoNothing()
+        .returning({ id: slotGrants.id });
+
+      if (insertResult.length === 0) {
+        // Concurrent duplicate — another request already recorded this grant
+        console.log(`[RevenueCat] Race-condition duplicate for txn ${canonicalTxnKey} — skipping.`);
+        const freshUser = await storage.getUser(userId);
+        return res.status(200).json({
+          success: true,
+          newTier: freshUser?.paymentTier ?? 0,
+          alreadyGranted: true,
+        });
+      }
+
+      // ── 6. Grant the slot ───────────────────────────────────
+      const currentTier = user.paymentTier ?? 0;
+      const newTier = Math.min(currentTier + 1, 2); // max 2 extra slots (5 total)
+      await storage.updateUser(userId, { paymentTier: newTier });
+
+      console.log(
+        `[RevenueCat] Slot granted: user=${userId} product=${productId} ` +
+        `txn=${canonicalTxnKey} newTier=${newTier}`
+      );
+
+      return res.status(200).json({ success: true, newTier });
+
     } catch (error) {
-      console.error("RevenueCat verification error:", error);
-      res.status(500).json({ message: "Internal server error during verification" });
+      console.error("[RevenueCat] Unexpected error in verify-revenuecat:", error);
+      return res.status(500).json({ message: "Internal server error during verification" });
     }
   });
 

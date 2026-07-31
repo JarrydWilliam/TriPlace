@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
 
@@ -191,4 +192,20 @@ export const deleteFirebaseAccount = async () => {
     }
     throw new Error('Unable to delete authentication account. Please contact support.');
   }
+};
+
+/**
+ * Upload an avatar image File to Firebase Storage and return the permanent download URL.
+ * Stores at:  avatars/{userId}/{timestamp}_{filename}
+ * 
+ * Architecture rule: store only the download URL in the DB — never raw Base64 strings.
+ */
+export const uploadAvatarToStorage = async (userId: number, file: File): Promise<string> => {
+  const storage = getStorage();
+  // Include timestamp so re-uploads never collide and CDN cache busts automatically
+  const path = `avatars/${userId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const storageRef = ref(storage, path);
+  const snapshot = await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(snapshot.ref);
+  return downloadUrl;
 };

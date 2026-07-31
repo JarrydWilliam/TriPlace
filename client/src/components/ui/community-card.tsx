@@ -97,20 +97,23 @@ export function SharedCommunityCard({ community, joined, onJoin, joining = false
 
       {/* 3. Bottom Row: Action Buttons */}
       <div className="flex gap-2 pt-2 border-t border-white/15 relative z-10">
-        <Link href={`/community/${community.id}`} className="flex-1">
-          <Button size="sm" variant="ghost" className="w-full text-white/90 hover:text-white hover:bg-white/20 text-xs h-8 rounded-xl font-semibold border border-white/15 backdrop-blur-md">
-            View
-            <ChevronRight className="w-3 h-3 ml-1 text-cyan-400" />
-          </Button>
-        </Link>
+        {/* View button only for joined communities — hide on suggested (unjoined) cards */}
+        {joined && (
+          <Link href={`/community/${community.id}`} className="flex-1">
+            <Button size="sm" variant="ghost" className="w-full text-white/90 hover:text-white hover:bg-white/20 text-xs h-8 rounded-xl font-semibold border border-white/15 backdrop-blur-md">
+              View
+              <ChevronRight className="w-3 h-3 ml-1 text-cyan-400" />
+            </Button>
+          </Link>
+        )}
         <Button
           size="sm"
           onClick={() => onJoin(community.id)}
           disabled={joining || joined}
-          className={`flex-1 text-xs h-8 rounded-xl font-bold transition-all shadow-md ${
+          className={`text-xs h-8 rounded-xl font-bold transition-all shadow-md ${
             joined
-              ? "bg-white/15 text-white/70 border border-white/15 backdrop-blur-md cursor-default hover:bg-white/15"
-              : "bg-primary hover:bg-primary/90 text-white shadow-cyan-500/25"
+              ? "flex-1 bg-white/15 text-white/70 border border-white/15 backdrop-blur-md cursor-default hover:bg-white/15"
+              : "w-full bg-primary hover:bg-primary/90 text-white shadow-cyan-500/25"
           }`}
         >
           {joined ? (

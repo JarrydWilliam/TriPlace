@@ -144,20 +144,41 @@ export class DatabaseStorage implements IStorage {
     try {
       const allCommunities = await this.getAllCommunities();
       if (!userId) {
-        return allCommunities;
-      }
-      
-      const userCommunities = await this.getUserCommunities(userId);
-      const userCommunityIds = new Set(userCommunities.map(c => c.id));
-      
-      // Return all active communities that the user has NOT joined yet
-      const unjoined = allCommunities.filter(c => !userCommunityIds.has(c.id));
-      if (unjoined.length > 0) {
-        return unjoined;
+        // No user context — return all, sorted by member count desc
+        return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
       }
 
-      // If user joined everything, return all active communities so discovery is never 0-length
-      return allCommunities;
+      // Use active communities (same set shown in "Vibe with My Communities") for exclusion
+      // This matches what the client filters against, preventing the suggestion list from appearing empty
+      const activeResult = await db.select({ communityId: communityMembers.communityId })
+        .from(communityMembers)
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)));
+      const activeCommunityIds = new Set(activeResult.map(r => r.communityId));
+
+      // Unjoined = not in the user's active set
+      const unjoined = allCommunities.filter(c => !activeCommunityIds.has(c.id));
+
+      if (unjoined.length === 0) {
+        // User is in every community — still return all so the section never reads empty
+        return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+      }
+
+      // Score by interest overlap so most relevant communities surface first
+      const userInterests = interests || [];
+      if (userInterests.length === 0) {
+        // No interests on file — sort by member count (popularity)
+        return unjoined.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+      }
+
+      const scored = unjoined.map(c => ({
+        community: c,
+        score: this.calculateInterestScore(c, userInterests) + this.calculateEngagementScore(c)
+      }));
+
+      return scored
+        .sort((a, b) => b.score - a.score)
+        .map(s => s.community);
+
     } catch (error) {
       console.error('SameVibe: Error getting recommended communities:', error);
       return await this.getAllCommunities();

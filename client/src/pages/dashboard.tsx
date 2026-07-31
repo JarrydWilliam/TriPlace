@@ -94,6 +94,64 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { VibeEventCard } from "@/components/ui/vibe-event-card";
+import { trackEvent } from "@/lib/telemetry";
+
+// ── Module-level mini-components ──────────────────────────────────────────────
+// Defined outside Dashboard so React hooks (useEffect) are called at the
+// component level — not inside a .map() callback, which would violate Rules of Hooks.
+
+/** Wraps SharedCommunityCard and fires community_card_viewed on first render */
+function SuggestedCommunityCard({
+  community,
+  userId,
+  onJoin,
+}: {
+  community: any;
+  userId?: number;
+  onJoin: () => void;
+}) {
+  useEffect(() => {
+    trackEvent('community_card_viewed', {
+      userId,
+      metadata: { communityId: community.id, communityName: community.name },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [community.id]);
+
+  return (
+    <div className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+      <SharedCommunityCard
+        community={community}
+        joined={false}
+        onJoin={onJoin}
+      />
+    </div>
+  );
+}
+
+/** Empty state for Suggested Communities — fires empty_state_shown once on mount */
+function SuggestedCommunitiesEmpty({
+  userId,
+  onExplore,
+}: {
+  userId?: number;
+  onExplore: () => void;
+}) {
+  useEffect(() => {
+    trackEvent('empty_state_shown', { userId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="glass-card bg-card/30 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-between text-xs text-white/70">
+      <span>You're in all recommended communities nearby.</span>
+      <button onClick={onExplore} className="text-cyan-400 font-semibold hover:underline ml-2">
+        Explore scenes →
+      </button>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -120,9 +178,17 @@ export default function Dashboard() {
   } | null>(null);
 
   const handleJoinClick = (community: any) => {
-    if (userActiveCommunities && userActiveCommunities.length >= 5) {
-      // Find the least active community
-      const leastActive = userActiveCommunities.reduce(
+    // Track every tap — fired before the gate check so we capture intent even at limit
+    trackEvent('community_join_tapped', {
+      userId: user?.id,
+      metadata: { communityId: community.id, communityName: community.name },
+    });
+
+    // Slot limit = 3 free base + 1 per $0.99 purchase, max 5
+    const slotLimit = Math.min(3 + ((user as any)?.paymentTier ?? 0), 5);
+    if (userActiveCommunities && userActiveCommunities.length >= slotLimit) {
+      // Find the least active community to rotate out
+      const leastActive = [...(userActiveCommunities as any[])].reduce(
         (least: any, current: any) => {
           const currScore = current.activityScore || 0;
           const leastScore = least.activityScore || 0;
@@ -141,6 +207,15 @@ export default function Dashboard() {
           return current.id < least.id ? current : least;
         }
       );
+      trackEvent('rotation_dialog_shown', {
+        userId: user?.id,
+        metadata: {
+          newCommunityId: community.id,
+          newCommunityName: community.name,
+          replacingCommunityId: leastActive.id,
+          replacingCommunityName: leastActive.name,
+        },
+      });
       setRotationConfirm({ newComm: community, oldComm: leastActive });
     } else {
       joinCommunityMutation.mutate(community.id);
@@ -750,23 +825,22 @@ export default function Dashboard() {
                 <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
                   {recommendations
                     .filter((c: any) => !userActiveCommunities?.some((joinedC: any) => joinedC.id === c.id))
-                    .map((community: any) => (
-                      <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
-                        <SharedCommunityCard
+                    .map((community: any) => {
+                      // Fire community_card_viewed once per card rendered in this session
+                      // useEffect is not available inside .map(); use a render-time side-effect
+                      // via a tiny inline component so the rule-of-hooks constraint is respected.
+                      return (
+                        <SuggestedCommunityCard
+                          key={community.id}
                           community={community}
-                          joined={false}
+                          userId={user?.id}
                           onJoin={() => handleJoinClick(community)}
                         />
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               ) : (
-                <div className="glass-card bg-card/30 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-between text-xs text-white/70">
-                  <span>You're in all recommended communities nearby.</span>
-                  <button onClick={() => setRouterLocation("/discover")} className="text-cyan-400 font-semibold hover:underline ml-2">
-                    Explore scenes →
-                  </button>
-                </div>
+                <SuggestedCommunitiesEmpty userId={user?.id} onExplore={() => setRouterLocation("/discover")} />
               )}
             </section>
 
@@ -874,34 +948,96 @@ export default function Dashboard() {
         </div>
       </PullToRefresh>
 
-        {/* Rotation Confirmation Dialog */}
+        {/* Rotation Confirmation Dialog — SameVibe Community Swap Philosophy */}
         <AlertDialog
           open={!!rotationConfirm}
           onOpenChange={(open) => !open && setRotationConfirm(null)}
         >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Community Limit Reached</AlertDialogTitle>
-              <AlertDialogDescription>
-                You already have five communities. Adding{" "}
-                <strong>{rotationConfirm?.newComm?.name}</strong> will replace{" "}
-                <strong>{rotationConfirm?.oldComm?.name}</strong>, which you
-                have interacted with the least.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (rotationConfirm) {
-                    joinCommunityMutation.mutate(rotationConfirm.newComm.id);
-                  }
-                }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Replace and Join
-              </AlertDialogAction>
-            </AlertDialogFooter>
+          <AlertDialogContent className="glass-card bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl max-w-sm mx-auto shadow-2xl shadow-black/50 p-0 overflow-hidden">
+            {/* Cyan top accent bar */}
+            <div className="h-1 w-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-500" />
+
+            <div className="p-6 space-y-4">
+              <AlertDialogHeader className="space-y-2">
+                <AlertDialogTitle className="text-white text-xl font-extrabold tracking-tight">
+                  Swap Communities?
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3 text-left">
+                    {/* Philosophy copy */}
+                    <p className="text-sm text-slate-300 leading-relaxed">
+                      SameVibe keeps your world focused. You get{" "}
+                      <span className="text-cyan-400 font-semibold">3 active communities</span>{" "}
+                      so every group gets your real attention — not just a passive follow.
+                    </p>
+
+                    {/* Old → New community swap card */}
+                    <div className="bg-slate-800/60 border border-white/10 rounded-2xl p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0" />
+                        <span className="text-xs text-slate-400 uppercase tracking-wide font-semibold">Replacing (least active)</span>
+                      </div>
+                      <p className="text-sm font-bold text-white pl-4">{rotationConfirm?.oldComm?.name}</p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <div className="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0" />
+                        <span className="text-xs text-cyan-300 uppercase tracking-wide font-semibold">Joining</span>
+                      </div>
+                      <p className="text-sm font-bold text-white pl-4">{rotationConfirm?.newComm?.name}</p>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {rotationConfirm?.oldComm?.name} moves back to Suggested Communities. You can rejoin it anytime.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter className="flex flex-col gap-2 sm:flex-col">
+                {/* Primary: Swap & Join */}
+                <AlertDialogAction
+                  onClick={() => {
+                    if (rotationConfirm) {
+                      trackEvent('rotation_confirmed', {
+                        userId: user?.id,
+                        metadata: {
+                          newCommunityId: rotationConfirm.newComm.id,
+                          newCommunityName: rotationConfirm.newComm.name,
+                          replacedCommunityId: rotationConfirm.oldComm.id,
+                          replacedCommunityName: rotationConfirm.oldComm.name,
+                        },
+                      });
+                      joinCommunityMutation.mutate(rotationConfirm.newComm.id);
+                      setRotationConfirm(null);
+                    }
+                  }}
+                  className="w-full bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold rounded-xl h-12 text-sm transition-all active:scale-[0.98]"
+                >
+                  Swap &amp; Join
+                </AlertDialogAction>
+
+                {/* Upgrade option — only show when user has room to expand (paymentTier < 2) */}
+                {((user as any)?.paymentTier ?? 0) < 2 && (
+                  <button
+                    onClick={() => {
+                      trackEvent('upgrade_slot_tapped', { userId: user?.id });
+                      setRotationConfirm(null);
+                      setShowPaywall(true);
+                    }}
+                    className="w-full bg-transparent border border-cyan-400/40 hover:border-cyan-400 text-cyan-300 hover:text-cyan-100 font-semibold rounded-xl h-11 text-xs transition-all active:scale-[0.98] px-4"
+                  >
+                    Keep both communities — Add a slot for $0.99/mo
+                  </button>
+                )}
+
+                {/* Cancel */}
+                <AlertDialogCancel
+                  className="w-full bg-transparent border border-white/10 text-slate-400 hover:text-white hover:border-white/20 font-semibold rounded-xl h-10 text-xs transition-all"
+                  onClick={() => trackEvent('rotation_cancelled', { userId: user?.id })}
+                >
+                  Keep {rotationConfirm?.oldComm?.name}
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </div>
           </AlertDialogContent>
         </AlertDialog>
 

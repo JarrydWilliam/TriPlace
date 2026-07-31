@@ -67,8 +67,9 @@ export default function Landing() {
         {/* Hero Content */}
         <div className="flex-1 flex items-center">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
-              Your Digital<br />Third Place
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+              <span className="text-white">Find your people.</span><br />
+              <span className="text-white">Live </span><span className="text-cyan-400">your Vibe.</span>
             </h1>
             <p className="text-xl md:text-2xl text-white/80 mb-12 max-w-2xl mx-auto">
               Where genuine connection, shared passions, and meaningful community are always just around the corner.

@@ -31,13 +31,20 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
   const handleCheckout = async (tier: number) => {
     setIsPurchasing(true);
 
+    let appUserId: string | undefined = user?.firebaseUid || (user?.id ? `user_${user.id}` : undefined);
+    let productId: string | undefined = "samevibe_slot_expansion";
+    let purchaseId: string | undefined = `sandbox_tx_${Date.now()}`;
+
     // Try RevenueCat StoreKit purchase in native iOS/Android build
     if (Capacitor.isNativePlatform()) {
       try {
         const offerings = await Purchases.getOfferings();
         if (offerings.current && offerings.current.availablePackages.length > 0) {
           const packageToBuy = offerings.current.availablePackages[0];
-          await Purchases.purchasePackage({ aPackage: packageToBuy });
+          const { customerInfo, transaction } = await Purchases.purchasePackage({ aPackage: packageToBuy });
+          appUserId = customerInfo.originalAppUserId;
+          productId = packageToBuy.product.identifier;
+          purchaseId = transaction.transactionIdentifier;
         }
       } catch (error: any) {
         if (error?.userCancelled) {
@@ -54,7 +61,13 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
       const res = await fetch(getApiUrl("/api/checkout/verify-revenuecat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id, tier }),
+        body: JSON.stringify({
+          userId: user?.id,
+          appUserId,
+          productId,
+          purchaseId,
+          tier,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to verify purchase on backend");
