@@ -1,7 +1,7 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (July 31, 2026)
-**Active Branch**: `Jarryd` (Local commit `de620d4` — Not pushed to remote per instruction)  
+**Active Branch**: `Jarryd` (Local commit `fdd5cae` — Not pushed to remote per instruction)  
 **Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; PAID COMMUNITY ENTITLEMENTS IMPLEMENTED; DEPLOYED LOAD TESTING AND PHYSICAL TESTFLIGHT VERIFICATION REMAIN OPEN.**
 
 ---
@@ -13,8 +13,8 @@
 4. **Free Replacement**: Free user at 3 slots can swap/replace one of their 3 communities for free without paying (`isReplacement: true`).
 5. **Entitlement Protection**: Free user attempting to add a 4th slot without payment or swap is rejected by server with `HTTP 402 Payment Required` (`code: 'ENTITLEMENT_REQUIRED'`).
 6. **Deliberate 6th Community Replacement**: Joining a 6th community returns `HTTP 409 Conflict` (`code: 'COMMUNITY_LIMIT_REACHED'`) with the candidate active community list, requiring explicit user confirmation (`replaceCommunityId`) rather than silently dropping a community.
-7. **Server-Only Authority**: Client-supplied `paymentTier`, `isPremium`, or `subscriptionActive` values have zero authority. Limit is resolved 100% server-side.
-8. **Downgrade Policy**: Expired subscriptions do not silently delete communities. Account is marked over-limit, reading is preserved, and joining new communities requires deactivating back to 3 or renewing.
+7. **Expired Subscription Downgrade Policy**: When a user's subscription expires while holding >3 communities, attempting a new join returns `HTTP 403 Forbidden` (`code: 'COMMUNITY_DOWNGRADE_REQUIRED'`) with their active community list. Existing communities remain readable; joining requires deactivating back to 3 or renewing.
+8. **Server-Only Authority**: Client-supplied `paymentTier`, `isPremium`, or `subscriptionStatus` values have zero authority and are stripped on signup/profile update routes. Limit is resolved 100% server-side via trusted webhook/admin flows.
 
 ---
 
