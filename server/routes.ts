@@ -732,21 +732,34 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     try {
       const communityId = parseInt(req.params.id);
       const authUserId = (req as any).user?.id;
-      
+      const { isReplacement, replaceCommunityId } = req.body || {};
+
       if (!authUserId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      
+
       const user = await storage.getUser(authUserId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Implement 5-community rotation limit
-      const result = await storage.joinCommunityWithRotation(authUserId, communityId);
-      
+      // Enforce 3 free vs 5 paid entitlement rules
+      const result = await storage.joinCommunityWithRotation(authUserId, communityId, {
+        isReplacement: Boolean(isReplacement),
+        replaceCommunityId: replaceCommunityId ? parseInt(replaceCommunityId) : undefined,
+      });
+
       res.status(201).json(result);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 'ENTITLEMENT_REQUIRED') {
+        return res.status(402).json({
+          error: 'ENTITLEMENT_REQUIRED',
+          code: 'ENTITLEMENT_REQUIRED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+        });
+      }
       console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });
     }

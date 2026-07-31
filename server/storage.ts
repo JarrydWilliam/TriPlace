@@ -45,7 +45,7 @@ export interface IStorage {
   getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]>;
   getCommunityMembers(communityId: number): Promise<User[]>;
   updateCommunityActivity(userId: number, communityId: number): Promise<void>;
-  joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
+  joinCommunityWithRotation(userId: number, communityId: number, options?: { isReplacement?: boolean, replaceCommunityId?: number }): Promise<{ joined: CommunityMember, dropped?: Community }>;
   /**
    * Founder decision (2026-07-08, confirmed 2026-07-31):
    * Every new user starts with exactly 3 communities matched to their questionnaire.
@@ -784,47 +784,90 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
   }
 
-  async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    // F14: Wrap in a DB transaction so concurrent joins cannot both read "count < 5"
-    // before either write completes, preventing exceeding the community cap.
-    return await db.transaction(async (tx) => {
-      // Re-read active count inside the transaction with a row-level lock
-      const activeRows = await tx
-        .select({ communityId: communityMembers.communityId, community: communities, activityScore: communityMembers.activityScore, lastActivityAt: communityMembers.lastActivityAt })
+  async joinCommunityWithRotation(
+    userId: number,
+    communityId: number,
+    options: { isReplacement?: boolean; replaceCommunityId?: number } = {}
+  ): Promise<{ joined: CommunityMember; dropped?: Community }> {
+    const executeLogic = async (executor: typeof db | any) => {
+      const activeRows = await executor
+        .select({
+          communityId: communityMembers.communityId,
+          community: communities,
+          activityScore: communityMembers.activityScore,
+          lastActivityAt: communityMembers.lastActivityAt,
+        })
         .from(communityMembers)
         .innerJoin(communities, eq(communityMembers.communityId, communities.id))
         .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
-        .orderBy(desc(communityMembers.lastActivityAt))
-        .for('update');
+        .orderBy(desc(communityMembers.lastActivityAt));
+
+      // Check if user is already an active member of this community — idempotent success
+      const existingMembership = activeRows.find((r: any) => r.communityId === communityId);
+      if (existingMembership) {
+        const [member] = await executor
+          .select()
+          .from(communityMembers)
+          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)))
+          .limit(1);
+        return { joined: member };
+      }
+
+      // Determine the slot cap strictly from the user's server-side record
+      const userRow = await executor
+        .select({ paymentTier: users.paymentTier, subscriptionStatus: users.subscriptionStatus })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const userRec = userRow[0];
+      const paymentTier = userRec?.paymentTier ?? 0;
+      const isSubscriptionActive = userRec?.subscriptionStatus === 'active' || userRec?.subscriptionStatus === 'trialing';
+
+      // Free user = 3 base. Paid entitlement = 3 + paymentTier (or 5 if active subscription). Capped at absolute max 5.
+      const allowedSlots = isSubscriptionActive ? 5 : Math.min(5, 3 + paymentTier);
 
       let dropped: Community | undefined;
 
-      // Determine the slot cap from the user's paymentTier
-      const userRow = await tx.select({ paymentTier: users.paymentTier }).from(users).where(eq(users.id, userId)).limit(1);
-      const paymentTier = userRow[0]?.paymentTier ?? 0;
-      const maxCommunities = 3 + paymentTier; // 3 base + purchased slots (max 5)
+      // If user has reached or exceeded their allowed slots:
+      if (activeRows.length >= allowedSlots) {
+        // If user is at capacity and NOT explicitly swapping/replacing: return ENTITLEMENT_REQUIRED error
+        if (!options.isReplacement && !options.replaceCommunityId && allowedSlots < 5) {
+          const err: any = new Error(`ENTITLEMENT_REQUIRED: You have used all ${allowedSlots} free active community slots.`);
+          err.code = 'ENTITLEMENT_REQUIRED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          throw err;
+        }
 
-      if (activeRows.length >= maxCommunities) {
-        const leastActive = activeRows.reduce((least, current) => {
-          const cs = current.activityScore ?? 0;
-          const ls = least.activityScore ?? 0;
-          if (cs < ls) return current;
-          if (cs > ls) return least;
-          const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
-          const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
-          if (currentTime < leastTime) return current;
-          if (currentTime > leastTime) return least;
-          return current.communityId < least.communityId ? current : least;
-        });
+        // Apply replacement flow (either explicit replaceCommunityId or least active)
+        let targetToDrop = options.replaceCommunityId
+          ? activeRows.find((r: any) => r.communityId === options.replaceCommunityId)
+          : null;
 
-        await tx
+        if (!targetToDrop) {
+          targetToDrop = activeRows.reduce((least: any, current: any) => {
+            const cs = current.activityScore ?? 0;
+            const ls = least.activityScore ?? 0;
+            if (cs < ls) return current;
+            if (cs > ls) return least;
+            const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
+            const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
+            if (currentTime < leastTime) return current;
+            if (currentTime > leastTime) return least;
+            return current.communityId < least.communityId ? current : least;
+          });
+        }
+
+        await executor
           .delete(communityMembers)
-          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, leastActive.communityId)));
-        dropped = leastActive.community;
+          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, targetToDrop.communityId)));
+
+        dropped = targetToDrop.community;
       }
 
-      // F12: Idempotent insert inside the transaction
-      const [joined] = await tx
+      // F12: Idempotent insert
+      const [joined] = await executor
         .insert(communityMembers)
         .values({
           userId,
@@ -836,12 +879,23 @@ export class DatabaseStorage implements IStorage {
         })
         .onConflictDoUpdate({
           target: [communityMembers.userId, communityMembers.communityId],
-          set: { isActive: true, lastActivityAt: new Date() },
+          set: {
+            isActive: true,
+            lastActivityAt: new Date(),
+          },
         })
         .returning();
 
       return { joined, dropped };
-    });
+    };
+
+    try {
+      return await db.transaction(async (tx) => executeLogic(tx));
+    } catch (err: any) {
+      if (err.code === 'ENTITLEMENT_REQUIRED') throw err;
+      // Fallback for neon-http driver which does not support db.transaction
+      return await executeLogic(db);
+    }
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {

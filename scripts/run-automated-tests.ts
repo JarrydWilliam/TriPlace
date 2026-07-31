@@ -3,6 +3,8 @@ dotenv.config();
 import { storage } from '../server/storage.js';
 import { checkIs18OrOlder } from '../server/routes.js';
 import * as schema from '../shared/schema.js';
+import { db } from '../server/db.js';
+import { eq } from 'drizzle-orm';
 
 let passed = 0;
 let failed = 0;
@@ -79,6 +81,82 @@ async function runTests() {
   console.log('\nTest Group 4: 5-Community Maximum Ceiling & Rotation (Phase 9)');
   assert(schema.communityMembers !== undefined, 'communityMembers schema defined');
   assert(schema.communities !== undefined, 'communities schema defined');
+
+  // Test Group 5: Server-Enforced Paid Entitlement & Slot Ceiling (3 Free vs 5 Paid)
+  console.log('\nTest Group 5: Server-Enforced Paid Entitlement & Slot Ceiling (3 Free vs 5 Paid)');
+
+  // Create isolated test user
+  const testUser = await storage.createUser({
+    firebaseUid: `test-entitlement-uid-${Date.now()}`,
+    email: `entitlement_test_${Date.now()}@test.internal`,
+    name: 'Entitlement Test User',
+    dateOfBirth: '1992-08-20',
+    onboardingCompleted: true,
+    paymentTier: 0,
+    subscriptionStatus: 'inactive',
+  });
+
+  // Create 6 test communities
+  const testComms = await Promise.all([
+    storage.createCommunity({ name: `EntComm 1 ${Date.now()}`, description: 'Test 1', category: 'outdoor' }),
+    storage.createCommunity({ name: `EntComm 2 ${Date.now()}`, description: 'Test 2', category: 'tech' }),
+    storage.createCommunity({ name: `EntComm 3 ${Date.now()}`, description: 'Test 3', category: 'arts' }),
+    storage.createCommunity({ name: `EntComm 4 ${Date.now()}`, description: 'Test 4', category: 'food' }),
+    storage.createCommunity({ name: `EntComm 5 ${Date.now()}`, description: 'Test 5', category: 'wellness' }),
+    storage.createCommunity({ name: `EntComm 6 ${Date.now()}`, description: 'Test 6', category: 'social' }),
+  ]);
+
+  // Step 1: Free user joins 3 communities freely
+  await storage.joinCommunityWithRotation(testUser.id, testComms[0].id);
+  await storage.joinCommunityWithRotation(testUser.id, testComms[1].id);
+  await storage.joinCommunityWithRotation(testUser.id, testComms[2].id);
+
+  let activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 3, 'Free user successfully joined 3 initial communities');
+
+  // Step 2: Free user attempting 4th slot without swap is REJECTED with ENTITLEMENT_REQUIRED
+  let rejected = false;
+  try {
+    await storage.joinCommunityWithRotation(testUser.id, testComms[3].id);
+  } catch (err: any) {
+    if (err.code === 'ENTITLEMENT_REQUIRED') {
+      rejected = true;
+    }
+  }
+  assert(rejected === true, 'Free user at 3 slots rejected when requesting 4th slot (ENTITLEMENT_REQUIRED)');
+
+  activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 3, 'Free user active community count remains 3 after rejection');
+
+  // Step 3: Free user performing free replacement (swap) succeeds without payment
+  const swapResult = await storage.joinCommunityWithRotation(testUser.id, testComms[3].id, { isReplacement: true });
+  assert(swapResult.joined !== undefined, 'Free user performed free replacement/swap successfully');
+  assert(swapResult.dropped !== undefined, 'Free replacement dropped least active community');
+
+  activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 3, 'Free user active community count remains exactly 3 after free replacement');
+
+  // Step 4: Update user paymentTier to 2 (Paid entitlement up to 5 slots)
+  await storage.updateUser(testUser.id, { paymentTier: 2 });
+
+  // Step 5: Paid user joins 4th community
+  await storage.joinCommunityWithRotation(testUser.id, testComms[0].id); // re-join dropped
+  activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 4, 'Paid user successfully joined 4th community');
+
+  // Step 6: Paid user joins 5th community
+  await storage.joinCommunityWithRotation(testUser.id, testComms[4].id);
+  activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 5, 'Paid user successfully joined 5th community');
+
+  // Step 7: Paid user at 5 slots attempts to join 6th community -> Rotates, active count remains capped at 5
+  await storage.joinCommunityWithRotation(testUser.id, testComms[5].id);
+  activeComms = await storage.getUserActiveCommunities(testUser.id);
+  assert(activeComms.length === 5, 'Paid user at capacity capped at 5 (absolute ceiling)');
+
+  // Cleanup test user and memberships
+  await (storage as any).clearUserCommunities(testUser.id);
+  await db.delete(schema.users).where(eq(schema.users.id, testUser.id));
 
   console.log('\n────────────────────────────────────────────────────────────────────────────');
   console.log(`Test Results: ${passed} PASSED, ${failed} FAILED`);
