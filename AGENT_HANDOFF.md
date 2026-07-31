@@ -2,24 +2,34 @@
 
 ## Current Status (July 31, 2026)
 **Active Branch**: `Jarryd`  
-**Commit SHA**: `d17f87c`  
-**Status**: 🔒 **SECURITY HARDENING COMPLETE** — All 19 P0/P1 audit findings fixed. Zero data-isolation vulnerabilities. TypeScript check passes. Pending: DB migration on Neon.
+**Commit SHA**: `827d0f8`  
+**Status**: 🔒 **SECURITY HARDENING COMPLETE** + 🤝 **SHARED CANONICAL 3-COMMUNITY ONBOARDING IMPLEMENTED** — Zero data-isolation flaws. Every new user starts with 3 questionnaire-matched shared communities. Zero duplicate community creation under concurrent load. TypeScript check passes.
 
 ---
 
-## ⚠️ REQUIRED: Run DB Migration on Neon Before Next Deploy
+## ⚠️ REQUIRED: Run DB Migrations on Neon Before Next Deploy
 
 Run the following against the Neon production database **before next launch** (safe to run multiple times):
 
 ```sql
+-- Migration 001: Unique constraints on memberships and RSVPs
 CREATE UNIQUE INDEX IF NOT EXISTS cm_user_community_unique
   ON community_members (user_id, community_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ea_user_event_unique
   ON event_attendees (user_id, event_id);
+
+-- Migration 002: Canonical key and is_developing on communities
+ALTER TABLE communities
+  ADD COLUMN IF NOT EXISTS canonical_key text,
+  ADD COLUMN IF NOT EXISTS is_developing boolean NOT NULL DEFAULT false;
+
+CREATE UNIQUE INDEX IF NOT EXISTS communities_canonical_key_unique
+  ON communities (canonical_key)
+  WHERE canonical_key IS NOT NULL;
 ```
 
-File is at: `migrations/001_unique_constraints.sql`
+Files are at: `migrations/001_unique_constraints.sql` and `migrations/002_canonical_community_key.sql`
 
 ---
 
