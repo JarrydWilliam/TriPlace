@@ -5,6 +5,16 @@ import { eq } from 'drizzle-orm';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// ── PRODUCTION GUARD ────────────────────────────────────────────────────────
+// Founder decision (2026-07-31): The reviewer account is a normal live user.
+// This script is a developer QA tool ONLY. It must never run in production.
+// Production cannot and must not invoke this script through any live user flow.
+if (process.env.NODE_ENV === 'production') {
+  console.error('BLOCKED: This script must not run in the production environment.');
+  process.exit(1);
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 async function run() {
   const sql = neon(process.env.DATABASE_URL);
   const db = drizzle(sql, { schema });

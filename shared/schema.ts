@@ -76,6 +76,8 @@ export const communityMembers = pgTable(
     userIdx: index("cm_user_id_idx").on(t.userId),
     communityIdx: index("cm_community_id_idx").on(t.communityId),
     activeIdx: index("cm_user_active_idx").on(t.userId, t.isActive),
+    // F12: Unique constraint prevents duplicate membership rows on double-tap
+    uniqMembership: uniqueIndex("cm_user_community_unique").on(t.userId, t.communityId),
   })
 );
 
@@ -118,17 +120,24 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const eventAttendees = pgTable("event_attendees", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  eventId: integer("event_id")
-    .references(() => events.id)
-    .notNull(),
-  status: text("status").default("interested"), // interested, going, attended
-  registeredAt: timestamp("registered_at").defaultNow(),
-});
+export const eventAttendees = pgTable(
+  "event_attendees",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    eventId: integer("event_id")
+      .references(() => events.id)
+      .notNull(),
+    status: text("status").default("interested"), // interested, going, attended
+    registeredAt: timestamp("registered_at").defaultNow(),
+  },
+  (t) => ({
+    // F13: Unique constraint prevents duplicate RSVP/attendance rows on double-tap
+    uniqAttendee: uniqueIndex("ea_user_event_unique").on(t.userId, t.eventId),
+  })
+);
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),

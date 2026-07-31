@@ -375,14 +375,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinCommunity(userId: number, communityId: number): Promise<CommunityMember> {
-    const [member] = await db.insert(communityMembers).values({
-      userId,
-      communityId,
-      joinedAt: new Date(),
-      lastActivityAt: new Date(),
-      activityScore: 1,
-      isActive: true
-    }).returning();
+    // F12: Idempotent — if membership row already exists (active or inactive),
+    // reactivate it rather than inserting a duplicate.
+    const [member] = await db
+      .insert(communityMembers)
+      .values({
+        userId,
+        communityId,
+        joinedAt: new Date(),
+        lastActivityAt: new Date(),
+        activityScore: 1,
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: [communityMembers.userId, communityMembers.communityId],
+        set: {
+          isActive: true,
+          lastActivityAt: new Date(),
+        },
+      })
+      .returning();
     return member;
   }
 
@@ -414,6 +426,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]> {
+    // F15: Pure read — does NOT auto-join communities.
+    // Use seedMinimumCommunities() explicitly when seeding is required (e.g. first login).
     const result = await db.select({
       community: communities,
       activityScore: communityMembers.activityScore,
@@ -423,37 +437,6 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
     .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
     .orderBy(desc(communityMembers.lastActivityAt));
-    
-    if (result.length < 3) {
-      const allComms = await this.getAllCommunities();
-      const currentIds = new Set(result.map(r => r.community.id));
-      for (const comm of allComms) {
-        if (currentIds.size >= 3) break;
-        if (!currentIds.has(comm.id)) {
-          try {
-            await this.joinCommunity(userId, comm.id);
-            currentIds.add(comm.id);
-          } catch (e) {
-            // ignore if already inserted
-          }
-        }
-      }
-      const reQueried = await db.select({
-        community: communities,
-        activityScore: communityMembers.activityScore,
-        lastActivityAt: communityMembers.lastActivityAt
-      })
-      .from(communityMembers)
-      .innerJoin(communities, eq(communityMembers.communityId, communities.id))
-      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
-      .orderBy(desc(communityMembers.lastActivityAt));
-
-      return reQueried.map(r => ({
-        ...r.community,
-        activityScore: r.activityScore || 0,
-        lastActivityAt: r.lastActivityAt || new Date()
-      }));
-    }
 
     return result.map(r => ({
       ...r.community,
@@ -461,6 +444,14 @@ export class DatabaseStorage implements IStorage {
       lastActivityAt: r.lastActivityAt || new Date()
     }));
   }
+
+  /**
+   * Founder decision (2026-07-31): No automatic seeding of communities in production.
+   * The reviewer/developer account behaves identically to a normal live user.
+   * Community membership is earned only through explicit user actions.
+   * Use the admin-only script scripts/join-reviewer-communities.ts for manual QA resets.
+   * This method is intentionally removed from production code.
+   */
 
   async getCommunityMembers(communityId: number): Promise<User[]> {
     const result = await db.select({
@@ -483,29 +474,63 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    const userCommunities = await this.getUserActiveCommunities(userId);
-    
-    let dropped: Community | undefined;
-    
-    if (userCommunities.length >= 5) {
-      const leastActive = userCommunities.reduce((least, current) => {
-        if (current.activityScore < least.activityScore) return current;
-        if (current.activityScore > least.activityScore) return least;
-        // Tie-breaker: oldest lastActivityAt
-        const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
-        const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
-        if (currentTime < leastTime) return current;
-        if (currentTime > leastTime) return least;
-        // Final tie-breaker: community ID to ensure absolute stability
-        return current.id < least.id ? current : least;
-      });
-      
-      await this.leaveCommunity(userId, leastActive.id);
-      dropped = leastActive;
-    }
-    
-    const joined = await this.joinCommunity(userId, communityId);
-    return { joined, dropped };
+    // F14: Wrap in a DB transaction so concurrent joins cannot both read "count < 5"
+    // before either write completes, preventing exceeding the community cap.
+    return await db.transaction(async (tx) => {
+      // Re-read active count inside the transaction with a row-level lock
+      const activeRows = await tx
+        .select({ communityId: communityMembers.communityId, community: communities, activityScore: communityMembers.activityScore, lastActivityAt: communityMembers.lastActivityAt })
+        .from(communityMembers)
+        .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+        .orderBy(desc(communityMembers.lastActivityAt))
+        .for('update');
+
+      let dropped: Community | undefined;
+
+      // Determine the slot cap from the user's paymentTier
+      const userRow = await tx.select({ paymentTier: users.paymentTier }).from(users).where(eq(users.id, userId)).limit(1);
+      const paymentTier = userRow[0]?.paymentTier ?? 0;
+      const maxCommunities = 3 + paymentTier; // 3 base + purchased slots (max 5)
+
+      if (activeRows.length >= maxCommunities) {
+        const leastActive = activeRows.reduce((least, current) => {
+          const cs = current.activityScore ?? 0;
+          const ls = least.activityScore ?? 0;
+          if (cs < ls) return current;
+          if (cs > ls) return least;
+          const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
+          const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
+          if (currentTime < leastTime) return current;
+          if (currentTime > leastTime) return least;
+          return current.communityId < least.communityId ? current : least;
+        });
+
+        await tx
+          .delete(communityMembers)
+          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, leastActive.communityId)));
+        dropped = leastActive.community;
+      }
+
+      // F12: Idempotent insert inside the transaction
+      const [joined] = await tx
+        .insert(communityMembers)
+        .values({
+          userId,
+          communityId,
+          joinedAt: new Date(),
+          lastActivityAt: new Date(),
+          activityScore: 1,
+          isActive: true,
+        })
+        .onConflictDoUpdate({
+          target: [communityMembers.userId, communityMembers.communityId],
+          set: { isActive: true, lastActivityAt: new Date() },
+        })
+        .returning();
+
+      return { joined, dropped };
+    });
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
@@ -618,12 +643,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee> {
-    const [attendee] = await db.insert(eventAttendees).values({
-      userId,
-      eventId,
-      status,
-      registeredAt: new Date()
-    }).returning();
+    // F13: Idempotent — update status if the row already exists (e.g. double-tap or
+    // status upgrade from 'interested' → 'attended').
+    const [attendee] = await db
+      .insert(eventAttendees)
+      .values({
+        userId,
+        eventId,
+        status,
+        registeredAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [eventAttendees.userId, eventAttendees.eventId],
+        set: {
+          status,
+          registeredAt: new Date(),
+        },
+      })
+      .returning();
     return attendee;
   }
 
@@ -663,6 +700,40 @@ export class DatabaseStorage implements IStorage {
     }
     
     return attendees;
+  }
+
+  /**
+   * F16: Batch attendee fetch — loads all attendees for multiple events in 2 DB queries
+   * (one for attendees, one for block-list) instead of 1 per event.
+   * Returns a Map<eventId, User[]> for O(1) lookup per event.
+   */
+  async getEventAttendeesForEvents(eventIds: number[], currentUserId?: number): Promise<Map<number, { id: number; name: string; avatar: string | null }[]>> {
+    if (eventIds.length === 0) return new Map();
+
+    const result = await db.select({
+      eventId: eventAttendees.eventId,
+      userId: users.id,
+      name: users.name,
+      avatar: users.avatar,
+    })
+    .from(eventAttendees)
+    .innerJoin(users, eq(eventAttendees.userId, users.id))
+    .where(inArray(eventAttendees.eventId, eventIds));
+
+    // Fetch blocker's block list once
+    let blockedIds = new Set<number>();
+    if (currentUserId) {
+      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, currentUserId));
+      blockedIds = new Set(blocks.map(b => b.blockedId));
+    }
+
+    const map = new Map<number, { id: number; name: string; avatar: string | null }[]>();
+    for (const row of result) {
+      if (blockedIds.has(row.userId)) continue;
+      if (!map.has(row.eventId)) map.set(row.eventId, []);
+      map.get(row.eventId)!.push({ id: row.userId, name: row.name, avatar: row.avatar });
+    }
+    return map;
   }
 
   async getMessage(id: number): Promise<Message | undefined> {

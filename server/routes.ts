@@ -60,8 +60,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { getAdminApp } = await import("./utils/firebase-admin.js");
     const adminApp = getAdminApp();
     if (!adminApp) {
-      console.warn('[SameVibe] Auth bypassed: Firebase Admin is not configured. Trusting client.');
-      return next(); 
+      // F1: Fail closed — never open-gate protected endpoints when Firebase Admin is absent.
+      // A misconfigured production deployment must never silently trust every caller.
+      console.error('[SameVibe] FATAL: Firebase Admin is not configured. All auth-protected endpoints are locked.');
+      return res.status(503).json({ message: "Authentication service is not configured. Contact support." });
     }
 
     const authHeader = req.headers.authorization;
@@ -408,6 +410,11 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid user ID" });
+      }
+      // F17: Enforce ownership — a user can only delete their own account.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== id) {
+        return res.status(403).json({ message: "Forbidden: You can only delete your own account." });
       }
       const success = await storage.deleteUser(id);
       if (!success) {
@@ -756,13 +763,13 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/communities/:id/activity", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F10: Use the authenticated user's identity.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      await storage.updateCommunityActivity(userId, communityId);
+      await storage.updateCommunityActivity(actingUser.id, communityId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -772,14 +779,15 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   // Update current user's location
   app.patch("/api/users/current/location", requireAuth, async (req, res) => {
     try {
-      const { latitude, longitude, location, userId } = req.body;
-      
-      // Use the provided userId from the request
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F2: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
+
+      const { latitude, longitude, location } = req.body;
       
-      const updatedUser = await storage.updateUser(userId, { 
+      const updatedUser = await storage.updateUser(actingUser.id, { 
         location,
         latitude: latitude?.toString(),
         longitude: longitude?.toString(),
@@ -829,13 +837,13 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/communities/:id/leave", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F9: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const success = await storage.leaveCommunity(userId, communityId);
+      const success = await storage.leaveCommunity(actingUser.id, communityId);
       if (!success) {
         return res.status(404).json({ message: "Membership not found" });
       }
@@ -870,29 +878,20 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
       const eventsList = await storage.getUpcomingEvents(userId);
 
-      // Attach attendees inline to avoid N+1 queries on the client
-      const eventsWithAttendees = await Promise.all(
-        eventsList.map(async (event) => {
-          try {
-            const attendeesList = await storage.getEventAttendees(event.id);
-            return {
-              ...event,
-              attendees: attendeesList.map((a) => ({
-                id: a.id,
-                name: a.name,
-                avatar: a.avatar,
-              })),
-              attendeeCount: event.attendeeCount || attendeesList.length || 1,
-            };
-          } catch {
-            return {
-              ...event,
-              attendees: [],
-              attendeeCount: event.attendeeCount || 1,
-            };
-          }
-        })
-      );
+      // F16: Single batch query for all attendees — eliminates N+1 pattern.
+      // Previously: 1 getEventAttendees() call per event = 40+ queries for 40 events.
+      // Now: 1 batch query + 1 block-list query = 2 total queries regardless of event count.
+      const eventIds = eventsList.map(e => e.id);
+      const attendeesByEvent = await storage.getEventAttendeesForEvents(eventIds, userId);
+
+      const eventsWithAttendees = eventsList.map((event) => {
+        const attendeesList = attendeesByEvent.get(event.id) || [];
+        return {
+          ...event,
+          attendees: attendeesList,
+          attendeeCount: event.attendeeCount || attendeesList.length || 1,
+        };
+      });
 
       res.json(eventsWithAttendees);
     } catch (error) {
@@ -949,13 +948,15 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/events/:id/register", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId, status = "interested" } = req.body;
+      const { status = "interested" } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F3: Derive userId from the verified auth token — never trust the request body.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const registration = await storage.registerForEvent(userId, eventId, status);
+      const registration = await storage.registerForEvent(actingUser.id, eventId, status);
       res.status(201).json(registration);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -965,10 +966,17 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/events/:id/review", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId, rating, feltSafe, feedback } = req.body;
+      const { rating, feltSafe, feedback } = req.body;
 
-      if (!userId || rating === undefined) {
-        return res.status(400).json({ message: "userId and rating are required" });
+      // F5: Derive userId from the verified auth token.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const actingUserId = actingUser.id;
+
+      if (rating === undefined) {
+        return res.status(400).json({ message: "rating is required" });
       }
 
       const numRating = parseInt(rating);
@@ -976,8 +984,15 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
         return res.status(400).json({ message: "rating must be between 1 and 5" });
       }
 
+      // Server-side eligibility: user must have an attendance record for the event.
+      const userEvents = await storage.getUserEvents(actingUserId);
+      const hasAttended = userEvents.some(e => e.id === eventId);
+      if (!hasAttended) {
+        return res.status(403).json({ message: "You can only review events you have RSVP'd to or attended." });
+      }
+
       const review = await storage.createEventReview(
-        parseInt(userId),
+        actingUserId,
         eventId,
         numRating,
         feltSafe !== false, // default true unless explicitly false
@@ -986,7 +1001,7 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 
       // Safety guard: if user did not feel safe, auto-file a safety report
       if (feltSafe === false && feedback) {
-        await storage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
+        await storage.reportEvent(actingUserId, eventId, 'safety_concern', feedback);
       }
 
       res.status(201).json({ success: true, review, message: "Review submitted" });
@@ -1001,14 +1016,16 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   // Block a user
   app.post("/api/users/block", requireAuth, async (req, res) => {
     try {
-      const { blockerId, blockedId, reason } = req.body;
-      if (!blockerId || !blockedId) {
-        return res.status(400).json({ message: "blockerId and blockedId are required" });
+      const { blockedId, reason } = req.body;
+      // F6: Use the authenticated user as blocker — never trust a client-provided blockerId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !blockedId) {
+        return res.status(400).json({ message: "blockedId is required and user must be authenticated" });
       }
-      if (blockerId === blockedId) {
+      if (Number(actingUser.id) === parseInt(blockedId)) {
         return res.status(400).json({ message: "Cannot block yourself" });
       }
-      const block = await storage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
+      const block = await storage.blockUser(actingUser.id, parseInt(blockedId), reason);
       res.status(201).json({ success: true, block });
     } catch (error) {
       console.error("Block user error:", error);
@@ -1020,15 +1037,17 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/users/:id/report", requireAuth, async (req, res) => {
     try {
       const targetUserId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
+      const { reason, details } = req.body;
+      // F7: Use the authenticated user as reporter.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !reason) {
+        return res.status(400).json({ message: "reason is required and user must be authenticated" });
       }
       const validReasons = ['harassment', 'spam', 'fake_profile', 'inappropriate_content', 'other'];
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportUser(parseInt(reporterId), targetUserId, reason, details);
+      const report = await storage.reportUser(actingUser.id, targetUserId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report user error:", error);
@@ -1040,15 +1059,17 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/events/:id/report", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
+      const { reason, details } = req.body;
+      // F8: Use the authenticated user as reporter.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !reason) {
+        return res.status(400).json({ message: "reason is required and user must be authenticated" });
       }
       const validReasons = ['misleading', 'spam', 'inappropriate', 'cancelled', 'safety_concern', 'other'];
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportEvent(parseInt(reporterId), eventId, reason, details);
+      const report = await storage.reportEvent(actingUser.id, eventId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report event error:", error);
@@ -1137,9 +1158,14 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
     res.json({ success: false, message: "OpenAI integration has been removed." });
   });
 
-  app.get("/api/users/:id/events", async (req, res) => {
+  app.get("/api/users/:id/events", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      // Only allow users to see their own event list
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const events = await storage.getUserEvents(userId);
       res.json(events);
     } catch (error) {
@@ -1147,11 +1173,16 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
     }
   });
 
-  // Message routes
-  app.get("/api/conversations/:userId1/:userId2", async (req, res) => {
+  // Message routes — F18: DM endpoints require authentication and participant ownership
+  app.get("/api/conversations/:userId1/:userId2", requireAuth, async (req, res) => {
     try {
       const userId1 = parseInt(req.params.userId1);
       const userId2 = parseInt(req.params.userId2);
+      // F18: The authenticated user must be one of the two participants
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || (Number(actingUser.id) !== userId1 && Number(actingUser.id) !== userId2)) {
+        return res.status(403).json({ message: "Forbidden: You can only read your own conversations." });
+      }
       const messages = await storage.getConversation(userId1, userId2);
       res.json(messages);
     } catch (error) {
@@ -1159,14 +1190,18 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
     }
   });
 
-  app.get("/api/users/:id/conversations", async (req, res) => {
+  app.get("/api/users/:id/conversations", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      // F18: Only the authenticated user can view their own conversation list
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden: You can only read your own conversations." });
+      }
       const rawConversations = await storage.getUserConversations(userId);
       
       // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
       const normalized = await Promise.all(rawConversations.map(async (c) => {
-        // Count unread messages from this user to the current user
         const conversation = await storage.getConversation(userId, c.user.id);
         const unreadCount = conversation.filter(
           (m) => m.receiverId === userId && !m.isRead
@@ -1471,11 +1506,13 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/events/:id/mark-attended", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId } = req.body;
       
-      if (isNaN(eventId) || !userId) {
-        return res.status(400).json({ message: "Event ID and user ID required" });
+      // F4: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || isNaN(eventId)) {
+        return res.status(400).json({ message: "Event ID required and user must be authenticated" });
       }
+      const actingUserId = actingUser.id;
       
       const event = await storage.getEvent(eventId);
       if (!event) {
@@ -1489,11 +1526,11 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
         return res.status(400).json({ message: "Cannot mark attendance for future events" });
       }
       
-      // Register/update attendance status
-      const attendance = await storage.registerForEvent(parseInt(userId), eventId, "attended");
+      // Register/update attendance status (idempotent via onConflictDoUpdate)
+      const attendance = await storage.registerForEvent(actingUserId, eventId, "attended");
       
       // Add to activity feed for algorithm learning
-      await storage.addActivityItem(parseInt(userId), 'event_attended', {
+      await storage.addActivityItem(actingUserId, 'event_attended', {
         eventId: eventId,
         eventTitle: event.title,
         eventCategory: event.category,
@@ -1508,7 +1545,7 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 
       // Trigger AI learning
       import("./agent/agent-runner").then(({ agentRunner }) => {
-        agentRunner.runAgentForUser(parseInt(userId)).catch(err => console.error("[Agent] Trigger failed:", err));
+        agentRunner.runAgentForUser(actingUserId).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
       console.error("Error marking attendance:", error);
@@ -1599,15 +1636,16 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   app.post("/api/communities/:id/messages", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { content, senderId } = req.body;
-      
-      if (!content || !senderId) {
-        return res.status(400).json({ message: "Content and senderId are required" });
+      const { content } = req.body;
+      // F11: Use the authenticated user as sender — never trust a client-provided senderId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !content) {
+        return res.status(400).json({ message: "Content is required and user must be authenticated" });
       }
       
       const messageData = {
         content: content.trim(),
-        senderId: parseInt(senderId),
+        senderId: actingUser.id,
         communityId: communityId
       };
       
@@ -1616,7 +1654,7 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 
       // Trigger AI learning
       import("./agent/agent-runner").then(({ agentRunner }) => {
-        agentRunner.runAgentForUser(parseInt(senderId)).catch(err => console.error("[Agent] Trigger failed:", err));
+        agentRunner.runAgentForUser(actingUser.id).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
       console.error("Error sending community message:", error);
@@ -1807,10 +1845,11 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
         location,
         latitude,
         longitude,
-        userId
       } = req.body;
 
-      const targetUserId = userId || (req as any).user?.id;
+      // F19: Use the verified auth token identity exclusively.
+      // Any client-provided userId is ignored to prevent cross-user profile writes.
+      const targetUserId = (req as any).user?.id;
 
       if (!targetUserId) {
         return res.status(401).json({ message: "Not authenticated or user ID missing." });

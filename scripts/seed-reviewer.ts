@@ -5,6 +5,15 @@ import { eq } from 'drizzle-orm';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// ── PRODUCTION GUARD ────────────────────────────────────────────────────────
+// Founder decision (2026-07-31): The reviewer account is a normal live user.
+// This script is a developer QA tool ONLY. It must never run in production.
+if (process.env.NODE_ENV === 'production') {
+  console.error('BLOCKED: This script must not run in the production environment.');
+  process.exit(1);
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 const API_KEY = process.env.VITE_FIREBASE_API_KEY;
 
 async function run() {
