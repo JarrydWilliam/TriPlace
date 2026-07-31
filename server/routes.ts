@@ -34,6 +34,18 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
   });
 }
 
+export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
+  const dob = new Date(dateOfBirthStr);
+  if (isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age >= 18;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // --- Admin Security Middleware ---
   // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
@@ -186,16 +198,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-function checkIs18OrOlder(dateOfBirthStr: string): boolean {
-  const dob = new Date(dateOfBirthStr);
-  if (isNaN(dob.getTime())) return false;
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
-  }
-  return age >= 18;
+function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
+  return checkIs18OrOlder(dateOfBirthStr);
 }
 
   app.post("/api/users", requireAuth, async (req, res) => {
