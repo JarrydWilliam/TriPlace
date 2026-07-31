@@ -2,8 +2,18 @@
 
 ## Current Status (July 31, 2026)
 **Active Branch**: `Jarryd`  
-**Commit SHA**: `6782b0e`  
-**Status**: 🎉 **10,000-USER MISSION & STRESS TEST HARDENING COMPLETE** — All 11 post-test database invariants passing with 0 violations on Neon. All automated security & core-loop tests passing. 10,000-user staging stress test harness active with safety guard. Capacitor iOS synced cleanly.
+**Commit SHA**: `735077b`  
+**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; PAID COMMUNITY ENTITLEMENTS ENFORCED SERVER-SIDE; DEPLOYED 10,000-USER LOAD TESTING AND TESTFLIGHT CORE-LOOP VERIFICATION REMAIN OPEN.**
+
+---
+
+## Monetization Entitlement Server Rules (2026-07-31)
+1. **Free Users**: 3 active community slots.
+2. **Paid Users (`paymentTier > 0` or active subscription)**: Up to 5 active community slots.
+3. **Absolute Ceiling**: 5 active communities.
+4. **Free Replacement**: Free user at 3 slots can swap/replace one of their 3 communities for free without paying (`isReplacement: true`).
+5. **Entitlement Protection**: Free user attempting to add a 4th slot without payment or swap is rejected by server with HTTP status `402 Payment Required` (`code: 'ENTITLEMENT_REQUIRED'`). Client-side forged flags are strictly ignored.
+6. **Downgrade Policy**: Expired subscriptions do not delete communities; user is marked over-limit, reading is preserved, joining new communities requires deactivating back to 3 or renewing.
 
 ---
 
