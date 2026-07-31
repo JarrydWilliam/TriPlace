@@ -1,8 +1,9 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (July 31, 2026)
-**Active Branch**: `Jarryd` (Local commit `d9b85a7` — Not pushed to remote per instruction)  
-**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; PAID COMMUNITY ENTITLEMENTS & REVENUECAT WEBHOOK HARDENED; DEPLOYED LOAD TESTING AND PHYSICAL TESTFLIGHT VERIFICATION REMAIN OPEN.**
+**Active Branch**: `Jarryd` (Remote HEAD SHA `f5f7ad6` — Pushed to `origin/Jarryd`)  
+**Release Tag**: `samevibe-rc-f5f7ad6` (Annotated tag pushed to remote)  
+**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; CANDIDATE PRESERVED, TAGGED, AND PUSHED TO ORIGIN/JARRID; DEPLOYED LOAD TESTING AND PHYSICAL TESTFLIGHT VERIFICATION REMAIN OPEN.**
 
 ---
 
