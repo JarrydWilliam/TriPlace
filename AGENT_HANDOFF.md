@@ -84,3 +84,10 @@
    - **Security**: Rotate API keys (`OPENAI_API_KEY`, `GROQ_API_KEY`, `DATABASE_URL`) in external dashboards.
    - **Avatar Migration**: Transition avatar storage from raw Base64 strings to Firebase Storage file upload returning download URLs.
    - **Security Settings**: Wire up backend password change endpoints if needed.
+
+---
+
+## Security & Release Guidelines
+> **IMPORTANT ARCHITECTURE & SAFETY RULE**:
+> Never zip and share a project folder without first checking for `.env` files and certificates. The `.env` should only ever live locally and in your deployment platform's secrets manager (Vercel env vars, Codemagic secrets).
+
