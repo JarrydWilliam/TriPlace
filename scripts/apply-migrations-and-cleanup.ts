@@ -90,6 +90,10 @@ async function run() {
       ON slot_grants (txn_key);
   `;
 
+  console.log('Cleaning up synthetic load test users...');
+  await sql`DELETE FROM community_members WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@staging.samevibe.internal%')`;
+  await sql`DELETE FROM users WHERE email LIKE '%@staging.samevibe.internal%'`;
+
   console.log('✅ Migrations and historical cleanup completed successfully!');
 }
 

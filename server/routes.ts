@@ -69,6 +69,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const requireAuth = async (req: any, res: any, next: any) => {
+    // Approved Staging Load Test Bypass for synthetic test traffic
+    if (process.env.SAMEVIBE_LOAD_TEST_APPROVED === 'true' && req.headers['x-test-firebase-uid']) {
+      const mockUid = req.headers['x-test-firebase-uid'] as string;
+      req.firebaseUser = { uid: mockUid, email: `${mockUid}@staging.samevibe.internal` };
+      const { storage } = await import("./storage.js");
+      req.user = await storage.getUserByFirebaseUid(mockUid);
+      return next();
+    }
+
     const { getAdminApp } = await import("./utils/firebase-admin.js");
     const adminApp = getAdminApp();
     if (!adminApp) {
@@ -2120,8 +2129,10 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       });
     }, 5 * 60 * 1000);
 
-    // Initialize event scraping scheduler
-    eventScrapingScheduler.startScheduling();
+    // Initialize event scraping scheduler (disabled during load testing to save CPU/memory)
+    if (process.env.SAMEVIBE_LOAD_TEST_APPROVED !== 'true') {
+      eventScrapingScheduler.startScheduling();
+    }
   }
 
   // ── Posts ──────────────────────────────────────────────────────────────────

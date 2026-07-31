@@ -3,7 +3,7 @@ import http from 'http';
 import { registerRoutes } from '../server/routes.js';
 
 async function startLocalServerIfNeeded(url: string): Promise<http.Server | null> {
-  if (url.includes('127.0.0.1:5005') || url.includes('localhost:5005')) {
+  if (url.includes('127.0.0.1:5006') || url.includes('localhost:5006')) {
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
@@ -15,7 +15,7 @@ async function startLocalServerIfNeeded(url: string): Promise<http.Server | null
     });
     await registerRoutes(app);
     return new Promise((resolve) => {
-      const server = app.listen(5005, '127.0.0.1', () => resolve(server));
+      const server = app.listen(5006, '127.0.0.1', () => resolve(server));
     });
   }
   return null;
@@ -127,7 +127,7 @@ async function runStage(concurrency: number, userJourneysCount: number) {
       await recordRequest('POST /api/users', () => 
         fetch(`${STAGING_URL}/api/users`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
           body: JSON.stringify({
             firebaseUid: uid,
             email: `${uid}@staging.samevibe.internal`,
