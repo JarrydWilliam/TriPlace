@@ -51,3 +51,29 @@ WHERE ea.id IS NULL OR ea.status != 'attended';
 -- 11. No exact personal coordinates in canonical keys
 SELECT id, name, canonical_key FROM communities
 WHERE canonical_key ~ '[0-9]+\.[0-9]{4,}';
+
+-- 12. Free users (payment_tier = 0 and subscription_status != 'active') must not have > 3 active communities
+SELECT u.id, u.email, COUNT(cm.id) as active_count
+FROM users u
+JOIN community_members cm ON cm.user_id = u.id AND cm.is_active = true
+WHERE COALESCE(u.payment_tier, 0) = 0
+  AND COALESCE(u.subscription_status, 'inactive') NOT IN ('active', 'trialing')
+GROUP BY u.id, u.email
+HAVING COUNT(cm.id) > 3;
+
+-- 13. Paid users must not exceed their authorized slot limit (3 + payment_tier, capped at 5)
+SELECT u.id, u.email, u.payment_tier, u.subscription_status, COUNT(cm.id) as active_count
+FROM users u
+JOIN community_members cm ON cm.user_id = u.id AND cm.is_active = true
+GROUP BY u.id, u.email, u.payment_tier, u.subscription_status
+HAVING COUNT(cm.id) > CASE
+  WHEN COALESCE(u.subscription_status, 'inactive') IN ('active', 'trialing') THEN 5
+  ELSE LEAST(5, 3 + COALESCE(u.payment_tier, 0))
+END;
+
+-- 14. Absolute ceiling: no account under any circumstance may exceed 5 active communities
+SELECT user_id, COUNT(*) as active_count
+FROM community_members
+WHERE is_active = true
+GROUP BY user_id
+HAVING COUNT(*) > 5;

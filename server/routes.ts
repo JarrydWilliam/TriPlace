@@ -760,6 +760,16 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
           currentCount: error.currentCount,
         });
       }
+      if (error.code === 'COMMUNITY_LIMIT_REACHED') {
+        return res.status(409).json({
+          error: 'COMMUNITY_LIMIT_REACHED',
+          code: 'COMMUNITY_LIMIT_REACHED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+          activeCommunities: error.activeCommunities || [],
+        });
+      }
       console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });
     }

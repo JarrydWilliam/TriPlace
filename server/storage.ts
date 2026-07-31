@@ -831,7 +831,7 @@ export class DatabaseStorage implements IStorage {
 
       // If user has reached or exceeded their allowed slots:
       if (activeRows.length >= allowedSlots) {
-        // If user is at capacity and NOT explicitly swapping/replacing: return ENTITLEMENT_REQUIRED error
+        // Case A: Free user at 3 slots requesting a 4th slot without swap -> ENTITLEMENT_REQUIRED
         if (!options.isReplacement && !options.replaceCommunityId && allowedSlots < 5) {
           const err: any = new Error(`ENTITLEMENT_REQUIRED: You have used all ${allowedSlots} free active community slots.`);
           err.code = 'ENTITLEMENT_REQUIRED';
@@ -840,7 +840,17 @@ export class DatabaseStorage implements IStorage {
           throw err;
         }
 
-        // Apply replacement flow (either explicit replaceCommunityId or least active)
+        // Case B: Paid user at 5 slots requesting a 6th community without explicit swap -> COMMUNITY_LIMIT_REACHED
+        if (!options.isReplacement && !options.replaceCommunityId && allowedSlots >= 5) {
+          const err: any = new Error(`COMMUNITY_LIMIT_REACHED: You have reached the maximum limit of 5 active communities. Choose a community to replace.`);
+          err.code = 'COMMUNITY_LIMIT_REACHED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          err.activeCommunities = activeRows.map((r: any) => r.community);
+          throw err;
+        }
+
+        // Case C: User explicitly requested replacement -> drop target or least active
         let targetToDrop = options.replaceCommunityId
           ? activeRows.find((r: any) => r.communityId === options.replaceCommunityId)
           : null;

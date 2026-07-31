@@ -20,20 +20,24 @@ async function run() {
       ADD COLUMN IF NOT EXISTS is_developing boolean NOT NULL DEFAULT false;
   `;
 
-  // 2. Clean up historical duplicate/over-limit community memberships for historical test users
-  console.log('Cleaning up historical over-limit active community memberships (>5)...');
-  // For users with > 5 active communities, keep the 5 most recent
+  // 2. Clean up historical over-limit active community memberships (>5 for paid, >3 for free)
+  console.log('Cleaning up historical over-limit active community memberships (>3 for free, >5 for paid)...');
   await sql`
     WITH RankedMemberships AS (
-      SELECT id, user_id,
-             ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY joined_at DESC) as rank
-      FROM community_members
-      WHERE is_active = true
+      SELECT cm.id, cm.user_id,
+             u.payment_tier, u.subscription_status,
+             ROW_NUMBER() OVER (PARTITION BY cm.user_id ORDER BY cm.joined_at DESC) as rank
+      FROM community_members cm
+      JOIN users u ON cm.user_id = u.id
+      WHERE cm.is_active = true
     )
     UPDATE community_members
     SET is_active = false
     WHERE id IN (
-      SELECT id FROM RankedMemberships WHERE rank > 5
+      SELECT id FROM RankedMemberships 
+      WHERE (COALESCE(subscription_status, 'inactive') NOT IN ('active', 'trialing') 
+             AND COALESCE(payment_tier, 0) = 0 AND rank > 3)
+         OR (rank > CASE WHEN COALESCE(subscription_status, 'inactive') IN ('active', 'trialing') THEN 5 ELSE LEAST(5, 3 + COALESCE(payment_tier, 0)) END)
     );
   `;
 

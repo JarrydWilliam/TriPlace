@@ -62,6 +62,18 @@ async function run() {
       name: 'Invariant 11: Zero exact coordinates in canonical keys',
       query: `SELECT id, name, canonical_key FROM communities WHERE canonical_key ~ '[0-9]+\\.[0-9]{4,}'`,
     },
+    {
+      name: 'Invariant 12: Zero free users with > 3 active communities',
+      query: `SELECT u.id, u.email, COUNT(cm.id)::int as active_count FROM users u JOIN community_members cm ON cm.user_id = u.id AND cm.is_active = true WHERE COALESCE(u.payment_tier, 0) = 0 AND COALESCE(u.subscription_status, 'inactive') NOT IN ('active', 'trialing') GROUP BY u.id, u.email HAVING COUNT(cm.id) > 3`,
+    },
+    {
+      name: 'Invariant 13: Zero paid users exceeding authorized slot limit',
+      query: `SELECT u.id, u.email, u.payment_tier, u.subscription_status, COUNT(cm.id)::int as active_count FROM users u JOIN community_members cm ON cm.user_id = u.id AND cm.is_active = true GROUP BY u.id, u.email, u.payment_tier, u.subscription_status HAVING COUNT(cm.id) > CASE WHEN COALESCE(u.subscription_status, 'inactive') IN ('active', 'trialing') THEN 5 ELSE LEAST(5, 3 + COALESCE(u.payment_tier, 0)) END`,
+    },
+    {
+      name: 'Invariant 14: Zero accounts exceeding absolute 5-community ceiling',
+      query: `SELECT user_id, COUNT(*)::int as active_count FROM community_members WHERE is_active = true GROUP BY user_id HAVING COUNT(*) > 5`,
+    },
   ];
 
   for (const check of checks) {

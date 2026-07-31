@@ -149,10 +149,24 @@ async function runTests() {
   activeComms = await storage.getUserActiveCommunities(testUser.id);
   assert(activeComms.length === 5, 'Paid user successfully joined 5th community');
 
-  // Step 7: Paid user at 5 slots attempts to join 6th community -> Rotates, active count remains capped at 5
-  await storage.joinCommunityWithRotation(testUser.id, testComms[5].id);
+  // Step 7: Paid user at 5 slots attempts to join 6th community without explicit swap -> Rejected with COMMUNITY_LIMIT_REACHED
+  let limitReached = false;
+  try {
+    await storage.joinCommunityWithRotation(testUser.id, testComms[5].id);
+  } catch (err: any) {
+    if (err.code === 'COMMUNITY_LIMIT_REACHED') {
+      limitReached = true;
+    }
+  }
+  assert(limitReached === true, 'Paid user at 5 slots joining 6th community receives COMMUNITY_LIMIT_REACHED requiring confirmation');
+
+  // Step 8: Paid user explicitly confirms replacement -> Drops target community, active count stays 5
+  const paidSwapResult = await storage.joinCommunityWithRotation(testUser.id, testComms[5].id, { replaceCommunityId: testComms[0].id });
+  assert(paidSwapResult.joined !== undefined, 'Paid user explicitly confirmed community replacement for 6th community');
+  assert(paidSwapResult.dropped?.id === testComms[0].id, 'Specified community was dropped during deliberate replacement');
+
   activeComms = await storage.getUserActiveCommunities(testUser.id);
-  assert(activeComms.length === 5, 'Paid user at capacity capped at 5 (absolute ceiling)');
+  assert(activeComms.length === 5, 'Paid user active community count stays capped at 5 after replacement');
 
   // Cleanup test user and memberships
   await (storage as any).clearUserCommunities(testUser.id);
