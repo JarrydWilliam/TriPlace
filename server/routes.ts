@@ -706,6 +706,110 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+  /**
+   * POST /api/revenuecat/webhook
+   *
+   * Server-to-server webhook endpoint for RevenueCat subscription events.
+   * Hardened with signature/auth verification, DB-level replay protection, and lifecycle handlers.
+   */
+  app.post("/api/revenuecat/webhook", async (req, res) => {
+    try {
+      // 1. Authorization check — verify webhook secret header
+      const webhookSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+      const authHeader = req.headers.authorization;
+
+      if (webhookSecret && authHeader !== webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
+        console.warn("[RevenueCat Webhook] Unauthorized webhook attempt.");
+        return res.status(401).json({ message: "Unauthorized webhook payload" });
+      }
+
+      const event = req.body?.event;
+      if (!event || !event.type) {
+        return res.status(400).json({ message: "Invalid webhook payload structure" });
+      }
+
+      const eventId = event.id || event.transaction_id;
+      const appUserId = event.app_user_id;
+      const eventType = event.type; // e.g. INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, REVOCATION
+
+      if (!appUserId) {
+        return res.status(400).json({ message: "Missing app_user_id in event" });
+      }
+
+      // 2. Resolve user by firebaseUid or numeric id
+      let targetUser = await storage.getUserByFirebaseUid(appUserId);
+      if (!targetUser && !isNaN(Number(appUserId))) {
+        targetUser = await storage.getUser(Number(appUserId));
+      }
+
+      if (!targetUser) {
+        console.warn(`[RevenueCat Webhook] User not found for app_user_id: ${appUserId}`);
+        return res.status(200).json({ received: true, status: 'user_not_found' });
+      }
+
+      // 3. Replay Protection & Idempotency check via slotGrants
+      if (eventId) {
+        const existing = await db
+          .select({ id: slotGrants.id })
+          .from(slotGrants)
+          .where(drizzleSql`${slotGrants.txnKey} = ${eventId}`)
+          .limit(1);
+
+        if (existing.length > 0) {
+          console.log(`[RevenueCat Webhook] Replay event ${eventId} already processed — skipping.`);
+          return res.status(200).json({ received: true, status: 'already_processed' });
+        }
+
+        // Record event ID to prevent future replays
+        await db.insert(slotGrants).values({
+          userId: targetUser.id,
+          txnKey: eventId,
+          productId: event.product_id || eventType,
+        }).onConflictDoNothing();
+      }
+
+      // 4. Lifecycle Event Processing
+      console.log(`[RevenueCat Webhook] Processing ${eventType} for user ${targetUser.id}`);
+
+      switch (eventType) {
+        case 'INITIAL_PURCHASE':
+        case 'RENEWAL':
+        case 'UNCANCELLATION':
+        case 'PRODUCT_CHANGE':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'active',
+            paymentTier: 2, // Grants 5 active community slots
+          });
+          break;
+
+        case 'CANCELLATION':
+        case 'EXPIRATION':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'expired',
+            paymentTier: 0, // Downgrades allowance back to 3 free base
+          });
+          break;
+
+        case 'REVOCATION':
+        case 'REFUND':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'revoked',
+            paymentTier: 0,
+          });
+          break;
+
+        default:
+          console.log(`[RevenueCat Webhook] Ignored unhandled event type: ${eventType}`);
+          break;
+      }
+
+      return res.status(200).json({ received: true, eventType, userId: targetUser.id });
+    } catch (error) {
+      console.error("[RevenueCat Webhook] Processing error:", error);
+      return res.status(500).json({ message: "Internal server error processing webhook" });
+    }
+  });
+
   app.post("/api/communities", requireAuth, async (req, res) => {
     try {
       const communityData = insertCommunitySchema.parse(req.body);
