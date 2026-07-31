@@ -74,6 +74,22 @@ async function run() {
       WHERE canonical_key IS NOT NULL;
   `;
 
+  console.log('Ensuring slot_grants table exists...');
+  await sql`
+    CREATE TABLE IF NOT EXISTS slot_grants (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      txn_key TEXT NOT NULL,
+      product_id TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    );
+  `;
+
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS slot_grants_txn_key_unique
+      ON slot_grants (txn_key);
+  `;
+
   console.log('✅ Migrations and historical cleanup completed successfully!');
 }
 

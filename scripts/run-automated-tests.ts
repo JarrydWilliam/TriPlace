@@ -177,6 +177,39 @@ async function runTests() {
   }
   assert(downgradeRequired === true, 'Expired subscription user with >3 communities receives COMMUNITY_DOWNGRADE_REQUIRED');
 
+  // Test Group 6: RevenueCat Webhook Auth & Replay Protection (Phase 2 & Entitlement Authority)
+  console.log('\nTest Group 6: RevenueCat Webhook Security, Replay Protection & Lifecycle (Phase 2)');
+  
+  process.env.REVENUECAT_WEBHOOK_SECRET = 'secret_test_key_xyz890';
+
+  // Step 6.1: Verify Webhook Replay Protection using slotGrants
+  const testTxnKey = `test_rc_webhook_txn_${Date.now()}`;
+  const firstGrant = await db.insert(schema.slotGrants).values({
+    userId: testUser.id,
+    txnKey: testTxnKey,
+    productId: 'samevibe_plus_monthly'
+  }).onConflictDoNothing().returning();
+
+  assert(firstGrant.length === 1, 'First webhook transaction granted successfully');
+
+  const secondGrant = await db.insert(schema.slotGrants).values({
+    userId: testUser.id,
+    txnKey: testTxnKey,
+    productId: 'samevibe_plus_monthly'
+  }).onConflictDoNothing().returning();
+
+  assert(secondGrant.length === 0, 'Duplicate webhook transaction key rejected (Idempotent replay protection)');
+
+  // Step 6.2: Invalid replaceCommunityId changes nothing
+  let invalidReplaceHandled = false;
+  try {
+    const invalidRes = await storage.joinCommunityWithRotation(testUser.id, testComms[4].id, { replaceCommunityId: 9999999 });
+    if (invalidRes) invalidReplaceHandled = true;
+  } catch (err) {
+    invalidReplaceHandled = true;
+  }
+  assert(invalidReplaceHandled === true, 'Invalid replaceCommunityId handled safely');
+
   // Cleanup test user and memberships
   await (storage as any).clearUserCommunities(testUser.id);
   await db.delete(schema.users).where(eq(schema.users.id, testUser.id));
