@@ -218,6 +218,10 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       }
       userData.termsAcceptedAt = new Date();
 
+      // Enforce default free status at account creation (never trust client-supplied entitlements)
+      delete (userData as any).paymentTier;
+      delete (userData as any).subscriptionStatus;
+
       const user = await storage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
@@ -758,6 +762,16 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
           message: error.message,
           allowedSlots: error.allowedSlots,
           currentCount: error.currentCount,
+        });
+      }
+      if (error.code === 'COMMUNITY_DOWNGRADE_REQUIRED') {
+        return res.status(403).json({
+          error: 'COMMUNITY_DOWNGRADE_REQUIRED',
+          code: 'COMMUNITY_DOWNGRADE_REQUIRED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+          activeCommunities: error.activeCommunities || [],
         });
       }
       if (error.code === 'COMMUNITY_LIMIT_REACHED') {

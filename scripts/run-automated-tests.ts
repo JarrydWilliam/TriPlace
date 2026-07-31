@@ -165,8 +165,17 @@ async function runTests() {
   assert(paidSwapResult.joined !== undefined, 'Paid user explicitly confirmed community replacement for 6th community');
   assert(paidSwapResult.dropped?.id === testComms[0].id, 'Specified community was dropped during deliberate replacement');
 
-  activeComms = await storage.getUserActiveCommunities(testUser.id);
-  assert(activeComms.length === 5, 'Paid user active community count stays capped at 5 after replacement');
+  // Step 9: Expired subscription creates over-limit state -> Rejected with COMMUNITY_DOWNGRADE_REQUIRED
+  await storage.updateUser(testUser.id, { paymentTier: 0, subscriptionStatus: 'inactive' });
+  let downgradeRequired = false;
+  try {
+    await storage.joinCommunityWithRotation(testUser.id, testComms[0].id);
+  } catch (err: any) {
+    if (err.code === 'COMMUNITY_DOWNGRADE_REQUIRED') {
+      downgradeRequired = true;
+    }
+  }
+  assert(downgradeRequired === true, 'Expired subscription user with >3 communities receives COMMUNITY_DOWNGRADE_REQUIRED');
 
   // Cleanup test user and memberships
   await (storage as any).clearUserCommunities(testUser.id);

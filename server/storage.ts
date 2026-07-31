@@ -831,6 +831,16 @@ export class DatabaseStorage implements IStorage {
 
       // If user has reached or exceeded their allowed slots:
       if (activeRows.length >= allowedSlots) {
+        // Case 0: Account is over-limit due to expired subscription/downgrade (e.g. holds 5, allowed 3)
+        if (activeRows.length > allowedSlots) {
+          const err: any = new Error(`COMMUNITY_DOWNGRADE_REQUIRED: Your subscription has expired. You hold ${activeRows.length} communities, but your free allowance is ${allowedSlots}. Please select communities to deactivate or renew your subscription.`);
+          err.code = 'COMMUNITY_DOWNGRADE_REQUIRED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          err.activeCommunities = activeRows.map((r: any) => r.community);
+          throw err;
+        }
+
         // Case A: Free user at 3 slots requesting a 4th slot without swap -> ENTITLEMENT_REQUIRED
         if (!options.isReplacement && !options.replaceCommunityId && allowedSlots < 5) {
           const err: any = new Error(`ENTITLEMENT_REQUIRED: You have used all ${allowedSlots} free active community slots.`);
