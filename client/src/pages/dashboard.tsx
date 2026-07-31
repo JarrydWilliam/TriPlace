@@ -589,7 +589,7 @@ export default function Dashboard() {
       <PullToRefresh onRefresh={handleRefresh}>
         <div>
           {/* Header Mode="Home" matching design mockup: SameVibe + NYC pill + Bell */}
-          <VibePageHeader mode="home" locationName={locationName || "NYC"} unreadCount={6} />
+          <VibePageHeader mode="home" locationName={locationName || undefined} unreadCount={0} />
           <div className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-7">
             {/* Sleek Non-Intrusive Floating Glass Pill Banner for New Communities */}
             <AnimatePresence>

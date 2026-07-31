@@ -278,7 +278,7 @@ export default function Messaging() {
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden flex flex-col">
-      <VibePageHeader mode="home" locationName="NYC" unreadCount={6} />
+      <VibePageHeader mode="home" />
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
       <div className="max-w-3xl mx-auto w-full flex-1 flex">
         {/* ── Conversation List ── */}

@@ -22,7 +22,7 @@ export default function Events() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-accent/10 blur-[130px]" />
       </div>
 
-      <VibePageHeader mode="home" locationName="NYC" unreadCount={6} />
+      <VibePageHeader mode="home" />
 
       <main className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-6">
         <div className="flex items-center justify-between">

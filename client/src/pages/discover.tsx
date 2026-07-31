@@ -173,7 +173,7 @@ export default function Discover() {
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
-      <VibePageHeader mode="home" locationName="NYC" unreadCount={6} />
+      <VibePageHeader mode="home" />
 
       <div className="max-w-md mx-auto px-4 py-4 space-y-6">
         {/* Category filter pills */}

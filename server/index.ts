@@ -28,8 +28,13 @@ app.use(
   })
 );
 
+import { createRateLimiter } from "./middleware/rate-limiter.js";
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Global rate limiting for API routes: max 100 requests per minute per IP
+app.use("/api/", createRateLimiter({ windowMs: 60 * 1000, max: 100 }));
 
 // Middleware for logging API requests
 app.use((req: Request, res: Response, next: NextFunction) => {

@@ -58,8 +58,8 @@ export default function Signup() {
       setError("Please enter your date of birth.");
       return;
     }
-    if (calculateAge(dateOfBirth) < 16) {
-      setError("SameVibe requires members to be at least 16 years old.");
+    if (calculateAge(dateOfBirth) < 18) {
+      setError("SameVibe requires members to be at least 18 years old.");
       return;
     }
     if (password.length < 6) {
@@ -257,7 +257,7 @@ export default function Signup() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="dateOfBirth" className="text-muted-foreground text-xs font-medium tracking-wide">DATE OF BIRTH (16+)</Label>
+                <Label htmlFor="dateOfBirth" className="text-muted-foreground text-xs font-medium tracking-wide">DATE OF BIRTH (18+)</Label>
                 <div className="relative group/input">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
                   <Input

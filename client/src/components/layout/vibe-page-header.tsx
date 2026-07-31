@@ -18,8 +18,8 @@ interface VibePageHeaderProps {
 export function VibePageHeader({
   mode = "home",
   title,
-  locationName = "NYC",
-  unreadCount = 6,
+  locationName: propLocationName,
+  unreadCount: propUnreadCount,
   onNotificationClick,
   onProfileClick,
   backHref,
@@ -27,6 +27,9 @@ export function VibePageHeader({
 }: VibePageHeaderProps) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  const locationName = propLocationName ?? (user as any)?.location ?? "Local";
+  const unreadCount = propUnreadCount ?? 0;
 
   const handleBack = () => {
     if (backHref) {

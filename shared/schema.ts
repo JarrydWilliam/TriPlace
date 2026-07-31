@@ -7,6 +7,7 @@ import {
   timestamp,
   jsonb,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -56,19 +57,27 @@ export const communities = pgTable("communities", {
   lastActivityAt: timestamp("last_activity_at").defaultNow(),
 });
 
-export const communityMembers = pgTable("community_members", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  communityId: integer("community_id")
-    .references(() => communities.id)
-    .notNull(),
-  joinedAt: timestamp("joined_at").defaultNow(),
-  lastActivityAt: timestamp("last_activity_at").defaultNow(),
-  activityScore: integer("activity_score").default(0),
-  isActive: boolean("is_active").default(true),
-});
+export const communityMembers = pgTable(
+  "community_members",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    communityId: integer("community_id")
+      .references(() => communities.id)
+      .notNull(),
+    joinedAt: timestamp("joined_at").defaultNow(),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+    activityScore: integer("activity_score").default(0),
+    isActive: boolean("is_active").default(true),
+  },
+  (t) => ({
+    userIdx: index("cm_user_id_idx").on(t.userId),
+    communityIdx: index("cm_community_id_idx").on(t.communityId),
+    activeIdx: index("cm_user_active_idx").on(t.userId, t.isActive),
+  })
+);
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
@@ -101,6 +110,7 @@ export const events = pgTable("events", {
   sourceUrl: text("source_url"), // Legacy URL
   sourceAttribution: text("source_attribution"), // Legacy attribution
   sourceName: text("source_name"), // e.g. "Eventbrite", "Meetup"
+  isExternal: boolean("is_external").default(false),
   externalId: text("external_id"), // Their unique ID to prevent duplicates
   lastScrapedAt: timestamp("last_scraped_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // Auto-hide from feed when expired

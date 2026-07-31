@@ -107,6 +107,8 @@ export class InstagramScraper {
         location: this.extractLocation(post.altText, location),
         category: this.categorizeEvent(post.altText, searchQuery),
         source: 'instagram',
+        sourceName: 'Instagram',
+        isExternal: true,
         sourceUrl: post.link,
         organizerName: 'Instagram Event',
         imageUrl: post.image,

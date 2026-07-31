@@ -237,14 +237,17 @@ export class EventScraperOrchestrator {
           const insertEvent: InsertEvent = {
             title: scrapedEvent.title,
             description: scrapedEvent.description,
-            organizer: scrapedEvent.organizerName || 'External Event',
+            organizer: scrapedEvent.organizerName || scrapedEvent.sourceName || 'External Event',
             date: scrapedEvent.date,
             location: scrapedEvent.location,
             address: scrapedEvent.location,
             category: scrapedEvent.category,
             price: (scrapedEvent.price || 0).toString(),
             communityId: communityId,
-            isGlobal: false
+            isGlobal: false,
+            sourceName: scrapedEvent.sourceName || 'External Event',
+            isExternal: scrapedEvent.isExternal ?? true,
+            sourceUrl: scrapedEvent.sourceUrl || undefined,
           };
           
           const createdEvent = await storage.createEvent(insertEvent);

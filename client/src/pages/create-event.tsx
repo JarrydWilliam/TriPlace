@@ -116,7 +116,7 @@ export default function CreateEventPage() {
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
-      <VibePageHeader mode="detail" title="Create Event" />
+      <VibePageHeader mode="detail" title="Create Activity" />
       <div className="max-w-4xl mx-auto space-y-6 px-4 py-6">
 
         <div className="text-center space-y-2">

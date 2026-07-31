@@ -56,6 +56,8 @@ export class BandsintownScraper {
                 location: venue,
                 category: 'music',
                 source: 'bandsintown',
+                sourceName: 'Bandsintown',
+                isExternal: true,
                 sourceUrl: this.baseUrl,
                 organizerName: 'Bandsintown',
                 attendeeCount: this.extractAttendeeCount($event)

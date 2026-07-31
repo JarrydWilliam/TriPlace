@@ -83,6 +83,8 @@ export class EventbriteScraper {
                 location: locationElement,
                 category: keyword,
                 sourceUrl: sourceUrl || '',
+                sourceName: 'Eventbrite',
+                isExternal: true,
                 organizerName: organizerElement || 'Eventbrite Event',
                 price: this.parsePrice(priceElement),
                 source: 'eventbrite',

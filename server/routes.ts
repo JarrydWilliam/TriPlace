@@ -7,10 +7,10 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants, communityMembers } from "../shared/schema.js";
 import { generateCommunityImage } from "./utils/community-image-gen.js";
 import { db } from "./db.js";
-import { sql as drizzleSql } from "drizzle-orm";
+import { sql as drizzleSql, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import express from "express";
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-function checkIs16OrOlder(dateOfBirthStr: string): boolean {
+function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   const dob = new Date(dateOfBirthStr);
   if (isNaN(dob.getTime())) return false;
   const today = new Date();
@@ -193,7 +193,7 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
     age--;
   }
-  return age >= 16;
+  return age >= 18;
 }
 
   app.post("/api/users", requireAuth, async (req, res) => {
@@ -201,8 +201,8 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
       const userData = insertUserSchema.parse(req.body);
 
       if (userData.dateOfBirth) {
-        if (!checkIs16OrOlder(userData.dateOfBirth)) {
-          return res.status(400).json({ message: "SameVibe requires members to be at least 16 years old." });
+        if (!checkIs18OrOlder(userData.dateOfBirth)) {
+          return res.status(400).json({ message: "SameVibe requires members to be at least 18 years old." });
         }
       }
 
@@ -235,8 +235,8 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
       const { dateOfBirth, termsVersion } = req.body;
       const effectiveTermsVersion = termsVersion || CURRENT_TERMS_VERSION;
 
-      if (dateOfBirth && !checkIs16OrOlder(dateOfBirth)) {
-        return res.status(400).json({ message: "SameVibe requires members to be at least 16 years old." });
+      if (dateOfBirth && !checkIs18OrOlder(dateOfBirth)) {
+        return res.status(400).json({ message: "SameVibe requires members to be at least 18 years old." });
       }
 
       const { storage } = await import("./storage.js");
@@ -289,40 +289,49 @@ function checkIs16OrOlder(dateOfBirthStr: string): boolean {
       const allUsers = await storage.getAllUsers();
       const otherUsers = allUsers.filter((u) => u.id !== userId);
 
-      const userCommunityMemberships = await storage.getUserCommunities(userId);
-      const userCommunityIds = new Set(userCommunityMemberships.map((c) => c.id));
+      // Single query for all active community memberships (eliminates N+1 loop)
+      const allMemberships = await db
+        .select({ userId: communityMembers.userId, communityId: communityMembers.communityId })
+        .from(communityMembers)
+        .where(eq(communityMembers.isActive, true));
+
+      const membershipsByUser = new Map<number, Set<number>>();
+      for (const row of allMemberships) {
+        if (!membershipsByUser.has(row.userId)) {
+          membershipsByUser.set(row.userId, new Set());
+        }
+        membershipsByUser.get(row.userId)!.add(row.communityId);
+      }
+
+      const userCommunityIds = membershipsByUser.get(userId) || new Set<number>();
       const userInterests = new Set(currentUser.interests || []);
 
-      const scored = await Promise.all(
-        otherUsers.map(async (other) => {
-          const otherMemberships = await storage.getUserCommunities(other.id);
-          const otherCommunityIds = otherMemberships.map((c) => c.id);
+      const scored = otherUsers.map((other) => {
+        const otherCommunityIds = membershipsByUser.get(other.id) || new Set<number>();
 
-          let sharedCommunities = 0;
-          for (const cId of otherCommunityIds) {
-            if (userCommunityIds.has(cId)) sharedCommunities++;
-          }
+        let sharedCommunities = 0;
+        for (const cId of Array.from(otherCommunityIds)) {
+          if (userCommunityIds.has(cId)) sharedCommunities++;
+        }
 
-          const otherInterests = other.interests || [];
-          let sharedInterests = 0;
-          for (const tag of otherInterests) {
-            if (userInterests.has(tag)) sharedInterests++;
-          }
+        const otherInterests = other.interests || [];
+        let sharedInterests = 0;
+        for (const tag of otherInterests) {
+          if (userInterests.has(tag)) sharedInterests++;
+        }
 
-          // Calculate match score: base 75 + shared communities * 10 + shared interests * 5
-          let score = 75 + (sharedCommunities * 10) + (sharedInterests * 5);
-          if (score > 99) score = 99;
-          if (score < 84) score = 84 + (other.id % 12); // Realistic 84-96% match range
+        // Calculate honest match score based on shared communities & interests
+        let score = 60 + (sharedCommunities * 12) + (sharedInterests * 6);
+        if (score > 99) score = 99;
 
-          return {
-            id: other.id,
-            name: other.name || `Member ${other.id}`,
-            avatar: other.avatar,
-            bio: other.bio,
-            matchPercent: score,
-          };
-        })
-      );
+        return {
+          id: other.id,
+          name: other.name || `Member ${other.id}`,
+          avatar: other.avatar,
+          bio: other.bio,
+          matchPercent: score,
+        };
+      });
 
       scored.sort((a, b) => b.matchPercent - a.matchPercent);
       res.json(scored.slice(0, 5));
