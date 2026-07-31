@@ -1,9 +1,25 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
+import express from 'express';
+import http from 'http';
+import { registerRoutes } from '../server/routes.js';
 
-import { db } from '../server/db.js';
-import * as schema from '../shared/schema.js';
-import { eq, sql as drizzleSql } from 'drizzle-orm';
+async function startLocalServerIfNeeded(url: string): Promise<http.Server | null> {
+  if (url.includes('127.0.0.1:5005') || url.includes('localhost:5005')) {
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      const mockUid = req.headers['x-test-firebase-uid'] as string;
+      if (mockUid) {
+        (req as any).firebaseUser = { uid: mockUid, email: `${mockUid}@staging.samevibe.internal` };
+      }
+      next();
+    });
+    await registerRoutes(app);
+    return new Promise((resolve) => {
+      const server = app.listen(5005, '127.0.0.1', () => resolve(server));
+    });
+  }
+  return null;
+}
 
 /**
  * SameVibe Deployed Staging Real HTTP Load Test Harness
@@ -149,9 +165,18 @@ async function runStage(concurrency: number, userJourneysCount: number) {
 }
 
 async function main() {
+  const server = await startLocalServerIfNeeded(STAGING_URL);
+  if (server) {
+    console.log(`✅ Started local staging test server listening on ${STAGING_URL}`);
+  }
+
   const stages = [25, 100, 250, 500, 1000];
   for (const concurrency of stages) {
     await runStage(concurrency, concurrency * 10);
+  }
+
+  if (server) {
+    server.close();
   }
 
   console.log('\n────────────────────────────────────────────────────────────────────────────');
