@@ -1,9 +1,9 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (July 31, 2026)
-**Active Branch**: `Jarryd` (Remote HEAD SHA `3a037b2` — Pushed to `origin/Jarryd`)  
-**Release Tag**: `samevibe-rc-f5f7ad6` (Annotated tag pushed to remote)  
-**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; STAGING LOAD HARNESS VERIFIED WITH SAMEVIBE_LOAD_TEST_APPROVED=TRUE GUARD; PHYSICAL TESTFLIGHT VERIFICATION REMAINS OPEN.**
+**Active Branch**: `Jarryd` (Remote HEAD SHA `0bbf644` — Pushed to `origin/Jarryd`)  
+**Application Release Candidate Tag**: `samevibe-rc-d012112` (Annotated tag for candidate SHA `d012112`)  
+**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; STAGING HTTP HARNESS CREATED; MANUAL STAGING PROVISIONING CHECKLIST DELIVERED; PHYSICAL TESTFLIGHT VERIFICATION REMAINS OPEN.**
 
 ---
 
