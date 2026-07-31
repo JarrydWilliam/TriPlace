@@ -1,19 +1,20 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (July 31, 2026)
-**Active Branch**: `Jarryd`  
-**Commit SHA**: `735077b`  
-**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; PAID COMMUNITY ENTITLEMENTS ENFORCED SERVER-SIDE; DEPLOYED 10,000-USER LOAD TESTING AND TESTFLIGHT CORE-LOOP VERIFICATION REMAIN OPEN.**
+**Active Branch**: `Jarryd` (Local commit `de620d4` — Not pushed to remote per instruction)  
+**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; PAID COMMUNITY ENTITLEMENTS IMPLEMENTED; DEPLOYED LOAD TESTING AND PHYSICAL TESTFLIGHT VERIFICATION REMAIN OPEN.**
 
 ---
 
-## Monetization Entitlement Server Rules (2026-07-31)
-1. **Free Users**: 3 active community slots.
-2. **Paid Users (`paymentTier > 0` or active subscription)**: Up to 5 active community slots.
+## Monetization Entitlement Server Authority (2026-07-31)
+1. **Free Account**: 3 active community slots.
+2. **Paid Entitlement**: Expands active allowance up to 5 slots.
 3. **Absolute Ceiling**: 5 active communities.
 4. **Free Replacement**: Free user at 3 slots can swap/replace one of their 3 communities for free without paying (`isReplacement: true`).
-5. **Entitlement Protection**: Free user attempting to add a 4th slot without payment or swap is rejected by server with HTTP status `402 Payment Required` (`code: 'ENTITLEMENT_REQUIRED'`). Client-side forged flags are strictly ignored.
-6. **Downgrade Policy**: Expired subscriptions do not delete communities; user is marked over-limit, reading is preserved, joining new communities requires deactivating back to 3 or renewing.
+5. **Entitlement Protection**: Free user attempting to add a 4th slot without payment or swap is rejected by server with `HTTP 402 Payment Required` (`code: 'ENTITLEMENT_REQUIRED'`).
+6. **Deliberate 6th Community Replacement**: Joining a 6th community returns `HTTP 409 Conflict` (`code: 'COMMUNITY_LIMIT_REACHED'`) with the candidate active community list, requiring explicit user confirmation (`replaceCommunityId`) rather than silently dropping a community.
+7. **Server-Only Authority**: Client-supplied `paymentTier`, `isPremium`, or `subscriptionActive` values have zero authority. Limit is resolved 100% server-side.
+8. **Downgrade Policy**: Expired subscriptions do not silently delete communities. Account is marked over-limit, reading is preserved, and joining new communities requires deactivating back to 3 or renewing.
 
 ---
 
