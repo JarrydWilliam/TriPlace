@@ -1,9 +1,40 @@
 # SameVibe - Agent Handoff
 
-## Current Status (July 30, 2026)
+## Current Status (July 31, 2026)
 **Active Branch**: `Jarryd`  
-**Commit SHA**: `eba4b3b`  
-**Status**: 🎉 **APPROVED BY APPLE APP STORE ON MAIN BRANCH!** + 🎨 **FULL PREMIUM DESIGN SYSTEM** + 🔒 **FOUNDER MONETIZATION LOCK** + ✅ **AUDIT REPORT & STRESS TEST FIXES COMPLETE**
+**Commit SHA**: `d17f87c`  
+**Status**: 🔒 **SECURITY HARDENING COMPLETE** — All 19 P0/P1 audit findings fixed. Zero data-isolation vulnerabilities. TypeScript check passes. Pending: DB migration on Neon.
+
+---
+
+## ⚠️ REQUIRED: Run DB Migration on Neon Before Next Deploy
+
+Run the following against the Neon production database **before next launch** (safe to run multiple times):
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS cm_user_community_unique
+  ON community_members (user_id, community_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ea_user_event_unique
+  ON event_attendees (user_id, event_id);
+```
+
+File is at: `migrations/001_unique_constraints.sql`
+
+---
+
+## Founder Decision — Reviewer Account (2026-07-31, LOCKED)
+
+**The reviewer/developer account (`samevibe.review@gmail.com`) is now a normal live user. It receives no special treatment in production code.**
+
+- No automatic community joins on any read or login event
+- No protected memberships, fixed slots, or fallback content
+- No bypasses around onboarding, auth, age eligibility, or community limits
+- The account may have 0–5 communities based on real manual actions
+- Developer QA reset is only possible via explicit admin scripts (`scripts/join-reviewer-communities.ts`, guarded by `NODE_ENV !== 'production'` check)
+- Production cannot invoke the reset scripts through any live user flow
+
+This supersedes all older references to "guaranteed 3 communities for reviewer accounts" in this file.
 
 ---
 
@@ -16,9 +47,53 @@
 ---
 
 ## Branch Details
-- **Active Branch**: `Jarryd` (pushed to `origin/Jarryd`, commit `7bbb7ca`)
+- **Active Branch**: `Jarryd` (pushed to `origin/Jarryd`, commit `d17f87c`)
 - **Base Version**: `1.0.3` (Build 114)
-- **Primary Focus**: High-end Midnight Navy & Electric Cyan visual design system, 1:1 match with approved design mockups, Profile bottom padding clearance (`pb-48`), 5 interactive Privacy Controls switches connected to PostgreSQL, Dashboard section terminology clarity, guaranteed 3 joined communities for reviewer accounts, and seamless $0.99 slot expansion with RevenueCat sandbox fallback.
+- **Primary Focus**: Security hardening — all 19 P0/P1 audit findings fixed. Authentication fails-closed. All write endpoints enforce token-based ownership. Reads never mutate. Community rotation is transactional. DB unique constraints prevent duplicate rows. N+1 event query eliminated. DM endpoints require auth.
+
+---
+
+## Summary of Accomplished Work
+
+### 1. Profile Page Padding & Navigation Clearance
+- **Files**: `client/src/pages/profile.tsx`, `client/src/pages/settings/profile.tsx`
+- **Changes**:
+  - Increased bottom container padding to `pb-48` and added `pb-20` on Save button container.
+  - Leaves over 120px of clear space above the floating `MobileNav` bar so no text, controls, or buttons are covered when scrolled down.
+
+### 2. End-to-End Privacy Controls (5 Interactive Switch Toggles)
+- **Files**: `client/src/components/ui/switch.tsx`, `client/src/pages/profile.tsx`, `client/src/pages/settings/profile.tsx`, `server/routes.ts`, `server/storage.ts`
+- **Changes**:
+  - Updated `<Switch>` component track to high-contrast cyan/slate and knob to pure white (`bg-white`) so toggle state is 100% visible on dark mode.
+  - Added explicit **ON / OFF** status pill badges next to every toggle switch.
+  - Connected all 5 privacy toggles to PostgreSQL `users.discovery_settings` JSONB column.
+
+### 3. Dashboard Information Architecture & Section Clarity
+- **Files**: `client/src/pages/dashboard.tsx`, `client/src/pages/communities.tsx`
+
+### 4. ~~Guaranteed 3 Joined Communities for Reviewer Accounts~~ — REMOVED
+- **Superseded by Founder Decision 2026-07-31.**
+- `getUserActiveCommunities` is now a pure read. It does not auto-join communities.
+- Developer QA resets use `scripts/join-reviewer-communities.ts` (admin script only).
+
+### 5. RevenueCat TestFlight Sandbox Fallback & $0.99 Expansion
+- **File**: `client/src/components/paywall-modal.tsx`
+
+### 6. Security Hardening — All 19 P0/P1 Audit Findings (2026-07-31)
+- **Files**: `server/routes.ts`, `server/storage.ts`, `shared/schema.ts`, `migrations/001_unique_constraints.sql`
+- **Changes**:
+  - **F1**: `requireAuth` fails-closed (503) when Firebase Admin is absent — previously called `next()`
+  - **F2–F11, F17, F19**: 12 write routes now derive acting-user identity from `req.user` (verified auth token), never from request body
+  - **F5**: Added server-side "must have RSVP'd to review" eligibility check
+  - **F12**: `joinCommunity` uses `onConflictDoUpdate` — idempotent join, no duplicate rows
+  - **F13**: `registerForEvent` uses `onConflictDoUpdate` — idempotent RSVP/attendance
+  - **F14**: `joinCommunityWithRotation` wrapped in `db.transaction()` with `FOR UPDATE` lock
+  - **F15**: `getUserActiveCommunities` is a pure read; no auto-join side effect
+  - **F16**: Upcoming events uses `getEventAttendeesForEvents` (2 queries total vs 1 per event)
+  - **F18**: DM conversation endpoints now require `requireAuth` + participant ownership check
+  - **Schema**: Unique indexes on `(user_id, community_id)` and `(user_id, event_id)`
+  - **Scripts**: `join-reviewer-communities.ts` and `seed-reviewer.ts` have `NODE_ENV === 'production'` guard
+
 
 ---
 
