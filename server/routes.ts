@@ -7,7 +7,7 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants, communityMembers } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants, communityMembers, type Community } from "../shared/schema.js";
 import { generateCommunityImage } from "./utils/community-image-gen.js";
 import { db } from "./db.js";
 import { sql as drizzleSql, eq } from "drizzle-orm";
@@ -1893,17 +1893,31 @@ function checkIs18OrOlder(dateOfBirthStr: string): boolean {
         return res.status(404).json({ message: "User update failed" });
       }
 
-      // Trigger AI-powered community generation based on new quiz responses
+      // ── Three-community onboarding assignment ──────────────────────────────
+      // Founder decision (2026-07-08, confirmed 2026-07-31):
+      // Every newly onboarded user is placed into exactly 3 shared communities
+      // matched to their questionnaire interests and location.
+      // Existing compatible communities are reused; missing ones are created once
+      // with a canonical key — two concurrent users never produce duplicate communities.
+      // This call is additive-only and idempotent (safe to retry).
+      let assignedCommunities: Community[] = [];
       try {
-        await communityRefreshService.refreshUserCommunities(parseInt(targetUserId));
+        assignedCommunities = await storage.assignOnboardingCommunities(updatedUser.id);
+        console.log(`[Onboarding] User ${updatedUser.id} assigned to ${assignedCommunities.length} communities`);
       } catch (error) {
-        console.error("Failed to refresh communities after onboarding:", error);
+        console.error('[Onboarding] Community assignment failed (non-fatal):', error);
+        // Non-fatal: the user profile is saved. Dashboard will show empty communities.
+        // The user can still use the app and join communities manually.
       }
 
-      res.json(updatedUser);
+      res.json({
+        user: updatedUser,
+        communities: assignedCommunities,
+        message: `Welcome to SameVibe! You've been matched with ${assignedCommunities.length} communities.`,
+      });
     } catch (error) {
       console.error('SameVibe: Error completing onboarding:', error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
+      res.status(500).json({ message: 'Failed to complete onboarding' });
     }
   });
 

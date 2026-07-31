@@ -60,26 +60,10 @@ export class CommunityRefreshService {
   }
   
   async refreshUserCommunities(userId: number): Promise<void> {
-    
     try {
-      // Clear existing communities for this user
-      const userCommunities = await storage.getUserCommunities(userId);
-      for (const community of userCommunities) {
-        await storage.leaveCommunity(userId, community.id);
-      }
-      
-      // Generate fresh communities and assign user to them
-      const matchedCommunities = await storage.generateDynamicCommunities(userId);
-      
-      // Join user to their matched communities
-      for (const community of matchedCommunities) {
-        try {
-          await storage.joinCommunity(userId, community.id);
-        } catch (joinError) {
-          console.error(`Community Refresh: Failed to join user ${userId} to "${community.name}":`, joinError);
-        }
-      }
-      
+      // Founder decision (2026-07-31): Additive-only — never clear existing memberships during refresh.
+      // Delegated to assignOnboardingCommunities which ensures the user has up to 3 matched communities.
+      await storage.assignOnboardingCommunities(userId);
     } catch (error) {
       console.error(`Community Refresh: Failed to refresh user ${userId}:`, error);
       throw error;

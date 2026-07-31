@@ -8,6 +8,7 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -44,18 +45,41 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const communities = pgTable("communities", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  image: text("image"),
-  memberCount: integer("member_count").default(0),
-  isActive: boolean("is_active").default(true),
-  location: text("location"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastActivityAt: timestamp("last_activity_at").defaultNow(),
-});
+export const communities = pgTable(
+  "communities",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    category: text("category").notNull(),
+    image: text("image"),
+    memberCount: integer("member_count").default(0),
+    isActive: boolean("is_active").default(true),
+    location: text("location"),
+    /**
+     * Canonical dedup key for AI-seeded communities.
+     * Format: "{market}|{category}|{primary-interest}"
+     * Example: "ogden-ut|outdoor|mountain-biking"
+     *
+     * Two concurrent onboarding requests matching the same missing community
+     * both resolve to this single row via INSERT ON CONFLICT DO NOTHING.
+     * Null for manually-created communities (no uniqueness enforced).
+     */
+    canonicalKey: text("canonical_key"),
+    /**
+     * True when this community was AI-seeded and has no activity history yet.
+     * The UI must show an honest "new / developing" badge — never fake members or events.
+     * Set to false once a real user-generated event or post exists.
+     */
+    isDeveloping: boolean("is_developing").default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  },
+  (t) => ({
+    // Partial unique index: only enforced for AI-seeded communities (canonicalKey IS NOT NULL)
+    canonicalKeyUnique: uniqueIndex("communities_canonical_key_unique").on(t.canonicalKey),
+  })
+);
 
 export const communityMembers = pgTable(
   "community_members",

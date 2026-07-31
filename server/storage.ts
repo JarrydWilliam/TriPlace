@@ -46,6 +46,14 @@ export interface IStorage {
   getCommunityMembers(communityId: number): Promise<User[]>;
   updateCommunityActivity(userId: number, communityId: number): Promise<void>;
   joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
+  /**
+   * Founder decision (2026-07-08, confirmed 2026-07-31):
+   * Every new user starts with exactly 3 communities matched to their questionnaire.
+   * Existing communities are reused; missing ones are created once with a canonical key.
+   * This is ADDITIVE-ONLY — it never removes existing memberships.
+   * Called exclusively from POST /api/onboarding/complete.
+   */
+  assignOnboardingCommunities(userId: number): Promise<Community[]>;
   
   getEvent(id: number): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
@@ -296,6 +304,299 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // ── Onboarding Community Assignment ────────────────────────────────────────
+  //
+  // Founder decision (2026-07-08, confirmed 2026-07-31):
+  //   • Every new user starts with exactly 3 shared communities.
+  //   • "Shared" means: if a community matching the user's interests already
+  //     exists in their area, they JOIN it — the system never creates a copy.
+  //   • If no match exists, one canonical community is created. Future users
+  //     with the same interests in the same area join that same community.
+  //   • This method is ADDITIVE-ONLY and IDEMPOTENT:
+  //       - It never removes existing memberships.
+  //       - Retrying after a network failure returns the same result.
+  //   • Called ONLY from POST /api/onboarding/complete — never from a read path.
+
+  /**
+   * Assign exactly 3 questionnaire-matched communities to a newly onboarded user.
+   *
+   * Algorithm:
+   *   1. Load the user's current active memberships.
+   *   2. If they already have ≥ 3, return the existing set (idempotent retry).
+   *   3. Determine how many slots remain (needed = 3 − current.length).
+   *   4. Resolve the user's geographic market slug from their coordinates.
+   *   5. Select the top archetype tuples from the user's questionnaire + interests.
+   *   6. For each archetype:
+   *      a. Build canonical key: "{market}|{category}|{interest}"
+   *      b. Find or create the single canonical community for that key (race-safe).
+   *      c. Join the user to that community (idempotent via onConflictDoUpdate).
+   *   7. Return all 3 communities.
+   */
+  async assignOnboardingCommunities(userId: number): Promise<Community[]> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error(`assignOnboardingCommunities: user ${userId} not found`);
+
+    // Step 1 — Load existing active memberships
+    const existingRows = await db
+      .select({ communityId: communityMembers.communityId })
+      .from(communityMembers)
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)));
+    const existingIds = new Set(existingRows.map(r => r.communityId));
+
+    // Step 2 — Already has 3+ communities: idempotent, return existing
+    if (existingIds.size >= 3) {
+      const rows = await db
+        .select({ community: communities })
+        .from(communityMembers)
+        .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+        .limit(5);
+      return rows.map(r => r.community);
+    }
+
+    const needed = 3 - existingIds.size;
+
+    // Step 3 — Resolve geographic market slug
+    const market = await this.resolveMarket(user.latitude, user.longitude);
+
+    // Step 4 — Select the top archetypes from questionnaire + interests
+    const archetypes = this.selectTopThreeArchetypes(user, needed);
+
+    // Step 5 — For each archetype, find or create the canonical community, then join
+    const assigned: Community[] = [];
+    for (const arch of archetypes) {
+      if (assigned.length >= needed) break;
+      try {
+        const key = this.buildCanonicalKey(market, arch.category, arch.interest);
+        const community = await this.findOrCreateCanonicalCommunity(key, arch, market, user);
+        // Skip if already a member (handles partial-retry scenarios)
+        if (!existingIds.has(community.id)) {
+          await this.joinCommunity(userId, community.id);
+          existingIds.add(community.id);
+        }
+        assigned.push(community);
+      } catch (err) {
+        console.error(`[assignOnboardingCommunities] Failed for archetype ${arch.interest}:`, err);
+      }
+    }
+
+    // Return all active communities (original + newly assigned)
+    const allRows = await db
+      .select({ community: communities })
+      .from(communityMembers)
+      .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+      .limit(5);
+    return allRows.map(r => r.community);
+  }
+
+  /**
+   * Build a normalised canonical key.
+   * Inputs are lower-cased, stripped of special characters, and space-joined with hyphens.
+   * Format: "{market}|{category}|{interest}"
+   * Example: buildCanonicalKey("Ogden, UT", "outdoor", "Mountain Biking")
+   *          → "ogden-ut|outdoor|mountain-biking"
+   */
+  private buildCanonicalKey(market: string, category: string, interest: string): string {
+    const slug = (s: string) =>
+      s.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+    return `${slug(market)}|${slug(category)}|${slug(interest)}`;
+  }
+
+  /**
+   * Resolve a short geographic market slug from lat/lon.
+   * Uses the same BigDataCloud reverse-geocode endpoint already used in ai-matching.ts.
+   * Falls back to "virtual" if location is missing or the call fails.
+   * Example: 41.22, -111.97 → "ogden-ut"
+   */
+  private async resolveMarket(latitude: string | null | undefined, longitude: string | null | undefined): Promise<string> {
+    if (!latitude || !longitude) return 'virtual';
+    try {
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+      );
+      if (!res.ok) return 'virtual';
+      const geo = await res.json();
+      const city = (geo.city || geo.locality || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const state = (geo.principalSubdivisionCode || geo.principalSubdivision || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4);
+      if (!city) return 'virtual';
+      return state ? `${city}-${state}` : city;
+    } catch {
+      return 'virtual';
+    }
+  }
+
+  /**
+   * Select the top community archetypes for a user based on their questionnaire
+   * answers and explicit interest tags.
+   *
+   * Returns up to `needed` archetype objects, deduplicated by category.
+   * Each archetype has: { category, interest, displayName, description, intensity }
+   */
+  private selectTopThreeArchetypes(
+    user: User,
+    needed: number
+  ): Array<{ category: string; interest: string; displayName: string; description: string; intensity: string }> {
+    // Pull interests from quiz answers (priorityInterestIds / interestSpaces) + user.interests
+    const quizAnswers = (user.quizAnswers as Record<string, any>) || {};
+    const quizInterests: string[] = [
+      ...(Array.isArray(quizAnswers.interestSpaces) ? quizAnswers.interestSpaces : []),
+      ...(Array.isArray(quizAnswers.priorityInterestIds) ? quizAnswers.priorityInterestIds : []),
+      ...(Array.isArray(quizAnswers.goals) ? quizAnswers.goals : []),
+    ];
+    const allInterests = [...new Set([...quizInterests, ...(user.interests || [])])].map(i => i.toLowerCase());
+
+    // Master template library: each entry has a canonical key stub and UI data
+    const TEMPLATES: Record<string, { category: string; interest: string; displayName: (city: string) => string; description: string; intensity: string }> = {
+      'mountain-biking':   { category: 'outdoor',   interest: 'mountain-biking',   displayName: (c) => `${c} Mountain Bikers`,         description: 'Hit the trails and ride together — from beginner singletracks to expert descents.',               intensity: 'active' },
+      'hiking':            { category: 'outdoor',   interest: 'hiking',             displayName: (c) => `${c} Trail Hikers`,             description: 'Explore local trails, national parks, and weekend overnight hikes with great people.',              intensity: 'active' },
+      'outdoor':           { category: 'outdoor',   interest: 'outdoor',            displayName: (c) => `${c} Outdoor Adventurers`,      description: 'Camping, hiking, climbing, kayaking — if it\'s outside, we\'re in.',                              intensity: 'active' },
+      'running':           { category: 'fitness',   interest: 'running',            displayName: (c) => `${c} Runners`,                  description: 'Group runs, training plans, and race prep — for all paces and distances.',                        intensity: 'active' },
+      'fitness':           { category: 'fitness',   interest: 'fitness',            displayName: (c) => `${c} Fitness Crew`,             description: 'Workouts, accountability partners, and healthy habits — together.',                               intensity: 'active' },
+      'yoga':              { category: 'wellness',  interest: 'yoga',               displayName: (c) => `${c} Yoga Community`,           description: 'Connect with local yogis for classes, outdoor sessions, and mindful movement.',                    intensity: 'gentle' },
+      'wellness':          { category: 'wellness',  interest: 'wellness',           displayName: (c) => `${c} Wellness Circle`,          description: 'Mental health, healthy habits, and self-care — a supportive space to grow together.',              intensity: 'gentle' },
+      'music':             { category: 'arts',      interest: 'music',              displayName: (c) => `${c} Music Lovers`,             description: 'Live shows, jam sessions, listening parties — for people who live for music.',                      intensity: 'social' },
+      'arts':              { category: 'arts',      interest: 'arts',               displayName: (c) => `${c} Creative Collective`,      description: 'Artists, makers, writers, and dreamers creating and collaborating together.',                       intensity: 'social' },
+      'photography':       { category: 'arts',      interest: 'photography',        displayName: (c) => `${c} Photography Club`,         description: 'Photo walks, critiques, and creative shoots — for all skill levels.',                             intensity: 'social' },
+      'tech':              { category: 'tech',      interest: 'tech',               displayName: (c) => `${c} Tech Builders`,            description: 'Builders, hackers, and tech enthusiasts solving real problems together.',                           intensity: 'intellectual' },
+      'coding':            { category: 'tech',      interest: 'coding',             displayName: (c) => `${c} Developers`,               description: 'Pair programming, side projects, and code reviews — for all languages and levels.',                intensity: 'intellectual' },
+      'gaming':            { category: 'gaming',    interest: 'gaming',             displayName: (c) => `${c} Gamers`,                   description: 'Board games, video games, and tabletop RPGs — for every type of player.',                         intensity: 'social' },
+      'food':              { category: 'food',      interest: 'food',               displayName: (c) => `${c} Foodies`,                  description: 'Restaurant discoveries, cooking nights, food markets, and culinary adventures.',                  intensity: 'social' },
+      'cooking':           { category: 'food',      interest: 'cooking',            displayName: (c) => `${c} Home Cooks`,               description: 'Recipe swaps, cooking classes, dinner parties, and farmers market runs.',                          intensity: 'social' },
+      'social':            { category: 'social',    interest: 'social',             displayName: (c) => `${c} Social Connectors`,        description: 'Making your city feel smaller — meetups, events, and genuine connections.',                        intensity: 'social' },
+      'volunteering':      { category: 'community', interest: 'volunteering',       displayName: (c) => `${c} Community Builders`,       description: 'Volunteering, neighbourhood projects, and civic engagement in your city.',                          intensity: 'social' },
+      'reading':           { category: 'learning',  interest: 'reading',            displayName: (c) => `${c} Book Club`,                description: 'Monthly reads, author talks, and literary conversations for serious bookworms.',                    intensity: 'intellectual' },
+      'languages':         { category: 'learning',  interest: 'languages',          displayName: (c) => `${c} Language Exchange`,        description: 'Practise conversation, share culture, and make multilingual friends.',                             intensity: 'intellectual' },
+      'travel':            { category: 'social',    interest: 'travel',             displayName: (c) => `${c} Travellers`,               description: 'Trip planning, travel stories, and finding adventure partners near and far.',                      intensity: 'social' },
+      'dance':             { category: 'arts',      interest: 'dance',              displayName: (c) => `${c} Dancers`,                  description: 'Salsa, hip-hop, ballet, or just moving freely — everyone is welcome.',                            intensity: 'active' },
+      'cycling':           { category: 'outdoor',   interest: 'cycling',            displayName: (c) => `${c} Cyclists`,                 description: 'Road rides, gravel adventures, and bike commuters who love two wheels.',                          intensity: 'active' },
+      'climbing':          { category: 'outdoor',   interest: 'climbing',           displayName: (c) => `${c} Climbers`,                 description: 'Bouldering, sport, and trad — indoors and out, all abilities welcome.',                           intensity: 'active' },
+      'meditation':        { category: 'wellness',  interest: 'meditation',         displayName: (c) => `${c} Mindfulness Group`,        description: 'Guided sessions, silent sits, and mindful living practices together.',                            intensity: 'gentle' },
+      'entrepreneurship':  { category: 'business',  interest: 'entrepreneurship',   displayName: (c) => `${c} Founders & Builders`,      description: 'Founders, freelancers, and side-project builders helping each other grow.',                        intensity: 'intellectual' },
+    };
+
+    // Default fallback order when no interests match
+    const FALLBACK_ORDER = ['outdoor', 'social', 'wellness', 'food', 'arts', 'tech', 'fitness'];
+
+    const selected: typeof TEMPLATES[string][] = [];
+    const usedCategories = new Set<string>();
+
+    // Priority 1: interests that have a direct template match
+    for (const interest of allInterests) {
+      if (selected.length >= needed) break;
+      const tmpl = TEMPLATES[interest];
+      if (tmpl && !usedCategories.has(tmpl.category)) {
+        selected.push(tmpl);
+        usedCategories.add(tmpl.category);
+      }
+    }
+
+    // Priority 2: partial-match (interest is a substring of a template key)
+    if (selected.length < needed) {
+      for (const interest of allInterests) {
+        if (selected.length >= needed) break;
+        for (const [key, tmpl] of Object.entries(TEMPLATES)) {
+          if (!usedCategories.has(tmpl.category) && key.includes(interest.replace(/\s+/g, '-'))) {
+            selected.push(tmpl);
+            usedCategories.add(tmpl.category);
+            break;
+          }
+        }
+      }
+    }
+
+    // Priority 3: fallback by popularity
+    if (selected.length < needed) {
+      for (const fallbackKey of FALLBACK_ORDER) {
+        if (selected.length >= needed) break;
+        const tmpl = TEMPLATES[fallbackKey];
+        if (tmpl && !usedCategories.has(tmpl.category)) {
+          selected.push(tmpl);
+          usedCategories.add(tmpl.category);
+        }
+      }
+    }
+
+    // Map to archetype objects with the city placeholder as 'Local' (resolved later)
+    return selected.slice(0, needed).map(t => ({
+      category: t.category,
+      interest: t.interest,
+      displayName: t.displayName('Local'),
+      description: t.description,
+      intensity: t.intensity,
+    }));
+  }
+
+  /**
+   * Find or create the single canonical community for a given key.
+   * Race-safe: two concurrent onboarding requests with the same key will both
+   * resolve to the same community row via INSERT ON CONFLICT DO NOTHING.
+   *
+   * The community is created with isDeveloping=true (honest: new, no history).
+   * The city name is injected from the market slug for a legible display name.
+   */
+  private async findOrCreateCanonicalCommunity(
+    canonicalKey: string,
+    archetype: { category: string; interest: string; displayName: string; description: string },
+    market: string,
+    user: User
+  ): Promise<Community> {
+    // Step 1 — check for existing community
+    const existing = await db
+      .select()
+      .from(communities)
+      .where(eq(communities.canonicalKey, canonicalKey))
+      .limit(1);
+    if (existing[0]) return existing[0];
+
+    // Step 2 — build a human-readable city name from the market slug for the display name
+    // "ogden-ut" → "Ogden"
+    const cityName = market
+      .split('-')
+      .filter(p => p.length > 2 && !/^[a-z]{2}$/.test(p)) // exclude 2-letter state codes
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ') || 'Local';
+
+    // Derive the display name using the city
+    // We stored 'Local' as placeholder; replace it with the real city
+    const communityName = archetype.displayName.replace('Local', cityName);
+
+    const locationLabel = user.location || cityName;
+
+    // Step 3 — race-safe insert: ON CONFLICT DO NOTHING
+    // If two requests race here, only one INSERT wins; both then read the winner below.
+    await db
+      .insert(communities)
+      .values({
+        name: communityName,
+        description: archetype.description,
+        category: archetype.category,
+        location: locationLabel,
+        canonicalKey,
+        isDeveloping: true,
+        memberCount: 0,
+        isActive: true,
+      })
+      .onConflictDoNothing();
+
+    // Step 4 — fetch the winner (whether we created it or a concurrent request did)
+    const [community] = await db
+      .select()
+      .from(communities)
+      .where(eq(communities.canonicalKey, canonicalKey))
+      .limit(1);
+
+    if (!community) {
+      throw new Error(`findOrCreateCanonicalCommunity: failed to resolve community for key "${canonicalKey}"`);
+    }
+    return community;
+  }
+
+  // ── End Onboarding Community Assignment ────────────────────────────────────
 
   async updateCommunityActivityTimestamp(communityId: number): Promise<void> {
     try {
