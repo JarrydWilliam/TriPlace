@@ -20,6 +20,25 @@ async function run() {
       ADD COLUMN IF NOT EXISTS is_developing boolean NOT NULL DEFAULT false;
   `;
 
+  console.log('Ensuring event columns and seed events exist...');
+  await sql`
+    ALTER TABLE events
+      ADD COLUMN IF NOT EXISTS is_external boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS source_url text,
+      ADD COLUMN IF NOT EXISTS source_attribution text,
+      ADD COLUMN IF NOT EXISTS source_name text,
+      ADD COLUMN IF NOT EXISTS external_id text,
+      ADD COLUMN IF NOT EXISTS last_scraped_at timestamp with time zone DEFAULT NOW(),
+      ADD COLUMN IF NOT EXISTS expires_at timestamp with time zone,
+      ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+  `;
+
+  await sql`
+    INSERT INTO events (id, title, description, organizer, date, location, address, category, created_at)
+    VALUES (1, 'Salt Lake AI & Tech Gathering', 'Weekly community gathering for tech enthusiasts', 'SameVibe Community', NOW() + INTERVAL '7 days', 'Salt Lake City, UT', 'Main St & 200 S', 'ai-tech', NOW())
+    ON CONFLICT (id) DO NOTHING;
+  `;
+
   // 2. Clean up historical over-limit active community memberships (>5 for paid, >3 for free)
   console.log('Cleaning up historical over-limit active community memberships (>3 for free, >5 for paid)...');
   await sql`

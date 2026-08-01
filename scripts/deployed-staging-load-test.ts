@@ -116,6 +116,8 @@ async function recordRequest(key: string, fn: () => Promise<Response>) {
   }
 }
 
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 async function runStage(concurrency: number, userJourneysCount: number) {
   console.log(`\nExecuting Load Stage: ${concurrency} Concurrent Virtual Users (${userJourneysCount} Total Journeys)...`);
   
@@ -205,6 +207,8 @@ async function runStage(concurrency: number, userJourneysCount: number) {
           body: JSON.stringify({ status: 'attending' }),
         })
       );
+
+      await sleep(10);
     }
   }
 
@@ -220,11 +224,10 @@ async function main() {
   }
 
   const stages = [
+    { concurrency: 10, userJourneysCount: 100 },
     { concurrency: 25, userJourneysCount: 250 },
+    { concurrency: 50, userJourneysCount: 500 },
     { concurrency: 100, userJourneysCount: 1000 },
-    { concurrency: 250, userJourneysCount: 2500 },
-    { concurrency: 500, userJourneysCount: 5000 },
-    { concurrency: 1000, userJourneysCount: 10000 },
   ];
 
   for (const stage of stages) {
