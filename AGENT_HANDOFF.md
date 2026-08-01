@@ -1,7 +1,7 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (August 1, 2026)
-**Active Branch**: `Jarryd` (Remote HEAD SHA `cb53512` — Pushed to `origin/Jarryd`)  
+**Active Branch**: `Jarryd` (Remote HEAD SHA `80b20ed` — Pushed to `origin/Jarryd`)  
 **Application Release Candidate Tag**: `samevibe-rc-d012112` (Annotated tag for candidate SHA `d012112`)  
 **Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; STAGING HTTP LOAD HARNESS ENHANCED WITH FULL 7-STEP CORE LOOP & WORKER POOL; CONVERSATIONS N+1 QUERY RESOLVED; PHYSICAL TESTFLIGHT VERIFICATION REMAINS OPEN.**
 
@@ -120,6 +120,16 @@ This supersedes all older references to "guaranteed 3 communities for reviewer a
   - **Schema**: Unique indexes on `(user_id, community_id)` and `(user_id, event_id)`
   - **Scripts**: `join-reviewer-communities.ts` and `seed-reviewer.ts` have `NODE_ENV === 'production'` guard
 
+
+### 7. Vibe Passport (Dashboard Section 6 Replacement)
+- **Files**: `client/src/components/ui/vibe-passport.tsx` [NEW], `client/src/pages/dashboard.tsx`
+- **Changes**:
+  - Removed "My Activity & Challenges" section (StreakCard + generic Weekly Challenges progress bars).
+  - Removed `currentChallenges` array, `StreakCard` import, unused `Target` icon and `Progress` imports.
+  - Added `VibePassport` component: circular SVG ink-stamp badges with `feTurbulence` distressed edges, per-category colour palette, 3-column spring-animated grid.
+  - Lifetime tier card: New Traveler (0–4 stamps) → Regular (5–14) → Local Legend (15+) with animated progress bar.
+  - Data source: reuses the existing `userJoinedEvents` query, filtered client-side to `status === 'attended'`. No new API endpoint.
+  - Commit `80b20ed` pushed to `origin/Jarryd`.
 
 ---
 
