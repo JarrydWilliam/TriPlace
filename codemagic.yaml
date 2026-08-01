@@ -21,10 +21,16 @@ workflows:
     triggering:
       events:
         - push
+        - tag
       branch_patterns:
         - pattern: main
           include: true
         - pattern: Jarryd
+          include: true
+      tag_patterns:
+        - pattern: "samevibe-rc-*"
+          include: true
+        - pattern: "v*"
           include: true
     scripts:
       - name: Install Node dependencies
