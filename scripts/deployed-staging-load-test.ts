@@ -76,8 +76,9 @@ const metrics: Record<string, EndpointMetric> = {
   'POST /api/users': { endpoint: 'POST /api/users', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
   'POST /api/onboarding/complete': { endpoint: 'POST /api/onboarding/complete', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
   'GET /api/events/upcoming': { endpoint: 'GET /api/events/upcoming', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
-  'POST /api/communities/:id/join': { endpoint: 'POST /api/communities/:id/join', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
+  'POST /api/communities/:id/join (unpaid attempt)': { endpoint: 'POST /api/communities/:id/join (unpaid attempt)', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
   'POST /api/revenuecat/webhook': { endpoint: 'POST /api/revenuecat/webhook', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
+  'POST /api/communities/:id/join (post-upgrade)': { endpoint: 'POST /api/communities/:id/join (post-upgrade)', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
   'POST /api/events/:id/register': { endpoint: 'POST /api/events/:id/register', total: 0, success: 0, expectedProductResponses: 0, unexpected4xx: 0, err5xx: 0, latencies: [] },
 };
 
@@ -164,7 +165,7 @@ async function runStage(concurrency: number, userJourneysCount: number) {
       );
 
       // 4. Free User 4th Community Join Attempt (Expect 402 ENTITLEMENT_REQUIRED)
-      await recordRequest('POST /api/communities/:id/join', () =>
+      await recordRequest('POST /api/communities/:id/join (unpaid attempt)', () =>
         fetch(`${STAGING_URL}/api/communities/4/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
@@ -192,7 +193,7 @@ async function runStage(concurrency: number, userJourneysCount: number) {
       );
 
       // 6. Paid User 4th Community Join (Expect 200 OK after entitlement upgrade)
-      await recordRequest('POST /api/communities/:id/join', () =>
+      await recordRequest('POST /api/communities/:id/join (post-upgrade)', () =>
         fetch(`${STAGING_URL}/api/communities/4/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
