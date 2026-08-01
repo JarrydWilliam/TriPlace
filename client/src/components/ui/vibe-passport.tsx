@@ -1,35 +1,40 @@
 /**
- * VibePassport — Dashboard Section 6 replacement.
+ * VibePassport — Official Dashboard Section 6 Feature.
  *
- * Displays every GPS-verified event check-in (event_attendees.status = 'attended')
- * as a circular ink-stamp badge arranged in a passport-visa grid.
- * Also shows a lifetime tier card (New Traveler → Regular → Local Legend).
- *
- * Data source: reuses the userJoinedEvents query already fetched by the
- * dashboard, filtered client-side to status === 'attended'.
+ * Sourced from /api/users/:id/passport endpoint (GPS-verified check-ins).
+ * - Single-color metallic brass ink styling (#d4a24c / #e5b869)
+ * - feTurbulence distressed edge filter
+ * - Curved SVG textPath for category labels
+ * - Weekly reward completion bar (4 segments with gift icon 🎁 for consecutive weeks)
+ * - Frequent Traveler status badge
+ * - Lifetime Tier Card (New Traveler → Regular → Local Legend)
  */
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Stamp, MapPin, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Stamp, MapPin, Star, Gift, Sparkles } from "lucide-react";
+import { apiRequest, getApiUrl } from "@/lib/queryClient";
 
-// ─── Category colour map ───────────────────────────────────────────────────────
-const CATEGORY_PALETTE: Record<string, { ring: string; ink: string; bg: string }> = {
-  sports:   { ring: "#06b6d4", ink: "#06b6d4", bg: "rgba(6,182,212,0.12)" },
-  music:    { ring: "#a855f7", ink: "#a855f7", bg: "rgba(168,85,247,0.12)" },
-  art:      { ring: "#ec4899", ink: "#ec4899", bg: "rgba(236,72,153,0.12)" },
-  food:     { ring: "#f59e0b", ink: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  tech:     { ring: "#14b8a6", ink: "#14b8a6", bg: "rgba(20,184,166,0.12)" },
-  outdoors: { ring: "#22c55e", ink: "#22c55e", bg: "rgba(34,197,94,0.12)"  },
-  social:   { ring: "#818cf8", ink: "#818cf8", bg: "rgba(129,140,248,0.12)" },
-  creative: { ring: "#f472b6", ink: "#f472b6", bg: "rgba(244,114,182,0.12)" },
-  default:  { ring: "#06b6d4", ink: "#06b6d4", bg: "rgba(6,182,212,0.12)" },
-};
-
-function palette(category?: string) {
-  if (!category) return CATEGORY_PALETTE.default;
-  const key = category.toLowerCase();
-  return CATEGORY_PALETTE[key] ?? CATEGORY_PALETTE.default;
+interface PassportSummary {
+  totalStamps: number;
+  currentTier: string;
+  consecutiveCompletedWeeks: number;
+  isFrequentTraveler: boolean;
+  weeklyCompletions: Array<{
+    id: number;
+    weekIdentifier: string;
+    checkInCount: number;
+    isCompleted: boolean;
+  }>;
+  stamps: Array<{
+    id: number;
+    title: string;
+    category: string;
+    date: string;
+    location: string;
+    checkedInAt?: string;
+  }>;
 }
 
 // ─── Tier logic ────────────────────────────────────────────────────────────────
@@ -67,33 +72,42 @@ function getTier(count: number): {
   };
 }
 
-// ─── SVG Ink Stamp Badge ───────────────────────────────────────────────────────
-// Uses feTurbulence displacement to give edges a distressed, inked look.
-function InkStamp({
+// ─── Brass Ink Stamp Badge ─────────────────────────────────────────────────────
+// Uses single-color metallic brass ink (#d4a24c), feTurbulence, and SVG curved category text.
+function BrassInkStamp({
   event,
   index,
 }: {
   event: any;
   index: number;
 }) {
-  const p = palette(event.category);
-  const filterId = `inkdisplace-${index}`;
-  const dateLabel = event.date
-    ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  const filterId = `brass-inkdisplace-${index}`;
+  const arcId = `category-arc-${index}`;
+  
+  const dateLabel = event.date || event.checkedInAt
+    ? new Date(event.date || event.checkedInAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : "";
-  const words = (event.title as string).split(/\s+/);
+
+  const words = (event.title as string || "").split(/\s+/);
   const initials = words
     .slice(0, 2)
     .map((w: string) => w[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase() || "SV";
+
+  const categoryLabel = (event.category || "COMMUNITY").toUpperCase();
+
+  // Brass ink palette
+  const brassColor = "#d4a24c";
+  const brassLight = "#e5b869";
+  const brassBg = "rgba(212, 162, 76, 0.08)";
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.6, rotate: -8 }}
+      initial={{ opacity: 0, scale: 0.6, rotate: -6 }}
       animate={{ opacity: 1, scale: 1, rotate: 0 }}
       transition={{
-        delay: index * 0.06,
+        delay: index * 0.05,
         type: "spring",
         stiffness: 260,
         damping: 20,
@@ -101,94 +115,115 @@ function InkStamp({
       className="flex flex-col items-center gap-1.5"
     >
       <svg
-        width="80"
-        height="80"
-        viewBox="0 0 80 80"
+        width="84"
+        height="84"
+        viewBox="0 0 84 84"
         style={{ overflow: "visible" }}
         aria-label={`Stamp: ${event.title}`}
       >
         <defs>
+          {/* Distressed edge filter */}
           <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence
               type="turbulence"
-              baseFrequency="0.065"
+              baseFrequency="0.07"
               numOctaves="3"
-              seed={index + 1}
+              seed={index + 3}
               result="noise"
             />
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
-              scale="3.5"
+              scale="3.2"
               xChannelSelector="R"
               yChannelSelector="G"
             />
           </filter>
+
+          {/* Curved top arc for category textPath */}
+          {/* Arc path along the top half of circle (radius 30, center 42,42) */}
+          <path
+            id={arcId}
+            d="M 16,42 A 26,26 0 0,1 68,42"
+            fill="none"
+          />
         </defs>
 
-        {/* Outer distressed ring */}
+        {/* Outer distressed brass ring */}
         <circle
-          cx="40"
-          cy="40"
-          r="36"
+          cx="42"
+          cy="42"
+          r="38"
           fill="none"
-          stroke={p.ring}
+          stroke={brassColor}
           strokeWidth="3.5"
-          strokeDasharray="4 3"
+          strokeDasharray="5 3"
           filter={`url(#${filterId})`}
-          opacity="0.85"
+          opacity="0.88"
         />
 
         {/* Inner fill */}
-        <circle cx="40" cy="40" r="29" fill={p.bg} />
+        <circle cx="42" cy="42" r="31" fill={brassBg} />
 
-        {/* Inner thin ring */}
+        {/* Inner thin brass ring */}
         <circle
-          cx="40"
-          cy="40"
-          r="29"
+          cx="42"
+          cy="42"
+          r="31"
           fill="none"
-          stroke={p.ring}
+          stroke={brassLight}
           strokeWidth="1"
-          opacity="0.5"
+          opacity="0.6"
         />
 
-        {/* Initials text */}
+        {/* Curved category text along top arc */}
         <text
-          x="40"
-          y="38"
+          fill={brassColor}
+          fontSize="7.5"
+          fontWeight="700"
+          fontFamily="'Outfit', sans-serif"
+          letterSpacing="1"
+          opacity="0.8"
+        >
+          <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
+            {categoryLabel}
+          </textPath>
+        </text>
+
+        {/* Initials in center */}
+        <text
+          x="42"
+          y="42"
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={p.ink}
+          fill={brassColor}
           fontWeight="800"
           fontSize="16"
           fontFamily="'Outfit', sans-serif"
           letterSpacing="1"
-          opacity="0.9"
+          opacity="0.95"
         >
           {initials}
         </text>
 
-        {/* Date arc text at bottom */}
+        {/* Date text at bottom */}
         <text
-          x="40"
-          y="55"
+          x="42"
+          y="57"
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={p.ink}
-          fontWeight="500"
+          fill={brassLight}
+          fontWeight="600"
           fontSize="8"
           fontFamily="'Outfit', sans-serif"
-          opacity="0.7"
+          opacity="0.8"
         >
           {dateLabel}
         </text>
       </svg>
 
       {/* Event title below stamp */}
-      <p
-        className="text-[10px] text-white/60 font-medium text-center leading-tight max-w-[76px]"
-      >
+      <p className="text-[10px] text-white/60 font-medium text-center leading-tight max-w-[80px]">
         {(event.title as string).length > 20
           ? (event.title as string).slice(0, 18) + "…"
           : event.title}
@@ -199,41 +234,47 @@ function InkStamp({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 interface VibePassportProps {
-  /** All events the user has RSVP'd to — filtered here to status==='attended'. */
-  userJoinedEvents: any[] | undefined;
   userId: number;
+  userJoinedEvents?: any[];
 }
 
-export function VibePassport({ userJoinedEvents, userId }: VibePassportProps) {
-  // Filter to confirmed attended events only
-  const stamps = useMemo(() => {
-    if (!Array.isArray(userJoinedEvents)) return [];
-    return userJoinedEvents.filter(
-      (e: any) => e.attendeeStatus === "attended" || e.status === "attended"
-    );
-  }, [userJoinedEvents]);
+export function VibePassport({ userId }: VibePassportProps) {
+  // Query backend passport summary endpoint (requires auth)
+  const { data: passportData, isLoading } = useQuery<PassportSummary>({
+    queryKey: ["/api/users", userId, "passport"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}/passport`);
+      return res.json();
+    },
+    enabled: !!userId,
+  });
 
-  const tier = getTier(stamps.length);
-  const progressToNext = tier.nextAt
-    ? Math.min(100, (stamps.length / tier.nextAt) * 100)
-    : 100;
+  // Strictly use GPS-verified stamps from backend passport summary endpoint
+  const stamps = passportData?.stamps ?? [];
+
+  const totalStamps = passportData?.totalStamps ?? stamps.length;
+  const tier = getTier(totalStamps);
+
+  const consecutiveWeeks = passportData?.consecutiveCompletedWeeks ?? 0;
+  const isFrequentTraveler = passportData?.isFrequentTraveler ?? false;
+
+  // 4-segment weekly reward completion bar logic
+  const targetWeeks = 4;
+  const weeklyProgressPercent = Math.min(100, (consecutiveWeeks / targetWeeks) * 100);
 
   return (
-    <section
-      className="pt-4 border-t border-white/10 space-y-4"
-      aria-label="Vibe Passport"
-    >
+    <section className="pt-4 border-t border-white/10 space-y-4" aria-label="My Vibe Passport">
       {/* ── Section header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Stamp className="w-5 h-5 text-cyan-400" />
+          <Stamp className="w-5 h-5 text-[#d4a24c]" />
           <h2 className="font-display font-bold text-xl text-white tracking-tight">
             My Vibe Passport
           </h2>
         </div>
-        {stamps.length > 0 && (
-          <span className="text-xs font-semibold text-cyan-400">
-            {stamps.length} {stamps.length === 1 ? "stamp" : "stamps"}
+        {totalStamps > 0 && (
+          <span className="text-xs font-semibold text-[#d4a24c]">
+            {totalStamps} {totalStamps === 1 ? "stamp" : "stamps"}
           </span>
         )}
       </div>
@@ -243,11 +284,7 @@ export function VibePassport({ userJoinedEvents, userId }: VibePassportProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-800/60 backdrop-blur-xl p-4 shadow-xl"
-        style={{
-          boxShadow: `0 0 32px ${tier.color}22`,
-          borderColor: `${tier.color}33`,
-        }}
+        className="rounded-2xl border border-[#d4a24c]/30 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-800/70 backdrop-blur-xl p-4 shadow-xl relative overflow-hidden"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-start gap-3">
@@ -261,76 +298,101 @@ export function VibePassport({ userJoinedEvents, userId }: VibePassportProps) {
               {tier.emoji}
             </div>
             <div>
-              <p
-                className="text-sm font-bold leading-tight"
-                style={{ color: tier.color }}
-              >
+              <p className="text-sm font-bold leading-tight" style={{ color: tier.color }}>
                 {tier.label}
               </p>
               <p className="text-xs text-white/50 mt-0.5">{tier.description}</p>
             </div>
           </div>
+
           {tier.nextAt && (
             <div className="text-right flex-shrink-0">
               <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
                 Next tier
               </p>
               <p className="text-xs font-bold text-white/70 mt-0.5">
-                {stamps.length}/{tier.nextAt}
+                {totalStamps}/{tier.nextAt}
               </p>
             </div>
           )}
         </div>
-
-        {/* Tier progress bar */}
-        {tier.nextAt && (
-          <div className="mt-3">
-            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: tier.color }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progressToNext}%` }}
-                transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
-              />
-            </div>
-            <p className="text-[10px] text-white/30 mt-1">
-              {tier.nextAt - stamps.length} more{" "}
-              {tier.nextAt - stamps.length === 1 ? "stamp" : "stamps"} to{" "}
-              {tier.nextAt === 5 ? "Regular" : "Local Legend"}
-            </p>
-          </div>
-        )}
       </motion.div>
+
+      {/* ── 4-Segment Weekly Reward Completion Bar ── */}
+      <div className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Gift className="w-4 h-4 text-[#d4a24c]" />
+            <h3 className="text-xs font-bold text-white">Weekly Attendance Streak</h3>
+          </div>
+          <span className="text-[11px] font-semibold text-[#d4a24c]">
+            {consecutiveWeeks}/{targetWeeks} Weeks
+          </span>
+        </div>
+
+        {/* 4-segment progress bar */}
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((step) => {
+            const isFilled = consecutiveWeeks >= step;
+            const isTarget = step === 4;
+            return (
+              <div key={step} className="relative flex flex-col items-center">
+                <div
+                  className={`h-2.5 w-full rounded-full transition-all duration-500 ${
+                    isFilled
+                      ? "bg-gradient-to-r from-[#d4a24c] to-[#e5b869] shadow-md shadow-[#d4a24c]/30"
+                      : "bg-white/10"
+                  }`}
+                />
+                <div className="mt-1 flex items-center justify-center">
+                  {isTarget ? (
+                    <span className={`text-xs ${isFilled ? "opacity-100 scale-110" : "opacity-40"}`}>
+                      🎁
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-white/40 font-mono">W{step}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Status indicator */}
+        {isFrequentTraveler ? (
+          <div className="flex items-center gap-1.5 bg-[#d4a24c]/15 border border-[#d4a24c]/40 rounded-xl px-3 py-1.5 text-xs text-[#e5b869] font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-[#d4a24c] animate-pulse" />
+            <span>Frequent Traveler Status Unlocked! 🌟</span>
+          </div>
+        ) : (
+          <p className="text-[11px] text-white/40 leading-snug">
+            Check in at least 1 event per week for 4 consecutive weeks to unlock Frequent Traveler status & exclusive rewards.
+          </p>
+        )}
+      </div>
 
       {/* ── Stamp Grid ── */}
       {stamps.length > 0 ? (
-        <div
-          className="rounded-2xl border border-white/8 bg-slate-900/40 backdrop-blur-md p-4"
-          aria-label="Event stamps"
-        >
+        <div className="rounded-2xl border border-white/8 bg-slate-900/40 backdrop-blur-md p-4">
           <div className="grid grid-cols-3 gap-x-3 gap-y-5 justify-items-center">
             {stamps.map((event: any, i: number) => (
-              <InkStamp key={event.id ?? i} event={event} index={i} />
+              <BrassInkStamp key={event.id ?? i} event={event} index={i} />
             ))}
           </div>
         </div>
       ) : (
         /* ── Empty state ── */
         <div className="rounded-2xl border border-white/8 bg-slate-900/40 backdrop-blur-md p-8 flex flex-col items-center text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center">
-            <Stamp className="w-7 h-7 text-cyan-400/60" />
+          <div className="w-14 h-14 rounded-2xl bg-[#d4a24c]/10 border border-[#d4a24c]/30 flex items-center justify-center">
+            <Stamp className="w-7 h-7 text-[#d4a24c]" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white/70">
-              No stamps yet
-            </p>
+            <p className="text-sm font-semibold text-white/80">No stamps yet</p>
             <p className="text-xs text-white/40 mt-1 leading-relaxed">
-              Attend a community event and mark your attendance to earn your
-              first passport stamp.
+              Attend a community event and verify your GPS check-in to earn your first brass passport stamp.
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-cyan-400/70">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#d4a24c]">
             <MapPin className="w-3 h-3" />
             <span>Stamps are earned at GPS-verified events</span>
           </div>
@@ -340,9 +402,8 @@ export function VibePassport({ userJoinedEvents, userId }: VibePassportProps) {
       {/* ── Footer note ── */}
       {stamps.length > 0 && (
         <p className="text-[11px] text-white/25 text-center px-4 leading-relaxed">
-          Each stamp represents a real event you showed up to.{" "}
-          <Star className="w-2.5 h-2.5 inline-block mb-0.5 text-amber-400/50" /> Local
-          Legend at 15 stamps.
+          Each brass stamp represents a real event you checked into.{" "}
+          <Star className="w-2.5 h-2.5 inline-block mb-0.5 text-[#d4a24c]" /> Local Legend at 15 stamps.
         </p>
       )}
     </section>

@@ -26,6 +26,7 @@ import { Link } from "wouter";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { CommunityPosts } from "@/components/ui/community-posts";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { PageLoadingSpinner, ComponentLoadingSpinner } from "@/components/loading-spinner";
 
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
@@ -405,11 +406,7 @@ export default function CommunityPage() {
   };
 
   if (authLoading || (communityLoading && !community)) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center glass-panel">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    return <PageLoadingSpinner text="Loading community..." />;
   }
 
   if (!community || communityError) {
@@ -585,9 +582,7 @@ export default function CommunityPage() {
                 {/* Messages Container with Custom Scroll */}
                 <div className="flex-1 overflow-y-auto responsive-padding space-y-4 custom-scrollbar">
                   {messagesLoading ? (
-                    <div className="flex justify-center py-8">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                    </div>
+                    <ComponentLoadingSpinner text="Loading messages..." />
                   ) : messages?.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/ui/logo";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Users, MapPin, Calendar, Sparkles, Sun, Moon } from "lucide-react";
+import { PageLoadingSpinner } from "@/components/loading-spinner";
 import { Community, Event } from "@shared/schema";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -85,16 +86,7 @@ export default function CommunitiesPage() {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-pulse">
-            <Logo size="xl" />
-          </div>
-          <p className="text-sm text-muted-foreground">Loading communities...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingSpinner text="Loading communities..." />;
   }
 
   return (

@@ -4,7 +4,7 @@ import { storage } from '../server/storage.js';
 import { checkIs18OrOlder } from '../server/routes.js';
 import * as schema from '../shared/schema.js';
 import { db } from '../server/db.js';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 let passed = 0;
 let failed = 0;
@@ -210,9 +210,14 @@ async function runTests() {
   }
   assert(invalidReplaceHandled === true, 'Invalid replaceCommunityId handled safely');
 
-  // Cleanup test user and memberships
+  // Cleanup test user, memberships, and test communities
   await (storage as any).clearUserCommunities(testUser.id);
   await db.delete(schema.users).where(eq(schema.users.id, testUser.id));
+  const testCommIds = testComms.map(c => c.id);
+  if (testCommIds.length > 0) {
+    await db.delete(schema.communityMembers).where(inArray(schema.communityMembers.communityId, testCommIds));
+    await db.delete(schema.communities).where(inArray(schema.communities.id, testCommIds));
+  }
 
   console.log('\n────────────────────────────────────────────────────────────────────────────');
   console.log(`Test Results: ${passed} PASSED, ${failed} FAILED`);

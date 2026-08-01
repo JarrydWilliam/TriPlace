@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { VibeEventCard } from "@/components/ui/vibe-event-card";
+import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, Compass } from "lucide-react";
 import {
   AlertDialog,
@@ -207,11 +208,7 @@ export default function Discover() {
           </div>
 
           {loadingCommunities ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-32 rounded-2xl bg-muted/30 animate-pulse" />
-              ))}
-            </div>
+            <ComponentLoadingSpinner text="Finding matched communities..." />
           ) : filteredCommunities.length > 0 ? (
             <AnimatePresence mode="popLayout">
               <div className="space-y-3">

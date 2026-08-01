@@ -1,6 +1,6 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
-  telemetryEvents, userBlocks, userReports, eventReports, eventReviews,
+  telemetryEvents, userBlocks, userReports, eventReports, eventReviews, passportStatus, passportWeeklyCompletions,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
@@ -8,7 +8,8 @@ import {
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent,
   type UserBlock, type UserReport, type InsertUserReport,
-  type EventReport, type InsertEventReport
+  type EventReport, type InsertEventReport,
+  type PassportStatus, type PassportWeeklyCompletion
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -101,6 +102,18 @@ export interface IStorage {
   reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport>;
   reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport>;
   createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any>;
+
+  // Passport & Verification
+  checkInToEvent(userId: number, eventId: number, lat?: string, lon?: string): Promise<{ attendee: EventAttendee, stampEarned: boolean }>;
+  getPassportSummary(userId: number): Promise<{
+    totalStamps: number;
+    currentTier: string;
+    consecutiveCompletedWeeks: number;
+    isFrequentTraveler: boolean;
+    weeklyCompletions: PassportWeeklyCompletion[];
+    stamps: any[];
+  }>;
+  recomputeWeeklyPassportCompletion(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1749,6 +1762,193 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, eventId, rating, feltSafe, feedback: feedback ?? null })
       .returning();
     return review;
+  }
+
+  // ── Passport Infrastructure Implementation ──────────────────────────────────
+  async checkInToEvent(userId: number, eventId: number, lat?: string, lon?: string): Promise<{ attendee: EventAttendee, stampEarned: boolean }> {
+    const [targetEvent] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+    if (!targetEvent) {
+      throw new Error("Event not found");
+    }
+
+    const [attendee] = await db
+      .insert(eventAttendees)
+      .values({
+        userId,
+        eventId,
+        status: "attended",
+        registeredAt: new Date(),
+        checkedInAt: new Date(),
+        checkInLatitude: lat ?? null,
+        checkInLongitude: lon ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [eventAttendees.userId, eventAttendees.eventId],
+        set: {
+          status: "attended",
+          checkedInAt: new Date(),
+          checkInLatitude: lat ?? null,
+          checkInLongitude: lon ?? null,
+        },
+      })
+      .returning();
+
+    await this.addActivityItem(userId, "event_attended", {
+      eventId: targetEvent.id,
+      eventTitle: targetEvent.title,
+      checkedInAt: new Date().toISOString(),
+    });
+
+    await this.recomputeWeeklyPassportCompletion(userId);
+
+    return { attendee, stampEarned: true };
+  }
+
+  async recomputeWeeklyPassportCompletion(userId: number): Promise<void> {
+    const attendedList = await db
+      .select({
+        id: eventAttendees.id,
+        eventId: eventAttendees.eventId,
+        checkedInAt: eventAttendees.checkedInAt,
+        registeredAt: eventAttendees.registeredAt,
+        eventTitle: events.title,
+        eventDate: events.date,
+      })
+      .from(eventAttendees)
+      .innerJoin(events, eq(eventAttendees.eventId, events.id))
+      .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.status, "attended")));
+
+    const totalStamps = attendedList.length;
+    let currentTier = "New Traveler";
+    if (totalStamps >= 15) {
+      currentTier = "Local Legend";
+    } else if (totalStamps >= 5) {
+      currentTier = "Regular";
+    }
+
+    // Helper to format ISO week key e.g. "2026-W31"
+    const getWeekKey = (d: Date) => {
+      const target = new Date(d.valueOf());
+      const dayNr = (d.getDay() + 6) % 7;
+      target.setDate(target.getDate() - dayNr + 3);
+      const firstThursday = target.valueOf();
+      target.setMonth(0, 1);
+      if (target.getDay() !== 4) {
+        target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
+      }
+      const weekNumber = 1 + Math.round((firstThursday - target.valueOf()) / 604800000);
+      return `${d.getFullYear()}-W${String(weekNumber).padStart(2, "0")}`;
+    };
+
+    const weekCounts = new Map<string, number>();
+    for (const item of attendedList) {
+      const dateVal = item.checkedInAt ?? item.eventDate ?? item.registeredAt ?? new Date();
+      const weekKey = getWeekKey(new Date(dateVal));
+      weekCounts.set(weekKey, (weekCounts.get(weekKey) || 0) + 1);
+    }
+
+    for (const [weekKey, count] of weekCounts.entries()) {
+      await db
+        .insert(passportWeeklyCompletions)
+        .values({
+          userId,
+          weekIdentifier: weekKey,
+          checkInCount: count,
+          isCompleted: count >= 1,
+        })
+        .onConflictDoUpdate({
+          target: [passportWeeklyCompletions.userId, passportWeeklyCompletions.weekIdentifier],
+          set: {
+            checkInCount: count,
+            isCompleted: count >= 1,
+          },
+        });
+    }
+
+    // Calculate consecutive completed weeks looking backwards from current week
+    let consecutiveWeeks = 0;
+    const now = new Date();
+    for (let i = 0; i < 52; i++) {
+      const checkDate = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekKey = getWeekKey(checkDate);
+      const count = weekCounts.get(weekKey) || 0;
+      if (count >= 1) {
+        consecutiveWeeks++;
+      } else if (i > 0) {
+        break; // gap in consecutive weeks
+      }
+    }
+
+    const isFrequentTraveler = consecutiveWeeks >= 4 || totalStamps >= 15;
+
+    await db
+      .insert(passportStatus)
+      .values({
+        userId,
+        totalStamps,
+        currentTier,
+        consecutiveCompletedWeeks: consecutiveWeeks,
+        isFrequentTraveler,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [passportStatus.userId],
+        set: {
+          totalStamps,
+          currentTier,
+          consecutiveCompletedWeeks: consecutiveWeeks,
+          isFrequentTraveler,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async getPassportSummary(userId: number): Promise<{
+    totalStamps: number;
+    currentTier: string;
+    consecutiveCompletedWeeks: number;
+    isFrequentTraveler: boolean;
+    weeklyCompletions: PassportWeeklyCompletion[];
+    stamps: any[];
+  }> {
+    await this.recomputeWeeklyPassportCompletion(userId);
+
+    const [status] = await db
+      .select()
+      .from(passportStatus)
+      .where(eq(passportStatus.userId, userId))
+      .limit(1);
+
+    const weeklyCompletions = await db
+      .select()
+      .from(passportWeeklyCompletions)
+      .where(eq(passportWeeklyCompletions.userId, userId))
+      .orderBy(desc(passportWeeklyCompletions.weekIdentifier))
+      .limit(8);
+
+    const stampRows = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        category: events.category,
+        date: events.date,
+        location: events.location,
+        checkedInAt: eventAttendees.checkedInAt,
+        status: eventAttendees.status,
+      })
+      .from(eventAttendees)
+      .innerJoin(events, eq(eventAttendees.eventId, events.id))
+      .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.status, "attended")))
+      .orderBy(desc(eventAttendees.checkedInAt));
+
+    return {
+      totalStamps: status?.totalStamps ?? stampRows.length,
+      currentTier: status?.currentTier ?? (stampRows.length >= 15 ? "Local Legend" : stampRows.length >= 5 ? "Regular" : "New Traveler"),
+      consecutiveCompletedWeeks: status?.consecutiveCompletedWeeks ?? 0,
+      isFrequentTraveler: status?.isFrequentTraveler ?? false,
+      weeklyCompletions: weeklyCompletions ?? [],
+      stamps: stampRows ?? [],
+    };
   }
 }
 

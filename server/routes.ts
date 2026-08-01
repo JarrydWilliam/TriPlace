@@ -1722,6 +1722,53 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+  // ── Vibe Passport Endpoints ──────────────────────────────────────────────────
+  app.get("/api/users/:id/passport", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const summary = await storage.getPassportSummary(userId);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching passport summary:", error);
+      res.status(500).json({ message: "Failed to fetch passport summary" });
+    }
+  });
+
+  app.post("/api/events/:id/check-in", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { latitude, longitude } = req.body || {};
+      const result = await storage.checkInToEvent(actingUser.id, eventId, latitude, longitude);
+
+      res.json({
+        success: true,
+        message: "Check-in verified! Stamp added to your Vibe Passport.",
+        ...result,
+      });
+    } catch (error: any) {
+      console.error("Error performing GPS check-in:", error);
+      res.status(500).json({ message: error.message || "Failed to check in" });
+    }
+  });
+
   // Global events route for communities page
   app.get("/api/events/global", async (req, res) => {
     try {

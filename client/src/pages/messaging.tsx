@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,9 +172,7 @@ function DMThread({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
+          <ComponentLoadingSpinner text="Loading messages..." />
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <MessageCircle className="w-12 h-12 text-muted-foreground/20 mb-4" />
@@ -309,17 +308,7 @@ export default function Messaging() {
               {/* Conversations */}
               <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
                 {isLoading ? (
-                  <div className="space-y-3 px-2 pt-4">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-muted/30 animate-pulse flex-shrink-0" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 bg-muted/30 rounded animate-pulse w-2/3" />
-                          <div className="h-2.5 bg-muted/20 rounded animate-pulse w-1/2" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <ComponentLoadingSpinner text="Loading conversations..." />
                 ) : filtered.length > 0 ? (
                   filtered.map((convo) => (
                     <ConvoItem

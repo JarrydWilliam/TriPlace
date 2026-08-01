@@ -156,6 +156,9 @@ export const eventAttendees = pgTable(
       .notNull(),
     status: text("status").default("interested"), // interested, going, attended
     registeredAt: timestamp("registered_at").defaultNow(),
+    checkedInAt: timestamp("checked_in_at"),
+    checkInLatitude: text("check_in_latitude"),
+    checkInLongitude: text("check_in_longitude"),
   },
   (t) => ({
     // F13: Unique constraint prevents duplicate RSVP/attendance rows on double-tap
@@ -550,3 +553,43 @@ export const insertSlotGrantSchema = createInsertSchema(slotGrants).pick({
 });
 export type SlotGrant = typeof slotGrants.$inferSelect;
 export type InsertSlotGrant = z.infer<typeof insertSlotGrantSchema>;
+
+// ── Vibe Passport Infrastructure ──────────────────────────────────────────────
+export const passportStatus = pgTable("passport_status", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  totalStamps: integer("total_stamps").default(0).notNull(),
+  currentTier: text("current_tier").default("New Traveler").notNull(),
+  consecutiveCompletedWeeks: integer("consecutive_completed_weeks").default(0).notNull(),
+  isFrequentTraveler: boolean("is_frequent_traveler").default(false).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const passportWeeklyCompletions = pgTable(
+  "passport_weekly_completions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weekIdentifier: text("week_identifier").notNull(), // e.g. "2026-W31"
+    checkInCount: integer("check_in_count").default(0).notNull(),
+    isCompleted: boolean("is_completed").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniqUserWeek: uniqueIndex("pwc_user_week_unique").on(t.userId, t.weekIdentifier),
+  })
+);
+
+export const insertPassportStatusSchema = createInsertSchema(passportStatus);
+export type PassportStatus = typeof passportStatus.$inferSelect;
+export type InsertPassportStatus = z.infer<typeof insertPassportStatusSchema>;
+
+export const insertPassportWeeklyCompletionSchema = createInsertSchema(passportWeeklyCompletions);
+export type PassportWeeklyCompletion = typeof passportWeeklyCompletions.$inferSelect;
+export type InsertPassportWeeklyCompletion = z.infer<typeof insertPassportWeeklyCompletionSchema>;
+

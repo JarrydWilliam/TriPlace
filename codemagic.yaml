@@ -19,19 +19,7 @@ workflows:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     triggering:
-      events:
-        - push
-        - tag
-      branch_patterns:
-        - pattern: main
-          include: true
-        - pattern: Jarryd
-          include: true
-      tag_patterns:
-        - pattern: "samevibe-rc-*"
-          include: true
-        - pattern: "v*"
-          include: true
+      events: []
     scripts:
       - name: Install Node dependencies
         script: |
@@ -196,6 +184,8 @@ workflows:
         - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.samevibe.app
+    triggering:
+      events: []
     scripts:
       - name: Install Node dependencies
         script: npm install

@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { TopBar } from "@/components/layout/top-bar";
+import { PageLoadingSpinner } from "@/components/loading-spinner";
 import { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,11 +210,7 @@ export default function Profile() {
   };
 
   if (authLoading || (!isOwnProfile && profileUserLoading)) {
-    return (
-      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="Loading profile..." />;
   }
 
   if (!user) {
