@@ -119,10 +119,14 @@ async function recordRequest(key: string, fn: () => Promise<Response>) {
 async function runStage(concurrency: number, userJourneysCount: number) {
   console.log(`\nExecuting Load Stage: ${concurrency} Concurrent Virtual Users (${userJourneysCount} Total Journeys)...`);
   
-  const tasks: Promise<void>[] = [];
-  for (let i = 1; i <= concurrency; i++) {
-    const uid = `staging_user_${concurrency}_${i}_${Date.now()}`;
-    const task = (async () => {
+  let currentIndex = 0;
+  async function worker() {
+    while (true) {
+      const i = ++currentIndex;
+      if (i > userJourneysCount) break;
+
+      const uid = `staging_user_${concurrency}_${i}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
       // 1. Account Signup
       await recordRequest('POST /api/users', () => 
         fetch(`${STAGING_URL}/api/users`, {
@@ -156,12 +160,57 @@ async function runStage(concurrency: number, userJourneysCount: number) {
           headers: { 'x-test-firebase-uid': uid },
         })
       );
-    })();
-    tasks.push(task);
+
+      // 4. Free User 4th Community Join Attempt (Expect 402 ENTITLEMENT_REQUIRED)
+      await recordRequest('POST /api/communities/:id/join', () =>
+        fetch(`${STAGING_URL}/api/communities/4/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
+        })
+      );
+
+      // 5. RevenueCat Purchase Webhook (Grant 5-slot entitlement)
+      const txnKey = `txn_staging_${uid}`;
+      await recordRequest('POST /api/revenuecat/webhook', () =>
+        fetch(`${STAGING_URL}/api/revenuecat/webhook`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-revenuecat-secret': process.env.REVENUECAT_WEBHOOK_SECRET || 'staging_webhook_secret_key',
+          },
+          body: JSON.stringify({
+            event: {
+              type: 'INITIAL_PURCHASE',
+              app_user_id: uid,
+              transaction_id: txnKey,
+              product_id: 'samevibe_plus_monthly',
+            },
+          }),
+        })
+      );
+
+      // 6. Paid User 4th Community Join (Expect 200 OK after entitlement upgrade)
+      await recordRequest('POST /api/communities/:id/join', () =>
+        fetch(`${STAGING_URL}/api/communities/4/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
+        })
+      );
+
+      // 7. Event Registration / RSVP
+      await recordRequest('POST /api/events/:id/register', () =>
+        fetch(`${STAGING_URL}/api/events/1/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-test-firebase-uid': uid },
+          body: JSON.stringify({ status: 'attending' }),
+        })
+      );
+    }
   }
 
-  await Promise.all(tasks);
-  console.log(`✅ Stage ${concurrency} Concurrent Users completed.`);
+  const workers = Array.from({ length: concurrency }, () => worker());
+  await Promise.all(workers);
+  console.log(`✅ Stage ${concurrency} Concurrent Users completed (${userJourneysCount} Total Journeys executed).`);
 }
 
 async function main() {
@@ -170,9 +219,16 @@ async function main() {
     console.log(`✅ Started local staging test server listening on ${STAGING_URL}`);
   }
 
-  const stages = [25, 100, 250, 500, 1000];
-  for (const concurrency of stages) {
-    await runStage(concurrency, concurrency * 10);
+  const stages = [
+    { concurrency: 25, userJourneysCount: 250 },
+    { concurrency: 100, userJourneysCount: 1000 },
+    { concurrency: 250, userJourneysCount: 2500 },
+    { concurrency: 500, userJourneysCount: 5000 },
+    { concurrency: 1000, userJourneysCount: 10000 },
+  ];
+
+  for (const stage of stages) {
+    await runStage(stage.concurrency, stage.userJourneysCount);
   }
 
   if (server) {

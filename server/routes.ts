@@ -1352,21 +1352,9 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       if (!actingUser?.id || Number(actingUser.id) !== userId) {
         return res.status(403).json({ message: "Forbidden: You can only read your own conversations." });
       }
-      const rawConversations = await storage.getUserConversations(userId);
       
-      // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
-      const normalized = await Promise.all(rawConversations.map(async (c) => {
-        const conversation = await storage.getConversation(userId, c.user.id);
-        const unreadCount = conversation.filter(
-          (m) => m.receiverId === userId && !m.isRead
-        ).length;
-        return {
-          otherUser: c.user,
-          lastMessage: c.lastMessage,
-          unreadCount,
-        };
-      }));
-      
+      // Batch fetch all conversations with unread counts in 2 constant queries (eliminates N+1 query bottleneck)
+      const normalized = await storage.getUserConversationsWithUnread(userId);
       res.json(normalized);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

@@ -71,6 +71,7 @@ export interface IStorage {
   getMessage(id: number): Promise<Message | undefined>;
   getConversation(userId1: number, userId2: number): Promise<Message[]>;
   getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]>;
+  getUserConversationsWithUnread(userId: number): Promise<{ otherUser: User, lastMessage: Message, unreadCount: number }[]>;
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
@@ -1150,22 +1151,74 @@ export class DatabaseStorage implements IStorage {
       .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
       .orderBy(desc(messages.createdAt));
     
-    const conversations: { user: User, lastMessage: Message }[] = [];
-    const seenUsers = new Set<number>();
+    if (userMessages.length === 0) return [];
     
-    for (const message of userMessages) {
-      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
-      
-      if (!seenUsers.has(otherUserId)) {
-        const otherUser = await this.getUser(otherUserId);
-        if (otherUser) {
-          conversations.push({ user: otherUser, lastMessage: message });
-          seenUsers.add(otherUserId);
-        }
+    const conversationsMap = new Map<number, Message>();
+    for (const msg of userMessages) {
+      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, msg);
       }
     }
     
-    return conversations;
+    const otherUserIds = Array.from(conversationsMap.keys());
+    if (otherUserIds.length === 0) return [];
+
+    const otherUsers = await db.select().from(users).where(inArray(users.id, otherUserIds));
+    const userMap = new Map(otherUsers.map(u => [u.id, u]));
+
+    const result: { user: User, lastMessage: Message }[] = [];
+    for (const otherUserId of otherUserIds) {
+      const otherUser = userMap.get(otherUserId);
+      const lastMessage = conversationsMap.get(otherUserId);
+      if (otherUser && lastMessage) {
+        result.push({ user: otherUser, lastMessage });
+      }
+    }
+    return result;
+  }
+
+  async getUserConversationsWithUnread(userId: number): Promise<{ otherUser: User, lastMessage: Message, unreadCount: number }[]> {
+    const userMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+    
+    if (userMessages.length === 0) return [];
+
+    const conversationsMap = new Map<number, { lastMessage: Message, unreadCount: number }>();
+    
+    for (const msg of userMessages) {
+      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      let entry = conversationsMap.get(otherUserId);
+      if (!entry) {
+        entry = { lastMessage: msg, unreadCount: 0 };
+        conversationsMap.set(otherUserId, entry);
+      }
+      if (msg.receiverId === userId && !msg.isRead) {
+        entry.unreadCount++;
+      }
+    }
+
+    const otherUserIds = Array.from(conversationsMap.keys());
+    if (otherUserIds.length === 0) return [];
+
+    const otherUsers = await db.select().from(users).where(inArray(users.id, otherUserIds));
+    const userMap = new Map(otherUsers.map(u => [u.id, u]));
+
+    const result: { otherUser: User, lastMessage: Message, unreadCount: number }[] = [];
+    for (const otherUserId of otherUserIds) {
+      const otherUser = userMap.get(otherUserId);
+      const conv = conversationsMap.get(otherUserId);
+      if (otherUser && conv) {
+        result.push({
+          otherUser,
+          lastMessage: conv.lastMessage,
+          unreadCount: conv.unreadCount,
+        });
+      }
+    }
+
+    return result;
   }
 
   async sendMessage(insertMessage: InsertMessage): Promise<Message> {
