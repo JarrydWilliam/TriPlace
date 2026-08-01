@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { SharedCommunityCard } from "@/components/ui/community-card";
@@ -25,7 +25,6 @@ import {
   Plus,
   Clock,
   Star,
-  Target,
   Award,
   Users,
   TrendingUp,
@@ -86,7 +85,7 @@ import { ShareQR } from "@/components/ui/share-qr";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { PWAInstall } from "@/components/ui/pwa-install";
 import { AgentInsightsCard } from "@/components/ui/agent-insights";
-import { StreakCard } from "@/components/ui/streak-card";
+import { VibePassport } from "@/components/ui/vibe-passport";
 
 import { EventCalendar } from "@/components/ui/event-calendar";
 import { EventDetailsModal } from "@/components/ui/event-details-modal";
@@ -504,59 +503,7 @@ export default function Dashboard() {
   });
   const kudosThisMonth = monthlyKudos.data ?? 0;
 
-  const currentChallenges: Array<{
-    id: string;
-    title: string;
-    progress: number;
-    target: number;
-    current: number;
-  }> = [
-    {
-      id: "join-events",
-      title: "Join 3 community events this week",
-      current: Array.isArray(userJoinedEvents)
-        ? userJoinedEvents.filter((event: any) => {
-            const eventDate = new Date(event.date);
-            const weekStart = new Date();
-            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            return eventDate >= weekStart;
-          }).length
-        : 0,
-      target: 3,
-      progress: Math.min(
-        100,
-        ((Array.isArray(userJoinedEvents)
-          ? userJoinedEvents.filter((event: any) => {
-              const eventDate = new Date(event.date);
-              const weekStart = new Date();
-              weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-              return eventDate >= weekStart;
-            }).length
-          : 0) /
-          3) *
-          100
-      ),
-    },
-    {
-      id: "send-messages",
-      title: "Send 5 community messages",
-      // Message count will be computed from actual community messages when available
-      current: 0,
-      target: 5,
-      progress: 0,
-    },
-    {
-      id: "join-communities",
-      title: "Join 2 new communities",
-      current: Array.isArray(userActiveCommunities)
-        ? Math.min(userActiveCommunities.length, 2)
-        : 0,
-      target: 2,
-      progress: Array.isArray(userActiveCommunities)
-        ? Math.min(100, (userActiveCommunities.length / 2) * 100)
-        : 0,
-    },
-  ];
+
 
   // Color coding for communities
   const communityColors: Record<string, string> = {
@@ -894,56 +841,11 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* ── SECTION 6: My Activity & Challenges ── */}
-            <section className="pt-4 border-t border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary" />
-                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
-                    My Activity & Challenges
-                  </h2>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <StreakCard userId={user.id} />
-
-                {/* Weekly Challenges */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-white">Weekly Challenges</h3>
-                  {currentChallenges.length > 0 ? (
-                    <div className="space-y-3">
-                      {currentChallenges.map((challenge) => (
-                        <div
-                          key={challenge.id}
-                          className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-4 space-y-3"
-                        >
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-foreground">
-                              {challenge.title}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {challenge.current}/{challenge.target}
-                            </span>
-                          </div>
-                          <Progress value={challenge.progress} className="h-2" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="glass-card bg-card/40 backdrop-blur-md border border-border/40 rounded-2xl p-6 text-center space-y-2">
-                      <Target className="w-8 h-8 text-muted-foreground mx-auto" />
-                      <p className="text-sm font-medium text-foreground">
-                        No active challenges
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Stay active to unlock weekly challenges!
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
+            {/* ── SECTION 6: My Vibe Passport ── */}
+            <VibePassport
+              userJoinedEvents={userJoinedEvents}
+              userId={user.id}
+            />
           </div>
         </div>
       </PullToRefresh>
