@@ -11,6 +11,10 @@ import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessa
 import { generateCommunityImage } from "./utils/community-image-gen.js";
 import { db } from "./db.js";
 import { sql as drizzleSql, eq } from "drizzle-orm";
+import { ContentSafetyAgent } from "./agents/content-safety-agent.js";
+import { HobbyTrendAgent } from "./agents/hobby-trend-agent.js";
+import { AutoFixAgent } from "./agents/auto-fix-agent.js";
+import { SupportFeedbackAgent } from "./agents/support-feedback-agent.js";
 import { z } from "zod";
 
 import express from "express";
@@ -1769,6 +1773,263 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+  // ── Hobby Discovery Quiz Catalog & Analytics ──────────────────────────────────
+  app.get("/api/hobbies/catalog", async (req, res) => {
+    try {
+      const MAINSTREAM_HOBBIES = [
+        { id: "pickleball", label: "Pickleball & Padel", emoji: "🏓", description: "The fastest-growing racquet sports combining quick reflexes, easy rallies, and instant social atmosphere." },
+        { id: "specialty-coffee", label: "Specialty Coffee", emoji: "☕", description: "Exploring single-origin pour-overs, artisan espresso, and cozy third places with fellow caffeine enthusiasts." },
+        { id: "trail-running", label: "Trail Running & Hiking", emoji: "🥾", description: "Connecting with nature, conquering scenic elevation, and sharing post-hike high-fives on outdoorsy trails." },
+        { id: "board-games", label: "Board Games & TTRPGs", emoji: "🎲", description: "Diving into modern strategy board games, D&D campaigns, and game nights packed with laughter and friendly competition." },
+        { id: "craft-brewing", label: "Craft Beer & Wine", emoji: "🍺", description: "Sipping microbrews, natural wines, and craft cider while discussing tasting notes with local connoisseurs." },
+        { id: "bouldering", label: "Bouldering & Climbing", emoji: "🧗", description: "Solving physical puzzles on indoor walls and outdoor crags alongside an encouraging, high-energy community." },
+        { id: "vinyl-records", label: "Vinyl & Hi-Fi Audio", emoji: "🎧", description: "Hunting for rare analog pressings, listening sessions on tube amps, and celebrating full-album deep dives." },
+        { id: "sourdough-baking", label: "Artisanal Baking", emoji: "🍞", description: "Fermenting starters, perfecting crusty sourdough loaves, and sharing baked treats with friends." },
+        { id: "pottery", label: "Pottery & Ceramics", emoji: "🏺", description: "Getting your hands dirty on the potter's wheel, glazing handmade mugs, and finding mindful creative flow." },
+        { id: "houseplants", label: "Indoor Plant Jungle", emoji: "🪴", description: "Propagating rare monsteras, designing indoor jungles, and swapping plant cuttings with green thumbs." },
+        { id: "film-photography", label: "Analog Film Photo", emoji: "📷", description: "Shooting 35mm film, developing darkroom prints, and appreciating slow, intentional visual storytelling." },
+        { id: "yoga-movement", label: "Yoga & Somatics", emoji: "🧘", description: "Stretching, breathwork, and mindful movement to reset your nervous system in a peaceful group setting." },
+        { id: "cycling", label: "Gravel Riding & Cycling", emoji: "🚲", description: "Pedaling scenic backroads, commuting in group rides, and grabbing espresso stops with cycling buddies." },
+        { id: "cozy-gaming", label: "Cozy & Indie Gaming", emoji: "🎮", description: "Relaxing with Stardew Valley, indie gems, and chill multiplayer sessions with low-stress gamers." },
+        { id: "mocktails", label: "Craft Mocktails", emoji: "🍹", description: "Brewing kombucha, crafting zero-proof botanical cocktails, and hosting alcohol-free social hours." },
+      ];
+
+      const EMERGING_HOBBIES = [
+        { id: "urban-foraging", label: "Urban Foraging", emoji: "🍄", description: "Discovering edible plants, wild mushrooms, and medicinal herbs growing right in your city's parks." },
+        { id: "cold-plunge", label: "Cold Plunge & Sauna", emoji: "🧊", description: "Invigorating ice baths, Finnish saunas, and dopamine-boosting contrast wellness sessions with a tight squad." },
+        { id: "zine-making", label: "Zines & Press Art", emoji: "📰", description: "Designing indie mini-magazines, vintage letterpress typography, and printing physical zines by hand." },
+        { id: "rucking", label: "Rucking & Endurance", emoji: "🎒", description: "Walking with weighted backpacks to build functional strength, endurance, and outdoor camaraderie." },
+        { id: "sound-baths", label: "Sound Baths & Gongs", emoji: "🔔", description: "Floating in deep acoustic resonance with singing bowls, gongs, and immersive sonic meditation." },
+        { id: "custom-keyboards", label: "Custom Keyboards", emoji: "⌨️", description: "Soldering switches, lubing stabilizers, and customizing tactile mechanical keyboards with artisan keycaps." },
+        { id: "fiber-art", label: "Chunky Fiber Art", emoji: "🧶", description: "Arm-knitting chunky blankets, tufting rugs, and crafting fiber art in cozy community sip-and-stitch circles." },
+        { id: "disc-golf", label: "Disc Golf Rounds", emoji: "🥏", description: "Tossing precision discs through park courses and exploring new greenways on casual weekend rounds." },
+        { id: "grain-milling", label: "Ancient Grain Milling", emoji: "🌾", description: "Milling heritage grains, heirloom wheat flours, and baking nutrient-dense traditional flatbreads." },
+        { id: "astrophotography", label: "Stargazing & Astro", emoji: "🌌", description: "Capturing deep-sky nebulae with portable smart telescopes and camping under dark skies with astronomy buffs." },
+      ];
+
+      // Enrich with latest HobbyTrendAgent insights
+      const trendReport = await HobbyTrendAgent.getLatestTrendReport();
+
+      const enrichedMainstream = MAINSTREAM_HOBBIES.map(item => {
+        const trendData = trendReport.mainstreamTrends[item.id];
+        return {
+          ...item,
+          count: trendData?.count || 0,
+          velocityPercent: trendData?.velocityPercent || 0,
+          isTrending: trendData?.isTrending || false,
+        };
+      }).sort((a, b) => (b.count + (b.isTrending ? 10 : 0)) - (a.count + (a.isTrending ? 10 : 0)));
+
+      const enrichedEmerging = EMERGING_HOBBIES.map(item => {
+        const trendData = trendReport.emergingTrends[item.id];
+        return {
+          ...item,
+          count: trendData?.count || 0,
+          velocityPercent: trendData?.velocityPercent || 0,
+          isTrending: trendData?.isTrending || false,
+        };
+      }).sort((a, b) => (b.count + (b.isTrending ? 10 : 0)) - (a.count + (a.isTrending ? 10 : 0)));
+
+      res.json({ mainstream: enrichedMainstream, emerging: enrichedEmerging });
+    } catch (error) {
+      console.error("Error building hobby catalog:", error);
+      res.status(500).json({ message: "Failed to load hobby catalog" });
+    }
+  });
+
+  app.post("/api/hobbies/quiz-submit", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { pickedMainstreamHobbies = [], pickedEmergingHobbies = [], freeformHobby } = req.body || {};
+
+      if (freeformHobby && typeof freeformHobby === "string" && freeformHobby.length > 200) {
+        return res.status(400).json({ message: "Freeform hobby entry must be less than 200 characters" });
+      }
+
+      // Record analytics entry
+      const analyticsEntry = await storage.createHobbyTrendAnalytics({
+        userId: actingUser.id,
+        pickedMainstreamHobbies: Array.isArray(pickedMainstreamHobbies) ? pickedMainstreamHobbies : [],
+        pickedEmergingHobbies: Array.isArray(pickedEmergingHobbies) ? pickedEmergingHobbies : [],
+        freeformHobby: freeformHobby ? String(freeformHobby).trim() : null,
+      });
+
+      // Update user interests
+      const combinedInterests = Array.from(
+        new Set([
+          ...pickedMainstreamHobbies,
+          ...pickedEmergingHobbies,
+          ...(freeformHobby ? [String(freeformHobby).trim()] : []),
+        ])
+      );
+
+      const currentUser = await storage.getUser(actingUser.id);
+      if (currentUser) {
+        const existingInterests = currentUser.interests || [];
+        const updatedInterests = Array.from(new Set([...existingInterests, ...combinedInterests]));
+        await storage.updateUser(actingUser.id, { interests: updatedInterests });
+      }
+
+      res.json({
+        success: true,
+        message: "Hobby quiz selections saved successfully!",
+        analytics: analyticsEntry,
+      });
+    } catch (error: any) {
+      console.error("Error submitting hobby quiz:", error);
+      res.status(500).json({ message: "Failed to submit hobby quiz" });
+    }
+  });
+
+  // ── Moderation Agent Admin Endpoints ──────────────────────────────────────────
+  app.get("/api/admin/moderation/flagged", requireAdmin, async (req, res) => {
+    try {
+      const flaggedList = await storage.getPendingFlaggedContent();
+      res.json(flaggedList);
+    } catch (error) {
+      console.error("Error fetching flagged content:", error);
+      res.status(500).json({ message: "Failed to fetch flagged content" });
+    }
+  });
+
+  app.post("/api/admin/moderation/:id/action", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { action } = req.body || {}; // 'approved', 'removed', 'warned'
+
+      if (isNaN(id) || !["approved", "removed", "warned"].includes(action)) {
+        return res.status(400).json({ message: "Invalid moderation request" });
+      }
+
+      const actingAdmin = (req as any).user || { id: 1 };
+      const resolved = await storage.resolveFlaggedContent(id, actingAdmin.id, action);
+
+      res.json({
+        success: true,
+        message: `Content flagged log resolved with status: ${action}`,
+        resolved,
+      });
+    } catch (error) {
+      console.error("Error taking moderation action:", error);
+      res.status(500).json({ message: "Failed to resolve moderation log" });
+    }
+  });
+
+  // ── Hobby Trend Analysis Admin Endpoints ─────────────────────────────────────
+  app.get("/api/admin/hobbies/trends", requireAdmin, async (req, res) => {
+    try {
+      const report = await HobbyTrendAgent.analyzeTrends();
+      res.json(report);
+    } catch (error) {
+      console.error("Error analyzing hobby trends:", error);
+      res.status(500).json({ message: "Failed to generate hobby trend report" });
+    }
+  });
+
+  // ── AI Customer Support & Auto-Fix System ────────────────────────────────────
+  app.post("/api/support/quick-fix", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { actionKey } = req.body || {};
+      if (!actionKey) {
+        return res.status(400).json({ message: "Action key required" });
+      }
+
+      const result = await AutoFixAgent.executeFix(actingUser.id, actionKey);
+
+      if (result.applied) {
+        await storage.createSupportTicket({
+          userId: actingUser.id,
+          subject: `Automated Quick-Fix: ${actionKey}`,
+          category: "app_fix",
+          priority: "low",
+          status: "auto_fixed",
+          userMessage: `Executed quick-fix action: ${actionKey}`,
+          aiResponse: result.userMessage,
+          autoFixApplied: result.actionKey,
+        });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error executing quick-fix:", error);
+      res.status(500).json({ message: "Failed to execute quick-fix" });
+    }
+  });
+
+  app.post("/api/support/ai-chat", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { subject = "General Support Request", userMessage } = req.body || {};
+      if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Triage and generate AI response
+      const triage = SupportFeedbackAgent.triageAndCategorize(userMessage.trim());
+
+      // Create support ticket
+      const ticket = await storage.createSupportTicket({
+        userId: actingUser.id,
+        subject: subject.trim(),
+        category: triage.category,
+        priority: triage.priority,
+        status: "open",
+        userMessage: userMessage.trim(),
+        aiResponse: triage.aiResponse,
+      });
+
+      // Dispatch priority email alert to jarryd@SameVibeapp.com if urgent/high priority
+      await SupportFeedbackAgent.processPriorityEmailAlert(ticket);
+
+      // Execute auto-fix if applicable
+      let autoFixResult = null;
+      if (triage.suggestedActionKey) {
+        autoFixResult = await AutoFixAgent.executeFix(actingUser.id, triage.suggestedActionKey);
+        if (autoFixResult.applied) {
+          await storage.updateSupportTicket(ticket.id, {
+            status: "auto_fixed",
+            autoFixApplied: autoFixResult.actionKey,
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        ticket,
+        aiResponse: triage.aiResponse,
+        suggestedActionKey: triage.suggestedActionKey,
+        autoFixResult,
+      });
+    } catch (error: any) {
+      console.error("Error processing AI support chat:", error);
+      res.status(500).json({ message: "Failed to process support request" });
+    }
+  });
+
+  app.get("/api/admin/support/insights", requireAdmin, async (req, res) => {
+    try {
+      const digest = await SupportFeedbackAgent.generateAppImprovementDigest();
+      const openTickets = await storage.getSupportTickets();
+      res.json({ digest, openTickets });
+    } catch (error) {
+      console.error("Error generating support insights:", error);
+      res.status(500).json({ message: "Failed to load support insights" });
+    }
+  });
+
   // Global events route for communities page
   app.get("/api/events/global", async (req, res) => {
     try {
@@ -1830,6 +2091,15 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       const actingUser = (req as any).user;
       if (!actingUser?.id || !content) {
         return res.status(400).json({ message: "Content is required and user must be authenticated" });
+      }
+
+      // Content Safety Agent inspection
+      const safetyCheck = await ContentSafetyAgent.inspectAndLog(content.trim(), actingUser.id, "communityMessage");
+      if (!safetyCheck.safe) {
+        return res.status(422).json({
+          message: "Message violates community safety guidelines and has been hidden for review.",
+          reason: safetyCheck.reason,
+        });
       }
       
       const messageData = {

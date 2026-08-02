@@ -1,6 +1,7 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
   telemetryEvents, userBlocks, userReports, eventReports, eventReviews, passportStatus, passportWeeklyCompletions,
+  hobbyTrendAnalytics, flaggedContent, supportTickets,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
@@ -9,7 +10,10 @@ import {
   type TelemetryEvent, type InsertTelemetryEvent,
   type UserBlock, type UserReport, type InsertUserReport,
   type EventReport, type InsertEventReport,
-  type PassportStatus, type PassportWeeklyCompletion
+  type PassportStatus, type PassportWeeklyCompletion,
+  type HobbyTrendAnalytics, type InsertHobbyTrendAnalytics,
+  type FlaggedContent, type InsertFlaggedContent,
+  type SupportTicket, type InsertSupportTicket
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -114,6 +118,18 @@ export interface IStorage {
     stamps: any[];
   }>;
   recomputeWeeklyPassportCompletion(userId: number): Promise<void>;
+
+  // Hobby Trend Analytics & Moderation
+  createHobbyTrendAnalytics(entry: InsertHobbyTrendAnalytics): Promise<HobbyTrendAnalytics>;
+  getHobbyTrendAnalytics(): Promise<HobbyTrendAnalytics[]>;
+  createFlaggedContentLog(entry: InsertFlaggedContent): Promise<FlaggedContent>;
+  getPendingFlaggedContent(): Promise<FlaggedContent[]>;
+  resolveFlaggedContent(id: number, reviewerId: number, status: string): Promise<FlaggedContent | undefined>;
+
+  // Support Tickets
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  getSupportTickets(userId?: number): Promise<SupportTicket[]>;
+  updateSupportTicket(id: number, updates: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1949,6 +1965,83 @@ export class DatabaseStorage implements IStorage {
       weeklyCompletions: weeklyCompletions ?? [],
       stamps: stampRows ?? [],
     };
+  }
+
+  // ── Hobby Trend Analytics & Content Moderation ──────────────────────────────
+  async createHobbyTrendAnalytics(entry: InsertHobbyTrendAnalytics): Promise<HobbyTrendAnalytics> {
+    const [analytics] = await db
+      .insert(hobbyTrendAnalytics)
+      .values(entry)
+      .returning();
+    return analytics;
+  }
+
+  async getHobbyTrendAnalytics(): Promise<HobbyTrendAnalytics[]> {
+    return await db
+      .select()
+      .from(hobbyTrendAnalytics)
+      .orderBy(desc(hobbyTrendAnalytics.createdAt));
+  }
+
+  async createFlaggedContentLog(entry: InsertFlaggedContent): Promise<FlaggedContent> {
+    const [log] = await db
+      .insert(flaggedContent)
+      .values(entry)
+      .returning();
+    return log;
+  }
+
+  async getPendingFlaggedContent(): Promise<FlaggedContent[]> {
+    return await db
+      .select()
+      .from(flaggedContent)
+      .where(eq(flaggedContent.status, "pending"))
+      .orderBy(desc(flaggedContent.flaggedAt));
+  }
+
+  async resolveFlaggedContent(id: number, reviewerId: number, status: string): Promise<FlaggedContent | undefined> {
+    const [updated] = await db
+      .update(flaggedContent)
+      .set({
+        status,
+        reviewerId,
+        reviewedAt: new Date(),
+      })
+      .where(eq(flaggedContent.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ── Support Tickets Implementation ──────────────────────────────────────────
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [row] = await db
+      .insert(supportTickets)
+      .values(ticket)
+      .returning();
+    return row;
+  }
+
+  async getSupportTickets(userId?: number): Promise<SupportTicket[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, userId))
+        .orderBy(desc(supportTickets.createdAt));
+    }
+    return await db
+      .select()
+      .from(supportTickets)
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateSupportTicket(id: number, updates: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set(updates)
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated;
   }
 }
 

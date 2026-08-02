@@ -57,7 +57,7 @@ export function PageLoadingSpinner({ text = "Loading..." }: { text?: string }) {
             SameVibe
           </h1>
           <p className="text-sm font-medium text-pink-400/90 tracking-wide">
-            Find your Third Place.
+            Find Your People, Find Your ThirdPlace
           </p>
 
           <div className="flex items-center gap-1 mt-2">
@@ -88,7 +88,7 @@ export function ComponentLoadingSpinner({ text }: { text?: string }) {
     <div className="flex flex-col items-center justify-center p-8 gap-3">
       <LoadingSpinner size="lg" text={text} useLogo={true} />
       <p className="text-xs text-muted-foreground font-medium">
-        Find your Third Place.
+        Find Your People, Find Your ThirdPlace
       </p>
     </div>
   );

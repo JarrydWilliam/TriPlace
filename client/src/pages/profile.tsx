@@ -28,7 +28,10 @@ import {
   Activity,
   Shield,
   Sparkles,
+  Bot,
+  HelpCircle,
 } from "lucide-react";
+import { AiSupportDrawer } from "@/components/support/ai-support-drawer";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useParams } from "wouter";
@@ -59,6 +62,7 @@ export default function Profile() {
     bio: "",
     location: "",
   });
+  const [supportDrawerOpen, setSupportDrawerOpen] = useState(false);
 
   const [privacySettings, setPrivacySettings] = useState({
     showProfileInDiscovery: true,
@@ -353,13 +357,23 @@ export default function Profile() {
                   </div>
 
                   {!isEditing && isOwnProfile && (
-                    <Button
-                      onClick={handleEditClick}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 md:mt-0">
+                      <Button
+                        onClick={handleEditClick}
+                        className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                      <Button
+                        onClick={() => setSupportDrawerOpen(true)}
+                        variant="outline"
+                        className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 w-full sm:w-auto gap-2"
+                      >
+                        <Bot className="h-4 w-4 text-cyan-400" />
+                        AI Support & Fixes
+                      </Button>
+                    </div>
                   )}
 
                   {!isOwnProfile && (
@@ -671,6 +685,8 @@ export default function Profile() {
       </div>
 
       <MobileNav />
+      {/* AI Support Drawer */}
+      <AiSupportDrawer open={supportDrawerOpen} onOpenChange={setSupportDrawerOpen} />
     </div>
   );
 }

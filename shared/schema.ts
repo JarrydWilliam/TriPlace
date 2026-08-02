@@ -593,3 +593,58 @@ export const insertPassportWeeklyCompletionSchema = createInsertSchema(passportW
 export type PassportWeeklyCompletion = typeof passportWeeklyCompletions.$inferSelect;
 export type InsertPassportWeeklyCompletion = z.infer<typeof insertPassportWeeklyCompletionSchema>;
 
+// ── Hobby Discovery Trend Analytics ──────────────────────────────────────────
+export const hobbyTrendAnalytics = pgTable("hobby_trend_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  pickedMainstreamHobbies: text("picked_mainstream_hobbies").array().default([]).notNull(),
+  pickedEmergingHobbies: text("picked_emerging_hobbies").array().default([]).notNull(),
+  freeformHobby: text("freeform_hobby"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHobbyTrendAnalyticsSchema = createInsertSchema(hobbyTrendAnalytics);
+export type HobbyTrendAnalytics = typeof hobbyTrendAnalytics.$inferSelect;
+export type InsertHobbyTrendAnalytics = z.infer<typeof insertHobbyTrendAnalyticsSchema>;
+
+// ── Content Safety & Moderation Agent ────────────────────────────────────────
+export const flaggedContent = pgTable("flagged_content", {
+  id: serial("id").primaryKey(),
+  contentType: text("content_type").notNull(), // 'communityMessage', 'eventComment', 'userProfile'
+  contentId: integer("content_id"),
+  authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
+  flagReason: text("flag_reason").notNull(), // 'violence', 'hate_speech', 'explicit', 'illegal', 'doxxing'
+  contentSnippet: text("content_snippet").notNull(),
+  confidenceScore: doublePrecision("confidence_score").default(1.0),
+  status: text("status").default("pending").notNull(), // 'pending', 'approved', 'removed', 'warned'
+  reviewerId: integer("reviewer_id").references(() => users.id, { onDelete: "set null" }),
+  flaggedAt: timestamp("flagged_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertFlaggedContentSchema = createInsertSchema(flaggedContent);
+export type FlaggedContent = typeof flaggedContent.$inferSelect;
+export type InsertFlaggedContent = z.infer<typeof insertFlaggedContentSchema>;
+
+// ── Support Tickets & AI Auto-Fix System ─────────────────────────────────────
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  category: text("category").default("app_fix").notNull(), // 'app_fix', 'account_issue', 'billing', 'feedback', 'feature_request'
+  priority: text("priority").default("medium").notNull(), // 'low', 'medium', 'high', 'urgent'
+  status: text("status").default("open").notNull(), // 'open', 'auto_fixed', 'resolved', 'escalated'
+  userMessage: text("user_message").notNull(),
+  aiResponse: text("ai_response"),
+  autoFixApplied: text("auto_fix_applied"), // e.g. 'resynced_location', 'recomputed_slots', 'repaired_memberships'
+  emailNotified: boolean("email_notified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets);
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+
+

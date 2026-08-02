@@ -37,6 +37,7 @@ import Discover from "@/pages/discover";
 import Events from "@/pages/events";
 import DeleteAccount from "@/pages/delete-account";
 import AdminMetrics from "@/pages/admin/metrics";
+import ModerationDashboard from "@/pages/admin/moderation-dashboard";
 
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
@@ -184,7 +185,7 @@ function Router() {
               SameVibe
             </h1>
             <p className="text-sm font-medium text-pink-400/90 tracking-wide">
-              Find your Third Place.
+              Find Your People, Find Your ThirdPlace
             </p>
 
             <div className="flex items-center gap-1 mt-2">
@@ -243,6 +244,7 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/delete-account" component={DeleteAccount} />
         <Route path="/admin/metrics" component={AdminRoute} />
+        <Route path="/admin/moderation" component={ModerationDashboard} />
 
         {/* Fallback to 404 */}
         <Route component={NotFound} />

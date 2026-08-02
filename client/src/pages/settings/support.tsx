@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, HelpCircle, Mail, MessageSquare, AlertTriangle, Book, ExternalLink, Send, FileText, Shield, Star } from "lucide-react";
+import { ArrowLeft, HelpCircle, Mail, MessageSquare, AlertTriangle, Book, ExternalLink, Send, FileText, Shield, Star, Bot, Sparkles } from "lucide-react";
+import { AiSupportDrawer } from "@/components/support/ai-support-drawer";
 import { Link } from "wouter";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
@@ -14,6 +15,7 @@ import { VibePageHeader } from "@/components/layout/vibe-page-header";
 export default function SupportSettings() {
   const { toast } = useToast();
   
+  const [supportDrawerOpen, setSupportDrawerOpen] = useState(false);
   const [feedbackForm, setFeedbackForm] = useState({
     type: 'feedback',
     subject: '',
@@ -88,13 +90,24 @@ export default function SupportSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => setSupportDrawerOpen(true)}
+                  className="w-full h-20 flex-col space-y-1 bg-gradient-to-r from-cyan-600/30 to-primary/30 border border-cyan-500/40 hover:from-cyan-600/40 hover:to-primary/40 text-white"
+                >
+                  <Bot className="w-6 h-6 text-cyan-300" />
+                  <div className="text-center">
+                    <p className="font-bold text-white">AI Support & On-the-Fly Fixes</p>
+                    <p className="text-xs text-cyan-200/80">Real-time troubleshooting & quick-fixes</p>
+                  </div>
+                </Button>
+
                 <a href="mailto:support@samevibe.app?subject=Help%20Request">
-                  <Button variant="outline" className="w-full h-20 flex-col space-y-2">
-                    <Book className="w-6 h-6 text-cyan-400" />
+                  <Button variant="outline" className="w-full h-20 flex-col space-y-1 border-white/10">
+                    <Mail className="w-6 h-6 text-cyan-400" />
                     <div className="text-center">
-                      <p className="font-medium">Email Support</p>
-                      <p className="text-sm text-muted-foreground">support@samevibe.app</p>
+                      <p className="font-medium">Direct Email Support</p>
+                      <p className="text-xs text-muted-foreground">jarryd@SameVibeapp.com</p>
                     </div>
                   </Button>
                 </a>
@@ -347,6 +360,8 @@ export default function SupportSettings() {
         </div>
       </div>
       <MobileNav />
+      {/* AI Support Drawer */}
+      <AiSupportDrawer open={supportDrawerOpen} onOpenChange={setSupportDrawerOpen} />
     </div>
   );
 }
