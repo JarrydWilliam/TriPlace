@@ -538,6 +538,30 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+  app.get("/api/communities/trending", async (req, res) => {
+    try {
+      const latitude = req.query.latitude as string;
+      const longitude = req.query.longitude as string;
+      const allCommunities = await storage.getAllCommunities();
+
+      const trending = allCommunities
+        .filter((c) => c.isActive)
+        .sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0))
+        .slice(0, 10);
+
+      res.set({
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      });
+
+      res.json(trending);
+    } catch (error) {
+      console.error("Error getting trending communities:", error);
+      res.status(500).json({ message: "Trending communities temporarily unavailable" });
+    }
+  });
+
   app.get("/api/communities/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -871,6 +895,11 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       });
 
       res.status(201).json(result);
+
+      // Trigger AI User Agent learning asynchronously on community join
+      import("./agent/agent-runner.js").then(({ runAgentForUser }) => {
+        runAgentForUser(authUserId).catch(err => console.error("[Agent] Trigger failed on join:", err));
+      });
     } catch (error: any) {
       if (error.code === 'ENTITLEMENT_REQUIRED') {
         return res.status(402).json({

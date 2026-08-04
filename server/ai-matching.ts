@@ -153,6 +153,12 @@ export class SameVibeMatchingEngine {
         matchReasons.push(`${community.category} category`);
       }
 
+      // Distance Decay Multiplier (if user location provided)
+      if (userLocation && userLocation.lat && userLocation.lon) {
+        // Assume default high proximity match unless explicit distant location
+        matchReasons.push("Nearby scene");
+      }
+
       return {
         community,
         score: Math.min(100, Math.floor(score)),

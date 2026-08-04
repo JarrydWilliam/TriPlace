@@ -45,6 +45,7 @@ import {
   Compass,
   X,
   Sparkles,
+  Flame,
 } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
@@ -283,6 +284,19 @@ export default function Dashboard() {
   // Get live member counts for user's communities
   const communityIds = userActiveCommunities?.map((c: any) => c.id) || [];
   const { getLiveCount } = useLiveMembers(communityIds);
+
+  // Fetch geo-scoped trending communities
+  const { data: trendingCommunities = [], isLoading: trendingCommunitiesLoading } = useQuery<any[]>({
+    queryKey: ["/api/communities/trending", latitude, longitude],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (latitude) params.append("latitude", latitude.toString());
+      if (longitude) params.append("longitude", longitude.toString());
+      const res = await fetch(getApiUrl(`/api/communities/trending?${params.toString()}`));
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   // Fetch events user has joined from communities
   const { data: userJoinedEvents, isLoading: eventsLoading } = useQuery({
@@ -789,6 +803,42 @@ export default function Dashboard() {
               ) : (
                 <SuggestedCommunitiesEmpty userId={user?.id} onExplore={() => setRouterLocation("/discover")} />
               )}
+            </section>
+
+            {/* ── SECTION 5: Trending Communities Near You ── */}
+            <section className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-amber-400" />
+                  <h2 className="font-display font-bold text-xl text-white tracking-tight">
+                    Trending Communities Near You
+                  </h2>
+                </div>
+                <Link href="/discover">
+                  <span className="text-xs font-semibold text-amber-400 hover:underline cursor-pointer">
+                    Explore Trends
+                  </span>
+                </Link>
+              </div>
+
+              {trendingCommunitiesLoading ? (
+                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                  <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mr-2" />
+                  Loading local trending scenes...
+                </div>
+              ) : Array.isArray(trendingCommunities) && trendingCommunities.length > 0 ? (
+                <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2 pt-1">
+                  {trendingCommunities.map((community: any) => (
+                    <div key={community.id} className="w-[270px] min-w-[270px] max-w-[270px] h-[220px] snap-start flex-shrink-0">
+                      <SharedCommunityCard
+                        community={community}
+                        joined={userActiveCommunities?.some((c: any) => c.id === community.id)}
+                        onJoin={() => handleJoinClick(community)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </section>
 
             {/* ── SECTION 5: Trending Local Events (Vertical List) ── */}
