@@ -25,8 +25,8 @@ export function runDeploymentChecks(): DeploymentCheck[] {
     required: true
   });
 
-  // OpenAI API check
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  // OpenAI API check (Server environment)
+  const hasOpenAI = typeof process !== 'undefined' && process.env ? !!process.env.OPENAI_API_KEY : false;
   checks.push({
     name: 'OpenAI API Key',
     status: hasOpenAI ? 'pass' : 'warning',
