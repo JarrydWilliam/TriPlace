@@ -97,6 +97,8 @@ export class RedditEventsScraper {
         location: location,
         category: this.categorizeEvent(title, content),
         source: 'reddit',
+        sourceName: 'Reddit',
+        isExternal: true,
         sourceUrl: url,
         organizerName: `r/${subreddit}`,
         attendeeCount: postData.ups || 0 // Use upvotes as interest indicator

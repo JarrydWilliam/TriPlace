@@ -219,7 +219,7 @@ export default function CompleteProfile() {
     }
 
     if (getAge() < 18) {
-      setError('You must be at least 18 years old to use SameVibe.');
+      setError('SameVibe requires members to be at least 18 years old.');
       return;
     }
 

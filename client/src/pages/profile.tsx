@@ -1,7 +1,9 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { TopBar } from "@/components/layout/top-bar";
+import { PageLoadingSpinner } from "@/components/loading-spinner";
 import { User } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import {
   MapPin,
   Calendar,
@@ -23,7 +26,12 @@ import {
   Bookmark,
   Users,
   Activity,
+  Shield,
+  Sparkles,
+  Bot,
+  HelpCircle,
 } from "lucide-react";
+import { AiSupportDrawer } from "@/components/support/ai-support-drawer";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useParams } from "wouter";
@@ -37,7 +45,7 @@ const interestColors = [
   "bg-blue-500/20 text-blue-400",
   "bg-pink-500/20 text-pink-400",
   "bg-orange-500/20 text-orange-400",
-  "bg-purple-500/20 text-purple-400",
+  "bg-accent/20 text-accent",
   "bg-cyan-500/20 text-cyan-400",
   "bg-yellow-500/20 text-yellow-400",
 ];
@@ -54,6 +62,29 @@ export default function Profile() {
     bio: "",
     location: "",
   });
+  const [supportDrawerOpen, setSupportDrawerOpen] = useState(false);
+
+  const [privacySettings, setPrivacySettings] = useState({
+    showProfileInDiscovery: true,
+    showLocation: true,
+    showActivityStatus: true,
+    allowDirectMessages: true,
+    showJoinedEvents: true,
+  });
+
+  // Sync privacySettings state when currentUser loads from PostgreSQL
+  useEffect(() => {
+    if (currentUser?.discoverySettings && typeof currentUser.discoverySettings === "object") {
+      const ds = currentUser.discoverySettings as any;
+      setPrivacySettings({
+        showProfileInDiscovery: ds.showProfileInDiscovery ?? true,
+        showLocation: ds.showLocation ?? true,
+        showActivityStatus: ds.showActivityStatus ?? true,
+        allowDirectMessages: ds.allowDirectMessages ?? true,
+        showJoinedEvents: ds.showJoinedEvents ?? true,
+      });
+    }
+  }, [currentUser]);
 
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userId || userId === currentUser?.id?.toString();
@@ -98,23 +129,27 @@ export default function Profile() {
     enabled: !!targetUserId,
   });
 
-  // Update user profile mutation
+  // Update user profile & privacy settings mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: typeof editForm) => {
+    mutationFn: async (updates: any) => {
       if (!currentUser) throw new Error("No user found");
       const response = await apiRequest(
         "PATCH",
         `/api/users/${currentUser.id}`,
-        updates
+        {
+          ...updates,
+          discoverySettings: privacySettings,
+        }
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(["/api/users", currentUser?.id], updatedUser);
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsEditing(false);
       toast({
-        title: "Profile updated!",
-        description: "Your profile has been successfully updated.",
+        title: "Profile & Privacy Updated! 🛡️",
+        description: "Your privacy preferences and profile have been saved to your account.",
       });
     },
     onError: () => {
@@ -179,11 +214,7 @@ export default function Profile() {
   };
 
   if (authLoading || (!isOwnProfile && profileUserLoading)) {
-    return (
-      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="Loading profile..." />;
   }
 
   if (!user) {
@@ -206,11 +237,10 @@ export default function Profile() {
 
       <div className="flex min-h-[100dvh]">
         <Sidebar />
+        <main className="flex-1 pb-nav">
+          <VibePageHeader mode="detail" title="Profile" />
 
-        <main className="flex-1 pb-28 md:pb-8">
-          <TopBar />
-
-          <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 relative z-10">
+          <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 relative z-10 pb-36">
             {/* Profile Header */}
             <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/5 shadow-2xl rounded-3xl overflow-hidden">
               <CardContent className="p-6">
@@ -292,7 +322,7 @@ export default function Profile() {
                           <Button
                             onClick={handleCancel}
                             variant="outline"
-                            className="border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                            className="border-border/30 text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                           >
                             <X className="h-4 w-4 mr-2" />
                             Cancel
@@ -327,13 +357,23 @@ export default function Profile() {
                   </div>
 
                   {!isEditing && isOwnProfile && (
-                    <Button
-                      onClick={handleEditClick}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 mt-4 md:mt-0">
+                      <Button
+                        onClick={handleEditClick}
+                        className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                      <Button
+                        onClick={() => setSupportDrawerOpen(true)}
+                        variant="outline"
+                        className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 w-full sm:w-auto gap-2"
+                      >
+                        <Bot className="h-4 w-4 text-cyan-400" />
+                        AI Support & Fixes
+                      </Button>
+                    </div>
                   )}
 
                   {!isOwnProfile && (
@@ -440,7 +480,7 @@ export default function Profile() {
                   </div>
                 ) : (
                   <InlineEmptyState
-                    icon={<Heart className="w-5 h-5 text-gray-500" />}
+                    icon={<Heart className="w-5 h-5 text-muted-foreground" />}
                     title="No interests yet"
                     description="Complete your onboarding to add interests."
                   />
@@ -521,11 +561,132 @@ export default function Profile() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Privacy Controls Card with Live Interactive Toggles */}
+            {isOwnProfile && (
+              <Card className="glass-card bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl rounded-3xl overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-cyan-400" />
+                      <span>Privacy Controls</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
+                      Active Shield
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4 divide-y divide-white/5">
+                    {/* Toggle 1: Show Profile in Discovery */}
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="pr-4">
+                        <p className="font-semibold text-sm text-white">Show Profile in Community Discovery</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Allow members to find your profile in local interest groups</p>
+                      </div>
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showProfileInDiscovery ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showProfileInDiscovery ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showProfileInDiscovery}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showProfileInDiscovery: checked }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Toggle 2: Show Location */}
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="pr-4">
+                        <p className="font-semibold text-sm text-white">Show Approximate Location</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Display your city name to group members</p>
+                      </div>
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showLocation ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showLocation ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showLocation}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showLocation: checked }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Toggle 3: Show Activity Status */}
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="pr-4">
+                        <p className="font-semibold text-sm text-white">Show Live Online Activity Status</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Let community members see when you're active</p>
+                      </div>
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showActivityStatus ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showActivityStatus ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showActivityStatus}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showActivityStatus: checked }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Toggle 4: Allow Direct Messages */}
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="pr-4">
+                        <p className="font-semibold text-sm text-white">Allow Direct Messaging</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Permit group members from shared events to message you</p>
+                      </div>
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.allowDirectMessages ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.allowDirectMessages ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.allowDirectMessages}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, allowDirectMessages: checked }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Toggle 5: Show Joined Events */}
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="pr-4">
+                        <p className="font-semibold text-sm text-white">Show Joined Events on Profile</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Display upcoming events on your public profile card</p>
+                      </div>
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className={`text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-full border ${privacySettings.showJoinedEvents ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {privacySettings.showJoinedEvents ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch 
+                          checked={privacySettings.showJoinedEvents}
+                          onCheckedChange={(checked) => setPrivacySettings(prev => ({ ...prev, showJoinedEvents: checked }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* High-Contrast Prominent Save Profile Changes Button */}
+            {isOwnProfile && (
+              <div className="pt-2 pb-20">
+                <Button
+                  onClick={handleSave}
+                  disabled={updateProfileMutation.isPending}
+                  className="w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-base min-h-[54px] rounded-2xl shadow-2xl shadow-cyan-500/30 border border-cyan-300/40 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <Save className="w-5 h-5 text-slate-950 font-bold" />
+                  <span>{updateProfileMutation.isPending ? "Saving Profile Changes..." : "Save Profile Changes"}</span>
+                </Button>
+              </div>
+            )}
           </div>
         </main>
       </div>
 
       <MobileNav />
+      {/* AI Support Drawer */}
+      <AiSupportDrawer open={supportDrawerOpen} onOpenChange={setSupportDrawerOpen} />
     </div>
   );
 }

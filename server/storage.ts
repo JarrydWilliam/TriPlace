@@ -1,6 +1,7 @@
 import { 
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
-  telemetryEvents, userBlocks, userReports, eventReports, eventReviews,
+  telemetryEvents, userBlocks, userReports, eventReports, eventReviews, passportStatus, passportWeeklyCompletions,
+  hobbyTrendAnalytics, flaggedContent, supportTickets,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
@@ -8,7 +9,11 @@ import {
   type EventAttendee, type InsertEventAttendee, type ActivityFeedItem,
   type TelemetryEvent, type InsertTelemetryEvent,
   type UserBlock, type UserReport, type InsertUserReport,
-  type EventReport, type InsertEventReport
+  type EventReport, type InsertEventReport,
+  type PassportStatus, type PassportWeeklyCompletion,
+  type HobbyTrendAnalytics, type InsertHobbyTrendAnalytics,
+  type FlaggedContent, type InsertFlaggedContent,
+  type SupportTicket, type InsertSupportTicket
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -45,7 +50,15 @@ export interface IStorage {
   getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]>;
   getCommunityMembers(communityId: number): Promise<User[]>;
   updateCommunityActivity(userId: number, communityId: number): Promise<void>;
-  joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }>;
+  joinCommunityWithRotation(userId: number, communityId: number, options?: { isReplacement?: boolean, replaceCommunityId?: number }): Promise<{ joined: CommunityMember, dropped?: Community }>;
+  /**
+   * Founder decision (2026-07-08, confirmed 2026-07-31):
+   * Every new user starts with exactly 3 communities matched to their questionnaire.
+   * Existing communities are reused; missing ones are created once with a canonical key.
+   * This is ADDITIVE-ONLY — it never removes existing memberships.
+   * Called exclusively from POST /api/onboarding/complete.
+   */
+  assignOnboardingCommunities(userId: number): Promise<Community[]>;
   
   getEvent(id: number): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
@@ -63,6 +76,7 @@ export interface IStorage {
   getMessage(id: number): Promise<Message | undefined>;
   getConversation(userId1: number, userId2: number): Promise<Message[]>;
   getUserConversations(userId: number): Promise<{ user: User, lastMessage: Message }[]>;
+  getUserConversationsWithUnread(userId: number): Promise<{ otherUser: User, lastMessage: Message, unreadCount: number }[]>;
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<boolean>;
   
@@ -92,6 +106,30 @@ export interface IStorage {
   reportUser(reporterId: number, targetUserId: number, reason: string, details?: string): Promise<UserReport>;
   reportEvent(reporterId: number, eventId: number, reason: string, details?: string): Promise<EventReport>;
   createEventReview(userId: number, eventId: number, rating: number, feltSafe: boolean, feedback?: string): Promise<any>;
+
+  // Passport & Verification
+  checkInToEvent(userId: number, eventId: number, lat?: string, lon?: string): Promise<{ attendee: EventAttendee, stampEarned: boolean }>;
+  getPassportSummary(userId: number): Promise<{
+    totalStamps: number;
+    currentTier: string;
+    consecutiveCompletedWeeks: number;
+    isFrequentTraveler: boolean;
+    weeklyCompletions: PassportWeeklyCompletion[];
+    stamps: any[];
+  }>;
+  recomputeWeeklyPassportCompletion(userId: number): Promise<void>;
+
+  // Hobby Trend Analytics & Moderation
+  createHobbyTrendAnalytics(entry: InsertHobbyTrendAnalytics): Promise<HobbyTrendAnalytics>;
+  getHobbyTrendAnalytics(): Promise<HobbyTrendAnalytics[]>;
+  createFlaggedContentLog(entry: InsertFlaggedContent): Promise<FlaggedContent>;
+  getPendingFlaggedContent(): Promise<FlaggedContent[]>;
+  resolveFlaggedContent(id: number, reviewerId: number, status: string): Promise<FlaggedContent | undefined>;
+
+  // Support Tickets
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  getSupportTickets(userId?: number): Promise<SupportTicket[]>;
+  updateSupportTicket(id: number, updates: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -142,75 +180,46 @@ export class DatabaseStorage implements IStorage {
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     try {
+      const allCommunities = await this.getAllCommunities();
       if (!userId) {
-        return [];
-      }
-      
-      const user = await this.getUser(userId);
-      if (!user) {
-        return [];
+        // No user context — return all, sorted by member count desc
+        return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
       }
 
-      // First generate dynamic communities using SameVibe's matching agents
-      const dynamicCommunities = await this.generateDynamicCommunities(userId);
-      
-      // Get user's current communities to exclude them from recommendations
-      const userCommunities = await this.getUserCommunities(userId);
-      const userCommunityIds = userCommunities.map(c => c.id);
-      
-      // Filter out communities user has already joined
-      let availableCommunities = dynamicCommunities.filter(community =>
-        !userCommunityIds.includes(community.id)
-      );
+      // Use active communities (same set shown in "Vibe with My Communities") for exclusion
+      // This matches what the client filters against, preventing the suggestion list from appearing empty
+      const activeResult = await db.select({ communityId: communityMembers.communityId })
+        .from(communityMembers)
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)));
+      const activeCommunityIds = new Set(activeResult.map(r => r.communityId));
 
-      // Emergency fallback: if dynamic generation produced nothing unjoined, show all active communities
-      // so a user is never shown a completely empty state unless they truly joined everything
-      if (availableCommunities.length === 0) {
-        const allComms = await this.getAllCommunities();
-        availableCommunities = allComms.filter(c => !userCommunityIds.includes(c.id));
+      // Unjoined = not in the user's active set
+      const unjoined = allCommunities.filter(c => !activeCommunityIds.has(c.id));
+
+      if (unjoined.length === 0) {
+        // User is in every community — still return all so the section never reads empty
+        return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
       }
-      
-      // Use SameVibe AI matching for location-aware communities
-      try {
-        const recommendations = await aiMatcher.generateCommunityRecommendations(user, availableCommunities, userLocation);
-        
-        // Only return communities with 70%+ compatibility, but fallback to top 3 if none
-        let filteredRecommendations = recommendations
-          .filter((rec: any) => rec.matchScore >= 70)
-          .map((rec: any) => rec.community);
-          
-        if (filteredRecommendations.length === 0) {
-          filteredRecommendations = recommendations.map((rec: any) => rec.community).slice(0, 20);
-        }
-        
-        return filteredRecommendations;
-        
-      } catch (error) {
-        
-        // Fallback to interest-based matching
-        const userInterests = user.interests || [];
-        const recommendedCommunities = availableCommunities
-          .map(community => {
-            const communityInterests = this.getCommunityInterests(community);
-            const overlapScore = this.calculateInterestOverlap(userInterests, communityInterests);
-            return { community, score: overlapScore };
-          })
-          .sort((a, b) => b.score - a.score);
-          
-        let filtered = recommendedCommunities
-          .filter(item => item.score >= 70)
-          .map(item => item.community);
-          
-        if (filtered.length === 0) {
-          filtered = recommendedCommunities.slice(0, 20).map(item => item.community);
-        }
-        
-        return filtered;
+
+      // Score by interest overlap so most relevant communities surface first
+      const userInterests = interests || [];
+      if (userInterests.length === 0) {
+        // No interests on file — sort by member count (popularity)
+        return unjoined.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
       }
-        
+
+      const scored = unjoined.map(c => ({
+        community: c,
+        score: this.calculateInterestScore(c, userInterests) + this.calculateEngagementScore(c)
+      }));
+
+      return scored
+        .sort((a, b) => b.score - a.score)
+        .map(s => s.community);
+
     } catch (error) {
-      console.error('Error getting recommended communities:', error);
-      return [];
+      console.error('SameVibe: Error getting recommended communities:', error);
+      return await this.getAllCommunities();
     }
   }
 
@@ -326,6 +335,309 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // ── Onboarding Community Assignment ────────────────────────────────────────
+  //
+  // Founder decision (2026-07-08, confirmed 2026-07-31):
+  //   • Every new user starts with exactly 3 shared communities.
+  //   • "Shared" means: if a community matching the user's interests already
+  //     exists in their area, they JOIN it — the system never creates a copy.
+  //   • If no match exists, one canonical community is created. Future users
+  //     with the same interests in the same area join that same community.
+  //   • This method is ADDITIVE-ONLY and IDEMPOTENT:
+  //       - It never removes existing memberships.
+  //       - Retrying after a network failure returns the same result.
+  //   • Called ONLY from POST /api/onboarding/complete — never from a read path.
+
+  /**
+   * Assign exactly 3 questionnaire-matched communities to a newly onboarded user.
+   *
+   * Algorithm:
+   *   1. Load the user's current active memberships.
+   *   2. If they already have ≥ 3, return the existing set (idempotent retry).
+   *   3. Determine how many slots remain (needed = 3 − current.length).
+   *   4. Resolve the user's geographic market slug from their coordinates.
+   *   5. Select the top archetype tuples from the user's questionnaire + interests.
+   *   6. For each archetype:
+   *      a. Build canonical key: "{market}|{category}|{interest}"
+   *      b. Find or create the single canonical community for that key (race-safe).
+   *      c. Join the user to that community (idempotent via onConflictDoUpdate).
+   *   7. Return all 3 communities.
+   */
+  async assignOnboardingCommunities(userId: number): Promise<Community[]> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error(`assignOnboardingCommunities: user ${userId} not found`);
+
+    // Step 1 — Load existing active memberships
+    const existingRows = await db
+      .select({ communityId: communityMembers.communityId })
+      .from(communityMembers)
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)));
+    const existingIds = new Set(existingRows.map(r => r.communityId));
+
+    // Step 2 — Already has 3+ communities: idempotent, return existing
+    if (existingIds.size >= 3) {
+      const rows = await db
+        .select({ community: communities })
+        .from(communityMembers)
+        .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+        .limit(5);
+      return rows.map(r => r.community);
+    }
+
+    const needed = 3 - existingIds.size;
+
+    // Step 3 — Resolve geographic market slug
+    const market = await this.resolveMarket(user.latitude, user.longitude);
+
+    // Step 4 — Select the top archetypes from questionnaire + interests
+    const archetypes = this.selectTopThreeArchetypes(user, needed);
+
+    // Step 5 — For each archetype, find or create the canonical community, then join
+    const assigned: Community[] = [];
+    for (const arch of archetypes) {
+      if (assigned.length >= needed) break;
+      try {
+        const key = this.buildCanonicalKey(market, arch.category, arch.interest);
+        const community = await this.findOrCreateCanonicalCommunity(key, arch, market, user);
+        // Skip if already a member (handles partial-retry scenarios)
+        if (!existingIds.has(community.id)) {
+          await this.joinCommunity(userId, community.id);
+          existingIds.add(community.id);
+        }
+        assigned.push(community);
+      } catch (err) {
+        console.error(`[assignOnboardingCommunities] Failed for archetype ${arch.interest}:`, err);
+      }
+    }
+
+    // Return all active communities (original + newly assigned)
+    const allRows = await db
+      .select({ community: communities })
+      .from(communityMembers)
+      .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+      .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+      .limit(5);
+    return allRows.map(r => r.community);
+  }
+
+  /**
+   * Build a normalised canonical key.
+   * Inputs are lower-cased, stripped of special characters, and space-joined with hyphens.
+   * Format: "{market}|{category}|{interest}"
+   * Example: buildCanonicalKey("Ogden, UT", "outdoor", "Mountain Biking")
+   *          → "ogden-ut|outdoor|mountain-biking"
+   */
+  private buildCanonicalKey(market: string, category: string, interest: string): string {
+    const slug = (s: string) =>
+      s.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-');
+    return `${slug(market)}|${slug(category)}|${slug(interest)}`;
+  }
+
+  /**
+   * Resolve a short geographic market slug from lat/lon.
+   * Uses the same BigDataCloud reverse-geocode endpoint already used in ai-matching.ts.
+   * Falls back to "virtual" if location is missing or the call fails.
+   * Example: 41.22, -111.97 → "ogden-ut"
+   */
+  private async resolveMarket(latitude: string | null | undefined, longitude: string | null | undefined): Promise<string> {
+    if (!latitude || !longitude) return 'virtual';
+    try {
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+      );
+      if (!res.ok) return 'virtual';
+      const geo = await res.json();
+      const city = (geo.city || geo.locality || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const state = (geo.principalSubdivisionCode || geo.principalSubdivision || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 4);
+      if (!city) return 'virtual';
+      return state ? `${city}-${state}` : city;
+    } catch {
+      return 'virtual';
+    }
+  }
+
+  /**
+   * Select the top community archetypes for a user based on their questionnaire
+   * answers and explicit interest tags.
+   *
+   * Returns up to `needed` archetype objects, deduplicated by category.
+   * Each archetype has: { category, interest, displayName, description, intensity }
+   */
+  private selectTopThreeArchetypes(
+    user: User,
+    needed: number
+  ): Array<{ category: string; interest: string; displayName: string; description: string; intensity: string }> {
+    // Pull interests from quiz answers (priorityInterestIds / interestSpaces) + user.interests
+    const quizAnswers = (user.quizAnswers as Record<string, any>) || {};
+    const quizInterests: string[] = [
+      ...(Array.isArray(quizAnswers.interestSpaces) ? quizAnswers.interestSpaces : []),
+      ...(Array.isArray(quizAnswers.priorityInterestIds) ? quizAnswers.priorityInterestIds : []),
+      ...(Array.isArray(quizAnswers.goals) ? quizAnswers.goals : []),
+    ];
+    const allInterests = [...new Set([...quizInterests, ...(user.interests || [])])].map(i => i.toLowerCase());
+
+    // Master template library: each entry has a canonical key stub and UI data
+    const TEMPLATES: Record<string, { category: string; interest: string; displayName: (city: string) => string; description: string; intensity: string }> = {
+      'mountain-biking':   { category: 'outdoor',   interest: 'mountain-biking',   displayName: (c) => `${c} Mountain Bikers`,         description: 'Hit the trails and ride together — from beginner singletracks to expert descents.',               intensity: 'active' },
+      'hiking':            { category: 'outdoor',   interest: 'hiking',             displayName: (c) => `${c} Trail Hikers`,             description: 'Explore local trails, national parks, and weekend overnight hikes with great people.',              intensity: 'active' },
+      'outdoor':           { category: 'outdoor',   interest: 'outdoor',            displayName: (c) => `${c} Outdoor Adventurers`,      description: 'Camping, hiking, climbing, kayaking — if it\'s outside, we\'re in.',                              intensity: 'active' },
+      'outdoors-adventure':{ category: 'outdoor',   interest: 'outdoors-adventure', displayName: (c) => `${c} Outdoor Adventurers`,      description: 'Camping, hiking, climbing, kayaking — if it\'s outside, we\'re in.',                              intensity: 'active' },
+      'running':           { category: 'fitness',   interest: 'running',            displayName: (c) => `${c} Runners`,                  description: 'Group runs, training plans, and race prep — for all paces and distances.',                        intensity: 'active' },
+      'fitness':           { category: 'fitness',   interest: 'fitness',            displayName: (c) => `${c} Fitness Crew`,             description: 'Workouts, accountability partners, and healthy habits — together.',                               intensity: 'active' },
+      'yoga':              { category: 'wellness',  interest: 'yoga',               displayName: (c) => `${c} Yoga Community`,           description: 'Connect with local yogis for classes, outdoor sessions, and mindful movement.',                    intensity: 'gentle' },
+      'wellness':          { category: 'wellness',  interest: 'wellness',           displayName: (c) => `${c} Wellness Circle`,          description: 'Mental health, healthy habits, and self-care — a supportive space to grow together.',              intensity: 'gentle' },
+      'mindfulness':       { category: 'wellness',  interest: 'mindfulness',        displayName: (c) => `${c} Mindfulness Group`,        description: 'Guided sessions, silent sits, and mindful living practices together.',                            intensity: 'gentle' },
+      'music':             { category: 'arts',      interest: 'music',              displayName: (c) => `${c} Music Lovers`,             description: 'Live shows, jam sessions, listening parties — for people who live for music.',                      intensity: 'social' },
+      'music-scenes':      { category: 'arts',      interest: 'music-scenes',       displayName: (c) => `${c} Music Scene Collective`,   description: 'Live shows, jam sessions, listening parties — for people who live for music.',                      intensity: 'social' },
+      'arts':              { category: 'arts',      interest: 'arts',               displayName: (c) => `${c} Creative Collective`,      description: 'Artists, makers, writers, and dreamers creating and collaborating together.',                       intensity: 'social' },
+      'art-design':        { category: 'arts',      interest: 'art-design',         displayName: (c) => `${c} Art & Design Studio`,      description: 'Designers, artists, and creators building visual and physical art together.',                      intensity: 'social' },
+      'photography':       { category: 'arts',      interest: 'photography',        displayName: (c) => `${c} Photography Club`,         description: 'Photo walks, critiques, and creative shoots — for all skill levels.',                             intensity: 'social' },
+      'tech':              { category: 'tech',      interest: 'tech',               displayName: (c) => `${c} Tech Builders`,            description: 'Builders, hackers, and tech enthusiasts solving real problems together.',                           intensity: 'intellectual' },
+      'ai-tech':           { category: 'tech',      interest: 'ai-tech',            displayName: (c) => `${c} AI & Tech Builders`,       description: 'Building AI tools, exploring modern technology, and hacking side-projects together.',             intensity: 'intellectual' },
+      'coding':            { category: 'tech',      interest: 'coding',             displayName: (c) => `${c} Developers`,               description: 'Pair programming, side projects, and code reviews — for all languages and levels.',                intensity: 'intellectual' },
+      'startup-builders':  { category: 'business',  interest: 'startup-builders',   displayName: (c) => `${c} Startup Builders`,         description: 'Founders, builders, and early-stage creators helping each other launch.',                           intensity: 'intellectual' },
+      'gaming':            { category: 'gaming',    interest: 'gaming',             displayName: (c) => `${c} Gamers`,                   description: 'Board games, video games, and tabletop RPGs — for every type of player.',                         intensity: 'social' },
+      'food':              { category: 'food',      interest: 'food',               displayName: (c) => `${c} Foodies`,                  description: 'Restaurant discoveries, cooking nights, food markets, and culinary adventures.',                  intensity: 'social' },
+      'cooking':           { category: 'food',      interest: 'cooking',            displayName: (c) => `${c} Home Cooks`,               description: 'Recipe swaps, cooking classes, dinner parties, and farmers market runs.',                          intensity: 'social' },
+      'social':            { category: 'social',    interest: 'social',             displayName: (c) => `${c} Social Connectors`,        description: 'Making your city feel smaller — meetups, events, and genuine connections.',                        intensity: 'social' },
+      'social-impact':     { category: 'community', interest: 'social-impact',      displayName: (c) => `${c} Social Impact Circle`,     description: 'Volunteering, community advocacy, and local positive impact projects.',                            intensity: 'social' },
+      'volunteering':      { category: 'community', interest: 'volunteering',       displayName: (c) => `${c} Community Builders`,       description: 'Volunteering, neighbourhood projects, and civic engagement in your city.',                          intensity: 'social' },
+      'reading':           { category: 'learning',  interest: 'reading',            displayName: (c) => `${c} Book Club`,                description: 'Monthly reads, author talks, and literary conversations for serious bookworms.',                    intensity: 'intellectual' },
+      'bookworms':         { category: 'learning',  interest: 'bookworms',          displayName: (c) => `${c} Bookworms & Literature`,   description: 'Monthly reads, author talks, and literary conversations for serious bookworms.',                    intensity: 'intellectual' },
+      'languages':         { category: 'learning',  interest: 'languages',          displayName: (c) => `${c} Language Exchange`,        description: 'Practise conversation, share culture, and make multilingual friends.',                             intensity: 'intellectual' },
+      'travel':            { category: 'social',    interest: 'travel',             displayName: (c) => `${c} Travellers`,               description: 'Trip planning, travel stories, and finding adventure partners near and far.',                      intensity: 'social' },
+      'dance':             { category: 'arts',      interest: 'dance',              displayName: (c) => `${c} Dancers`,                  description: 'Salsa, hip-hop, ballet, or just moving freely — everyone is welcome.',                            intensity: 'active' },
+      'cycling':           { category: 'outdoor',   interest: 'cycling',            displayName: (c) => `${c} Cyclists`,                 description: 'Road rides, gravel adventures, and bike commuters who love two wheels.',                          intensity: 'active' },
+      'climbing':          { category: 'outdoor',   interest: 'climbing',           displayName: (c) => `${c} Climbers`,                 description: 'Bouldering, sport, and trad — indoors and out, all abilities welcome.',                           intensity: 'active' },
+      'meditation':        { category: 'wellness',  interest: 'meditation',         displayName: (c) => `${c} Mindfulness Group`,        description: 'Guided sessions, silent sits, and mindful living practices together.',                            intensity: 'gentle' },
+      'entrepreneurship':  { category: 'business',  interest: 'entrepreneurship',   displayName: (c) => `${c} Founders & Builders`,      description: 'Founders, freelancers, and side-project builders helping each other grow.',                        intensity: 'intellectual' },
+    };
+
+    // Default fallback order when no interests match
+    const FALLBACK_ORDER = ['outdoor', 'social', 'wellness', 'food', 'arts', 'tech', 'fitness'];
+
+    const selected: typeof TEMPLATES[string][] = [];
+    const usedCategories = new Set<string>();
+
+    // Priority 1: interests that have a direct template match
+    for (const interest of allInterests) {
+      if (selected.length >= needed) break;
+      const tmpl = TEMPLATES[interest];
+      if (tmpl && !usedCategories.has(tmpl.category)) {
+        selected.push(tmpl);
+        usedCategories.add(tmpl.category);
+      } else if (!tmpl) {
+        console.warn(`[QuestionnaireMapping] Unmapped interest tag encountered: "${interest}" for user ${user.id}`);
+      }
+    }
+
+    // Priority 2: partial-match (interest is a substring of a template key)
+    if (selected.length < needed) {
+      for (const interest of allInterests) {
+        if (selected.length >= needed) break;
+        for (const [key, tmpl] of Object.entries(TEMPLATES)) {
+          if (!usedCategories.has(tmpl.category) && key.includes(interest.replace(/\s+/g, '-'))) {
+            selected.push(tmpl);
+            usedCategories.add(tmpl.category);
+            break;
+          }
+        }
+      }
+    }
+
+    // Priority 3: fallback by popularity
+    if (selected.length < needed) {
+      for (const fallbackKey of FALLBACK_ORDER) {
+        if (selected.length >= needed) break;
+        const tmpl = TEMPLATES[fallbackKey];
+        if (tmpl && !usedCategories.has(tmpl.category)) {
+          selected.push(tmpl);
+          usedCategories.add(tmpl.category);
+        }
+      }
+    }
+
+    // Map to archetype objects with the city placeholder as 'Local' (resolved later)
+    return selected.slice(0, needed).map(t => ({
+      category: t.category,
+      interest: t.interest,
+      displayName: t.displayName('Local'),
+      description: t.description,
+      intensity: t.intensity,
+    }));
+  }
+
+  /**
+   * Find or create the single canonical community for a given key.
+   * Race-safe: two concurrent onboarding requests with the same key will both
+   * resolve to the same community row via INSERT ON CONFLICT DO NOTHING.
+   *
+   * The community is created with isDeveloping=true (honest: new, no history).
+   * The city name is injected from the market slug for a legible display name.
+   */
+  private async findOrCreateCanonicalCommunity(
+    canonicalKey: string,
+    archetype: { category: string; interest: string; displayName: string; description: string },
+    market: string,
+    user: User
+  ): Promise<Community> {
+    // Step 1 — check for existing community
+    const existing = await db
+      .select()
+      .from(communities)
+      .where(eq(communities.canonicalKey, canonicalKey))
+      .limit(1);
+    if (existing[0]) return existing[0];
+
+    // Step 2 — build a human-readable city name from the market slug for the display name
+    // "ogden-ut" → "Ogden"
+    const cityName = market
+      .split('-')
+      .filter(p => p.length > 2 && !/^[a-z]{2}$/.test(p)) // exclude 2-letter state codes
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ') || 'Local';
+
+    // Derive the display name using the city
+    // We stored 'Local' as placeholder; replace it with the real city
+    const communityName = archetype.displayName.replace('Local', cityName);
+
+    const locationLabel = user.location || cityName;
+
+    // Step 3 — race-safe insert: ON CONFLICT DO NOTHING
+    // If two requests race here, only one INSERT wins; both then read the winner below.
+    await db
+      .insert(communities)
+      .values({
+        name: communityName,
+        description: archetype.description,
+        category: archetype.category,
+        location: locationLabel,
+        canonicalKey,
+        isDeveloping: true,
+        memberCount: 0,
+        isActive: true,
+      })
+      .onConflictDoNothing();
+
+    // Step 4 — fetch the winner (whether we created it or a concurrent request did)
+    const [community] = await db
+      .select()
+      .from(communities)
+      .where(eq(communities.canonicalKey, canonicalKey))
+      .limit(1);
+
+    if (!community) {
+      throw new Error(`findOrCreateCanonicalCommunity: failed to resolve community for key "${canonicalKey}"`);
+    }
+    return community;
+  }
+
+  // ── End Onboarding Community Assignment ────────────────────────────────────
+
   async updateCommunityActivityTimestamp(communityId: number): Promise<void> {
     try {
       await db.update(communities)
@@ -404,14 +716,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinCommunity(userId: number, communityId: number): Promise<CommunityMember> {
-    const [member] = await db.insert(communityMembers).values({
-      userId,
-      communityId,
-      joinedAt: new Date(),
-      lastActivityAt: new Date(),
-      activityScore: 1,
-      isActive: true
-    }).returning();
+    // F12: Idempotent — if membership row already exists (active or inactive),
+    // reactivate it rather than inserting a duplicate.
+    const [member] = await db
+      .insert(communityMembers)
+      .values({
+        userId,
+        communityId,
+        joinedAt: new Date(),
+        lastActivityAt: new Date(),
+        activityScore: 1,
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: [communityMembers.userId, communityMembers.communityId],
+        set: {
+          isActive: true,
+          lastActivityAt: new Date(),
+        },
+      })
+      .returning();
     return member;
   }
 
@@ -443,6 +767,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserActiveCommunities(userId: number): Promise<(Community & { activityScore: number, lastActivityAt: Date })[]> {
+    // F15: Pure read — does NOT auto-join communities.
+    // Use seedMinimumCommunities() explicitly when seeding is required (e.g. first login).
     const result = await db.select({
       community: communities,
       activityScore: communityMembers.activityScore,
@@ -452,13 +778,21 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(communities, eq(communityMembers.communityId, communities.id))
     .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
     .orderBy(desc(communityMembers.lastActivityAt));
-    
+
     return result.map(r => ({
       ...r.community,
       activityScore: r.activityScore || 0,
       lastActivityAt: r.lastActivityAt || new Date()
     }));
   }
+
+  /**
+   * Founder decision (2026-07-31): No automatic seeding of communities in production.
+   * The reviewer/developer account behaves identically to a normal live user.
+   * Community membership is earned only through explicit user actions.
+   * Use the admin-only script scripts/join-reviewer-communities.ts for manual QA resets.
+   * This method is intentionally removed from production code.
+   */
 
   async getCommunityMembers(communityId: number): Promise<User[]> {
     const result = await db.select({
@@ -480,30 +814,138 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)));
   }
 
-  async joinCommunityWithRotation(userId: number, communityId: number): Promise<{ joined: CommunityMember, dropped?: Community }> {
-    const userCommunities = await this.getUserActiveCommunities(userId);
-    
-    let dropped: Community | undefined;
-    
-    if (userCommunities.length >= 5) {
-      const leastActive = userCommunities.reduce((least, current) => {
-        if (current.activityScore < least.activityScore) return current;
-        if (current.activityScore > least.activityScore) return least;
-        // Tie-breaker: oldest lastActivityAt
-        const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
-        const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
-        if (currentTime < leastTime) return current;
-        if (currentTime > leastTime) return least;
-        // Final tie-breaker: community ID to ensure absolute stability
-        return current.id < least.id ? current : least;
-      });
-      
-      await this.leaveCommunity(userId, leastActive.id);
-      dropped = leastActive;
+  async joinCommunityWithRotation(
+    userId: number,
+    communityId: number,
+    options: { isReplacement?: boolean; replaceCommunityId?: number } = {}
+  ): Promise<{ joined: CommunityMember; dropped?: Community }> {
+    const executeLogic = async (executor: typeof db | any) => {
+      const activeRows = await executor
+        .select({
+          communityId: communityMembers.communityId,
+          community: communities,
+          activityScore: communityMembers.activityScore,
+          lastActivityAt: communityMembers.lastActivityAt,
+        })
+        .from(communityMembers)
+        .innerJoin(communities, eq(communityMembers.communityId, communities.id))
+        .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)))
+        .orderBy(desc(communityMembers.lastActivityAt));
+
+      // Check if user is already an active member of this community — idempotent success
+      const existingMembership = activeRows.find((r: any) => r.communityId === communityId);
+      if (existingMembership) {
+        const [member] = await executor
+          .select()
+          .from(communityMembers)
+          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId)))
+          .limit(1);
+        return { joined: member };
+      }
+
+      // Determine the slot cap strictly from the user's server-side record
+      const userRow = await executor
+        .select({ paymentTier: users.paymentTier, subscriptionStatus: users.subscriptionStatus })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const userRec = userRow[0];
+      const paymentTier = userRec?.paymentTier ?? 0;
+      const isSubscriptionActive = userRec?.subscriptionStatus === 'active' || userRec?.subscriptionStatus === 'trialing';
+
+      // Free user = 3 base. Paid entitlement = 3 + paymentTier (or 5 if active subscription). Capped at absolute max 5.
+      const allowedSlots = isSubscriptionActive ? 5 : Math.min(5, 3 + paymentTier);
+
+      let dropped: Community | undefined;
+
+      // If user has reached or exceeded their allowed slots:
+      if (activeRows.length >= allowedSlots) {
+        // Case 0: Account is over-limit due to expired subscription/downgrade (e.g. holds 5, allowed 3)
+        if (activeRows.length > allowedSlots) {
+          const err: any = new Error(`COMMUNITY_DOWNGRADE_REQUIRED: Your subscription has expired. You hold ${activeRows.length} communities, but your free allowance is ${allowedSlots}. Please select communities to deactivate or renew your subscription.`);
+          err.code = 'COMMUNITY_DOWNGRADE_REQUIRED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          err.activeCommunities = activeRows.map((r: any) => r.community);
+          throw err;
+        }
+
+        // Case A: Free user at 3 slots requesting a 4th slot without swap -> ENTITLEMENT_REQUIRED
+        if (!options.isReplacement && !options.replaceCommunityId && allowedSlots < 5) {
+          const err: any = new Error(`ENTITLEMENT_REQUIRED: You have used all ${allowedSlots} free active community slots.`);
+          err.code = 'ENTITLEMENT_REQUIRED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          throw err;
+        }
+
+        // Case B: Paid user at 5 slots requesting a 6th community without explicit swap -> COMMUNITY_LIMIT_REACHED
+        if (!options.isReplacement && !options.replaceCommunityId && allowedSlots >= 5) {
+          const err: any = new Error(`COMMUNITY_LIMIT_REACHED: You have reached the maximum limit of 5 active communities. Choose a community to replace.`);
+          err.code = 'COMMUNITY_LIMIT_REACHED';
+          err.allowedSlots = allowedSlots;
+          err.currentCount = activeRows.length;
+          err.activeCommunities = activeRows.map((r: any) => r.community);
+          throw err;
+        }
+
+        // Case C: User explicitly requested replacement -> drop target or least active
+        let targetToDrop = options.replaceCommunityId
+          ? activeRows.find((r: any) => r.communityId === options.replaceCommunityId)
+          : null;
+
+        if (!targetToDrop) {
+          targetToDrop = activeRows.reduce((least: any, current: any) => {
+            const cs = current.activityScore ?? 0;
+            const ls = least.activityScore ?? 0;
+            if (cs < ls) return current;
+            if (cs > ls) return least;
+            const currentTime = current.lastActivityAt ? current.lastActivityAt.getTime() : 0;
+            const leastTime = least.lastActivityAt ? least.lastActivityAt.getTime() : 0;
+            if (currentTime < leastTime) return current;
+            if (currentTime > leastTime) return least;
+            return current.communityId < least.communityId ? current : least;
+          });
+        }
+
+        await executor
+          .delete(communityMembers)
+          .where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, targetToDrop.communityId)));
+
+        dropped = targetToDrop.community;
+      }
+
+      // F12: Idempotent insert
+      const [joined] = await executor
+        .insert(communityMembers)
+        .values({
+          userId,
+          communityId,
+          joinedAt: new Date(),
+          lastActivityAt: new Date(),
+          activityScore: 1,
+          isActive: true,
+        })
+        .onConflictDoUpdate({
+          target: [communityMembers.userId, communityMembers.communityId],
+          set: {
+            isActive: true,
+            lastActivityAt: new Date(),
+          },
+        })
+        .returning();
+
+      return { joined, dropped };
+    };
+
+    try {
+      return await db.transaction(async (tx) => executeLogic(tx));
+    } catch (err: any) {
+      if (err.code === 'ENTITLEMENT_REQUIRED') throw err;
+      // Fallback for neon-http driver which does not support db.transaction
+      return await executeLogic(db);
     }
-    
-    const joined = await this.joinCommunity(userId, communityId);
-    return { joined, dropped };
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
@@ -616,12 +1058,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async registerForEvent(userId: number, eventId: number, status: string): Promise<EventAttendee> {
-    const [attendee] = await db.insert(eventAttendees).values({
-      userId,
-      eventId,
-      status,
-      registeredAt: new Date()
-    }).returning();
+    // F13: Idempotent — update status if the row already exists (e.g. double-tap or
+    // status upgrade from 'interested' → 'attended').
+    const [attendee] = await db
+      .insert(eventAttendees)
+      .values({
+        userId,
+        eventId,
+        status,
+        registeredAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [eventAttendees.userId, eventAttendees.eventId],
+        set: {
+          status,
+          registeredAt: new Date(),
+        },
+      })
+      .returning();
     return attendee;
   }
 
@@ -663,6 +1117,40 @@ export class DatabaseStorage implements IStorage {
     return attendees;
   }
 
+  /**
+   * F16: Batch attendee fetch — loads all attendees for multiple events in 2 DB queries
+   * (one for attendees, one for block-list) instead of 1 per event.
+   * Returns a Map<eventId, User[]> for O(1) lookup per event.
+   */
+  async getEventAttendeesForEvents(eventIds: number[], currentUserId?: number): Promise<Map<number, { id: number; name: string; avatar: string | null }[]>> {
+    if (eventIds.length === 0) return new Map();
+
+    const result = await db.select({
+      eventId: eventAttendees.eventId,
+      userId: users.id,
+      name: users.name,
+      avatar: users.avatar,
+    })
+    .from(eventAttendees)
+    .innerJoin(users, eq(eventAttendees.userId, users.id))
+    .where(inArray(eventAttendees.eventId, eventIds));
+
+    // Fetch blocker's block list once
+    let blockedIds = new Set<number>();
+    if (currentUserId) {
+      const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, currentUserId));
+      blockedIds = new Set(blocks.map(b => b.blockedId));
+    }
+
+    const map = new Map<number, { id: number; name: string; avatar: string | null }[]>();
+    for (const row of result) {
+      if (blockedIds.has(row.userId)) continue;
+      if (!map.has(row.eventId)) map.set(row.eventId, []);
+      map.get(row.eventId)!.push({ id: row.userId, name: row.name, avatar: row.avatar });
+    }
+    return map;
+  }
+
   async getMessage(id: number): Promise<Message | undefined> {
     const [message] = await db.select().from(messages).where(eq(messages.id, id));
     return message || undefined;
@@ -692,22 +1180,74 @@ export class DatabaseStorage implements IStorage {
       .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
       .orderBy(desc(messages.createdAt));
     
-    const conversations: { user: User, lastMessage: Message }[] = [];
-    const seenUsers = new Set<number>();
+    if (userMessages.length === 0) return [];
     
-    for (const message of userMessages) {
-      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
-      
-      if (!seenUsers.has(otherUserId)) {
-        const otherUser = await this.getUser(otherUserId);
-        if (otherUser) {
-          conversations.push({ user: otherUser, lastMessage: message });
-          seenUsers.add(otherUserId);
-        }
+    const conversationsMap = new Map<number, Message>();
+    for (const msg of userMessages) {
+      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, msg);
       }
     }
     
-    return conversations;
+    const otherUserIds = Array.from(conversationsMap.keys());
+    if (otherUserIds.length === 0) return [];
+
+    const otherUsers = await db.select().from(users).where(inArray(users.id, otherUserIds));
+    const userMap = new Map(otherUsers.map(u => [u.id, u]));
+
+    const result: { user: User, lastMessage: Message }[] = [];
+    for (const otherUserId of otherUserIds) {
+      const otherUser = userMap.get(otherUserId);
+      const lastMessage = conversationsMap.get(otherUserId);
+      if (otherUser && lastMessage) {
+        result.push({ user: otherUser, lastMessage });
+      }
+    }
+    return result;
+  }
+
+  async getUserConversationsWithUnread(userId: number): Promise<{ otherUser: User, lastMessage: Message, unreadCount: number }[]> {
+    const userMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+    
+    if (userMessages.length === 0) return [];
+
+    const conversationsMap = new Map<number, { lastMessage: Message, unreadCount: number }>();
+    
+    for (const msg of userMessages) {
+      const otherUserId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      let entry = conversationsMap.get(otherUserId);
+      if (!entry) {
+        entry = { lastMessage: msg, unreadCount: 0 };
+        conversationsMap.set(otherUserId, entry);
+      }
+      if (msg.receiverId === userId && !msg.isRead) {
+        entry.unreadCount++;
+      }
+    }
+
+    const otherUserIds = Array.from(conversationsMap.keys());
+    if (otherUserIds.length === 0) return [];
+
+    const otherUsers = await db.select().from(users).where(inArray(users.id, otherUserIds));
+    const userMap = new Map(otherUsers.map(u => [u.id, u]));
+
+    const result: { otherUser: User, lastMessage: Message, unreadCount: number }[] = [];
+    for (const otherUserId of otherUserIds) {
+      const otherUser = userMap.get(otherUserId);
+      const conv = conversationsMap.get(otherUserId);
+      if (otherUser && conv) {
+        result.push({
+          otherUser,
+          lastMessage: conv.lastMessage,
+          unreadCount: conv.unreadCount,
+        });
+      }
+    }
+
+    return result;
   }
 
   async sendMessage(insertMessage: InsertMessage): Promise<Message> {
@@ -1238,6 +1778,270 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, eventId, rating, feltSafe, feedback: feedback ?? null })
       .returning();
     return review;
+  }
+
+  // ── Passport Infrastructure Implementation ──────────────────────────────────
+  async checkInToEvent(userId: number, eventId: number, lat?: string, lon?: string): Promise<{ attendee: EventAttendee, stampEarned: boolean }> {
+    const [targetEvent] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+    if (!targetEvent) {
+      throw new Error("Event not found");
+    }
+
+    const [attendee] = await db
+      .insert(eventAttendees)
+      .values({
+        userId,
+        eventId,
+        status: "attended",
+        registeredAt: new Date(),
+        checkedInAt: new Date(),
+        checkInLatitude: lat ?? null,
+        checkInLongitude: lon ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [eventAttendees.userId, eventAttendees.eventId],
+        set: {
+          status: "attended",
+          checkedInAt: new Date(),
+          checkInLatitude: lat ?? null,
+          checkInLongitude: lon ?? null,
+        },
+      })
+      .returning();
+
+    await this.addActivityItem(userId, "event_attended", {
+      eventId: targetEvent.id,
+      eventTitle: targetEvent.title,
+      checkedInAt: new Date().toISOString(),
+    });
+
+    await this.recomputeWeeklyPassportCompletion(userId);
+
+    return { attendee, stampEarned: true };
+  }
+
+  async recomputeWeeklyPassportCompletion(userId: number): Promise<void> {
+    const attendedList = await db
+      .select({
+        id: eventAttendees.id,
+        eventId: eventAttendees.eventId,
+        checkedInAt: eventAttendees.checkedInAt,
+        registeredAt: eventAttendees.registeredAt,
+        eventTitle: events.title,
+        eventDate: events.date,
+      })
+      .from(eventAttendees)
+      .innerJoin(events, eq(eventAttendees.eventId, events.id))
+      .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.status, "attended")));
+
+    const totalStamps = attendedList.length;
+    let currentTier = "New Traveler";
+    if (totalStamps >= 15) {
+      currentTier = "Local Legend";
+    } else if (totalStamps >= 5) {
+      currentTier = "Regular";
+    }
+
+    // Helper to format ISO week key e.g. "2026-W31"
+    const getWeekKey = (d: Date) => {
+      const target = new Date(d.valueOf());
+      const dayNr = (d.getDay() + 6) % 7;
+      target.setDate(target.getDate() - dayNr + 3);
+      const firstThursday = target.valueOf();
+      target.setMonth(0, 1);
+      if (target.getDay() !== 4) {
+        target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
+      }
+      const weekNumber = 1 + Math.round((firstThursday - target.valueOf()) / 604800000);
+      return `${d.getFullYear()}-W${String(weekNumber).padStart(2, "0")}`;
+    };
+
+    const weekCounts = new Map<string, number>();
+    for (const item of attendedList) {
+      const dateVal = item.checkedInAt ?? item.eventDate ?? item.registeredAt ?? new Date();
+      const weekKey = getWeekKey(new Date(dateVal));
+      weekCounts.set(weekKey, (weekCounts.get(weekKey) || 0) + 1);
+    }
+
+    for (const [weekKey, count] of weekCounts.entries()) {
+      await db
+        .insert(passportWeeklyCompletions)
+        .values({
+          userId,
+          weekIdentifier: weekKey,
+          checkInCount: count,
+          isCompleted: count >= 1,
+        })
+        .onConflictDoUpdate({
+          target: [passportWeeklyCompletions.userId, passportWeeklyCompletions.weekIdentifier],
+          set: {
+            checkInCount: count,
+            isCompleted: count >= 1,
+          },
+        });
+    }
+
+    // Calculate consecutive completed weeks looking backwards from current week
+    let consecutiveWeeks = 0;
+    const now = new Date();
+    for (let i = 0; i < 52; i++) {
+      const checkDate = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekKey = getWeekKey(checkDate);
+      const count = weekCounts.get(weekKey) || 0;
+      if (count >= 1) {
+        consecutiveWeeks++;
+      } else if (i > 0) {
+        break; // gap in consecutive weeks
+      }
+    }
+
+    const isFrequentTraveler = consecutiveWeeks >= 4 || totalStamps >= 15;
+
+    await db
+      .insert(passportStatus)
+      .values({
+        userId,
+        totalStamps,
+        currentTier,
+        consecutiveCompletedWeeks: consecutiveWeeks,
+        isFrequentTraveler,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [passportStatus.userId],
+        set: {
+          totalStamps,
+          currentTier,
+          consecutiveCompletedWeeks: consecutiveWeeks,
+          isFrequentTraveler,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  async getPassportSummary(userId: number): Promise<{
+    totalStamps: number;
+    currentTier: string;
+    consecutiveCompletedWeeks: number;
+    isFrequentTraveler: boolean;
+    weeklyCompletions: PassportWeeklyCompletion[];
+    stamps: any[];
+  }> {
+    await this.recomputeWeeklyPassportCompletion(userId);
+
+    const [status] = await db
+      .select()
+      .from(passportStatus)
+      .where(eq(passportStatus.userId, userId))
+      .limit(1);
+
+    const weeklyCompletions = await db
+      .select()
+      .from(passportWeeklyCompletions)
+      .where(eq(passportWeeklyCompletions.userId, userId))
+      .orderBy(desc(passportWeeklyCompletions.weekIdentifier))
+      .limit(8);
+
+    const stampRows = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        category: events.category,
+        date: events.date,
+        location: events.location,
+        checkedInAt: eventAttendees.checkedInAt,
+        status: eventAttendees.status,
+      })
+      .from(eventAttendees)
+      .innerJoin(events, eq(eventAttendees.eventId, events.id))
+      .where(and(eq(eventAttendees.userId, userId), eq(eventAttendees.status, "attended")))
+      .orderBy(desc(eventAttendees.checkedInAt));
+
+    return {
+      totalStamps: status?.totalStamps ?? stampRows.length,
+      currentTier: status?.currentTier ?? (stampRows.length >= 15 ? "Local Legend" : stampRows.length >= 5 ? "Regular" : "New Traveler"),
+      consecutiveCompletedWeeks: status?.consecutiveCompletedWeeks ?? 0,
+      isFrequentTraveler: status?.isFrequentTraveler ?? false,
+      weeklyCompletions: weeklyCompletions ?? [],
+      stamps: stampRows ?? [],
+    };
+  }
+
+  // ── Hobby Trend Analytics & Content Moderation ──────────────────────────────
+  async createHobbyTrendAnalytics(entry: InsertHobbyTrendAnalytics): Promise<HobbyTrendAnalytics> {
+    const [analytics] = await db
+      .insert(hobbyTrendAnalytics)
+      .values(entry)
+      .returning();
+    return analytics;
+  }
+
+  async getHobbyTrendAnalytics(): Promise<HobbyTrendAnalytics[]> {
+    return await db
+      .select()
+      .from(hobbyTrendAnalytics)
+      .orderBy(desc(hobbyTrendAnalytics.createdAt));
+  }
+
+  async createFlaggedContentLog(entry: InsertFlaggedContent): Promise<FlaggedContent> {
+    const [log] = await db
+      .insert(flaggedContent)
+      .values(entry)
+      .returning();
+    return log;
+  }
+
+  async getPendingFlaggedContent(): Promise<FlaggedContent[]> {
+    return await db
+      .select()
+      .from(flaggedContent)
+      .where(eq(flaggedContent.status, "pending"))
+      .orderBy(desc(flaggedContent.flaggedAt));
+  }
+
+  async resolveFlaggedContent(id: number, reviewerId: number, status: string): Promise<FlaggedContent | undefined> {
+    const [updated] = await db
+      .update(flaggedContent)
+      .set({
+        status,
+        reviewerId,
+        reviewedAt: new Date(),
+      })
+      .where(eq(flaggedContent.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ── Support Tickets Implementation ──────────────────────────────────────────
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [row] = await db
+      .insert(supportTickets)
+      .values(ticket)
+      .returning();
+    return row;
+  }
+
+  async getSupportTickets(userId?: number): Promise<SupportTicket[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, userId))
+        .orderBy(desc(supportTickets.createdAt));
+    }
+    return await db
+      .select()
+      .from(supportTickets)
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateSupportTicket(id: number, updates: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set(updates)
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated;
   }
 }
 

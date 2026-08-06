@@ -6,6 +6,9 @@ import {
   boolean,
   timestamp,
   jsonb,
+  uniqueIndex,
+  index,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -42,32 +45,65 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const communities = pgTable("communities", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  image: text("image"),
-  memberCount: integer("member_count").default(0),
-  isActive: boolean("is_active").default(true),
-  location: text("location"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastActivityAt: timestamp("last_activity_at").defaultNow(),
-});
+export const communities = pgTable(
+  "communities",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    category: text("category").notNull(),
+    image: text("image"),
+    memberCount: integer("member_count").default(0),
+    isActive: boolean("is_active").default(true),
+    location: text("location"),
+    /**
+     * Canonical dedup key for AI-seeded communities.
+     * Format: "{market}|{category}|{primary-interest}"
+     * Example: "ogden-ut|outdoor|mountain-biking"
+     *
+     * Two concurrent onboarding requests matching the same missing community
+     * both resolve to this single row via INSERT ON CONFLICT DO NOTHING.
+     * Null for manually-created communities (no uniqueness enforced).
+     */
+    canonicalKey: text("canonical_key"),
+    /**
+     * True when this community was AI-seeded and has no activity history yet.
+     * The UI must show an honest "new / developing" badge — never fake members or events.
+     * Set to false once a real user-generated event or post exists.
+     */
+    isDeveloping: boolean("is_developing").default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  },
+  (t) => ({
+    // Partial unique index: only enforced for AI-seeded communities (canonicalKey IS NOT NULL)
+    canonicalKeyUnique: uniqueIndex("communities_canonical_key_unique").on(t.canonicalKey),
+  })
+);
 
-export const communityMembers = pgTable("community_members", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  communityId: integer("community_id")
-    .references(() => communities.id)
-    .notNull(),
-  joinedAt: timestamp("joined_at").defaultNow(),
-  lastActivityAt: timestamp("last_activity_at").defaultNow(),
-  activityScore: integer("activity_score").default(0),
-  isActive: boolean("is_active").default(true),
-});
+export const communityMembers = pgTable(
+  "community_members",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    communityId: integer("community_id")
+      .references(() => communities.id)
+      .notNull(),
+    joinedAt: timestamp("joined_at").defaultNow(),
+    lastActivityAt: timestamp("last_activity_at").defaultNow(),
+    activityScore: integer("activity_score").default(0),
+    isActive: boolean("is_active").default(true),
+  },
+  (t) => ({
+    userIdx: index("cm_user_id_idx").on(t.userId),
+    communityIdx: index("cm_community_id_idx").on(t.communityId),
+    activeIdx: index("cm_user_active_idx").on(t.userId, t.isActive),
+    // F12: Unique constraint prevents duplicate membership rows on double-tap
+    uniqMembership: uniqueIndex("cm_user_community_unique").on(t.userId, t.communityId),
+  })
+);
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
@@ -100,6 +136,7 @@ export const events = pgTable("events", {
   sourceUrl: text("source_url"), // Legacy URL
   sourceAttribution: text("source_attribution"), // Legacy attribution
   sourceName: text("source_name"), // e.g. "Eventbrite", "Meetup"
+  isExternal: boolean("is_external").default(false),
   externalId: text("external_id"), // Their unique ID to prevent duplicates
   lastScrapedAt: timestamp("last_scraped_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // Auto-hide from feed when expired
@@ -107,17 +144,27 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const eventAttendees = pgTable("event_attendees", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .references(() => users.id)
-    .notNull(),
-  eventId: integer("event_id")
-    .references(() => events.id)
-    .notNull(),
-  status: text("status").default("interested"), // interested, going, attended
-  registeredAt: timestamp("registered_at").defaultNow(),
-});
+export const eventAttendees = pgTable(
+  "event_attendees",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id)
+      .notNull(),
+    eventId: integer("event_id")
+      .references(() => events.id)
+      .notNull(),
+    status: text("status").default("interested"), // interested, going, attended
+    registeredAt: timestamp("registered_at").defaultNow(),
+    checkedInAt: timestamp("checked_in_at"),
+    checkInLatitude: text("check_in_latitude"),
+    checkInLongitude: text("check_in_longitude"),
+  },
+  (t) => ({
+    // F13: Unique constraint prevents duplicate RSVP/attendance rows on double-tap
+    uniqAttendee: uniqueIndex("ea_user_event_unique").on(t.userId, t.eventId),
+  })
+);
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -480,3 +527,124 @@ export type EventReview = typeof eventReviews.$inferSelect;
 export type InsertEventReview = z.infer<typeof insertEventReviewSchema>;
 export type EventMessage = typeof eventMessages.$inferSelect;
 export type InsertEventMessage = z.infer<typeof insertEventMessageSchema>;
+
+// ── Slot Grants (RevenueCat idempotency) ──────────────────────────────────────
+// One row per verified, granted RevenueCat purchase. txn_key is the RC purchase
+// ID, enforced UNIQUE so a duplicate call (webhook retry, client retry) can
+// INSERT ON CONFLICT DO NOTHING without double-granting a slot.
+export const slotGrants = pgTable(
+  "slot_grants",
+  {
+    id:        serial("id").primaryKey(),
+    userId:    integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    txnKey:    text("txn_key").notNull(),   // RevenueCat purchase id
+    productId: text("product_id"),           // RC product_identifier for audit
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqTxn: uniqueIndex("slot_grants_txn_key_unique").on(t.txnKey),
+  })
+);
+
+export const insertSlotGrantSchema = createInsertSchema(slotGrants).pick({
+  userId: true,
+  txnKey: true,
+  productId: true,
+});
+export type SlotGrant = typeof slotGrants.$inferSelect;
+export type InsertSlotGrant = z.infer<typeof insertSlotGrantSchema>;
+
+// ── Vibe Passport Infrastructure ──────────────────────────────────────────────
+export const passportStatus = pgTable("passport_status", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  totalStamps: integer("total_stamps").default(0).notNull(),
+  currentTier: text("current_tier").default("New Traveler").notNull(),
+  consecutiveCompletedWeeks: integer("consecutive_completed_weeks").default(0).notNull(),
+  isFrequentTraveler: boolean("is_frequent_traveler").default(false).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const passportWeeklyCompletions = pgTable(
+  "passport_weekly_completions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weekIdentifier: text("week_identifier").notNull(), // e.g. "2026-W31"
+    checkInCount: integer("check_in_count").default(0).notNull(),
+    isCompleted: boolean("is_completed").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    uniqUserWeek: uniqueIndex("pwc_user_week_unique").on(t.userId, t.weekIdentifier),
+  })
+);
+
+export const insertPassportStatusSchema = createInsertSchema(passportStatus);
+export type PassportStatus = typeof passportStatus.$inferSelect;
+export type InsertPassportStatus = z.infer<typeof insertPassportStatusSchema>;
+
+export const insertPassportWeeklyCompletionSchema = createInsertSchema(passportWeeklyCompletions);
+export type PassportWeeklyCompletion = typeof passportWeeklyCompletions.$inferSelect;
+export type InsertPassportWeeklyCompletion = z.infer<typeof insertPassportWeeklyCompletionSchema>;
+
+// ── Hobby Discovery Trend Analytics ──────────────────────────────────────────
+export const hobbyTrendAnalytics = pgTable("hobby_trend_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  pickedMainstreamHobbies: text("picked_mainstream_hobbies").array().default([]).notNull(),
+  pickedEmergingHobbies: text("picked_emerging_hobbies").array().default([]).notNull(),
+  freeformHobby: text("freeform_hobby"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHobbyTrendAnalyticsSchema = createInsertSchema(hobbyTrendAnalytics);
+export type HobbyTrendAnalytics = typeof hobbyTrendAnalytics.$inferSelect;
+export type InsertHobbyTrendAnalytics = z.infer<typeof insertHobbyTrendAnalyticsSchema>;
+
+// ── Content Safety & Moderation Agent ────────────────────────────────────────
+export const flaggedContent = pgTable("flagged_content", {
+  id: serial("id").primaryKey(),
+  contentType: text("content_type").notNull(), // 'communityMessage', 'eventComment', 'userProfile'
+  contentId: integer("content_id"),
+  authorId: integer("author_id").references(() => users.id, { onDelete: "cascade" }),
+  flagReason: text("flag_reason").notNull(), // 'violence', 'hate_speech', 'explicit', 'illegal', 'doxxing'
+  contentSnippet: text("content_snippet").notNull(),
+  confidenceScore: doublePrecision("confidence_score").default(1.0),
+  status: text("status").default("pending").notNull(), // 'pending', 'approved', 'removed', 'warned'
+  reviewerId: integer("reviewer_id").references(() => users.id, { onDelete: "set null" }),
+  flaggedAt: timestamp("flagged_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertFlaggedContentSchema = createInsertSchema(flaggedContent);
+export type FlaggedContent = typeof flaggedContent.$inferSelect;
+export type InsertFlaggedContent = z.infer<typeof insertFlaggedContentSchema>;
+
+// ── Support Tickets & AI Auto-Fix System ─────────────────────────────────────
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  category: text("category").default("app_fix").notNull(), // 'app_fix', 'account_issue', 'billing', 'feedback', 'feature_request'
+  priority: text("priority").default("medium").notNull(), // 'low', 'medium', 'high', 'urgent'
+  status: text("status").default("open").notNull(), // 'open', 'auto_fixed', 'resolved', 'escalated'
+  userMessage: text("user_message").notNull(),
+  aiResponse: text("ai_response"),
+  autoFixApplied: text("auto_fix_applied"), // e.g. 'resynced_location', 'recomputed_slots', 'repaired_memberships'
+  emailNotified: boolean("email_notified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets);
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+
+

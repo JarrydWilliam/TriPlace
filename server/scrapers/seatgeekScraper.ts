@@ -99,9 +99,11 @@ export class SeatGeekScraper {
                 location: this.formatLocation(venueElement, location),
                 category: this.categorizeEvent(categoryElement, keyword),
                 sourceUrl: sourceUrl || `${this.baseUrl}/search?q=${encodeURIComponent(title)}`,
+                sourceName: 'SeatGeek',
+                isExternal: true,
                 organizerName: 'SeatGeek Event',
                 price: this.parsePrice(priceElement),
-                source: 'local',
+                source: 'seatgeek',
                 attendeeCount: null
               };
               

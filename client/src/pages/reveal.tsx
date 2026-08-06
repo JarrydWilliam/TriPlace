@@ -9,6 +9,7 @@ import { Community } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { PaywallModal } from "@/components/paywall-modal";
 import { useToast } from "@/hooks/use-toast";
+import { PageLoadingSpinner } from "@/components/loading-spinner";
 
 export default function Reveal() {
   const [, setLocation] = useLocation();
@@ -72,11 +73,7 @@ export default function Reveal() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
-        <div className="w-12 h-12 border-4 border-[#ff6b35] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="Finding your matches..." />;
   }
 
   // Determine top category and vibe based on matched communities

@@ -96,7 +96,7 @@ export default function Login() {
             
             {/* Backend Auth Error Banner */}
             {authError && (
-              <div className="flex items-start gap-2 text-sm text-[#ef4444] bg-[#ef4444]/10 rounded-xl p-3 border border-[#ef4444]/20 animate-shake">
+              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 rounded-xl p-3 border border-destructive/25 animate-shake">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>{authError}</span>
               </div>
@@ -104,7 +104,7 @@ export default function Login() {
 
             {/* Apple Sign-In (Primary) */}
             <Button
-              className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
+              className="w-full bg-white text-black hover:bg-white/90 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
               onClick={handleAppleLogin}
               disabled={loading}
             >
@@ -156,7 +156,7 @@ export default function Login() {
                     inputMode="email"
                     autoComplete="email"
                     placeholder="you@example.com"
-                    className="samevibe-premium-input pl-9 pr-4 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
+                    className="samevibe-premium-input glass-input pl-9 pr-4 min-h-[46px] rounded-xl focus-visible:outline-none"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -171,7 +171,7 @@ export default function Login() {
                     id="password"
                     type="password"
                     placeholder="••••••••"
-                    className="samevibe-premium-input pl-9 pr-10 min-h-[46px] bg-white/10 border-white/15 text-white placeholder:text-white/45 caret-white backdrop-blur-xl rounded-xl focus-visible:outline-none focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 hover:bg-white/12 transition-all"
+                    className="samevibe-premium-input glass-input pl-9 pr-10 min-h-[46px] rounded-xl focus-visible:outline-none"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -180,7 +180,7 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 text-sm text-[#ef4444] bg-[#ef4444]/10 rounded-xl p-3 border border-[#ef4444]/20 animate-shake">
+                <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 rounded-xl p-3 border border-destructive/25 animate-shake">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -188,7 +188,7 @@ export default function Login() {
 
               <Button 
                 type="submit" 
-                className="w-full relative overflow-hidden group/btn bg-gradient-to-r from-primary to-accent text-white font-semibold rounded-xl py-3.5 min-h-[48px] transition-all duration-300 active:scale-[0.99] shadow-lg shadow-primary/25 hover:shadow-primary/45"
+                className="w-full relative overflow-hidden group/btn bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold rounded-xl py-3.5 min-h-[48px] transition-all duration-300 active:scale-[0.99] shadow-lg shadow-primary/25 hover:shadow-primary/45"
                 disabled={loading}
               >
                 <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.15)_40%,rgba(255,255,255,0.15)_60%,transparent_80%)] -translate-x-[100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000 ease-out" />

@@ -81,6 +81,8 @@ export class TicketmasterScraper {
                 location: locationElement || venueElement || location,
                 category: keyword,
                 sourceUrl: sourceUrl || '',
+                sourceName: 'Ticketmaster',
+                isExternal: true,
                 organizerName: 'Ticketmaster Event',
                 price: this.parsePrice(priceElement),
                 source: 'ticketmaster',

@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { signOutUser, deleteFirebaseAccount } from "@/lib/firebase";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
 export default function AccountSettings() {
   const { user, signOut } = useAuth();
@@ -56,23 +58,9 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden">
-      {/* Rich ambient bokeh */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
-      </div>
-
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
+      <VibePageHeader mode="detail" title="Account" />
       <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
-        {/* Header */}
-        <div className="flex items-center space-x-4 mb-6">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Account Settings</h1>
-        </div>
 
         <div className="space-y-6">
           {/* Account Information */}
@@ -93,7 +81,7 @@ export default function AccountSettings() {
                       disabled
                       className="bg-muted/30 border-white/10 text-foreground"
                     />
-                    <Badge variant="secondary" className="text-green-600 bg-green-100">
+                    <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
@@ -197,9 +185,9 @@ export default function AccountSettings() {
           </Card>
 
           {/* Account Actions */}
-          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-red-500/20 shadow-md">
+          <Card className="glass-card bg-card/40 backdrop-blur-xl border border-destructive/20 shadow-md">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-red-600">
+              <CardTitle className="flex items-center space-x-2 text-destructive">
                 <AlertTriangle className="w-5 h-5" />
                 <span>Account Actions</span>
               </CardTitle>
@@ -218,7 +206,7 @@ export default function AccountSettings() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle className="text-red-600">Delete SameVibe Account</DialogTitle>
+                      <DialogTitle className="text-destructive">Delete SameVibe Account</DialogTitle>
                       <DialogDescription>
                         This action cannot be undone. All your data, communities, messages, and connections will be permanently deleted.
                       </DialogDescription>
@@ -233,8 +221,8 @@ export default function AccountSettings() {
                           placeholder="DELETE"
                         />
                       </div>
-                      <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                        <p className="text-sm text-red-500">
+                      <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                        <p className="text-sm text-destructive">
                           <AlertTriangle className="w-4 h-4 inline mr-1" />
                           This will immediately delete your account and cannot be reversed.
                         </p>
@@ -256,8 +244,8 @@ export default function AccountSettings() {
                 </Dialog>
               </div>
 
-              <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <p className="text-sm text-yellow-500/90">
+              <div className="p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <p className="text-sm text-amber-400">
                   <AlertTriangle className="w-4 h-4 inline mr-1" />
                   Account actions are permanent and cannot be undone. Please contact support if you need help.
                 </p>
@@ -266,6 +254,7 @@ export default function AccountSettings() {
           </Card>
         </div>
       </div>
+      <MobileNav />
     </div>
   );
 }

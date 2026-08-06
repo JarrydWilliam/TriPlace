@@ -34,8 +34,10 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Reveal from "@/pages/reveal";
 import Discover from "@/pages/discover";
+import Events from "@/pages/events";
 import DeleteAccount from "@/pages/delete-account";
 import AdminMetrics from "@/pages/admin/metrics";
+import ModerationDashboard from "@/pages/admin/moderation-dashboard";
 
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
@@ -165,7 +167,7 @@ function Router() {
       <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
 
-        <div className="flex flex-col items-center gap-6 relative z-10">
+        <div className="flex flex-col items-center gap-5 relative z-10 text-center px-4">
           <div className="relative">
             <div className="absolute inset-0 rounded-full border border-primary/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
 
@@ -182,8 +184,11 @@ function Router() {
             <h1 className="text-2xl font-bold tracking-tight text-white">
               SameVibe
             </h1>
+            <p className="text-sm font-medium text-pink-400/90 tracking-wide">
+              Find Your People, Find Your ThirdPlace
+            </p>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 mt-2">
               <div
                 className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
                 style={{ animationDelay: "0ms" }}
@@ -230,6 +235,7 @@ function Router() {
         <Route path="/settings/security" component={SecuritySettings} />
         <Route path="/settings/support" component={SupportSettings} />
         <Route path="/discover" component={Discover} />
+        <Route path="/events" component={Events} />
         <Route path="/communities" component={Communities} />
         <Route path="/kudos" component={Dashboard} />
         <Route path="/login" component={Login} />
@@ -238,6 +244,7 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/delete-account" component={DeleteAccount} />
         <Route path="/admin/metrics" component={AdminRoute} />
+        <Route path="/admin/moderation" component={ModerationDashboard} />
 
         {/* Fallback to 404 */}
         <Route component={NotFound} />

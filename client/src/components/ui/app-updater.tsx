@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function AppUpdater() {
@@ -124,69 +124,63 @@ export function AppUpdater() {
 
   return (
     <Dialog open={updateAvailable} onOpenChange={setUpdateAvailable}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md bg-[#050d1a]/95 border border-cyan-500/30 backdrop-blur-2xl text-white rounded-3xl p-6 shadow-2xl shadow-cyan-500/20">
         <DialogHeader>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Download className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-cyan-500/20 border border-cyan-400/30 rounded-2xl flex items-center justify-center text-cyan-300 shadow-inner">
+              <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
             </div>
             <div>
-              <DialogTitle>App Update Available</DialogTitle>
-              <DialogDescription>
-                A new version of SameVibe is ready to install with the latest features and improvements.
+              <DialogTitle className="text-lg font-bold text-white tracking-tight">SameVibe Sync Update</DialogTitle>
+              <DialogDescription className="text-xs text-cyan-200/70">
+                Fresh app improvements and live community updates are ready.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        <div className="space-y-4 pt-2">
+          <div className="bg-cyan-950/40 border border-cyan-500/20 rounded-2xl p-4">
             <div className="flex items-start space-x-3">
-              <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <RefreshCw className="w-5 h-5 text-cyan-400 mt-0.5 animate-spin-slow" />
               <div className="space-y-1">
-                <p className="font-medium text-sm text-blue-900 dark:text-blue-100">
-                  What's New
+                <p className="font-semibold text-xs text-white">
+                  Live Features & Sync Performance
                 </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Enhanced performance, bug fixes, and improved community matching features.
+                <p className="text-[11px] text-cyan-200/70 leading-relaxed">
+                  Includes enhanced community matching, faster messaging sync, and performance optimizations.
                 </p>
               </div>
             </div>
           </div>
           
-          <div className="flex space-x-3">
+          <div className="flex gap-3 pt-1">
             <Button 
               onClick={handleUpdate}
               disabled={isUpdating}
-              className="flex-1"
-              size="lg"
+              className="flex-1 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold rounded-xl h-11 text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
             >
               {isUpdating ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
+                  Syncing...
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4 mr-2" />
-                  Update Now
+                  Sync Now
                 </>
               )}
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               onClick={handleDismiss}
               disabled={isUpdating}
-              className="flex-1"
-              size="lg"
+              className="flex-1 text-white/70 hover:text-white hover:bg-white/10 border border-white/15 rounded-xl h-11 text-xs font-semibold"
             >
               Later
             </Button>
           </div>
-          
-          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-            Updates are automatically downloaded and installed in the background for the best experience.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

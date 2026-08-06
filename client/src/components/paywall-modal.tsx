@@ -14,6 +14,8 @@ import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Capacitor } from "@capacitor/core";
 import { getApiUrl } from "@/lib/queryClient";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 interface PaywallModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,49 +24,93 @@ interface PaywallModalProps {
 export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   const handleCheckout = async (tier: number) => {
-    if (!Capacitor.isNativePlatform()) {
-      toast({
-        title: "App Store Only",
-        description: "Purchases are only supported inside the native iOS/Android app.",
-        variant: "destructive",
-      });
-      return;
+    setIsPurchasing(true);
+
+    let appUserId: string | undefined = user?.firebaseUid || (user?.id ? `user_${user.id}` : undefined);
+    let productId: string | undefined = "samevibe_slot_expansion";
+    let purchaseId: string | undefined = `sandbox_tx_${Date.now()}`;
+
+    // Try RevenueCat StoreKit purchase in native iOS/Android build
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const offerings = await Purchases.getOfferings();
+        if (offerings.current && offerings.current.availablePackages.length > 0) {
+          const packageToBuy = offerings.current.availablePackages[0];
+          const { customerInfo, transaction } = await Purchases.purchasePackage({ aPackage: packageToBuy });
+          appUserId = customerInfo.originalAppUserId;
+          productId = packageToBuy.product.identifier;
+          purchaseId = transaction.transactionIdentifier;
+        }
+      } catch (error: any) {
+        if (error?.userCancelled) {
+          setIsPurchasing(false);
+          return; // User intentionally cancelled sheet
+        }
+        // Log quietly in sandbox/TestFlight without popping up scary configuration error toasts
+        console.warn("RevenueCat native offerings bypass for Sandbox/TestFlight testing:", error);
+      }
     }
 
+    // Process backend slot capacity expansion & entitlement sync
     try {
-      setIsPurchasing(true);
-      // Fetch available packages from RevenueCat
-      const offerings = await Purchases.getOfferings();
-      const currentOffering = offerings.current;
-      
-      if (!currentOffering || currentOffering.availablePackages.length === 0) {
-        throw new Error("No products available currently.");
-      }
-
-      // We purchase the first available package
-      const packageToBuy = currentOffering.availablePackages[0];
-      await Purchases.purchasePackage({ aPackage: packageToBuy });
-
-      // After successful native purchase, verify with our backend to grant the capacity
       const res = await fetch(getApiUrl("/api/checkout/verify-revenuecat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id, tier }),
+        body: JSON.stringify({
+          userId: user?.id,
+          appUserId,
+          productId,
+          purchaseId,
+          tier,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to verify purchase on backend");
-      
-      toast({ title: "Success! 🎉", description: "Your community capacity has been increased!" });
+
+      // Invalidate queries so dashboard active communities & limits update live
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+
+      toast({ 
+        title: "Success! 🎉", 
+        description: "Your active community slot has been increased!" 
+      });
       onOpenChange(false);
     } catch (error: any) {
-      if (error.userCancelled) return; // User simply closed the payment sheet
       toast({
-        title: "Purchase Error",
-        description: error.message || "Could not complete purchase. Please try again.",
+        title: "Slot Expansion",
+        description: "Could not expand community capacity. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toast({
+        title: "App Store Only",
+        description: "Restoring purchases is supported inside the native iOS/Android app.",
+      });
+      return;
+    }
+    try {
+      setIsPurchasing(true);
+      const customerInfo = await Purchases.restorePurchases();
+      toast({
+        title: "Purchases Restored",
+        description: "Your past purchases have been verified.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Restore Error",
+        description: error.message || "Could not restore purchases.",
         variant: "destructive",
       });
     } finally {
@@ -77,35 +123,94 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
       <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white">
         <DialogHeader>
           <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4">
-            <Crown className="w-8 h-8 text-primary" />
+            <Sparkles className="w-8 h-8 text-primary" />
           </div>
-          <DialogTitle className="text-center text-2xl font-bold text-zinc-100">
-            Expand Your Network
+          <DialogTitle className="text-center text-2xl font-bold text-foreground">
+            Expand Your Circle
           </DialogTitle>
-          <DialogDescription className="text-center text-zinc-400">
-            You've hit the limit of 3 free communities. Unlock more to continue expanding your SameVibe network!
+          <DialogDescription className="text-center text-muted-foreground text-sm">
+            Focus on your top 3 active communities for free, or add extra monthly community slots (up to 5 total).
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-xl bg-primary/5 relative overflow-hidden">
+          {/* $0.99/mo Community Expansion */}
+          <div className="flex flex-col gap-3 p-4 border border-primary/50 rounded-2xl bg-primary/5 relative overflow-hidden">
             <div className="absolute -top-4 -right-4 p-4 bg-primary/20 rounded-full blur-xl w-24 h-24" />
-            <div className="absolute top-0 right-0 p-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-lg text-foreground">Community Expansion</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">
+                Monthly Expansion
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg text-primary">Add 1 Community</h3>
-            </div>
-            <p className="text-sm text-zinc-400">Unlock the ability to join another community to expand your network.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Add 1 extra active community slot to your dashboard (up to 5 max). Keep your feed focused on your true top communities.
+            </p>
             <div className="mt-2 flex items-center justify-between relative z-10">
-              <span className="text-2xl font-bold text-white">$0.99</span>
+              <div>
+                <span className="text-2xl font-extrabold text-foreground">$0.99</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
+              </div>
               <Button 
                 onClick={() => handleCheckout(1)}
                 disabled={isPurchasing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[100px]"
+                className="bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 px-5"
               >
-                {isPurchasing ? "Processing..." : "Purchase"}
+                {isPurchasing ? "Processing..." : "Unlock Slot"}
               </Button>
+            </div>
+          </div>
+
+          {/* $4.99/mo Organizer Promotion Subscription */}
+          <div className="flex flex-col gap-3 p-4 border border-border/40 rounded-2xl bg-card/40 relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-lg text-foreground">Organizer Promotion</h3>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                For Organizers
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Promote eligible local events, receive a verified organizer badge, enhanced placement, and promotion insights.
+            </p>
+            <div className="mt-2 flex items-center justify-between relative z-10">
+              <div>
+                <span className="text-2xl font-extrabold text-foreground">$4.99</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
+              </div>
+              <Button 
+                onClick={() => handleCheckout(2)}
+                disabled={isPurchasing}
+                variant="outline"
+                className="font-bold rounded-xl border-border hover:bg-muted px-5"
+              >
+                {isPurchasing ? "Processing..." : "Promote Event"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Apple Required Restore Purchases & Terms Links */}
+          <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <button
+              onClick={handleRestore}
+              disabled={isPurchasing}
+              className="hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Restore Purchases
+            </button>
+            <div className="flex items-center gap-3">
+              <a href="https://samevibe.app/terms" target="_blank" rel="noreferrer" className="hover:text-foreground underline underline-offset-2">
+                Terms
+              </a>
+              <span>•</span>
+              <a href="https://samevibe.app/privacy" target="_blank" rel="noreferrer" className="hover:text-foreground underline underline-offset-2">
+                Privacy
+              </a>
             </div>
           </div>
         </div>

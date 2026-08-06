@@ -5,6 +5,8 @@ export interface ScrapedEvent {
   location: string;
   category: string;
   sourceUrl: string;
+  sourceName?: string;
+  isExternal?: boolean;
   organizerName?: string | null;
   price?: number | null;
   attendeeCount?: number | null;

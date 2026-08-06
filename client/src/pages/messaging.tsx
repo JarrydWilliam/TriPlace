@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,8 @@ function ConvoItem({
       whileTap={{ scale: 0.98 }}
       className={`w-full flex items-center gap-3 p-4 text-left transition-colors rounded-xl ${
         selected
-          ? "bg-primary/15 border border-primary/20"
-          : "hover:bg-white/5 border border-transparent"
+          ? "glass-card-active"
+          : "hover:bg-muted/30 border border-transparent hover:border-border/30"
       }`}
     >
       <div className="relative flex-shrink-0">
@@ -171,9 +172,7 @@ function DMThread({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
+          <ComponentLoadingSpinner text="Loading messages..." />
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <MessageCircle className="w-12 h-12 text-muted-foreground/20 mb-4" />
@@ -229,7 +228,7 @@ function DMThread({
               }
             }}
             placeholder={`Message ${otherUser.name?.split(" ")[0]}...`}
-            className="flex-1 bg-muted/30 border-white/10 rounded-full px-4 h-10 text-sm focus-visible:ring-primary/30"
+            className="flex-1 glass-input rounded-full px-4 h-10 text-sm"
           />
           <Button
             size="icon"
@@ -247,6 +246,8 @@ function DMThread({
 
 // ─── Main Messaging page ───────────────────────────────────────────────────────
 
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
+
 export default function Messaging() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -260,9 +261,7 @@ export default function Messaging() {
       const res = await fetch(getApiUrl(`/api/users/${user?.id}/conversations`));
       if (!res.ok) return [];
       const raw = await res.json();
-      // Normalize: backend may return array of messages grouped by peer
       if (Array.isArray(raw) && raw.length > 0 && raw[0].otherUser) return raw;
-      // If backend returns flat message array, group by peer
       return [];
     },
     refetchInterval: 5000,
@@ -277,14 +276,10 @@ export default function Messaging() {
   const showThread = !!selectedUser;
 
   return (
-    <div className="mobile-page-container bg-background pb-20 relative overflow-hidden">
-      {/* Rich ambient bokeh */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
-      </div>
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden flex flex-col">
+      <VibePageHeader mode="home" />
       {/* Mobile: show list OR thread; Desktop: side-by-side */}
-      <div className="max-w-3xl mx-auto h-[calc(100dvh-80px)] flex">
+      <div className="max-w-3xl mx-auto w-full flex-1 flex">
         {/* ── Conversation List ── */}
         <AnimatePresence initial={false}>
           {(!showThread || !isMobile) && (
@@ -297,16 +292,15 @@ export default function Messaging() {
                 showThread ? "hidden md:flex md:w-72 lg:w-80 flex-shrink-0" : "flex-1"
               }`}
             >
-              {/* List header */}
-              <div className="px-4 pt-safe py-4 border-b border-border/40">
-                <h1 className="text-xl font-bold text-foreground mb-3">Messages</h1>
+              {/* List search */}
+              <div className="px-4 py-3 border-b border-border/40">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search conversations..."
-                    className="pl-9 bg-muted/30 border-white/10 h-9 text-sm"
+                    className="glass-input pl-9 h-9 text-sm"
                   />
                 </div>
               </div>
@@ -314,17 +308,7 @@ export default function Messaging() {
               {/* Conversations */}
               <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
                 {isLoading ? (
-                  <div className="space-y-3 px-2 pt-4">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-muted/30 animate-pulse flex-shrink-0" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 bg-muted/30 rounded animate-pulse w-2/3" />
-                          <div className="h-2.5 bg-muted/20 rounded animate-pulse w-1/2" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <ComponentLoadingSpinner text="Loading conversations..." />
                 ) : filtered.length > 0 ? (
                   filtered.map((convo) => (
                     <ConvoItem

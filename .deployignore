@@ -1,3 +1,7 @@
+.env
+*.pem
+*.key
+cert_*.pem
 # Exclude development files and folders from deployment
 dev/
 attached_assets/

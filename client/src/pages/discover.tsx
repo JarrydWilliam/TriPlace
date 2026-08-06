@@ -16,6 +16,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
+import { VibeEventCard } from "@/components/ui/vibe-event-card";
+import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { Sparkles, MapPin, Users, Calendar, ChevronRight, Plus, Check, Zap, ExternalLink, Compass } from "lucide-react";
 import {
   AlertDialog,
@@ -170,23 +173,12 @@ export default function Discover() {
     .slice(0, 4);
 
   return (
-    <div className="min-h-[100dvh] bg-background pb-28">
-      {/* ─ Header ─ */}
-      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/50 px-4 pt-safe">
-        <div className="max-w-lg mx-auto py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-0.5">SameVibe: Discover Your Scene</p>
-              <h1 className="text-xl font-bold text-foreground">Find your people</h1>
-            </div>
-            <div className="flex items-center gap-1.5 text-primary">
-              <Zap className="w-4 h-4" />
-              <span className="text-sm font-medium">AI-matched</span>
-            </div>
-          </div>
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
+      <VibePageHeader mode="home" />
 
-          {/* Category filter pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+      <div className="max-w-md mx-auto px-4 py-4 space-y-6">
+        {/* Category filter pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -202,10 +194,6 @@ export default function Discover() {
               </button>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-8">
 
         {/* ─ AI Communities ─ */}
         <section>
@@ -220,11 +208,7 @@ export default function Discover() {
           </div>
 
           {loadingCommunities ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-32 rounded-2xl bg-muted/30 animate-pulse" />
-              ))}
-            </div>
+            <ComponentLoadingSpinner text="Finding matched communities..." />
           ) : filteredCommunities.length > 0 ? (
             <AnimatePresence mode="popLayout">
               <div className="space-y-3">
@@ -253,12 +237,12 @@ export default function Discover() {
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="relative mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 shadow-2xl backdrop-blur-md">
+                <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center relative z-10 shadow-2xl">
                   <Compass className="w-8 h-8 text-primary/80" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">No Communities Found</h3>
-              <p className="text-sm text-white/50 max-w-[280px]">
+              <h3 className="text-xl font-bold text-foreground mb-2">No Communities Found</h3>
+              <p className="text-sm text-muted-foreground max-w-[280px]">
                 We couldn't find any communities for this category right now. Check back later or try another category!
               </p>
             </div>

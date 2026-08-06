@@ -11,8 +11,9 @@ export default {
       minHeight: {
         screen: "100dvh",
       },
-      maxHeight: {
-        screen: "100dvh",
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

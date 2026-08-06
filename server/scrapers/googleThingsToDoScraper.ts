@@ -91,6 +91,8 @@ export class GoogleThingsToDoScraper {
                 location: location,
                 category: this.categorizeEvent(title, description),
                 source: 'google',
+                sourceName: 'Google',
+                isExternal: true,
                 sourceUrl: link || this.baseUrl,
                 organizerName: 'Google Things to Do'
               });

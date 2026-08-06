@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/telemetry";
-import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin, Search } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Sparkles, MapPin, Search, Compass, Flame } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
@@ -27,6 +26,18 @@ interface QuizAnswers {
   resonateStatement: string;
 }
 
+interface HobbyOption {
+  id: string;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+interface HobbyCatalogResponse {
+  mainstream: HobbyOption[];
+  emerging: HobbyOption[];
+}
+
 interface QuizOption {
   value: string;
   label: string;
@@ -35,17 +46,14 @@ interface QuizOption {
 }
 
 interface QuizQuestion {
-  id: keyof QuizAnswers;
+  id: string;
   question: string;
   subtitle: string;
-  type: "single" | "multiple";
+  type: "single" | "multiple" | "custom_hobby_mainstream" | "custom_hobby_freeform" | "custom_hobby_emerging";
   maxSelections?: number;
   options: QuizOption[];
 }
 
-// ------------------------------------------------------------------
-// DATA: The "High-End" Content
-// ------------------------------------------------------------------
 const QUIZ_SECTIONS: QuizQuestion[] = [
   {
     id: "hopingToFind",
@@ -63,23 +71,25 @@ const QUIZ_SECTIONS: QuizQuestion[] = [
     ]
   },
   {
-    id: "interestSpaces",
-    question: "Where do you vibe?",
-    subtitle: "Pick 3-5 scenes that light you up.",
-    type: "multiple",
-    maxSelections: 5,
-    options: [
-      { value: "ai-tech", label: "Future Tech", emoji: "🤖" },
-      { value: "art-design", label: "Creative Arts", emoji: "🎨" },
-      { value: "outdoors-adventure", label: "Wild & Free", emoji: "🌲" },
-      { value: "mindfulness", label: "Mindfulness", emoji: "🧘" },
-      { value: "music-scenes", label: "Music Culture", emoji: "🎵" },
-      { value: "bookworms", label: "Literature", emoji: "📚" },
-      { value: "startup-builders", label: "Founders", emoji: "🚀" },
-      { value: "social-impact", label: "Change Makers", emoji: "🌍" },
-      { value: "gaming", label: "Gaming", emoji: "🎮" },
-      { value: "cooking", label: "Culinary", emoji: "🍳" }
-    ]
+    id: "hobbyMainstream",
+    question: "Which hobbies light you up?",
+    subtitle: "Select up to 3 mainstream favorites.",
+    type: "custom_hobby_mainstream",
+    options: []
+  },
+  {
+    id: "hobbyFreeform",
+    question: "Top hobbies not listed above?",
+    subtitle: "We're always expanding! Tell us what you love.",
+    type: "custom_hobby_freeform",
+    options: []
+  },
+  {
+    id: "hobbyEmerging",
+    question: "Up-and-coming trends catch your eye?",
+    subtitle: "Pick any emerging hobbies to explore, or keep your original 3 picks!",
+    type: "custom_hobby_emerging",
+    options: []
   },
   {
     id: "communityFeel",
@@ -118,36 +128,11 @@ const QUIZ_SECTIONS: QuizQuestion[] = [
     ]
   },
   {
-    id: "availability",
-    question: "When are you usually free?",
-    subtitle: "Select all that apply.",
-    type: "multiple",
-    maxSelections: 3,
-    options: [
-      { value: "weekdays", label: "Weekdays (9-5)", emoji: "☀️" },
-      { value: "weeknights", label: "Weeknights", emoji: "🌙" },
-      { value: "weekends", label: "Weekends", emoji: "🎉" },
-      { value: "anytime", label: "Flexible", emoji: "⏰" }
-    ]
-  },
-  {
-    id: "resonateStatement",
-    question: "Which statement resonates with you most right now?",
-    subtitle: "A vibe check.",
-    type: "single",
-    options: [
-      { value: "deep-talks", label: "I prefer deep 1-on-1 conversations over big groups", emoji: "🗣️" },
-      { value: "doer", label: "I bond with people by doing activities together", emoji: "🏃" },
-      { value: "listener", label: "I'm a great listener and observer", emoji: "👂" },
-      { value: "organizer", label: "I love organizing and bringing people together", emoji: "📋" }
-    ]
-  },
-  {
     id: "location",
     question: "Where are you based?",
     subtitle: "To find local gems around you.",
-    type: "single", // Special case handled in render
-    options: [] // Populated dynamically or handled via input
+    type: "single",
+    options: []
   }
 ];
 
@@ -170,23 +155,33 @@ export default function Onboarding() {
     resonateStatement: ""
   });
 
-  // Location step: show manual entry after 8s if GPS hasn't resolved
-  const [locationGpsTimeout, setLocationGpsTimeout] = useState(false);
+  // Hobby Quiz State
+  const [pickedMainstream, setPickedMainstream] = useState<string[]>([]);
+  const [freeformHobby, setFreeformHobby] = useState<string>("");
+  const [pickedEmerging, setPickedEmerging] = useState<string[]>([]);
+
+  // Fetch Hobby Catalog from backend
+  const { data: hobbyCatalog } = useQuery<HobbyCatalogResponse>({
+    queryKey: ["/api/hobbies/catalog"],
+    queryFn: async () => {
+      const res = await fetch("/api/hobbies/catalog");
+      if (!res.ok) throw new Error("Failed to fetch hobbies catalog");
+      return res.json();
+    },
+  });
+
+  // Location step timeouts
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState("");
   const gpsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Start 8-second GPS timeout when we reach the location step
   useEffect(() => {
     const isLocationStep = QUIZ_SECTIONS[step]?.id === "location";
     if (isLocationStep && !locationName) {
       if (locationError) {
-        // If GPS/IP failed already, don't wait 8 seconds
-        setLocationGpsTimeout(true);
         setShowManualInput(true);
       } else {
         gpsTimerRef.current = setTimeout(() => {
-          setLocationGpsTimeout(true);
           setShowManualInput(true);
         }, 8000);
       }
@@ -196,11 +191,9 @@ export default function Onboarding() {
     };
   }, [step, locationName, locationError]);
 
-  // Auto-detect location for that step — cancel timer if GPS succeeds
   useEffect(() => {
     if (locationName && !answers.location) {
       setAnswers(prev => ({ ...prev, location: locationName }));
-      setLocationGpsTimeout(false);
       setShowManualInput(false);
       if (gpsTimerRef.current) clearTimeout(gpsTimerRef.current);
     }
@@ -214,8 +207,21 @@ export default function Onboarding() {
 
   const submitQuizMutation = useMutation({
     mutationFn: async (data: QuizAnswers) => {
+      // 1. Submit Hobby Quiz analytics
+      await apiRequest("POST", "/api/hobbies/quiz-submit", {
+        pickedMainstreamHobbies: pickedMainstream,
+        pickedEmergingHobbies: pickedEmerging,
+        freeformHobby: freeformHobby.trim() || undefined,
+      });
+
+      // 2. Submit onboarding complete payload
+      const combinedInterests = Array.from(
+        new Set([...pickedMainstream, ...pickedEmerging, ...(freeformHobby.trim() ? [freeformHobby.trim()] : [])])
+      );
+
       const res = await apiRequest("POST", "/api/onboarding/complete", {
         ...data,
+        interestSpaces: combinedInterests,
         latitude,
         longitude,
         userId: user?.id
@@ -225,7 +231,6 @@ export default function Onboarding() {
     onSuccess: async () => {
       trackEvent('quiz_complete', { userId: user?.id });
       await refreshUser();
-      // Redirect to cinematic reveal — the "Familiar but New" moment
       setLocation("/reveal");
     },
     onError: () => {
@@ -237,18 +242,41 @@ export default function Onboarding() {
     }
   });
 
+  const toggleMainstreamHobby = (id: string) => {
+    setPickedMainstream(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      }
+      if (prev.length >= 3) {
+        toast({
+          title: "Limit reached",
+          description: "You can select up to 3 mainstream hobbies.",
+        });
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const toggleEmergingHobby = (id: string) => {
+    setPickedEmerging(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
   const handleSelect = (value: string) => {
     const question = QUIZ_SECTIONS[step];
-    
-    if (question.id === "location") return; // Handled separately
+    if (question.id === "location") return;
 
     if (question.type === "single") {
-      setAnswers(prev => ({ ...prev, [question.id]: value }));
-      // Auto-advance for single select after a brief pause for effect
+      setAnswers(prev => ({ ...prev, [question.id as keyof QuizAnswers]: value }));
       setTimeout(() => handleNext(), 250);
-    } else {
+    } else if (question.type === "multiple") {
       setAnswers(prev => {
-        const current = (prev[question.id] as string[]) || [];
+        const current = (prev[question.id as keyof QuizAnswers] as string[]) || [];
         if (current.includes(value)) {
           return { ...prev, [question.id]: current.filter(v => v !== value) };
         }
@@ -276,22 +304,22 @@ export default function Onboarding() {
     if (step > 0) setStep(step - 1);
   };
 
-  // Helper to check if current step is valid to proceed
   const canProceed = () => {
     const q = QUIZ_SECTIONS[step];
     if (q.id === "location") return !!answers.location;
-    
-    const ans = answers[q.id];
+    if (q.id === "hobbyMainstream") return pickedMainstream.length > 0;
+    if (q.id === "hobbyFreeform") return true; // Optional step
+    if (q.id === "hobbyEmerging") return true; // Optional step
+
+    const ans = answers[q.id as keyof QuizAnswers];
     if (Array.isArray(ans)) return ans.length > 0;
     return !!ans;
   };
 
-  const progress = ((step + 1) / QUIZ_SECTIONS.length) * 100;
   const currentQ = QUIZ_SECTIONS[step];
 
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground overflow-y-auto relative flex flex-col items-center justify-center">
-      {/* Rich background bokeh matching Login */}
       <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
@@ -300,7 +328,6 @@ export default function Onboarding() {
       {/* Header */}
       <div className="absolute top-0 w-full px-6 pt-safe flex justify-between items-center z-20" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 24px)" }}>
         <Logo size="sm" />
-        {/* Dot step indicators */}
         <div className="flex items-center gap-1.5">
           {QUIZ_SECTIONS.map((_, i) => (
             <div
@@ -325,13 +352,13 @@ export default function Onboarding() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="w-full max-w-lg px-6 z-10"
+          className="w-full max-w-lg px-6 z-10 py-16"
         >
-          <div className="mb-8 text-center space-y-2">
+          <div className="mb-6 text-center space-y-2">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
-              className="inline-flex items-center justify-center p-2 bg-white/5 rounded-full mb-4 border border-white/10"
+              className="inline-flex items-center justify-center p-2 bg-white/5 rounded-full mb-3 border border-white/10"
             >
               <Sparkles className="w-4 h-4 text-primary mr-2" />
               <span className="text-xs font-medium text-primary uppercase tracking-widest">
@@ -342,44 +369,154 @@ export default function Onboarding() {
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground shadow-sm">
               {currentQ.question}
             </h1>
-            <p className="text-lg text-muted-foreground">{currentQ.subtitle}</p>
+            <p className="text-base text-muted-foreground">{currentQ.subtitle}</p>
           </div>
 
-          {/* Options Grid */}
-          <div className="grid grid-cols-1 gap-3 mb-8">
-              {currentQ.id === "location" ? (
-              // Location Step — auto-detect with manual fallback
+          {/* Options & Interactive Quiz Rendering */}
+          <div className="mb-6">
+            {/* 1. Mainstream Hobbies Grid */}
+            {currentQ.type === "custom_hobby_mainstream" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                  <span>15 Mainstream Trends</span>
+                  <span className="font-semibold text-primary">{pickedMainstream.length}/3 selected</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+                  {(hobbyCatalog?.mainstream || []).map((hobby) => {
+                    const isSelected = pickedMainstream.includes(hobby.id);
+                    return (
+                      <button
+                        key={hobby.id}
+                        onClick={() => toggleMainstreamHobby(hobby.id)}
+                        className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                          isSelected
+                            ? "bg-primary/20 border-primary shadow-sm text-foreground"
+                            : "bg-white/5 border-white/10 hover:bg-white/10 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="text-2xl">{hobby.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm text-foreground leading-tight">{hobby.label}</span>
+                            {isSelected && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                            {hobby.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Freeform Hobby Input */}
+            {currentQ.type === "custom_hobby_freeform" && (
+              <div className="glass-card p-6 rounded-2xl border border-white/10 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-primary" />
+                  <label className="text-sm font-semibold text-foreground">
+                    Your unlisted hobby / interest:
+                  </label>
+                </div>
+                <Input
+                  value={freeformHobby}
+                  onChange={(e) => setFreeformHobby(e.target.value.slice(0, 200))}
+                  placeholder="e.g. Vintage synth restoration, speedcubing, retro gaming..."
+                  maxLength={200}
+                  className="samevibe-premium-input w-full px-4 py-3 bg-white/10 border-white/15 text-white placeholder:text-white/40 rounded-xl"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                  <span>Freeform text (&lt;200 chars)</span>
+                  <span>{freeformHobby.length}/200</span>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Emerging Hobbies Grid */}
+            {currentQ.type === "custom_hobby_emerging" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                  <span className="flex items-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-amber-400" /> 10 Up-and-Coming Trends
+                  </span>
+                  <span className="font-semibold text-primary">{pickedEmerging.length} emerging picked</span>
+                </div>
+
+                {pickedMainstream.length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Original picks: <strong className="text-foreground">{pickedMainstream.length}</strong></span>
+                    <button
+                      onClick={() => setPickedMainstream([])}
+                      className="text-primary hover:underline text-[11px]"
+                    >
+                      Deselect original picks
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+                  {(hobbyCatalog?.emerging || []).map((hobby) => {
+                    const isSelected = pickedEmerging.includes(hobby.id);
+                    return (
+                      <button
+                        key={hobby.id}
+                        onClick={() => toggleEmergingHobby(hobby.id)}
+                        className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                          isSelected
+                            ? "bg-amber-500/20 border-amber-400 shadow-sm text-foreground"
+                            : "bg-white/5 border-white/10 hover:bg-white/10 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="text-2xl">{hobby.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-sm text-foreground leading-tight">{hobby.label}</span>
+                            {isSelected && <Check className="w-4 h-4 text-amber-400 flex-shrink-0" />}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                            {hobby.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Location Step */}
+            {currentQ.id === "location" && (
               <div className="glass-card p-6 rounded-xl border border-white/10 text-center space-y-5">
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                  answers.location ? "bg-green-500/20" : "bg-blue-500/20 animate-pulse"
+                  answers.location ? "bg-primary/20" : "bg-cyan-500/20 animate-pulse"
                 }`}>
-                  <MapPin className={`w-8 h-8 ${answers.location ? "text-green-400" : "text-blue-400"}`} />
+                  <MapPin className={`w-8 h-8 ${answers.location ? "text-primary" : "text-cyan-400"}`} />
                 </div>
 
                 {answers.location ? (
-                  // GPS success or manual entry confirmed
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <Check className="w-4 h-4 text-green-400" />
-                      <h3 className="text-xl font-semibold text-white">{answers.location}</h3>
+                      <h3 className="text-xl font-semibold text-foreground">{answers.location}</h3>
                     </div>
-                    <p className="text-sm text-white/40">We'll find communities near you.</p>
+                    <p className="text-sm text-muted-foreground/60">We'll find communities near you.</p>
                     <button
                       onClick={() => {
                         setAnswers(prev => ({ ...prev, location: "" }));
                         setShowManualInput(true);
                       }}
-                      className="text-xs text-white/30 hover:text-white/60 transition-colors mt-3 underline underline-offset-2"
+                      className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-3 underline underline-offset-2"
                     >
                       Change location
                     </button>
                   </div>
                 ) : showManualInput ? (
-                  // Manual entry UI
                   <div className="space-y-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white mb-1">Where are you based?</h3>
-                      <p className="text-sm text-white/40">Enter your city and state or country.</p>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">Where are you based?</h3>
+                      <p className="text-sm text-muted-foreground">Enter your city and state or country.</p>
                     </div>
                     <div className="flex gap-2">
                       <Input
@@ -402,84 +539,88 @@ export default function Onboarding() {
                     </div>
                   </div>
                 ) : (
-                  // GPS detecting state
                   <div>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl font-semibold text-foreground">
                       Detecting location...
                     </h3>
-                    <p className="text-sm text-white/40 mt-1">
+                    <p className="text-sm text-muted-foreground/70 mt-1">
                       We use this to find communities near you.
                     </p>
                     <button
                       onClick={() => setShowManualInput(true)}
-                      className="mt-4 text-sm text-white/50 hover:text-white border border-white/10 rounded-full px-4 py-2 transition-all hover:bg-white/10"
+                      className="mt-4 text-sm text-muted-foreground hover:text-foreground border border-border/40 rounded-full px-4 py-2 transition-all hover:bg-muted/30"
                     >
                       Enter manually instead
                     </button>
                   </div>
                 )}
               </div>
-            ) : (
-              // Standard Options
-              currentQ.options.map((option) => {
-                const isSelected = Array.isArray(answers[currentQ.id])
-                  ? (answers[currentQ.id] as string[]).includes(option.value)
-                  : answers[currentQ.id] === option.value;
+            )}
 
-                return (
-                  <motion.button
-                    key={option.value}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleSelect(option.value)}
-                    className={`
-                      group relative w-full p-4 rounded-2xl text-left transition-all duration-200
-                      flex items-center gap-4 min-h-[64px]
-                      ${
-                        isSelected
-                          ? "bg-card/40 backdrop-blur-xl border border-primary shadow-sm scale-[1.01]"
-                          : "bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10"
-                      }
-                    `}
-                  >
-                    {/* Emoji circle — larger, branded */}
-                    <div className={`
-                      w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0
-                      transition-all duration-200
-                      ${
-                        isSelected
-                          ? "bg-primary/30 shadow-[inset_0_0_10px_rgba(124,58,237,0.3)]"
-                          : "bg-white/8 group-hover:bg-white/12"
-                      }
-                    `}>
-                      {option.emoji}
-                    </div>
+            {/* 5. Standard Options */}
+            {currentQ.type !== "custom_hobby_mainstream" &&
+             currentQ.type !== "custom_hobby_freeform" &&
+             currentQ.type !== "custom_hobby_emerging" &&
+             currentQ.id !== "location" && (
+              <div className="grid grid-cols-1 gap-3">
+                {currentQ.options.map((option) => {
+                  const isSelected = Array.isArray(answers[currentQ.id as keyof QuizAnswers])
+                    ? (answers[currentQ.id as keyof QuizAnswers] as string[]).includes(option.value)
+                    : answers[currentQ.id as keyof QuizAnswers] === option.value;
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`font-semibold text-base leading-tight ${
-                          isSelected ? "text-foreground" : "text-foreground/80"
-                        }`}>
-                          {option.label}
-                        </span>
-                        {/* Animated checkmark */}
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                  return (
+                    <motion.button
+                      key={option.value}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleSelect(option.value)}
+                      className={`
+                        group relative w-full p-4 rounded-2xl text-left transition-all duration-200
+                        flex items-center gap-4 min-h-[64px]
+                        ${
                           isSelected
-                            ? "border-primary bg-primary"
-                            : "border-white/10"
-                        }`}>
-                          {isSelected && <Check className="w-3 h-3 text-white" />}
-                        </div>
+                            ? "bg-card/40 backdrop-blur-xl border border-primary shadow-sm scale-[1.01]"
+                            : "bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10"
+                        }
+                      `}
+                    >
+                      <div className={`
+                        w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0
+                        transition-all duration-200
+                        ${
+                          isSelected
+                            ? "bg-primary/25 shadow-[inset_0_0_12px_hsl(var(--primary)/0.25)]"
+                            : "bg-white/8 group-hover:bg-white/12"
+                        }
+                      `}>
+                        {option.emoji}
                       </div>
-                      {option.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          {option.description}
-                        </p>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              })
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`font-semibold text-base leading-tight ${
+                            isSelected ? "text-foreground" : "text-foreground/80"
+                          }`}>
+                            {option.label}
+                          </span>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                            isSelected
+                              ? "border-primary bg-primary"
+                              : "border-white/10"
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+                        {option.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                            {option.description}
+                          </p>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
             )}
           </div>
 
@@ -498,7 +639,7 @@ export default function Onboarding() {
             <Button
               onClick={handleNext}
               disabled={!canProceed() || (step === QUIZ_SECTIONS.length - 1 && submitQuizMutation.isPending)}
-              className="bg-white text-black hover:bg-white/90 px-8 rounded-full font-semibold shadow-lg shadow-white/10 transition-all hover:scale-105"
+              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground px-8 rounded-full font-semibold shadow-lg shadow-primary/30 transition-all hover:scale-105 hover:shadow-primary/45"
             >
               {submitQuizMutation.isPending ? (
                 "Creating Profile..."

@@ -9,6 +9,8 @@ import { ArrowLeft, Bell, Smartphone, Mail, MessageSquare, Calendar, Users, Hear
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { VibePageHeader } from "@/components/layout/vibe-page-header";
 
 export default function NotificationSettings() {
   const { toast } = useToast();
@@ -64,23 +66,9 @@ export default function NotificationSettings() {
   };
 
   return (
-    <div className="mobile-page-container bg-background relative overflow-hidden">
-      {/* Rich ambient bokeh */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/20 blur-[120px]" />
-      </div>
-
+    <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
+      <VibePageHeader mode="detail" title="Notifications" />
       <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
-        {/* Header */}
-        <div className="flex items-center space-x-4 mb-6">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Notification Settings</h1>
-        </div>
 
         <div className="space-y-6">
           {/* Push Notifications */}
@@ -107,7 +95,7 @@ export default function NotificationSettings() {
                 <div className="space-y-3 ml-4 border-l-2 border-white/10 pl-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <MessageSquare className="w-4 h-4 text-blue-500" />
+                      <MessageSquare className="w-4 h-4 text-cyan-400" />
                       <div>
                         <p className="font-medium">Messages</p>
                         <p className="text-sm text-muted-foreground">New direct messages and community posts</p>
@@ -121,7 +109,7 @@ export default function NotificationSettings() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-green-500" />
+                      <Calendar className="w-4 h-4 text-emerald-400" />
                       <div>
                         <p className="font-medium">Events</p>
                         <p className="text-sm text-muted-foreground">Event reminders and invitations</p>
@@ -135,7 +123,7 @@ export default function NotificationSettings() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-purple-500" />
+                      <Users className="w-4 h-4 text-accent" />
                       <div>
                         <p className="font-medium">Community Activity</p>
                         <p className="text-sm text-muted-foreground">New members and community updates</p>
@@ -149,7 +137,7 @@ export default function NotificationSettings() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Heart className="w-4 h-4 text-red-500" />
+                      <Heart className="w-4 h-4 text-destructive" />
                       <div>
                         <p className="font-medium">Kudos & Appreciation</p>
                         <p className="text-sm text-muted-foreground">When someone gives you kudos</p>
@@ -163,7 +151,7 @@ export default function NotificationSettings() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Bell className="w-4 h-4 text-orange-500" />
+                      <Bell className="w-4 h-4 text-amber-400" />
                       <div>
                         <p className="font-medium">New Matches</p>
                         <p className="text-sm text-muted-foreground">High-compatibility community recommendations</p>
@@ -384,6 +372,7 @@ export default function NotificationSettings() {
           </div>
         </div>
       </div>
+      <MobileNav />
     </div>
   );
 }

@@ -80,6 +80,8 @@ export class LocalEventsScraper {
             location: locationText || location,
             category: this.categorizeEvent(title, description),
             source: 'local',
+            sourceName: 'Local Events',
+            isExternal: true,
             sourceUrl: link.startsWith('http') ? link : `https://eventful.com${link}`,
             organizerName: 'Local Community'
           });
@@ -132,6 +134,8 @@ export class LocalEventsScraper {
             location: location,
             category: this.categorizeEvent(title, description),
             source: 'local',
+            sourceName: 'Local Events',
+            isExternal: true,
             sourceUrl: link,
             organizerName: 'Local News'
           });

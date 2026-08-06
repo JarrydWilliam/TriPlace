@@ -79,6 +79,8 @@ export class MeetupScraper {
                 location: locationElement,
                 category: keyword,
                 sourceUrl: sourceUrl || '',
+                sourceName: 'Meetup',
+                isExternal: true,
                 organizerName: organizerElement || 'Meetup Group',
                 price: 0, // Most Meetup events are free
                 source: 'meetup',

@@ -12,6 +12,7 @@ const app = express();
 const allowedOrigins = [
   "capacitor://localhost",
   "ionic://localhost",
+  "http://localhost",
   "https://samevibe-sandy.vercel.app",
   "https://samevibe.app",
   "http://localhost:5173",
@@ -27,8 +28,13 @@ app.use(
   })
 );
 
+import { createRateLimiter } from "./middleware/rate-limiter.js";
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Global rate limiting for API routes: max 100 requests per minute per IP
+app.use("/api/", createRateLimiter({ windowMs: 60 * 1000, max: 100 }));
 
 // Middleware for logging API requests
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -110,7 +116,11 @@ const serverPromise = (async () => {
   // Dynamic imports: only load agent modules when actually needed.
   // This prevents OpenAI/cron from being instantiated at cold-start on Vercel.
   if (!isVercel) {
-    console.log("[Vercel Startup] Not on Vercel, listening on port...");
+    console.log("[Vercel Startup] Not on Vercel, listening on port and starting schedulers...");
+
+    import("./schedulers/hobbyTrendScheduler.js").then(({ HobbyTrendScheduler }) => {
+      HobbyTrendScheduler.start();
+    }).catch(err => console.error("[Scheduler] Failed to start HobbyTrendScheduler:", err));
 
     const port = parseInt(process.env.PORT || "5000", 10);
     server.listen(

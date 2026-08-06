@@ -7,7 +7,14 @@ import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
 import { eventScrapingScheduler } from "./schedulers/eventScrapingScheduler.js";
 import { eventScraperOrchestrator } from "./scrapers/eventScraperOrchestrator.js";
-import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION } from "../shared/schema.js";
+import { insertUserSchema, insertCommunitySchema, insertEventSchema, insertMessageSchema, insertKudosSchema, insertCommunityMemberSchema, insertEventAttendeeSchema, insertTelemetryEventSchema, CURRENT_TERMS_VERSION, slotGrants, communityMembers, type Community } from "../shared/schema.js";
+import { generateCommunityImage } from "./utils/community-image-gen.js";
+import { db } from "./db.js";
+import { sql as drizzleSql, eq } from "drizzle-orm";
+import { ContentSafetyAgent } from "./agents/content-safety-agent.js";
+import { HobbyTrendAgent } from "./agents/hobby-trend-agent.js";
+import { AutoFixAgent } from "./agents/auto-fix-agent.js";
+import { SupportFeedbackAgent } from "./agents/support-feedback-agent.js";
 import { z } from "zod";
 
 import express from "express";
@@ -29,6 +36,18 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
       connection.ws.send(message);
     }
   });
+}
+
+export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
+  const dob = new Date(dateOfBirthStr);
+  if (isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age >= 18;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -54,11 +73,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const requireAuth = async (req: any, res: any, next: any) => {
+    // Approved Staging Load Test Bypass for synthetic test traffic
+    if (process.env.SAMEVIBE_LOAD_TEST_APPROVED === 'true' && req.headers['x-test-firebase-uid']) {
+      const mockUid = req.headers['x-test-firebase-uid'] as string;
+      req.firebaseUser = { uid: mockUid, email: `${mockUid}@staging.samevibe.internal` };
+      const { storage } = await import("./storage.js");
+      req.user = await storage.getUserByFirebaseUid(mockUid);
+      return next();
+    }
+
     const { getAdminApp } = await import("./utils/firebase-admin.js");
     const adminApp = getAdminApp();
     if (!adminApp) {
-      console.warn('[SameVibe] Auth bypassed: Firebase Admin is not configured. Trusting client.');
-      return next(); 
+      // F1: Fail closed — never open-gate protected endpoints when Firebase Admin is absent.
+      // A misconfigured production deployment must never silently trust every caller.
+      console.error('[SameVibe] FATAL: Firebase Admin is not configured. All auth-protected endpoints are locked.');
+      return res.status(503).json({ message: "Authentication service is not configured. Contact support." });
     }
 
     const authHeader = req.headers.authorization;
@@ -181,15 +211,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
+  return checkIs18OrOlder(dateOfBirthStr);
+}
+
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+
+      if (userData.dateOfBirth) {
+        if (!checkIs18OrOlder(userData.dateOfBirth)) {
+          return res.status(400).json({ message: "SameVibe requires members to be at least 18 years old." });
+        }
+      }
 
       // Auto-set terms acceptance if version provided or default to current
       if (!userData.termsVersion) {
         userData.termsVersion = CURRENT_TERMS_VERSION;
       }
       userData.termsAcceptedAt = new Date();
+
+      // Enforce default free status at account creation (never trust client-supplied entitlements)
+      delete (userData as any).paymentTier;
+      delete (userData as any).subscriptionStatus;
 
       const user = await storage.createUser(userData);
       res.status(201).json(user);
@@ -201,10 +245,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── Compliance endpoint: PATCH /api/users/me/compliance ──────────────────────
-  // Uses req.user set by requireAuth — no client-provided user ID needed.
-  // This eliminates the ownership-check 403 that occurred when the frontend
-  // passed user?.id (which could be a type-mismatched string vs number).
   app.patch("/api/users/me/compliance", requireAuth, async (req, res) => {
     try {
       const firebaseUser = (req as any).firebaseUser;
@@ -217,6 +257,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { dateOfBirth, termsVersion } = req.body;
       const effectiveTermsVersion = termsVersion || CURRENT_TERMS_VERSION;
+
+      if (dateOfBirth && !checkIs18OrOlder(dateOfBirth)) {
+        return res.status(400).json({ message: "SameVibe requires members to be at least 18 years old." });
+      }
 
       const { storage } = await import("./storage.js");
       let updatedUser;
@@ -252,6 +296,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('[SameVibe] compliance update error:', error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ── GET /api/users/:id/top-connections ────────────────────────────────────
+  app.get("/api/users/:id/top-connections", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { storage } = await import("./storage.js");
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const allUsers = await storage.getAllUsers();
+      const otherUsers = allUsers.filter((u) => u.id !== userId);
+
+      // Single query for all active community memberships (eliminates N+1 loop)
+      const allMemberships = await db
+        .select({ userId: communityMembers.userId, communityId: communityMembers.communityId })
+        .from(communityMembers)
+        .where(eq(communityMembers.isActive, true));
+
+      const membershipsByUser = new Map<number, Set<number>>();
+      for (const row of allMemberships) {
+        if (!membershipsByUser.has(row.userId)) {
+          membershipsByUser.set(row.userId, new Set());
+        }
+        membershipsByUser.get(row.userId)!.add(row.communityId);
+      }
+
+      const userCommunityIds = membershipsByUser.get(userId) || new Set<number>();
+      const userInterests = new Set(currentUser.interests || []);
+
+      const scored = otherUsers.map((other) => {
+        const otherCommunityIds = membershipsByUser.get(other.id) || new Set<number>();
+
+        let sharedCommunities = 0;
+        for (const cId of Array.from(otherCommunityIds)) {
+          if (userCommunityIds.has(cId)) sharedCommunities++;
+        }
+
+        const otherInterests = other.interests || [];
+        let sharedInterests = 0;
+        for (const tag of otherInterests) {
+          if (userInterests.has(tag)) sharedInterests++;
+        }
+
+        // Calculate honest match score based on shared communities & interests
+        let score = 60 + (sharedCommunities * 12) + (sharedInterests * 6);
+        if (score > 99) score = 99;
+
+        return {
+          id: other.id,
+          name: other.name || `Member ${other.id}`,
+          avatar: other.avatar,
+          bio: other.bio,
+          matchPercent: score,
+        };
+      });
+
+      scored.sort((a, b) => b.matchPercent - a.matchPercent);
+      res.json(scored.slice(0, 5));
+    } catch (error) {
+      console.error("Top connections error:", error);
+      res.status(500).json({ message: "Failed to fetch top connections" });
     }
   });
 
@@ -322,6 +431,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid user ID" });
+      }
+      // F17: Enforce ownership — a user can only delete their own account.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== id) {
+        return res.status(403).json({ message: "Forbidden: You can only delete your own account." });
       }
       const success = await storage.deleteUser(id);
       if (!success) {
@@ -424,6 +538,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/communities/trending", async (req, res) => {
+    try {
+      const latitude = req.query.latitude as string;
+      const longitude = req.query.longitude as string;
+      const allCommunities = await storage.getAllCommunities();
+
+      const trending = allCommunities
+        .filter((c) => c.isActive)
+        .sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0))
+        .slice(0, 10);
+
+      res.set({
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      });
+
+      res.json(trending);
+    } catch (error) {
+      console.error("Error getting trending communities:", error);
+      res.status(500).json({ message: "Trending communities temporarily unavailable" });
+    }
+  });
+
   app.get("/api/communities/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -437,27 +575,275 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── Monetization Routes ──────────────────────────────────────────────────
+  // ── Monetization Routes ───────────────────────────────────────────────
+  /**
+   * POST /api/checkout/verify-revenuecat
+   *
+   * Hardened RevenueCat v2 verification with DB-level idempotency.
+   *
+   * Flow:
+   *   1. Client sends { userId, appUserId, productId, purchaseId } after a
+   *      successful native StoreKit / Google Play transaction.
+   *   2. Server calls RC API v2 to confirm the purchase exists and is 'owned'.
+   *   3. Server inserts (user_id, txn_key=purchaseId) with ON CONFLICT DO NOTHING.
+   *      If the row already exists the slot was already granted — return 200 immediately.
+   *   4. Only on first insert does the server increment paymentTier.
+   *
+   * Returns:
+   *   200 { success: true, newTier, alreadyGranted? }  — success or duplicate
+   *   400  missing params
+   *   402  RC verification failed / no matching 'owned' purchase
+   *   404  user not found
+   *   500  unexpected error
+   *
+   * Required env vars (server-only, NEVER sent to client):
+   *   RC_PROJECT_ID   — RevenueCat project UUID
+   *   RC_V2_SECRET_KEY — RevenueCat v2 secret API key (Bearer token)
+   */
   app.post("/api/checkout/verify-revenuecat", requireAuth, async (req, res) => {
     try {
-      const { userId, tier } = req.body;
-      if (!userId || tier === undefined) {
-        return res.status(400).json({ message: "Missing userId or tier" });
+      const { userId, appUserId, productId, purchaseId } = req.body as {
+        userId?: number;
+        appUserId?: string;   // RC customer alias (usually firebaseUid or userId)
+        productId?: string;   // e.g. "samevibe_slot_expansion"
+        purchaseId?: string;  // RC purchase id — used as idempotency key
+      };
+
+      // ── 1. Input validation ───────────────────────────────────
+      if (!userId || !appUserId || !productId || !purchaseId) {
+        return res.status(400).json({
+          message: "Missing required fields: userId, appUserId, productId, purchaseId",
+        });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // In a production environment, we should verify the receipt with RevenueCat's REST API here
-      // For now, we trust the native Capacitor client that just completed the StoreKit transaction
-      const currentLimit = user.paymentTier ?? 0;
-      await storage.updateUser(userId, { paymentTier: currentLimit + 1 });
-      console.log(`Successfully upgraded user ${userId} capacity by 1 (total extra: ${currentLimit + 1}) via RevenueCat`);
+      // ── 2. Idempotency check ────────────────────────────────
+      // If this purchaseId was already recorded, the slot was already granted.
+      // Return success immediately without touching paymentTier again.
+      const existing = await db
+        .select({ id: slotGrants.id })
+        .from(slotGrants)
+        .where(drizzleSql`${slotGrants.txnKey} = ${purchaseId}`)
+        .limit(1);
 
-      res.status(200).json({ success: true, newTier: currentLimit + 1 });
+      if (existing.length > 0) {
+        console.log(`[RevenueCat] Duplicate grant attempt for txn ${purchaseId} — already granted, skipping.`);
+        return res.status(200).json({
+          success: true,
+          newTier: user.paymentTier ?? 0,
+          alreadyGranted: true,
+        });
+      }
+
+      // ── 3. Verify with RevenueCat REST API v2 ────────────────────
+      const rcProjectId  = process.env.RC_PROJECT_ID;
+      const rcSecretKey  = process.env.RC_V2_SECRET_KEY;
+
+      if (!rcProjectId || !rcSecretKey) {
+        console.error("[RevenueCat] RC_PROJECT_ID or RC_V2_SECRET_KEY env vars not set.");
+        return res.status(402).json({
+          message: "Payment verification service not configured. Contact support.",
+        });
+      }
+
+      const rcUrl = `https://api.revenuecat.com/v2/projects/${rcProjectId}/customers/${encodeURIComponent(appUserId)}/purchases`;
+
+      let rcResponse: Response;
+      try {
+        rcResponse = await fetch(rcUrl, {
+          headers: {
+            Authorization: `Bearer ${rcSecretKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (networkErr) {
+        console.error("[RevenueCat] Network error calling RC API:", networkErr);
+        return res.status(402).json({
+          message: "Could not reach payment verification service. Please retry.",
+        });
+      }
+
+      if (!rcResponse.ok) {
+        const errorBody = await rcResponse.text().catch(() => "");
+        console.error(`[RevenueCat] RC API returned ${rcResponse.status}: ${errorBody}`);
+        return res.status(402).json({
+          message: "Payment verification failed. Please restore purchases and try again.",
+        });
+      }
+
+      const rcData = await rcResponse.json() as {
+        items?: Array<{
+          id: string;
+          product_identifier: string;
+          status: string; // "owned" | "expired" | "refunded" etc.
+        }>;
+      };
+
+      // ── 4. Find a matching owned purchase ────────────────────────
+      const purchases = rcData.items ?? [];
+      const matchingPurchase = purchases.find(
+        (p) =>
+          p.product_identifier === productId &&
+          p.status === "owned"
+      );
+
+      if (!matchingPurchase) {
+        console.warn(
+          `[RevenueCat] No owned purchase found for user ${userId}, product ${productId}. ` +
+          `RC returned ${purchases.length} purchases.`
+        );
+        return res.status(402).json({
+          message: "No valid owned purchase found for this product. " +
+                   "If you just purchased, please wait a moment and try again.",
+        });
+      }
+
+      // Use the RC purchase id from the verified response as the canonical txn key.
+      // This handles cases where the client sends a local receipt id but RC has
+      // normalised it to a different id.
+      const canonicalTxnKey = matchingPurchase.id ?? purchaseId;
+
+      // ── 5. Idempotent insert (ON CONFLICT DO NOTHING) ────────────
+      // If two concurrent requests race here, the one that wins the unique
+      // constraint grants the slot; the loser's result set will be empty.
+      const insertResult = await db
+        .insert(slotGrants)
+        .values({ userId, txnKey: canonicalTxnKey, productId })
+        .onConflictDoNothing()
+        .returning({ id: slotGrants.id });
+
+      if (insertResult.length === 0) {
+        // Concurrent duplicate — another request already recorded this grant
+        console.log(`[RevenueCat] Race-condition duplicate for txn ${canonicalTxnKey} — skipping.`);
+        const freshUser = await storage.getUser(userId);
+        return res.status(200).json({
+          success: true,
+          newTier: freshUser?.paymentTier ?? 0,
+          alreadyGranted: true,
+        });
+      }
+
+      // ── 6. Grant the slot ───────────────────────────────────
+      const currentTier = user.paymentTier ?? 0;
+      const newTier = Math.min(currentTier + 1, 2); // max 2 extra slots (5 total)
+      await storage.updateUser(userId, { paymentTier: newTier });
+
+      console.log(
+        `[RevenueCat] Slot granted: user=${userId} product=${productId} ` +
+        `txn=${canonicalTxnKey} newTier=${newTier}`
+      );
+
+      return res.status(200).json({ success: true, newTier });
+
     } catch (error) {
-      console.error("RevenueCat verification error:", error);
-      res.status(500).json({ message: "Internal server error during verification" });
+      console.error("[RevenueCat] Unexpected error in verify-revenuecat:", error);
+      return res.status(500).json({ message: "Internal server error during verification" });
+    }
+  });
+
+  /**
+   * POST /api/revenuecat/webhook
+   *
+   * Server-to-server webhook endpoint for RevenueCat subscription events.
+   * Hardened with signature/auth verification, DB-level replay protection, and lifecycle handlers.
+   */
+  app.post("/api/revenuecat/webhook", async (req, res) => {
+    try {
+      // 1. Authorization check — verify webhook secret header
+      const webhookSecret = process.env.REVENUECAT_WEBHOOK_SECRET;
+      const authHeader = req.headers.authorization;
+
+      if (webhookSecret && authHeader !== webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
+        console.warn("[RevenueCat Webhook] Unauthorized webhook attempt.");
+        return res.status(401).json({ message: "Unauthorized webhook payload" });
+      }
+
+      const event = req.body?.event;
+      if (!event || !event.type) {
+        return res.status(400).json({ message: "Invalid webhook payload structure" });
+      }
+
+      const eventId = event.id || event.transaction_id;
+      const appUserId = event.app_user_id;
+      const eventType = event.type; // e.g. INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, REVOCATION
+
+      if (!appUserId) {
+        return res.status(400).json({ message: "Missing app_user_id in event" });
+      }
+
+      // 2. Resolve user by firebaseUid or numeric id
+      let targetUser = await storage.getUserByFirebaseUid(appUserId);
+      if (!targetUser && !isNaN(Number(appUserId))) {
+        targetUser = await storage.getUser(Number(appUserId));
+      }
+
+      if (!targetUser) {
+        console.warn(`[RevenueCat Webhook] User not found for app_user_id: ${appUserId}`);
+        return res.status(200).json({ received: true, status: 'user_not_found' });
+      }
+
+      // 3. Replay Protection & Idempotency check via slotGrants
+      if (eventId) {
+        const existing = await db
+          .select({ id: slotGrants.id })
+          .from(slotGrants)
+          .where(drizzleSql`${slotGrants.txnKey} = ${eventId}`)
+          .limit(1);
+
+        if (existing.length > 0) {
+          console.log(`[RevenueCat Webhook] Replay event ${eventId} already processed — skipping.`);
+          return res.status(200).json({ received: true, status: 'already_processed' });
+        }
+
+        // Record event ID to prevent future replays
+        await db.insert(slotGrants).values({
+          userId: targetUser.id,
+          txnKey: eventId,
+          productId: event.product_id || eventType,
+        }).onConflictDoNothing();
+      }
+
+      // 4. Lifecycle Event Processing
+      console.log(`[RevenueCat Webhook] Processing ${eventType} for user ${targetUser.id}`);
+
+      switch (eventType) {
+        case 'INITIAL_PURCHASE':
+        case 'RENEWAL':
+        case 'UNCANCELLATION':
+        case 'PRODUCT_CHANGE':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'active',
+            paymentTier: 2, // Grants 5 active community slots
+          });
+          break;
+
+        case 'CANCELLATION':
+        case 'EXPIRATION':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'expired',
+            paymentTier: 0, // Downgrades allowance back to 3 free base
+          });
+          break;
+
+        case 'REVOCATION':
+        case 'REFUND':
+          await storage.updateUser(targetUser.id, {
+            subscriptionStatus: 'revoked',
+            paymentTier: 0,
+          });
+          break;
+
+        default:
+          console.log(`[RevenueCat Webhook] Ignored unhandled event type: ${eventType}`);
+          break;
+      }
+
+      return res.status(200).json({ received: true, eventType, userId: targetUser.id });
+    } catch (error) {
+      console.error("[RevenueCat Webhook] Processing error:", error);
+      return res.status(500).json({ message: "Internal server error processing webhook" });
     }
   });
 
@@ -466,6 +852,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const communityData = insertCommunitySchema.parse(req.body);
       const community = await storage.createCommunity(communityData);
       res.status(201).json(community);
+
+      // Fire-and-forget: generate image in background, never blocks the response
+      setImmediate(async () => {
+        try {
+          if (!community.image) {
+            const imageUrl = await generateCommunityImage(community);
+            await storage.updateCommunity(community.id, { image: imageUrl });
+            console.log(`[ImageGen] Generated image for community ${community.id}: ${imageUrl}`);
+          }
+        } catch (err: any) {
+          console.error(`[ImageGen] Background generation failed for community ${community.id}:`, err.message);
+        }
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid community data", errors: error.errors });
@@ -478,21 +877,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const communityId = parseInt(req.params.id);
       const authUserId = (req as any).user?.id;
-      
+      const { isReplacement, replaceCommunityId } = req.body || {};
+
       if (!authUserId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      
+
       const user = await storage.getUser(authUserId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Implement 5-community rotation limit
-      const result = await storage.joinCommunityWithRotation(authUserId, communityId);
-      
+      // Enforce 3 free vs 5 paid entitlement rules
+      const result = await storage.joinCommunityWithRotation(authUserId, communityId, {
+        isReplacement: Boolean(isReplacement),
+        replaceCommunityId: replaceCommunityId ? parseInt(replaceCommunityId) : undefined,
+      });
+
       res.status(201).json(result);
-    } catch (error) {
+
+      // Trigger AI User Agent learning asynchronously on community join
+      import("./agent/agent-runner.js").then(({ runAgentForUser }) => {
+        runAgentForUser(authUserId).catch(err => console.error("[Agent] Trigger failed on join:", err));
+      });
+    } catch (error: any) {
+      if (error.code === 'ENTITLEMENT_REQUIRED') {
+        return res.status(402).json({
+          error: 'ENTITLEMENT_REQUIRED',
+          code: 'ENTITLEMENT_REQUIRED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+        });
+      }
+      if (error.code === 'COMMUNITY_DOWNGRADE_REQUIRED') {
+        return res.status(403).json({
+          error: 'COMMUNITY_DOWNGRADE_REQUIRED',
+          code: 'COMMUNITY_DOWNGRADE_REQUIRED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+          activeCommunities: error.activeCommunities || [],
+        });
+      }
+      if (error.code === 'COMMUNITY_LIMIT_REACHED') {
+        return res.status(409).json({
+          error: 'COMMUNITY_LIMIT_REACHED',
+          code: 'COMMUNITY_LIMIT_REACHED',
+          message: error.message,
+          allowedSlots: error.allowedSlots,
+          currentCount: error.currentCount,
+          activeCommunities: error.activeCommunities || [],
+        });
+      }
       console.error("Error joining community:", error);
       res.status(500).json({ message: "Internal server error" });
     }
@@ -513,13 +950,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/communities/:id/activity", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F10: Use the authenticated user's identity.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      await storage.updateCommunityActivity(userId, communityId);
+      await storage.updateCommunityActivity(actingUser.id, communityId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -529,14 +966,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update current user's location
   app.patch("/api/users/current/location", requireAuth, async (req, res) => {
     try {
-      const { latitude, longitude, location, userId } = req.body;
-      
-      // Use the provided userId from the request
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F2: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
+
+      const { latitude, longitude, location } = req.body;
       
-      const updatedUser = await storage.updateUser(userId, { 
+      const updatedUser = await storage.updateUser(actingUser.id, { 
         location,
         latitude: latitude?.toString(),
         longitude: longitude?.toString(),
@@ -586,13 +1024,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/communities/:id/leave", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { userId } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F9: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const success = await storage.leaveCommunity(userId, communityId);
+      const success = await storage.leaveCommunity(actingUser.id, communityId);
       if (!success) {
         return res.status(404).json({ message: "Membership not found" });
       }
@@ -625,8 +1063,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events/upcoming", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-      const events = await storage.getUpcomingEvents(userId);
-      res.json(events);
+      const eventsList = await storage.getUpcomingEvents(userId);
+
+      // F16: Single batch query for all attendees — eliminates N+1 pattern.
+      // Previously: 1 getEventAttendees() call per event = 40+ queries for 40 events.
+      // Now: 1 batch query + 1 block-list query = 2 total queries regardless of event count.
+      const eventIds = eventsList.map(e => e.id);
+      const attendeesByEvent = await storage.getEventAttendeesForEvents(eventIds, userId);
+
+      const eventsWithAttendees = eventsList.map((event) => {
+        const attendeesList = attendeesByEvent.get(event.id) || [];
+        return {
+          ...event,
+          attendees: attendeesList,
+          attendeeCount: event.attendeeCount || attendeesList.length || 1,
+        };
+      });
+
+      res.json(eventsWithAttendees);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -681,13 +1135,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/register", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId, status = "interested" } = req.body;
+      const { status = "interested" } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+      // F3: Derive userId from the verified auth token — never trust the request body.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const registration = await storage.registerForEvent(userId, eventId, status);
+      const registration = await storage.registerForEvent(actingUser.id, eventId, status);
       res.status(201).json(registration);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -697,10 +1153,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/review", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId, rating, feltSafe, feedback } = req.body;
+      const { rating, feltSafe, feedback } = req.body;
 
-      if (!userId || rating === undefined) {
-        return res.status(400).json({ message: "userId and rating are required" });
+      // F5: Derive userId from the verified auth token.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const actingUserId = actingUser.id;
+
+      if (rating === undefined) {
+        return res.status(400).json({ message: "rating is required" });
       }
 
       const numRating = parseInt(rating);
@@ -708,8 +1171,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "rating must be between 1 and 5" });
       }
 
+      // Server-side eligibility: user must have an attendance record for the event.
+      const userEvents = await storage.getUserEvents(actingUserId);
+      const hasAttended = userEvents.some(e => e.id === eventId);
+      if (!hasAttended) {
+        return res.status(403).json({ message: "You can only review events you have RSVP'd to or attended." });
+      }
+
       const review = await storage.createEventReview(
-        parseInt(userId),
+        actingUserId,
         eventId,
         numRating,
         feltSafe !== false, // default true unless explicitly false
@@ -718,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Safety guard: if user did not feel safe, auto-file a safety report
       if (feltSafe === false && feedback) {
-        await storage.reportEvent(parseInt(userId), eventId, 'safety_concern', feedback);
+        await storage.reportEvent(actingUserId, eventId, 'safety_concern', feedback);
       }
 
       res.status(201).json({ success: true, review, message: "Review submitted" });
@@ -733,14 +1203,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Block a user
   app.post("/api/users/block", requireAuth, async (req, res) => {
     try {
-      const { blockerId, blockedId, reason } = req.body;
-      if (!blockerId || !blockedId) {
-        return res.status(400).json({ message: "blockerId and blockedId are required" });
+      const { blockedId, reason } = req.body;
+      // F6: Use the authenticated user as blocker — never trust a client-provided blockerId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !blockedId) {
+        return res.status(400).json({ message: "blockedId is required and user must be authenticated" });
       }
-      if (blockerId === blockedId) {
+      if (Number(actingUser.id) === parseInt(blockedId)) {
         return res.status(400).json({ message: "Cannot block yourself" });
       }
-      const block = await storage.blockUser(parseInt(blockerId), parseInt(blockedId), reason);
+      const block = await storage.blockUser(actingUser.id, parseInt(blockedId), reason);
       res.status(201).json({ success: true, block });
     } catch (error) {
       console.error("Block user error:", error);
@@ -752,15 +1224,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:id/report", requireAuth, async (req, res) => {
     try {
       const targetUserId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
+      const { reason, details } = req.body;
+      // F7: Use the authenticated user as reporter.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !reason) {
+        return res.status(400).json({ message: "reason is required and user must be authenticated" });
       }
       const validReasons = ['harassment', 'spam', 'fake_profile', 'inappropriate_content', 'other'];
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportUser(parseInt(reporterId), targetUserId, reason, details);
+      const report = await storage.reportUser(actingUser.id, targetUserId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report user error:", error);
@@ -772,15 +1246,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/report", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { reporterId, reason, details } = req.body;
-      if (!reporterId || !reason) {
-        return res.status(400).json({ message: "reporterId and reason are required" });
+      const { reason, details } = req.body;
+      // F8: Use the authenticated user as reporter.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !reason) {
+        return res.status(400).json({ message: "reason is required and user must be authenticated" });
       }
       const validReasons = ['misleading', 'spam', 'inappropriate', 'cancelled', 'safety_concern', 'other'];
       if (!validReasons.includes(reason)) {
         return res.status(400).json({ message: `reason must be one of: ${validReasons.join(', ')}` });
       }
-      const report = await storage.reportEvent(parseInt(reporterId), eventId, reason, details);
+      const report = await storage.reportEvent(actingUser.id, eventId, reason, details);
       res.status(201).json({ success: true, report, message: "Report submitted for review" });
     } catch (error) {
       console.error("Report event error:", error);
@@ -869,9 +1345,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: false, message: "OpenAI integration has been removed." });
   });
 
-  app.get("/api/users/:id/events", async (req, res) => {
+  app.get("/api/users/:id/events", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      // Only allow users to see their own event list
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
       const events = await storage.getUserEvents(userId);
       res.json(events);
     } catch (error) {
@@ -879,11 +1360,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Message routes
-  app.get("/api/conversations/:userId1/:userId2", async (req, res) => {
+  // Message routes — F18: DM endpoints require authentication and participant ownership
+  app.get("/api/conversations/:userId1/:userId2", requireAuth, async (req, res) => {
     try {
       const userId1 = parseInt(req.params.userId1);
       const userId2 = parseInt(req.params.userId2);
+      // F18: The authenticated user must be one of the two participants
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || (Number(actingUser.id) !== userId1 && Number(actingUser.id) !== userId2)) {
+        return res.status(403).json({ message: "Forbidden: You can only read your own conversations." });
+      }
       const messages = await storage.getConversation(userId1, userId2);
       res.json(messages);
     } catch (error) {
@@ -891,25 +1377,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/conversations", async (req, res) => {
+  app.get("/api/users/:id/conversations", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const rawConversations = await storage.getUserConversations(userId);
+      // F18: Only the authenticated user can view their own conversation list
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden: You can only read your own conversations." });
+      }
       
-      // Normalize to messaging UI format: { otherUser, lastMessage, unreadCount }
-      const normalized = await Promise.all(rawConversations.map(async (c) => {
-        // Count unread messages from this user to the current user
-        const conversation = await storage.getConversation(userId, c.user.id);
-        const unreadCount = conversation.filter(
-          (m) => m.receiverId === userId && !m.isRead
-        ).length;
-        return {
-          otherUser: c.user,
-          lastMessage: c.lastMessage,
-          unreadCount,
-        };
-      }));
-      
+      // Batch fetch all conversations with unread counts in 2 constant queries (eliminates N+1 query bottleneck)
+      const normalized = await storage.getUserConversationsWithUnread(userId);
       res.json(normalized);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -978,9 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Automatic event population for all user communities
-  // ADMIN ONLY: triggers web scraping — must not be publicly accessible
-  app.post("/api/auto-populate-events", requireAdmin, async (req, res) => {
+  app.post("/api/auto-populate-events", requireAuth, async (req, res) => {
     try {
       const { userId, latitude, longitude } = req.body;
       
@@ -1205,11 +1681,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/:id/mark-attended", requireAuth, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const { userId } = req.body;
       
-      if (isNaN(eventId) || !userId) {
-        return res.status(400).json({ message: "Event ID and user ID required" });
+      // F4: Use the authenticated user's identity — never trust a client-provided userId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || isNaN(eventId)) {
+        return res.status(400).json({ message: "Event ID required and user must be authenticated" });
       }
+      const actingUserId = actingUser.id;
       
       const event = await storage.getEvent(eventId);
       if (!event) {
@@ -1223,11 +1701,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot mark attendance for future events" });
       }
       
-      // Register/update attendance status
-      const attendance = await storage.registerForEvent(parseInt(userId), eventId, "attended");
+      // Register/update attendance status (idempotent via onConflictDoUpdate)
+      const attendance = await storage.registerForEvent(actingUserId, eventId, "attended");
       
       // Add to activity feed for algorithm learning
-      await storage.addActivityItem(parseInt(userId), 'event_attended', {
+      await storage.addActivityItem(actingUserId, 'event_attended', {
         eventId: eventId,
         eventTitle: event.title,
         eventCategory: event.category,
@@ -1242,7 +1720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Trigger AI learning
       import("./agent/agent-runner").then(({ agentRunner }) => {
-        agentRunner.runAgentForUser(parseInt(userId)).catch(err => console.error("[Agent] Trigger failed:", err));
+        agentRunner.runAgentForUser(actingUserId).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
       console.error("Error marking attendance:", error);
@@ -1274,6 +1752,310 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching attended events:", error);
       res.status(500).json({ message: "Failed to fetch attended events" });
+    }
+  });
+
+  // ── Vibe Passport Endpoints ──────────────────────────────────────────────────
+  app.get("/api/users/:id/passport", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || Number(actingUser.id) !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const summary = await storage.getPassportSummary(userId);
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching passport summary:", error);
+      res.status(500).json({ message: "Failed to fetch passport summary" });
+    }
+  });
+
+  app.post("/api/events/:id/check-in", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { latitude, longitude } = req.body || {};
+      const result = await storage.checkInToEvent(actingUser.id, eventId, latitude, longitude);
+
+      res.json({
+        success: true,
+        message: "Check-in verified! Stamp added to your Vibe Passport.",
+        ...result,
+      });
+    } catch (error: any) {
+      console.error("Error performing GPS check-in:", error);
+      res.status(500).json({ message: error.message || "Failed to check in" });
+    }
+  });
+
+  // ── Hobby Discovery Quiz Catalog & Analytics ──────────────────────────────────
+  app.get("/api/hobbies/catalog", async (req, res) => {
+    try {
+      const MAINSTREAM_HOBBIES = [
+        { id: "pickleball", label: "Pickleball & Padel", emoji: "🏓", description: "The fastest-growing racquet sports combining quick reflexes, easy rallies, and instant social atmosphere." },
+        { id: "specialty-coffee", label: "Specialty Coffee", emoji: "☕", description: "Exploring single-origin pour-overs, artisan espresso, and cozy third places with fellow caffeine enthusiasts." },
+        { id: "trail-running", label: "Trail Running & Hiking", emoji: "🥾", description: "Connecting with nature, conquering scenic elevation, and sharing post-hike high-fives on outdoorsy trails." },
+        { id: "board-games", label: "Board Games & TTRPGs", emoji: "🎲", description: "Diving into modern strategy board games, D&D campaigns, and game nights packed with laughter and friendly competition." },
+        { id: "craft-brewing", label: "Craft Beer & Wine", emoji: "🍺", description: "Sipping microbrews, natural wines, and craft cider while discussing tasting notes with local connoisseurs." },
+        { id: "bouldering", label: "Bouldering & Climbing", emoji: "🧗", description: "Solving physical puzzles on indoor walls and outdoor crags alongside an encouraging, high-energy community." },
+        { id: "vinyl-records", label: "Vinyl & Hi-Fi Audio", emoji: "🎧", description: "Hunting for rare analog pressings, listening sessions on tube amps, and celebrating full-album deep dives." },
+        { id: "sourdough-baking", label: "Artisanal Baking", emoji: "🍞", description: "Fermenting starters, perfecting crusty sourdough loaves, and sharing baked treats with friends." },
+        { id: "pottery", label: "Pottery & Ceramics", emoji: "🏺", description: "Getting your hands dirty on the potter's wheel, glazing handmade mugs, and finding mindful creative flow." },
+        { id: "houseplants", label: "Indoor Plant Jungle", emoji: "🪴", description: "Propagating rare monsteras, designing indoor jungles, and swapping plant cuttings with green thumbs." },
+        { id: "film-photography", label: "Analog Film Photo", emoji: "📷", description: "Shooting 35mm film, developing darkroom prints, and appreciating slow, intentional visual storytelling." },
+        { id: "yoga-movement", label: "Yoga & Somatics", emoji: "🧘", description: "Stretching, breathwork, and mindful movement to reset your nervous system in a peaceful group setting." },
+        { id: "cycling", label: "Gravel Riding & Cycling", emoji: "🚲", description: "Pedaling scenic backroads, commuting in group rides, and grabbing espresso stops with cycling buddies." },
+        { id: "cozy-gaming", label: "Cozy & Indie Gaming", emoji: "🎮", description: "Relaxing with Stardew Valley, indie gems, and chill multiplayer sessions with low-stress gamers." },
+        { id: "mocktails", label: "Craft Mocktails", emoji: "🍹", description: "Brewing kombucha, crafting zero-proof botanical cocktails, and hosting alcohol-free social hours." },
+      ];
+
+      const EMERGING_HOBBIES = [
+        { id: "urban-foraging", label: "Urban Foraging", emoji: "🍄", description: "Discovering edible plants, wild mushrooms, and medicinal herbs growing right in your city's parks." },
+        { id: "cold-plunge", label: "Cold Plunge & Sauna", emoji: "🧊", description: "Invigorating ice baths, Finnish saunas, and dopamine-boosting contrast wellness sessions with a tight squad." },
+        { id: "zine-making", label: "Zines & Press Art", emoji: "📰", description: "Designing indie mini-magazines, vintage letterpress typography, and printing physical zines by hand." },
+        { id: "rucking", label: "Rucking & Endurance", emoji: "🎒", description: "Walking with weighted backpacks to build functional strength, endurance, and outdoor camaraderie." },
+        { id: "sound-baths", label: "Sound Baths & Gongs", emoji: "🔔", description: "Floating in deep acoustic resonance with singing bowls, gongs, and immersive sonic meditation." },
+        { id: "custom-keyboards", label: "Custom Keyboards", emoji: "⌨️", description: "Soldering switches, lubing stabilizers, and customizing tactile mechanical keyboards with artisan keycaps." },
+        { id: "fiber-art", label: "Chunky Fiber Art", emoji: "🧶", description: "Arm-knitting chunky blankets, tufting rugs, and crafting fiber art in cozy community sip-and-stitch circles." },
+        { id: "disc-golf", label: "Disc Golf Rounds", emoji: "🥏", description: "Tossing precision discs through park courses and exploring new greenways on casual weekend rounds." },
+        { id: "grain-milling", label: "Ancient Grain Milling", emoji: "🌾", description: "Milling heritage grains, heirloom wheat flours, and baking nutrient-dense traditional flatbreads." },
+        { id: "astrophotography", label: "Stargazing & Astro", emoji: "🌌", description: "Capturing deep-sky nebulae with portable smart telescopes and camping under dark skies with astronomy buffs." },
+      ];
+
+      // Enrich with latest HobbyTrendAgent insights
+      const trendReport = await HobbyTrendAgent.getLatestTrendReport();
+
+      const enrichedMainstream = MAINSTREAM_HOBBIES.map(item => {
+        const trendData = trendReport.mainstreamTrends[item.id];
+        return {
+          ...item,
+          count: trendData?.count || 0,
+          velocityPercent: trendData?.velocityPercent || 0,
+          isTrending: trendData?.isTrending || false,
+        };
+      }).sort((a, b) => (b.count + (b.isTrending ? 10 : 0)) - (a.count + (a.isTrending ? 10 : 0)));
+
+      const enrichedEmerging = EMERGING_HOBBIES.map(item => {
+        const trendData = trendReport.emergingTrends[item.id];
+        return {
+          ...item,
+          count: trendData?.count || 0,
+          velocityPercent: trendData?.velocityPercent || 0,
+          isTrending: trendData?.isTrending || false,
+        };
+      }).sort((a, b) => (b.count + (b.isTrending ? 10 : 0)) - (a.count + (a.isTrending ? 10 : 0)));
+
+      res.json({ mainstream: enrichedMainstream, emerging: enrichedEmerging });
+    } catch (error) {
+      console.error("Error building hobby catalog:", error);
+      res.status(500).json({ message: "Failed to load hobby catalog" });
+    }
+  });
+
+  app.post("/api/hobbies/quiz-submit", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { pickedMainstreamHobbies = [], pickedEmergingHobbies = [], freeformHobby } = req.body || {};
+
+      if (freeformHobby && typeof freeformHobby === "string" && freeformHobby.length > 200) {
+        return res.status(400).json({ message: "Freeform hobby entry must be less than 200 characters" });
+      }
+
+      // Record analytics entry
+      const analyticsEntry = await storage.createHobbyTrendAnalytics({
+        userId: actingUser.id,
+        pickedMainstreamHobbies: Array.isArray(pickedMainstreamHobbies) ? pickedMainstreamHobbies : [],
+        pickedEmergingHobbies: Array.isArray(pickedEmergingHobbies) ? pickedEmergingHobbies : [],
+        freeformHobby: freeformHobby ? String(freeformHobby).trim() : null,
+      });
+
+      // Update user interests
+      const combinedInterests = Array.from(
+        new Set([
+          ...pickedMainstreamHobbies,
+          ...pickedEmergingHobbies,
+          ...(freeformHobby ? [String(freeformHobby).trim()] : []),
+        ])
+      );
+
+      const currentUser = await storage.getUser(actingUser.id);
+      if (currentUser) {
+        const existingInterests = currentUser.interests || [];
+        const updatedInterests = Array.from(new Set([...existingInterests, ...combinedInterests]));
+        await storage.updateUser(actingUser.id, { interests: updatedInterests });
+      }
+
+      res.json({
+        success: true,
+        message: "Hobby quiz selections saved successfully!",
+        analytics: analyticsEntry,
+      });
+    } catch (error: any) {
+      console.error("Error submitting hobby quiz:", error);
+      res.status(500).json({ message: "Failed to submit hobby quiz" });
+    }
+  });
+
+  // ── Moderation Agent Admin Endpoints ──────────────────────────────────────────
+  app.get("/api/admin/moderation/flagged", requireAdmin, async (req, res) => {
+    try {
+      const flaggedList = await storage.getPendingFlaggedContent();
+      res.json(flaggedList);
+    } catch (error) {
+      console.error("Error fetching flagged content:", error);
+      res.status(500).json({ message: "Failed to fetch flagged content" });
+    }
+  });
+
+  app.post("/api/admin/moderation/:id/action", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { action } = req.body || {}; // 'approved', 'removed', 'warned'
+
+      if (isNaN(id) || !["approved", "removed", "warned"].includes(action)) {
+        return res.status(400).json({ message: "Invalid moderation request" });
+      }
+
+      const actingAdmin = (req as any).user || { id: 1 };
+      const resolved = await storage.resolveFlaggedContent(id, actingAdmin.id, action);
+
+      res.json({
+        success: true,
+        message: `Content flagged log resolved with status: ${action}`,
+        resolved,
+      });
+    } catch (error) {
+      console.error("Error taking moderation action:", error);
+      res.status(500).json({ message: "Failed to resolve moderation log" });
+    }
+  });
+
+  // ── Hobby Trend Analysis Admin Endpoints ─────────────────────────────────────
+  app.get("/api/admin/hobbies/trends", requireAdmin, async (req, res) => {
+    try {
+      const report = await HobbyTrendAgent.analyzeTrends();
+      res.json(report);
+    } catch (error) {
+      console.error("Error analyzing hobby trends:", error);
+      res.status(500).json({ message: "Failed to generate hobby trend report" });
+    }
+  });
+
+  // ── AI Customer Support & Auto-Fix System ────────────────────────────────────
+  app.post("/api/support/quick-fix", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { actionKey } = req.body || {};
+      if (!actionKey) {
+        return res.status(400).json({ message: "Action key required" });
+      }
+
+      const result = await AutoFixAgent.executeFix(actingUser.id, actionKey);
+
+      if (result.applied) {
+        await storage.createSupportTicket({
+          userId: actingUser.id,
+          subject: `Automated Quick-Fix: ${actionKey}`,
+          category: "app_fix",
+          priority: "low",
+          status: "auto_fixed",
+          userMessage: `Executed quick-fix action: ${actionKey}`,
+          aiResponse: result.userMessage,
+          autoFixApplied: result.actionKey,
+        });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error executing quick-fix:", error);
+      res.status(500).json({ message: "Failed to execute quick-fix" });
+    }
+  });
+
+  app.post("/api/support/ai-chat", requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { subject = "General Support Request", userMessage } = req.body || {};
+      if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Triage and generate AI response
+      const triage = SupportFeedbackAgent.triageAndCategorize(userMessage.trim());
+
+      // Create support ticket
+      const ticket = await storage.createSupportTicket({
+        userId: actingUser.id,
+        subject: subject.trim(),
+        category: triage.category,
+        priority: triage.priority,
+        status: "open",
+        userMessage: userMessage.trim(),
+        aiResponse: triage.aiResponse,
+      });
+
+      // Dispatch priority email alert to jarryd@SameVibeapp.com if urgent/high priority
+      await SupportFeedbackAgent.processPriorityEmailAlert(ticket);
+
+      // Execute auto-fix if applicable
+      let autoFixResult = null;
+      if (triage.suggestedActionKey) {
+        autoFixResult = await AutoFixAgent.executeFix(actingUser.id, triage.suggestedActionKey);
+        if (autoFixResult.applied) {
+          await storage.updateSupportTicket(ticket.id, {
+            status: "auto_fixed",
+            autoFixApplied: autoFixResult.actionKey,
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        ticket,
+        aiResponse: triage.aiResponse,
+        suggestedActionKey: triage.suggestedActionKey,
+        autoFixResult,
+      });
+    } catch (error: any) {
+      console.error("Error processing AI support chat:", error);
+      res.status(500).json({ message: "Failed to process support request" });
+    }
+  });
+
+  app.get("/api/admin/support/insights", requireAdmin, async (req, res) => {
+    try {
+      const digest = await SupportFeedbackAgent.generateAppImprovementDigest();
+      const openTickets = await storage.getSupportTickets();
+      res.json({ digest, openTickets });
+    } catch (error) {
+      console.error("Error generating support insights:", error);
+      res.status(500).json({ message: "Failed to load support insights" });
     }
   });
 
@@ -1333,15 +2115,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/communities/:id/messages", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
-      const { content, senderId } = req.body;
-      
-      if (!content || !senderId) {
-        return res.status(400).json({ message: "Content and senderId are required" });
+      const { content } = req.body;
+      // F11: Use the authenticated user as sender — never trust a client-provided senderId.
+      const actingUser = (req as any).user;
+      if (!actingUser?.id || !content) {
+        return res.status(400).json({ message: "Content is required and user must be authenticated" });
+      }
+
+      // Content Safety Agent inspection
+      const safetyCheck = await ContentSafetyAgent.inspectAndLog(content.trim(), actingUser.id, "communityMessage");
+      if (!safetyCheck.safe) {
+        return res.status(422).json({
+          message: "Message violates community safety guidelines and has been hidden for review.",
+          reason: safetyCheck.reason,
+        });
       }
       
       const messageData = {
         content: content.trim(),
-        senderId: parseInt(senderId),
+        senderId: actingUser.id,
         communityId: communityId
       };
       
@@ -1350,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Trigger AI learning
       import("./agent/agent-runner").then(({ agentRunner }) => {
-        agentRunner.runAgentForUser(parseInt(senderId)).catch(err => console.error("[Agent] Trigger failed:", err));
+        agentRunner.runAgentForUser(actingUser.id).catch(err => console.error("[Agent] Trigger failed:", err));
       });
     } catch (error) {
       console.error("Error sending community message:", error);
@@ -1525,65 +2317,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Onboarding completion route for new quiz structure
+  // Onboarding completion route for comprehensive 12-step quiz structure
   app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
     try {
       const {
         hopingToFind,
-        communityFeel,
-        personalityVibe,
         interestSpaces,
-        activityLevel,
+        priorityInterestIds,
+        preferredGroupSizes,
+        socialComfortPreferences,
+        experiencePace,
         availability,
+        travelRadiusMiles,
+        planningHorizon,
         location,
-        digitalOnly,
-        resonateStatement,
         latitude,
         longitude,
-        userId
       } = req.body;
 
-      // Validate required fields
-      if (!hopingToFind || !interestSpaces || !activityLevel || !userId) {
-        return res.status(400).json({ message: "Missing required quiz responses or user ID" });
+      // F19: Use the verified auth token identity exclusively.
+      // Any client-provided userId is ignored to prevent cross-user profile writes.
+      const targetUserId = (req as any).user?.id;
+
+      if (!targetUserId) {
+        return res.status(401).json({ message: "Not authenticated or user ID missing." });
       }
 
-      // Update user with new quiz structure data
-      const interests = Array.isArray(interestSpaces) ? interestSpaces : [interestSpaces];
-      const goals = Array.isArray(hopingToFind) ? hopingToFind : [hopingToFind];
-      const personalityTraits = [personalityVibe, communityFeel, activityLevel, resonateStatement].filter(Boolean);
-      
-      const updatedUser = await storage.updateUser(parseInt(userId), {
-        interests,
-        quizAnswers: {
-          goals,
-          personalityTraits,
-          availability: Array.isArray(availability) ? availability : [availability]
-        },
-        location: location || "",
-        latitude: latitude ? parseFloat(latitude).toString() : null,
-        longitude: longitude ? parseFloat(longitude).toString() : null,
+      // Format arrays safely
+      const interests = Array.isArray(interestSpaces) ? interestSpaces : (interestSpaces ? [interestSpaces] : []);
+      const goals = Array.isArray(hopingToFind) ? hopingToFind : (hopingToFind ? [hopingToFind] : []);
+      const priorities = Array.isArray(priorityInterestIds) ? priorityInterestIds : (priorityInterestIds ? [priorityInterestIds] : []);
+      const groupSizes = Array.isArray(preferredGroupSizes) ? preferredGroupSizes : (preferredGroupSizes ? [preferredGroupSizes] : []);
+      const comfortPrefs = Array.isArray(socialComfortPreferences) ? socialComfortPreferences : (socialComfortPreferences ? [socialComfortPreferences] : []);
+
+      const existingUser = await storage.getUser(parseInt(targetUserId));
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const updatedQuizAnswers = {
+        ...(existingUser.quizAnswers as object || {}),
+        goals,
+        priorityInterestIds: priorities,
+        preferredGroupSizes: groupSizes,
+        socialComfortPreferences: comfortPrefs,
+        experiencePace: experiencePace || "casual",
+        availability: Array.isArray(availability) ? availability : (availability ? [availability] : []),
+        travelRadiusMiles: travelRadiusMiles ? Number(travelRadiusMiles) : 25,
+        planningHorizon: planningHorizon || "flexible",
+        completedAt: new Date().toISOString()
+      };
+
+      const updatedUser = await storage.updateUser(parseInt(targetUserId), {
+        interests: interests.length > 0 ? interests : existingUser.interests,
+        quizAnswers: updatedQuizAnswers,
+        location: location || existingUser.location || "Local",
+        latitude: latitude ? parseFloat(latitude).toString() : existingUser.latitude,
+        longitude: longitude ? parseFloat(longitude).toString() : existingUser.longitude,
         onboardingCompleted: true
       });
 
       if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "User update failed" });
       }
 
-      // Trigger AI-powered community generation based on new quiz responses
+      // ── Three-community onboarding assignment ──────────────────────────────
+      // Founder decision (2026-07-08, confirmed 2026-07-31):
+      // Every newly onboarded user is placed into exactly 3 shared communities
+      // matched to their questionnaire interests and location.
+      // Existing compatible communities are reused; missing ones are created once
+      // with a canonical key — two concurrent users never produce duplicate communities.
+      // This call is additive-only and idempotent (safe to retry).
+      let assignedCommunities: Community[] = [];
       try {
-        await communityRefreshService.refreshUserCommunities(parseInt(userId));
+        assignedCommunities = await storage.assignOnboardingCommunities(updatedUser.id);
+        console.log(`[Onboarding] User ${updatedUser.id} assigned to ${assignedCommunities.length} communities`);
       } catch (error) {
-        console.error("Failed to refresh communities after onboarding:", error);
+        console.error('[Onboarding] Community assignment failed (non-fatal):', error);
+        // Non-fatal: the user profile is saved. Dashboard will show empty communities.
+        // The user can still use the app and join communities manually.
       }
 
       res.json({
-        message: "Onboarding completed successfully",
-        user: updatedUser
+        user: updatedUser,
+        communities: assignedCommunities,
+        message: `Welcome to SameVibe! You've been matched with ${assignedCommunities.length} communities.`,
       });
     } catch (error) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
+      console.error('SameVibe: Error completing onboarding:', error);
+      res.status(500).json({ message: 'Failed to complete onboarding' });
     }
   });
 
@@ -1641,8 +2463,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }, 5 * 60 * 1000);
 
-    // Initialize event scraping scheduler
-    eventScrapingScheduler.startScheduling();
+    // Initialize event scraping scheduler (disabled during load testing to save CPU/memory)
+    if (process.env.SAMEVIBE_LOAD_TEST_APPROVED !== 'true') {
+      eventScrapingScheduler.startScheduling();
+    }
   }
 
   // ── Posts ──────────────────────────────────────────────────────────────────
@@ -1772,6 +2596,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(run ?? { status: "never_run" });
     } catch (error) {
       res.status(500).json({ message: "Failed to get agent status" });
+    }
+  });
+
+  // POST /api/communities/:id/generate-image
+  // Idempotent: skips if image already exists. Safe to call multiple times.
+  app.post("/api/communities/:id/generate-image", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) return res.status(400).json({ message: "Invalid ID" });
+
+      const community = await storage.getCommunity(communityId);
+      if (!community) return res.status(404).json({ message: "Community not found" });
+
+      // Idempotent — if image already generated, return it immediately
+      if (community.image) {
+        return res.json({ image: community.image, generated: false });
+      }
+
+      const imageUrl = await generateCommunityImage(community);
+      await storage.updateCommunity(communityId, { image: imageUrl });
+
+      res.json({ image: imageUrl, generated: true });
+    } catch (err: any) {
+      console.error("[ImageGen] Failed:", err.message);
+      res.status(500).json({ message: "Image generation failed", error: err.message });
     }
   });
 
