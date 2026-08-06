@@ -1062,12 +1062,22 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
 
   app.get("/api/events/upcoming", async (req, res) => {
     try {
-      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-      const eventsList = await storage.getUpcomingEvents(userId);
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      const eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
 
       // F16: Single batch query for all attendees — eliminates N+1 pattern.
-      // Previously: 1 getEventAttendees() call per event = 40+ queries for 40 events.
-      // Now: 1 batch query + 1 block-list query = 2 total queries regardless of event count.
       const eventIds = eventsList.map(e => e.id);
       const attendeesByEvent = await storage.getEventAttendeesForEvents(eventIds, userId);
 
@@ -1076,7 +1086,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         return {
           ...event,
           attendees: attendeesList,
-          attendeeCount: event.attendeeCount || attendeesList.length || 1,
+          attendeeCount: event.attendeeCount || attendeesList.length || 0,
         };
       });
 
@@ -2080,16 +2090,27 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
   // Trending events based on user joins in area
   app.get("/api/events/trending", async (req, res) => {
     try {
-      const { latitude, longitude, radius = 50 } = req.query;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
       
-      if (!latitude || !longitude) {
-        return res.status(400).json({ message: "User location required for trending events" });
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        const userLocation = { lat, lon: lng };
+        const trendingEvents = await storage.getTrendingEventsByLocation(userLocation, radius);
+        return res.json(trendingEvents);
       }
       
-      const userLocation = { lat: parseFloat(latitude as string), lon: parseFloat(longitude as string) };
-      const trendingEvents = await storage.getTrendingEventsByLocation(userLocation, parseInt(radius as string));
-      
-      res.json(trendingEvents);
+      const fallbackEvents = await storage.getUpcomingEvents(userId);
+      res.json(fallbackEvents);
     } catch (error) {
       console.error("Error fetching trending events:", error);
       res.status(500).json({ message: "Failed to fetch trending events" });

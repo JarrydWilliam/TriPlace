@@ -52,14 +52,10 @@ export function VibeEventCard({
 }: VibeEventCardProps) {
   const imgSrc = image || imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80";
 
-  // Default mock attendees if none provided
-  const displayAttendees = attendees.length > 0
-    ? attendees.slice(0, 3)
-    : [
-        { id: 1, avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" },
-        { id: 2, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" },
-        { id: 3, avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" },
-      ];
+  // Only display real registered platform attendees who have RSVP'd
+  const displayAttendees = attendees && attendees.length > 0
+    ? attendees.filter(att => att && (att.avatar || att.name)).slice(0, 3)
+    : [];
 
   const showExternalBadge = isExternal || externalRegistration;
 
@@ -145,22 +141,31 @@ export function VibeEventCard({
             )}
           </div>
 
-          {/* Overlapping Avatar Cluster */}
-          <div className="flex items-center -space-x-2 overflow-hidden">
-            {displayAttendees.map((att, idx) => (
-              <img
-                key={att.id || idx}
-                src={att.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                alt={att.name || "Attendee"}
-                className="w-7 h-7 rounded-full border-2 border-[#050d1a] object-cover"
-              />
-            ))}
-            {attendeeCount > 3 && (
-              <div className="w-7 h-7 rounded-full bg-white/10 border-2 border-[#050d1a] text-[10px] font-bold text-white flex items-center justify-center backdrop-blur-md">
-                +{attendeeCount - 3}
-              </div>
-            )}
-          </div>
+          {/* Overlapping Avatar Cluster — only rendered for real registered platform attendees */}
+          {displayAttendees.length > 0 && (
+            <div className="flex items-center -space-x-2 overflow-hidden">
+              {displayAttendees.map((att, idx) => (
+                <div key={att.id || idx} className="w-7 h-7 rounded-full border-2 border-[#050d1a] overflow-hidden bg-slate-800 flex items-center justify-center shrink-0">
+                  {att.avatar ? (
+                    <img
+                      src={att.avatar}
+                      alt={att.name || "Attendee"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-bold text-cyan-400">
+                      {att.name ? att.name.charAt(0).toUpperCase() : "U"}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {attendeeCount > displayAttendees.length && (
+                <div className="w-7 h-7 rounded-full bg-white/10 border-2 border-[#050d1a] text-[10px] font-bold text-white flex items-center justify-center backdrop-blur-md">
+                  +{attendeeCount - displayAttendees.length}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Source attribution line — rendered when event was imported from an external source */}
