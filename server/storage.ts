@@ -19,6 +19,19 @@ import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
 import { aiMatcher } from "./ai-matching.js";
 
+export function calculateDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return Infinity;
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
@@ -62,9 +75,9 @@ export interface IStorage {
   
   getEvent(id: number): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
-  getEventsByLocation(latitude: string, longitude: string, radiusMiles: number): Promise<Event[]>;
+  getEventsByLocation(latitude: string, longitude: string, radiusMiles: number, userId?: number): Promise<Event[]>;
   getEventsByCategory(category: string): Promise<Event[]>;
-  getUpcomingEvents(): Promise<Event[]>;
+  getUpcomingEvents(userId?: number, latitude?: number, longitude?: number, radiusMiles?: number): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
@@ -1013,8 +1026,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).orderBy(asc(events.date));
   }
 
-  async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number, userId?: number): Promise<Event[]> {
-    let allEvents = await this.getAllEvents();
+  async getEventsByLocation(latitude: string, longitude: string, radiusMiles: number = 50, userId?: number): Promise<Event[]> {
+    let allEvents = await db.select().from(events)
+      .where(sql`${events.date} >= NOW()`)
+      .orderBy(asc(events.date));
     
     if (userId) {
       const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
@@ -1023,15 +1038,31 @@ export class DatabaseStorage implements IStorage {
         allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
       }
     }
-    
-    return allEvents;
+
+    const uLat = parseFloat(latitude);
+    const uLng = parseFloat(longitude);
+    if (isNaN(uLat) || isNaN(uLng)) return allEvents;
+
+    const filtered = allEvents.filter(event => {
+      if (event.isGlobal) return true;
+      if (event.latitude && event.longitude) {
+        const eLat = parseFloat(event.latitude);
+        const eLng = parseFloat(event.longitude);
+        if (!isNaN(eLat) && !isNaN(eLng)) {
+          return calculateDistanceMiles(uLat, uLng, eLat, eLng) <= radiusMiles;
+        }
+      }
+      return false;
+    });
+
+    return filtered;
   }
 
   async getEventsByCategory(category: string): Promise<Event[]> {
     return await db.select().from(events).where(eq(events.category, category));
   }
 
-  async getUpcomingEvents(userId?: number): Promise<Event[]> {
+  async getUpcomingEvents(userId?: number, latitude?: number, longitude?: number, radiusMiles: number = 50): Promise<Event[]> {
     let allEvents = await db.select().from(events)
       .where(sql`${events.date} >= NOW()`)
       .orderBy(asc(events.date));
@@ -1042,6 +1073,21 @@ export class DatabaseStorage implements IStorage {
       if (blockedIds.size > 0) {
         allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
       }
+    }
+
+    if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
+      const filtered = allEvents.filter(event => {
+        if (event.isGlobal) return true;
+        if (event.latitude && event.longitude) {
+          const eLat = parseFloat(event.latitude);
+          const eLng = parseFloat(event.longitude);
+          if (!isNaN(eLat) && !isNaN(eLng)) {
+            return calculateDistanceMiles(latitude, longitude, eLat, eLng) <= radiusMiles;
+          }
+        }
+        return false;
+      });
+      if (filtered.length > 0) return filtered;
     }
     
     return allEvents;
@@ -1491,10 +1537,21 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(eventAttendees, eq(events.id, eventAttendees.eventId))
         .where(gte(events.date, new Date()))
         .groupBy(events.id)
-        .orderBy(desc(sql`count(${eventAttendees.userId})`))
-        .limit(10);
+        .orderBy(desc(sql`count(${eventAttendees.userId})`));
 
-      return allEvents.map(({ event, joinCount }) => ({
+      const filtered = allEvents.filter(({ event }) => {
+        if (event.isGlobal) return true;
+        if (event.latitude && event.longitude) {
+          const eLat = parseFloat(event.latitude);
+          const eLng = parseFloat(event.longitude);
+          if (!isNaN(eLat) && !isNaN(eLng)) {
+            return calculateDistanceMiles(userLocation.lat, userLocation.lon, eLat, eLng) <= radiusMiles;
+          }
+        }
+        return false;
+      });
+
+      return filtered.slice(0, 10).map(({ event, joinCount }) => ({
         ...event,
         joinCount: joinCount || 0,
         isTrending: (joinCount || 0) > 0

@@ -40,42 +40,43 @@ export function LoadingSpinner({ size = "md", className, text, useLogo = false }
 
 export function PageLoadingSpinner({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden text-center px-4">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
+    <div className="min-h-[100dvh] bg-[#050d1a] flex items-center justify-center relative overflow-hidden text-center px-4">
+      {/* Subtle Ambient Background Tint */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vw] max-w-[350px] max-h-[350px] rounded-full opacity-15 blur-[100px] bg-cyan-500/30 pointer-events-none" />
 
-      <div className="flex flex-col items-center gap-5 relative z-10">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full border border-primary/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-
-          <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/40 rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(255,107,53,0.3)] overflow-hidden">
-            <Logo size="xl" className="w-full h-full object-cover rounded-full" />
+      {/* Refined Dark Glassmorphic Card */}
+      <div className="bg-[#0a1526]/80 backdrop-blur-xl border border-slate-800/60 rounded-3xl p-8 max-w-xs w-full flex flex-col items-center gap-5 relative z-10 shadow-lg">
+        <div className="relative flex items-center justify-center">
+          {/* Subtle Logo Container */}
+          <div className="w-20 h-20 rounded-2xl bg-slate-900/90 border border-slate-800 p-3.5 flex items-center justify-center overflow-hidden">
+            <Logo size="lg" className="w-full h-full object-contain" />
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-xl font-bold tracking-tight text-white font-display">
             SameVibe
           </h1>
-          <p className="text-sm font-medium text-pink-400/90 tracking-wide">
-            Find Your People, Find Your ThirdPlace
+          <p className="text-xs font-medium text-cyan-400/80 tracking-wide">
+            Find your people, Find your Vibe
           </p>
 
-          <div className="flex items-center gap-1 mt-2">
+          <div className="flex items-center gap-1.5 mt-3">
             <div
-              className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+              className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-bounce"
               style={{ animationDelay: "0ms" }}
             />
             <div
-              className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+              className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-bounce"
               style={{ animationDelay: "150ms" }}
             />
             <div
-              className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+              className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-bounce"
               style={{ animationDelay: "300ms" }}
             />
           </div>
           {text && text !== "Loading..." && (
-            <p className="text-xs text-white/50 mt-1">{text}</p>
+            <p className="text-xs text-slate-400 mt-2">{text}</p>
           )}
         </div>
       </div>
@@ -87,8 +88,8 @@ export function ComponentLoadingSpinner({ text }: { text?: string }) {
   return (
     <div className="flex flex-col items-center justify-center p-8 gap-3">
       <LoadingSpinner size="lg" text={text} useLogo={true} />
-      <p className="text-xs text-muted-foreground font-medium">
-        Find Your People, Find Your ThirdPlace
+      <p className="text-xs text-cyan-400/90 font-medium tracking-wide">
+        Find your people, Find your Vibe
       </p>
     </div>
   );

@@ -20,7 +20,7 @@ export function VibeConnectionCard({
   onMatchClick,
   onShareClick,
 }: VibeConnectionCardProps) {
-  const defaultAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80";
+  const userInitial = name ? name.charAt(0).toUpperCase() : "U";
 
   return (
     <motion.div
@@ -41,11 +41,19 @@ export function VibeConnectionCard({
       <div className="relative mt-2 mb-2.5">
         {/* Gradient ring */}
         <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-cyan-400 via-accent to-emerald-400 shadow-[0_0_16px_-2px_rgba(0,212,255,0.4)]">
-          <img
-            src={avatar || defaultAvatar}
-            alt={name}
-            className="w-full h-full rounded-full object-cover bg-[#050d1a]"
-          />
+          <div className="w-full h-full rounded-full bg-[#050d1a] overflow-hidden flex items-center justify-center">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-slate-900 text-cyan-400 font-bold text-lg flex items-center justify-center">
+                {userInitial}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Heart Badge at Bottom Right of Avatar */}

@@ -344,24 +344,26 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch trending events — location optional for sort ranking
+  // Fetch trending/upcoming group events with strict location confinement
   const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
-    queryKey: ["/api/events/trending", latitude, longitude],
+    queryKey: ["/api/events/trending", user?.id, latitude, longitude],
     enabled: !!user?.id,
     queryFn: async () => {
-      // Use trending endpoint when location available, fall back to global upcoming
       if (latitude && longitude) {
         const response = await fetch(
           getApiUrl(
-            `/api/events/trending?latitude=${latitude}&longitude=${longitude}&radius=50`
+            `/api/events/trending?userId=${user?.id}&latitude=${latitude}&longitude=${longitude}&radius=50`
           )
         );
         if (response.ok) return response.json();
       }
-      // Fallback: show global upcoming events without location filter
-      const fallback = await fetch(
-        getApiUrl(`/api/events/upcoming?userId=${user?.id}`)
-      );
+
+      // Location-restricted upcoming events query (falls back to user DB coordinates on backend)
+      let upcomingUrl = `/api/events/upcoming?userId=${user?.id}&radius=50`;
+      if (latitude && longitude) {
+        upcomingUrl += `&latitude=${latitude}&longitude=${longitude}`;
+      }
+      const fallback = await fetch(getApiUrl(upcomingUrl));
       if (!fallback.ok) return [];
       return fallback.json();
     },

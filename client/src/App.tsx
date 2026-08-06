@@ -167,38 +167,34 @@ function Router() {
       <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
 
-        <div className="flex flex-col items-center gap-5 relative z-10 text-center px-4">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full border border-primary/30 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-
-            <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/40 rounded-full flex items-center justify-center backdrop-blur-xl shadow-[0_0_40px_rgba(255,107,53,0.3)] overflow-hidden">
-              <img
-                src="/logo.png"
-                alt="SameVibe"
-                className="w-full h-full object-cover rounded-full"
-              />
-            </div>
+        <div className="flex flex-col items-center gap-4 relative z-10 text-center px-4">
+          <div className="w-18 h-18 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-center p-3">
+            <img
+              src="/logo.png"
+              alt="SameVibe"
+              className="w-full h-full object-contain"
+            />
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="text-xl font-bold tracking-tight text-white font-display">
               SameVibe
             </h1>
-            <p className="text-sm font-medium text-pink-400/90 tracking-wide">
-              Find Your People, Find Your ThirdPlace
+            <p className="text-xs font-medium text-cyan-400/80 tracking-wide">
+              Find your people, Find your Vibe
             </p>
 
             <div className="flex items-center gap-1 mt-2">
               <div
-                className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
                 style={{ animationDelay: "0ms" }}
               />
               <div
-                className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
                 style={{ animationDelay: "150ms" }}
               />
               <div
-                className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"
                 style={{ animationDelay: "300ms" }}
               />
             </div>
