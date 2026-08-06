@@ -79,7 +79,7 @@ workflows:
         script: |
           set -euo pipefail
 
-          TARGET_MARKETING_VERSION="1.0.3"
+          TARGET_MARKETING_VERSION="1.0.4"
 
           if [ -z "${APP_STORE_APP_ID:-}" ]; then
             echo "ERROR: APP_STORE_APP_ID is required."
