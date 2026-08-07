@@ -60,7 +60,7 @@ const KNOWN_CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'austin': { lat: 30.2672, lng: -97.7431 },
 };
 
-function resolveEventCoords(event: { latitude?: string | null; longitude?: string | null; location?: string | null; address?: string | null }): { lat: number; lng: number } | null {
+export function resolveEventCoords(event: { latitude?: string | null; longitude?: string | null; location?: string | null; address?: string | null }): { lat: number; lng: number } | null {
   if (event.latitude && event.longitude) {
     const lat = parseFloat(event.latitude);
     const lng = parseFloat(event.longitude);
@@ -1135,6 +1135,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    if (!insertEvent.latitude || !insertEvent.longitude) {
+      const coords = resolveEventCoords(insertEvent);
+      if (coords) {
+        insertEvent = {
+          ...insertEvent,
+          latitude: String(coords.lat),
+          longitude: String(coords.lng),
+        };
+      }
+    }
     const [event] = await db.insert(events).values(insertEvent).returning();
     return event;
   }

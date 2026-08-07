@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { storage } from "./storage.js";
+import { storage, calculateDistanceMiles, resolveEventCoords } from "./storage.js";
 import { aiMatcher } from "./ai-matching.js";
 import { communityRefreshService } from "./community-refresh.js";
 import { communityUpdateNotifier } from "./community-update-notifier.js";
@@ -1050,11 +1050,24 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
-  // Event routes
+  // Event routes — location-confined to user radius
   app.get("/api/events", async (req, res) => {
     try {
-      const events = await storage.getAllEvents();
-      res.json(events);
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      const eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+      res.json(eventsList);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -1549,12 +1562,37 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
+
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
       
       // Get all events for this community
-      const events = await storage.getCommunityEvents(communityId);
-      const upcomingEvents = events.filter(event => 
+      const eventsList = await storage.getCommunityEvents(communityId);
+      let upcomingEvents = eventsList.filter(event => 
         new Date(event.date) >= new Date() // Future events only
       );
+
+      // Geo-filter community events to user's location radius if coordinates are available
+      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        upcomingEvents = upcomingEvents.filter(event => {
+          if (event.isGlobal) return true;
+          const coords = resolveEventCoords(event);
+          if (coords) {
+            return calculateDistanceMiles(lat!, lng!, coords.lat, coords.lng) <= radius;
+          }
+          return false;
+        });
+      }
       
       res.json(upcomingEvents);
     } catch (error) {
@@ -1574,10 +1612,23 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       if (!community) {
         return res.status(404).json({ message: "Community not found" });
       }
+
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
       
       // Get events specifically associated with this community
-      const events = await storage.getCommunityEvents(communityId);
-      const recentEvents = events.filter(event => 
+      const eventsList = await storage.getCommunityEvents(communityId);
+      let recentEvents = eventsList.filter(event => 
         new Date(event.date) >= new Date() && // Future events only
         new Date(event.date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Within 30 days
       );
