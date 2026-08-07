@@ -623,39 +623,31 @@ export default function Dashboard() {
                       id={evt.id}
                       title={evt.title}
                       category={evt.category}
-                      date={evt.date ? new Date(evt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "June 15"}
+                      date={evt.date ? new Date(evt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming"}
                       time={evt.date ? new Date(evt.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "6 PM"}
-                      location={evt.location || "Central Park"}
+                      location={evt.location || "Local Event"}
                       imageUrl={evt.imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
-                      attendeeCount={evt.attendeeCount || 28}
+                      attendeeCount={evt.attendeeCount || 0}
                       attendees={evt.attendees || []}
                       actionLabel={evt.category === "creative" ? "Collab" : "Explore"}
                       onClick={() => setRouterLocation(`/events`)}
                     />
                   ))
                 ) : (
-                  <>
-                    <VibeEventCard
-                      id={1}
-                      title="Local Adventurers: Hiking Trail Mix"
-                      date="June 15"
-                      time="6 PM"
-                      location="Central Park"
-                      imageUrl="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=600&q=80"
-                      attendeeCount={28}
-                      actionLabel="Explore"
-                    />
-                    <VibeEventCard
-                      id={2}
-                      title="Creative Collaborators: Gallery Night"
-                      date="June 16"
-                      time="7 PM"
-                      location="SOHO"
-                      imageUrl="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=600&q=80"
-                      attendeeCount={19}
-                      actionLabel="Collab"
-                    />
-                  </>
+                  <div className="w-full rounded-2xl bg-card/40 backdrop-blur-xl border border-white/10 p-6 text-center space-y-3 my-2">
+                    <CalendarDays className="w-8 h-8 text-cyan-400/50 mx-auto" />
+                    <h3 className="font-display font-bold text-white text-sm">No group events near you yet</h3>
+                    <p className="text-xs text-white/50 max-w-xs mx-auto">
+                      Be the first to organize a local meetup or check back soon as new events are added!
+                    </p>
+                    <Button
+                      size="sm"
+                      className="bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 text-xs font-semibold rounded-full px-4"
+                      onClick={() => setRouterLocation('/create-event')}
+                    >
+                      + Create Local Event
+                    </Button>
+                  </div>
                 )}
               </div>
             </section>

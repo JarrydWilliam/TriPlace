@@ -32,6 +32,51 @@ export function calculateDistanceMiles(lat1: number, lon1: number, lat2: number,
   return R * c;
 }
 
+const KNOWN_CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'salt lake city': { lat: 40.7608, lng: -111.8910 },
+  'salt lake': { lat: 40.7608, lng: -111.8910 },
+  'slc': { lat: 40.7608, lng: -111.8910 },
+  'ogden': { lat: 41.2230, lng: -111.9738 },
+  'sunset': { lat: 41.1402, lng: -112.0002 },
+  'layton': { lat: 41.0602, lng: -111.9711 },
+  'clearfield': { lat: 41.1116, lng: -112.0249 },
+  'roy': { lat: 41.1683, lng: -112.0263 },
+  'kaysville': { lat: 41.0349, lng: -111.9383 },
+  'farmington': { lat: 40.9805, lng: -111.8874 },
+  'bountiful': { lat: 40.8894, lng: -111.8808 },
+  'provo': { lat: 40.2338, lng: -111.6585 },
+  'orem': { lat: 40.2969, lng: -111.6946 },
+  'park city': { lat: 40.6461, lng: -111.4980 },
+  'logan': { lat: 41.7370, lng: -111.8338 },
+  'st. george': { lat: 37.0965, lng: -113.5684 },
+  'new york': { lat: 40.7128, lng: -74.0060 },
+  'los angeles': { lat: 34.0522, lng: -118.2437 },
+  'chicago': { lat: 41.8781, lng: -87.6298 },
+  'houston': { lat: 29.7604, lng: -95.3698 },
+  'phoenix': { lat: 33.4484, lng: -112.0740 },
+  'san francisco': { lat: 37.7749, lng: -122.4194 },
+  'seattle': { lat: 47.6062, lng: -122.3321 },
+  'denver': { lat: 39.7392, lng: -104.9903 },
+  'austin': { lat: 30.2672, lng: -97.7431 },
+};
+
+function resolveEventCoords(event: { latitude?: string | null; longitude?: string | null; location?: string | null; address?: string | null }): { lat: number; lng: number } | null {
+  if (event.latitude && event.longitude) {
+    const lat = parseFloat(event.latitude);
+    const lng = parseFloat(event.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+  }
+
+  const locText = `${event.location || ''} ${event.address || ''}`.toLowerCase();
+  for (const [cityName, coords] of Object.entries(KNOWN_CITY_COORDINATES)) {
+    if (locText.includes(cityName)) {
+      return coords;
+    }
+  }
+
+  return null;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
@@ -1045,14 +1090,10 @@ export class DatabaseStorage implements IStorage {
 
     const filtered = allEvents.filter(event => {
       if (event.isGlobal) return true;
-      if (event.latitude && event.longitude) {
-        const eLat = parseFloat(event.latitude);
-        const eLng = parseFloat(event.longitude);
-        if (!isNaN(eLat) && !isNaN(eLng)) {
-          return calculateDistanceMiles(uLat, uLng, eLat, eLng) <= radiusMiles;
-        }
+      const coords = resolveEventCoords(event);
+      if (coords) {
+        return calculateDistanceMiles(uLat, uLng, coords.lat, coords.lng) <= radiusMiles;
       }
-      // Events with no coordinates cannot be verified as local — exclude them.
       return false;
     });
 
@@ -1081,14 +1122,10 @@ export class DatabaseStorage implements IStorage {
     if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
       return allEvents.filter(event => {
         if (event.isGlobal) return true;
-        if (event.latitude && event.longitude) {
-          const eLat = parseFloat(event.latitude);
-          const eLng = parseFloat(event.longitude);
-          if (!isNaN(eLat) && !isNaN(eLng)) {
-            return calculateDistanceMiles(latitude, longitude, eLat, eLng) <= radiusMiles;
-          }
+        const coords = resolveEventCoords(event);
+        if (coords) {
+          return calculateDistanceMiles(latitude, longitude, coords.lat, coords.lng) <= radiusMiles;
         }
-        // Events with no coordinates cannot be verified as local — exclude them.
         return false;
       });
     }
