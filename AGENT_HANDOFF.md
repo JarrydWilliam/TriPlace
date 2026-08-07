@@ -1,9 +1,9 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 1, 2026)
-**Active Branch**: `Jarryd` (Remote HEAD SHA `34e4bf7` — Pushed to `origin/Jarryd`)  
-**Application Release Candidate Tag**: `samevibe-rc-d012112` (Annotated tag for candidate SHA `d012112`)  
-**Executive Status**: 🟡 **CONDITIONAL PASS — CODE HARDENING AND HARNESS READY; STAGING HTTP LOAD HARNESS ENHANCED WITH FULL 7-STEP CORE LOOP & WORKER POOL; CONVERSATIONS N+1 QUERY RESOLVED; PHYSICAL TESTFLIGHT VERIFICATION REMAINS OPEN.**
+## Current Status (August 7, 2026)
+**Active Branch**: `Jarryd` (Remote HEAD SHA `329f9cf` — Pushed to `origin/Jarryd` and `origin/main`)  
+**Application Release Candidate Tag**: `samevibe-rc-329f9cf`  
+**Executive Status**: 🟢 **EVENT SCRAPING FIXED — REST APIs REPLACE PUPPETEER; GEO-FILTER FIXED; PRODUCTION PLACEHOLDER EVENTS SUPPRESSED. TESTFLIGHT VERIFICATION REMAINS OPEN.**
 
 ---
 
