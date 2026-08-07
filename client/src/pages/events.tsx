@@ -1,17 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { VibeEventCard, VibeEventAttendee } from "@/components/ui/vibe-event-card";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { Calendar } from "lucide-react";
+import { getApiUrl } from "@/lib/queryClient";
 
 export default function Events() {
   const { user } = useAuth();
+  const { latitude, longitude } = useGeolocation(user?.id);
 
   const { data: upcomingEvents, isLoading } = useQuery<any[]>({
-    queryKey: ["/api/events/upcoming", user?.id],
+    queryKey: ["/api/events/upcoming", user?.id, latitude, longitude],
     enabled: !!user?.id,
+    queryFn: async () => {
+      let url = `/api/events/upcoming?userId=${user?.id}&radius=50`;
+      if (latitude && longitude) {
+        url += `&latitude=${latitude}&longitude=${longitude}`;
+      }
+      const res = await fetch(getApiUrl(url));
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   return (

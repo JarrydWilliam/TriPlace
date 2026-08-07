@@ -1041,7 +1041,7 @@ export class DatabaseStorage implements IStorage {
 
     const uLat = parseFloat(latitude);
     const uLng = parseFloat(longitude);
-    if (isNaN(uLat) || isNaN(uLng)) return allEvents;
+    if (isNaN(uLat) || isNaN(uLng)) return []; // No valid user coordinates — return empty rather than all events
 
     const filtered = allEvents.filter(event => {
       if (event.isGlobal) return true;

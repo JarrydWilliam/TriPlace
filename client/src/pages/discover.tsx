@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ export default function Discover() {
   const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { latitude, longitude } = useGeolocation(user?.id);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [joiningId, setJoiningId] = useState<number | null>(null);
 
@@ -100,11 +102,15 @@ export default function Discover() {
     },
   });
 
-  // Upcoming events near user
+  // Upcoming events near user — passes live GPS coords for accurate geo-filter
   const { data: events = [] } = useQuery<Event[]>({
-    queryKey: ["/api/events/upcoming", user?.id],
+    queryKey: ["/api/events/upcoming", user?.id, latitude, longitude],
+    enabled: !!user?.id,
     queryFn: async () => {
-      const url = user?.id ? `/api/events/upcoming?userId=${user.id}` : `/api/events/upcoming`;
+      let url = `/api/events/upcoming?userId=${user?.id}&radius=50`;
+      if (latitude && longitude) {
+        url += `&latitude=${latitude}&longitude=${longitude}`;
+      }
       const res = await fetch(getApiUrl(url));
       return res.ok ? res.json() : [];
     },

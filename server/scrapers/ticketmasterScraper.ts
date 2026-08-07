@@ -32,7 +32,7 @@ interface TmEvent {
 export class TicketmasterScraper {
   private readonly apiKey = process.env.TICKETMASTER_API_KEY;
 
-  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.apiKey) {
       return [];
     }
@@ -41,16 +41,21 @@ export class TicketmasterScraper {
 
     try {
       for (const keyword of keywords.slice(0, 3)) {
+        // Build geo params: lat/lng for precision, city name as fallback
         const params = new URLSearchParams({
           apikey: this.apiKey,
           keyword,
-          city: location,
           radius: radius.toString(),
           unit: 'miles',
           size: '10',
           sort: 'date,asc',
           startDateTime: new Date().toISOString().replace('.000Z', 'Z'),
         });
+        if (coords) {
+          params.set('latlong', `${coords.lat},${coords.lon}`);
+        } else {
+          params.set('city', location);
+        }
 
         const url = `${TM_BASE}/events.json?${params}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(10000) });

@@ -175,17 +175,7 @@ export class CommunityMatcher {
   filterByLocation(events: ScrapedEvent[], userLocation: { lat: number, lon: number }, radiusMiles: number = 50): ScrapedEvent[] {
     return events.filter(event => {
       const eventDistance = this.calculateEventDistance(event, userLocation);
-      
-      // Only include events within the specified radius
-      if (eventDistance <= radiusMiles) {
-        return true;
-      }
-      
-      // Also include events if location contains user's city/state
-      const userLocationName = this.getLocationName(userLocation);
-      const eventLocation = event.location.toLowerCase();
-      
-      return eventLocation.includes(userLocationName.toLowerCase());
+      return eventDistance <= radiusMiles;
     });
   }
 
@@ -193,23 +183,23 @@ export class CommunityMatcher {
    * Calculate distance between user and event location
    */
   private calculateEventDistance(event: ScrapedEvent, userLocation: { lat: number, lon: number }): number {
-    // Extract coordinates from event location if possible
+    // 1. Use actual venue coordinates from the scraper (most accurate)
+    if (event.latitude != null && event.longitude != null) {
+      const eLat = typeof event.latitude === 'string' ? parseFloat(event.latitude as any) : Number(event.latitude);
+      const eLon = typeof event.longitude === 'string' ? parseFloat(event.longitude as any) : Number(event.longitude);
+      if (!isNaN(eLat) && !isNaN(eLon)) {
+        return this.calculateDistance(userLocation, { lat: eLat, lon: eLon });
+      }
+    }
+
+    // 2. Fall back to hardcoded city lookup from location string
     const eventCoords = this.extractCoordinatesFromLocation(event.location);
-    
     if (eventCoords) {
       return this.calculateDistance(userLocation, eventCoords);
     }
-    
-    // Fallback: estimate distance based on city matching
-    const userCity = this.getLocationName(userLocation);
-    const eventLocation = event.location.toLowerCase();
-    
-    if (eventLocation.includes(userCity.toLowerCase())) {
-      return 0; // Same city
-    }
-    
-    // Return a high value for unknown locations to exclude them
-    return 100; // Miles
+
+    // 3. No verifiable coordinates — exclude from feed
+    return 999;
   }
 
   /**

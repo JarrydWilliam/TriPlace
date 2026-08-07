@@ -179,7 +179,7 @@ export function useGeolocation(userId?: number, enabled = true) {
 
     // Start with GPS, fallback to IP if needed
     tryGPSLocation();
-  }, []);
+  }, [userId]); // Re-run when userId resolves — ensures coordinates get saved to DB after auth loads
 
   return { ...location, refresh };
 }

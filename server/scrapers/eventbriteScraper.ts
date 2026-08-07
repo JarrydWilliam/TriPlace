@@ -57,7 +57,7 @@ const EB_CATEGORY_MAP: Record<string, string> = {
 export class EventbriteScraper {
   private readonly apiKey = process.env.EVENTBRITE_API_KEY;
 
-  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.apiKey) {
       return [];
     }
@@ -66,10 +66,21 @@ export class EventbriteScraper {
 
     try {
       for (const keyword of keywords.slice(0, 3)) {
+        // Prefer lat/lng for precise geo-search; fall back to city name address
+        const geoParams: Record<string, string> = coords
+          ? {
+              'location.latitude': String(coords.lat),
+              'location.longitude': String(coords.lon),
+              'location.within': `${radius}mi`,
+            }
+          : {
+              'location.address': location,
+              'location.within': `${radius}mi`,
+            };
+
         const params = new URLSearchParams({
           q: keyword,
-          'location.address': location,
-          'location.within': `${radius}mi`,
+          ...geoParams,
           'start_date.range_start': new Date().toISOString(),
           sort_by: 'date',
           expand: 'venue',

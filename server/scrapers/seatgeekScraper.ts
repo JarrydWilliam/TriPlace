@@ -34,16 +34,21 @@ interface SgEvent {
 export class SeatGeekScraper {
   private readonly clientId = process.env.SEATGEEK_CLIENT_ID ?? SG_PUBLIC_CLIENT_ID;
 
-  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     const events: ScrapedEvent[] = [];
 
     try {
       // SeatGeek doesn't support keyword search well, so we use city + type
       for (const keyword of keywords.slice(0, 2)) {
+        // Prefer lat/lon for precise geo-search; fall back to venue.city string
+        const geoParams: Record<string, string> = coords
+          ? { lat: String(coords.lat), lon: String(coords.lon) }
+          : { 'venue.city': location };
+
         const params = new URLSearchParams({
           client_id: this.clientId,
           q: keyword,
-          'venue.city': location,
+          ...geoParams,
           range: `${radius}mi`,
           sort: 'datetime_utc.asc',
           per_page: '10',

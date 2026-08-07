@@ -102,7 +102,8 @@ export class EventScraperOrchestrator {
     // Scrape from all sources in parallel with 50-mile radius enforcement
     const RADIUS_MILES = 50;
     const scrapingPromises = [
-      this.eventbriteScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+      // Pass actual coords so scrapers use lat/lng APIs, not snapped city names
+      this.eventbriteScraper.scrapeEvents(location, keywords, RADIUS_MILES, userLocation).catch(error => {
         console.error('Eventbrite scraper error:', error);
         return [];
       }),
@@ -110,11 +111,11 @@ export class EventScraperOrchestrator {
         console.error('Meetup scraper error:', error);
         return [];
       }),
-      this.ticketmasterScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+      this.ticketmasterScraper.scrapeEvents(location, keywords, RADIUS_MILES, userLocation).catch(error => {
         console.error('Ticketmaster scraper error:', error);
         return [];
       }),
-      this.seatgeekScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
+      this.seatgeekScraper.scrapeEvents(location, keywords, RADIUS_MILES, userLocation).catch(error => {
         console.error('SeatGeek scraper error:', error);
         return [];
       }),
