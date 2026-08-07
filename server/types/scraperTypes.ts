@@ -3,6 +3,8 @@ export interface ScrapedEvent {
   description: string;
   date: Date;
   location: string;
+  latitude?: number;
+  longitude?: number;
   category: string;
   sourceUrl: string;
   sourceName?: string;

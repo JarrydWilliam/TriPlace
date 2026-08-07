@@ -1052,6 +1052,9 @@ export class DatabaseStorage implements IStorage {
           return calculateDistanceMiles(uLat, uLng, eLat, eLng) <= radiusMiles;
         }
       }
+      // External events without precise coordinates are included in the feed;
+      // they were already geo-filtered by the scraper's radius enforcement.
+      if (event.isExternal) return true;
       return false;
     });
 
@@ -1085,6 +1088,9 @@ export class DatabaseStorage implements IStorage {
             return calculateDistanceMiles(latitude, longitude, eLat, eLng) <= radiusMiles;
           }
         }
+        // External events without precise coordinates are included in the feed;
+        // they were already geo-filtered by the scraper's radius enforcement.
+        if (event.isExternal) return true;
         return false;
       });
       if (filtered.length > 0) return filtered;

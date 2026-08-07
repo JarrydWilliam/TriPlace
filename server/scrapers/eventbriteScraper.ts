@@ -1,147 +1,142 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+/**
+ * EventbriteScraper
+ *
+ * Uses the Eventbrite API v3 (free with a private token).
+ * API key: EVENTBRITE_API_KEY environment variable.
+ * If the key is absent, this scraper returns [] gracefully.
+ * Docs: https://www.eventbrite.com/platform/api
+ */
+import { ScrapedEvent } from '../types/scraperTypes.js';
 
-puppeteer.use(StealthPlugin());
-import * as cheerio from 'cheerio';
-import { ScrapedEvent } from '../types/scraperTypes';
+const EB_BASE = 'https://www.eventbriteapi.com/v3';
+
+interface EbVenueDetail {
+  name?: string;
+  address?: { localized_address_display?: string; city?: string; region?: string };
+  latitude?: string;
+  longitude?: string;
+}
+
+interface EbEvent {
+  id?: string;
+  name?: { text?: string };
+  description?: { text?: string };
+  url?: string;
+  start?: { utc?: string };
+  end?: { utc?: string };
+  is_free?: boolean;
+  ticket_availability?: { minimum_ticket_price?: { major_value?: string } };
+  category_id?: string;
+  venue_id?: string;
+  logo?: { url?: string };
+}
+
+const EB_CATEGORY_MAP: Record<string, string> = {
+  '101': 'Business',
+  '102': 'Science & Technology',
+  '103': 'Music',
+  '104': 'Film & Media',
+  '105': 'Arts & Culture',
+  '106': 'Fashion',
+  '107': 'Health & Wellness',
+  '108': 'Sports & Fitness',
+  '109': 'Travel & Outdoor',
+  '110': 'Food & Drink',
+  '111': 'Charity & Causes',
+  '112': 'Government & Politics',
+  '113': 'Community & Culture',
+  '114': 'Spirituality',
+  '115': 'Family & Education',
+  '116': 'Holiday',
+  '117': 'Home & Lifestyle',
+  '118': 'Auto Boat & Air',
+  '119': 'Hobbies',
+  '120': 'School Activities',
+};
 
 export class EventbriteScraper {
-  private readonly baseUrl = 'https://www.eventbrite.com';
-  private readonly searchUrl = 'https://www.eventbrite.com/d';
+  private readonly apiKey = process.env.EVENTBRITE_API_KEY;
 
   async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+    if (!this.apiKey) {
+      return [];
+    }
+
     const events: ScrapedEvent[] = [];
-    
+
     try {
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ]
-      });
-      
-      const page = await browser.newPage();
-      
-      // Set user agent to avoid blocking
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-      
-      for (const keyword of keywords) {
-        const searchQuery = `${keyword} events`;
-        const url = `${this.searchUrl}/${encodeURIComponent(location)}/${encodeURIComponent(searchQuery)}/?distance=${radius}mi`;
-        
-        
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-        
-        // Wait for events to load
-        await page.waitForSelector('[data-testid="event-card"]', { timeout: 10000 }).catch(() => {
+      for (const keyword of keywords.slice(0, 3)) {
+        const params = new URLSearchParams({
+          q: keyword,
+          'location.address': location,
+          'location.within': `${radius}mi`,
+          'start_date.range_start': new Date().toISOString(),
+          sort_by: 'date',
+          expand: 'venue',
+          page_size: '10',
         });
-        
-        const content = await page.content();
-        const $ = cheerio.load(content);
-        
-        // Extract event data from Eventbrite's structure
-        $('[data-testid="event-card"]').each((index, element) => {
+
+        const url = `${EB_BASE}/events/search/?${params}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${this.apiKey}` },
+          signal: AbortSignal.timeout(10000),
+        });
+
+        if (!res.ok) {
+          console.warn(`Eventbrite API returned ${res.status} for keyword "${keyword}"`);
+          continue;
+        }
+
+        const data = await res.json() as { events?: (EbEvent & { venue?: EbVenueDetail })[] };
+        const ebEvents = data.events ?? [];
+
+        for (const ebEvent of ebEvents) {
           try {
-            const $event = $(element);
-            
-            const title = $event.find('[data-testid="event-title"]').text().trim() ||
-                         $event.find('h3').first().text().trim() ||
-                         $event.find('.event-card__title').text().trim();
-            
-            const dateElement = $event.find('[data-testid="event-date"]').text().trim() ||
-                               $event.find('.event-card__date').text().trim() ||
-                               $event.find('time').text().trim();
-            
-            const locationElement = $event.find('[data-testid="event-location"]').text().trim() ||
-                                  $event.find('.event-card__location').text().trim() ||
-                                  $event.find('.location').text().trim();
-            
-            const linkElement = $event.find('a').first().attr('href');
-            const sourceUrl = linkElement?.startsWith('http') ? linkElement : `${this.baseUrl}${linkElement}`;
-            
-            const priceElement = $event.find('.event-card__price').text().trim() ||
-                                $event.find('[data-testid="event-price"]').text().trim();
-            
-            const organizerElement = $event.find('.event-card__organizer').text().trim() ||
-                                   $event.find('[data-testid="event-organizer"]').text().trim();
+            if (!ebEvent.name?.text || !ebEvent.start?.utc) continue;
 
-            if (title && dateElement && locationElement) {
-              const event: ScrapedEvent = {
-                title,
-                description: title, // Use title as description fallback
-                date: this.parseEventDate(dateElement),
-                location: locationElement,
-                category: keyword,
-                sourceUrl: sourceUrl || '',
-                sourceName: 'Eventbrite',
-                isExternal: true,
-                organizerName: organizerElement || 'Eventbrite Event',
-                price: this.parsePrice(priceElement),
-                source: 'eventbrite',
-                attendeeCount: null
-              };
-              
-              events.push(event);
-            }
-          } catch (error) {
-            console.error('Error parsing individual event:', error);
+            const date = new Date(ebEvent.start.utc);
+            if (isNaN(date.getTime()) || date < new Date()) continue;
+
+            const venue = ebEvent.venue;
+            const locationStr = venue?.address?.localized_address_display ??
+              [venue?.address?.city, venue?.address?.region].filter(Boolean).join(', ') ??
+              location;
+
+            const lat = parseFloat(venue?.latitude ?? '');
+            const lon = parseFloat(venue?.longitude ?? '');
+
+            const categoryId = ebEvent.category_id ?? '';
+            const category = EB_CATEGORY_MAP[categoryId] ?? 'Community & Culture';
+
+            const rawPrice = ebEvent.ticket_availability?.minimum_ticket_price?.major_value;
+            const price = ebEvent.is_free ? 0 : (rawPrice ? parseFloat(rawPrice) : null);
+
+            events.push({
+              title: ebEvent.name.text,
+              description: ebEvent.description?.text ?? `${category} event via Eventbrite.`,
+              date,
+              location: locationStr,
+              latitude: isNaN(lat) ? undefined : lat,
+              longitude: isNaN(lon) ? undefined : lon,
+              category,
+              sourceUrl: ebEvent.url ?? 'https://www.eventbrite.com',
+              sourceName: 'Eventbrite',
+              isExternal: true,
+              organizerName: 'Eventbrite',
+              price,
+              attendeeCount: null,
+              source: 'eventbrite',
+              imageUrl: ebEvent.logo?.url,
+            });
+          } catch (err) {
+            console.error('Eventbrite: Failed to parse event:', err);
           }
-        });
-        
-        // Add small delay between requests to be respectful
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
-      
-      await browser.close();
-      
-    } catch (error) {
-      console.error('Eventbrite scraper error:', error);
+    } catch (err) {
+      console.error('EventbriteScraper error:', err);
     }
-    
+
     return events;
-  }
-
-  private parseEventDate(dateString: string): Date {
-    try {
-      // Handle various date formats from Eventbrite
-      const cleanDate = dateString.replace(/\s+/g, ' ').trim();
-      
-      // Try to parse common formats
-      const date = new Date(cleanDate);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-      
-      // Fallback to current date + 7 days if parsing fails
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() + 7);
-      return fallbackDate;
-    } catch (error) {
-      console.error('Date parsing error:', error);
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() + 7);
-      return fallbackDate;
-    }
-  }
-
-  private parsePrice(priceString: string): number | null {
-    if (!priceString) return null;
-    
-    try {
-      const match = priceString.match(/\$?(\d+(?:\.\d{2})?)/);
-      return match ? parseFloat(match[1]) : null;
-    } catch (error) {
-      return null;
-    }
   }
 }

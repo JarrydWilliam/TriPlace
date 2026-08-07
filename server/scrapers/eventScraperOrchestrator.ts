@@ -53,8 +53,11 @@ export class EventScraperOrchestrator {
       const allScrapedEvents = await this.scrapeFromAllSources(locationName, allKeywords, userLocation);
       
       if (allScrapedEvents.length === 0) {
-        const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords);
-        allScrapedEvents.push(...fallbackEvents);
+        // Only invoke fallback in dev/staging — production never shows placeholder events
+        if (process.env.NODE_ENV !== 'production') {
+          const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords);
+          allScrapedEvents.push(...fallbackEvents);
+        }
       }
 
       // Filter and process events
@@ -241,6 +244,9 @@ export class EventScraperOrchestrator {
             date: scrapedEvent.date,
             location: scrapedEvent.location,
             address: scrapedEvent.location,
+            // Propagate venue coordinates so getEventsByLocation Haversine filter works
+            latitude: scrapedEvent.latitude != null ? String(scrapedEvent.latitude) : undefined,
+            longitude: scrapedEvent.longitude != null ? String(scrapedEvent.longitude) : undefined,
             category: scrapedEvent.category,
             price: (scrapedEvent.price || 0).toString(),
             communityId: communityId,

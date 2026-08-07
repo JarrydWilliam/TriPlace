@@ -1,151 +1,121 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+/**
+ * TicketmasterScraper
+ *
+ * Uses the Ticketmaster Discovery API v2 (free tier, 1000 req/day).
+ * API key: TICKETMASTER_API_KEY environment variable.
+ * If the key is absent, this scraper returns [] gracefully.
+ * Docs: https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
+ */
+import { ScrapedEvent } from '../types/scraperTypes.js';
 
-puppeteer.use(StealthPlugin());
-import * as cheerio from 'cheerio';
-import { ScrapedEvent } from '../types/scraperTypes';
+const TM_BASE = 'https://app.ticketmaster.com/discovery/v2';
+
+interface TmVenue {
+  name?: string;
+  city?: { name?: string };
+  state?: { name?: string };
+  location?: { latitude?: string; longitude?: string };
+  address?: { line1?: string };
+}
+
+interface TmEvent {
+  name?: string;
+  url?: string;
+  info?: string;
+  dates?: { start?: { dateTime?: string; localDate?: string } };
+  priceRanges?: Array<{ min?: number; max?: number }>;
+  classifications?: Array<{ segment?: { name?: string }; genre?: { name?: string } }>;
+  _embedded?: { venues?: TmVenue[] };
+  images?: Array<{ url?: string; width?: number }>;
+}
 
 export class TicketmasterScraper {
-  private readonly baseUrl = 'https://www.ticketmaster.com';
+  private readonly apiKey = process.env.TICKETMASTER_API_KEY;
 
   async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+    if (!this.apiKey) {
+      return [];
+    }
+
     const events: ScrapedEvent[] = [];
-    
+
     try {
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ]
-      });
-      
-      const page = await browser.newPage();
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-      
-      for (const keyword of keywords) {
-        const searchUrl = `${this.baseUrl}/search?q=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&radius=${radius}`;
-        
-        
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-        
-        // Wait for search results
-        await page.waitForSelector('[data-testid="search-result-card"]', { timeout: 10000 }).catch(() => {
+      for (const keyword of keywords.slice(0, 3)) {
+        const params = new URLSearchParams({
+          apikey: this.apiKey,
+          keyword,
+          city: location,
+          radius: radius.toString(),
+          unit: 'miles',
+          size: '10',
+          sort: 'date,asc',
+          startDateTime: new Date().toISOString().replace('.000Z', 'Z'),
         });
-        
-        const content = await page.content();
-        const $ = cheerio.load(content);
-        
-        // Extract event data from Ticketmaster's structure
-        $('[data-testid="search-result-card"], .search-result-card').each((index, element) => {
+
+        const url = `${TM_BASE}/events.json?${params}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+
+        if (!res.ok) {
+          console.warn(`Ticketmaster API returned ${res.status} for keyword "${keyword}"`);
+          continue;
+        }
+
+        const data = await res.json() as {
+          _embedded?: { events?: TmEvent[] };
+          page?: { totalElements?: number };
+        };
+
+        const tmEvents = data._embedded?.events ?? [];
+
+        for (const tmEvent of tmEvents) {
           try {
-            const $event = $(element);
-            
-            const title = $event.find('[data-testid="event-name"]').text().trim() ||
-                         $event.find('h3').first().text().trim() ||
-                         $event.find('.event-name').text().trim() ||
-                         $event.find('.artist-name').text().trim();
-            
-            const dateElement = $event.find('[data-testid="event-date"]').text().trim() ||
-                               $event.find('.event-date').text().trim() ||
-                               $event.find('time').first().text().trim();
-            
-            const locationElement = $event.find('[data-testid="venue-name"]').text().trim() ||
-                                  $event.find('.venue-name').text().trim() ||
-                                  $event.find('.location').text().trim();
-            
-            const linkElement = $event.find('a').first().attr('href');
-            const sourceUrl = linkElement?.startsWith('http') ? linkElement : `${this.baseUrl}${linkElement}`;
-            
-            const priceElement = $event.find('[data-testid="price"]').text().trim() ||
-                                $event.find('.price').text().trim() ||
-                                $event.find('.starting-price').text().trim();
-            
-            const venueElement = $event.find('[data-testid="venue"]').text().trim() ||
-                               $event.find('.venue').text().trim();
+            const venue = tmEvent._embedded?.venues?.[0];
+            const dateStr = tmEvent.dates?.start?.dateTime ?? tmEvent.dates?.start?.localDate;
+            if (!dateStr || !tmEvent.name) continue;
 
-            if (title && dateElement && (locationElement || venueElement)) {
-              const event: ScrapedEvent = {
-                title,
-                description: title,
-                date: this.parseEventDate(dateElement),
-                location: locationElement || venueElement || location,
-                category: keyword,
-                sourceUrl: sourceUrl || '',
-                sourceName: 'Ticketmaster',
-                isExternal: true,
-                organizerName: 'Ticketmaster Event',
-                price: this.parsePrice(priceElement),
-                source: 'ticketmaster',
-                attendeeCount: null
-              };
-              
-              events.push(event);
-            }
-          } catch (error) {
-            console.error('Error parsing individual Ticketmaster event:', error);
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime()) || date < new Date()) continue;
+
+            const locationStr = [
+              venue?.name,
+              venue?.address?.line1,
+              venue?.city?.name,
+              venue?.state?.name,
+            ].filter(Boolean).join(', ') || location;
+
+            const lat = parseFloat(venue?.location?.latitude ?? '');
+            const lon = parseFloat(venue?.location?.longitude ?? '');
+
+            const category = tmEvent.classifications?.[0]?.segment?.name ?? 'Entertainment';
+            const price = tmEvent.priceRanges?.[0]?.min ?? null;
+            const imageUrl = tmEvent.images?.sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url;
+
+            events.push({
+              title: tmEvent.name,
+              description: tmEvent.info ?? `${category} event in ${venue?.city?.name ?? location}.`,
+              date,
+              location: locationStr,
+              latitude: isNaN(lat) ? undefined : lat,
+              longitude: isNaN(lon) ? undefined : lon,
+              category,
+              sourceUrl: tmEvent.url ?? 'https://www.ticketmaster.com',
+              sourceName: 'Ticketmaster',
+              isExternal: true,
+              organizerName: 'Ticketmaster',
+              price,
+              attendeeCount: null,
+              source: 'ticketmaster',
+              imageUrl,
+            });
+          } catch (err) {
+            console.error('Ticketmaster: Failed to parse event:', err);
           }
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
-      
-      await browser.close();
-      
-    } catch (error) {
-      console.error('Ticketmaster scraper error:', error);
+    } catch (err) {
+      console.error('TicketmasterScraper error:', err);
     }
-    
+
     return events;
-  }
-
-  private parseEventDate(dateString: string): Date {
-    try {
-      const cleanDate = dateString.replace(/\s+/g, ' ').trim();
-      
-      // Handle common Ticketmaster date formats
-      const date = new Date(cleanDate);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-      
-      // Try parsing formats like "Sat, Jan 15" with current year
-      const currentYear = new Date().getFullYear();
-      const dateWithYear = `${cleanDate}, ${currentYear}`;
-      const dateWithYearParsed = new Date(dateWithYear);
-      if (!isNaN(dateWithYearParsed.getTime())) {
-        return dateWithYearParsed;
-      }
-      
-      // Fallback
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() + 7);
-      return fallbackDate;
-    } catch (error) {
-      const fallbackDate = new Date();
-      fallbackDate.setDate(fallbackDate.getDate() + 7);
-      return fallbackDate;
-    }
-  }
-
-  private parsePrice(priceString: string): number | null {
-    if (!priceString) return null;
-    
-    try {
-      // Handle formats like "$25+", "From $50", "Starting at $30"
-      const match = priceString.match(/\$?(\d+(?:\.\d{2})?)/);
-      return match ? parseFloat(match[1]) : null;
-    } catch (error) {
-      return null;
-    }
   }
 }
