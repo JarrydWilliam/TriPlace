@@ -1052,9 +1052,7 @@ export class DatabaseStorage implements IStorage {
           return calculateDistanceMiles(uLat, uLng, eLat, eLng) <= radiusMiles;
         }
       }
-      // External events without precise coordinates are included in the feed;
-      // they were already geo-filtered by the scraper's radius enforcement.
-      if (event.isExternal) return true;
+      // Events with no coordinates cannot be verified as local — exclude them.
       return false;
     });
 
@@ -1078,8 +1076,10 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Always enforce distance filtering when coordinates are available.
+    // Never fall back to returning ALL events globally.
     if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
-      const filtered = allEvents.filter(event => {
+      return allEvents.filter(event => {
         if (event.isGlobal) return true;
         if (event.latitude && event.longitude) {
           const eLat = parseFloat(event.latitude);
@@ -1088,15 +1088,13 @@ export class DatabaseStorage implements IStorage {
             return calculateDistanceMiles(latitude, longitude, eLat, eLng) <= radiusMiles;
           }
         }
-        // External events without precise coordinates are included in the feed;
-        // they were already geo-filtered by the scraper's radius enforcement.
-        if (event.isExternal) return true;
+        // Events with no coordinates cannot be verified as local — exclude them.
         return false;
       });
-      if (filtered.length > 0) return filtered;
     }
-    
-    return allEvents;
+
+    // No user coordinates available — return empty to avoid showing globally random events.
+    return [];
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {

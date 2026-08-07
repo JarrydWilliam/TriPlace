@@ -1274,11 +1274,24 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
-  // /api/events/feed alias for /api/events/upcoming (required by live check spec)
+  // /api/events/feed alias for /api/events/upcoming — requires location to filter properly
   app.get("/api/events/feed", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
-      const events = await storage.getUpcomingEvents(userId);
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      // Fall back to user's stored DB coordinates if GPS coords not in query
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      const events = await storage.getUpcomingEvents(userId, lat, lng, radius);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -2109,8 +2122,8 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         return res.json(trendingEvents);
       }
       
-      const fallbackEvents = await storage.getUpcomingEvents(userId);
-      res.json(fallbackEvents);
+      // No resolvable location — return empty rather than leaking global events
+      res.json([]);
     } catch (error) {
       console.error("Error fetching trending events:", error);
       res.status(500).json({ message: "Failed to fetch trending events" });
