@@ -2709,5 +2709,142 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+
+  // ─── Manual Event Submission ────────────────────────────────────────────────
+  // Users submit events for moderation. Events are saved with status "pending"
+  // and only go live after an admin approves them.
+
+  const ADMIN_EMAILS = ['jarryd@SameVibeapp.com', 'jarryd@samevibe.app'];
+
+  // Zod schema for user-submitted events (more forgiving than insertEventSchema)
+  const submitEventSchema = z.object({
+    title: z.string().min(3).max(120),
+    description: z.string().min(10).max(2000),
+    date: z.string().refine((v) => !isNaN(Date.parse(v)), { message: 'Invalid date' }),
+    location: z.string().min(3).max(200),
+    address: z.string().min(3).max(200).optional(),
+    category: z.string().min(2).max(60),
+    price: z.string().optional().default('0'),
+    maxAttendees: z.number().int().positive().optional(),
+    sourceUrl: z.string().url().optional().or(z.literal('')),
+    communityId: z.number().int().positive().optional(),
+    tags: z.array(z.string()).optional().default([]),
+  });
+
+  /** POST /api/events/submit — authenticated users submit events for review */
+  app.post('/api/events/submit', requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) return res.status(401).json({ message: 'Unauthorized' });
+
+      const parsed = submitEventSchema.parse(req.body);
+
+      const event = await storage.createEvent({
+        title: parsed.title,
+        description: parsed.description,
+        organizer: actingUser.displayName ?? actingUser.email ?? 'Community Member',
+        date: new Date(parsed.date),
+        location: parsed.location,
+        address: parsed.address ?? parsed.location,
+        category: parsed.category,
+        price: parsed.price ?? '0',
+        maxAttendees: parsed.maxAttendees,
+        sourceUrl: parsed.sourceUrl || undefined,
+        communityId: parsed.communityId,
+        tags: parsed.tags ?? [],
+        isExternal: false,
+        isGlobal: false,
+        creatorId: actingUser.id,
+        status: 'pending', // Goes into moderation queue
+        isPromoted: false,
+        isPremium: false,
+      });
+
+      res.status(201).json({
+        message: 'Event submitted for review. We\'ll notify you when it goes live.',
+        eventId: event.id,
+        status: 'pending',
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid event data', errors: error.errors });
+      }
+      console.error('[EventSubmit] Error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  /** GET /api/admin/events/pending — admin-only: list events awaiting moderation */
+  app.get('/api/admin/events/pending', requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      const userRecord = await storage.getUser(actingUser?.id);
+      if (!userRecord || !ADMIN_EMAILS.includes(userRecord.email ?? '')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const pendingEvents = await db
+        .select()
+        .from((await import('../shared/schema.js')).events)
+        .where(drizzleSql`status = 'pending'`)
+        .orderBy(drizzleSql`created_at DESC`);
+
+      res.json(pendingEvents);
+    } catch (error) {
+      console.error('[AdminEvents] Pending list error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  /** POST /api/admin/events/:id/approve — admin approves a pending event */
+  app.post('/api/admin/events/:id/approve', requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      const userRecord = await storage.getUser(actingUser?.id);
+      if (!userRecord || !ADMIN_EMAILS.includes(userRecord.email ?? '')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) return res.status(400).json({ message: 'Invalid event ID' });
+
+      const { events: eventsTable } = await import('../shared/schema.js');
+      await db
+        .update(eventsTable)
+        .set({ status: 'active' })
+        .where(eq(eventsTable.id, eventId));
+
+      res.json({ message: 'Event approved and now live.', eventId, status: 'active' });
+    } catch (error) {
+      console.error('[AdminEvents] Approve error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  /** POST /api/admin/events/:id/reject — admin rejects a pending event */
+  app.post('/api/admin/events/:id/reject', requireAuth, async (req, res) => {
+    try {
+      const actingUser = (req as any).user;
+      const userRecord = await storage.getUser(actingUser?.id);
+      if (!userRecord || !ADMIN_EMAILS.includes(userRecord.email ?? '')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) return res.status(400).json({ message: 'Invalid event ID' });
+
+      const { events: eventsTable } = await import('../shared/schema.js');
+      await db
+        .update(eventsTable)
+        .set({ status: 'rejected' })
+        .where(eq(eventsTable.id, eventId));
+
+      res.json({ message: 'Event rejected.', eventId, status: 'rejected' });
+    } catch (error) {
+      console.error('[AdminEvents] Reject error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   return httpServer;
 }

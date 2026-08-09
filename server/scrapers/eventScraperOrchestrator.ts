@@ -7,6 +7,8 @@ import { SeatGeekScraper } from './seatgeekScraper.js';
 import { BandsintownScraper } from './bandsintownScraper.js';
 import { RedditEventsScraper } from './redditEventsScraper.js';
 import { GoogleThingsToDoScraper } from './googleThingsToDoScraper.js';
+import { PredictHQScraper } from './predicthqScraper.js';
+import { LumaScraper } from './lumaScraper.js';
 import { FallbackEventScraper } from './fallbackEventScraper.js';
 import { CommunityMatcher } from '../filters/matchCommunityCriteria.js';
 import { DeduplicationUtils } from '../utils/dedupe.js';
@@ -25,6 +27,8 @@ export class EventScraperOrchestrator {
   private bandsintownScraper = new BandsintownScraper();
   private redditEventsScraper = new RedditEventsScraper();
   private googleThingsToDoScraper = new GoogleThingsToDoScraper();
+  private predicthqScraper = new PredictHQScraper();
+  private lumaScraper = new LumaScraper();
   private fallbackScraper = new FallbackEventScraper();
   private communityMatcher = new CommunityMatcher();
 
@@ -142,6 +146,14 @@ export class EventScraperOrchestrator {
       // Add Google Things to Do scraping
       this.googleThingsToDoScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(error => {
         console.error('Google Things to Do scraper error:', error);
+        return [];
+      }),
+      this.predicthqScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(err => {
+        console.error('PredictHQ scraper error:', err);
+        return [];
+      }),
+      this.lumaScraper.scrapeEvents(userLocation, keywords, RADIUS_MILES).catch(err => {
+        console.error('Luma scraper error:', err);
         return [];
       })
     ];

@@ -326,21 +326,19 @@ export default function Onboarding() {
       </div>
 
       {/* Header */}
-      <div className="absolute top-0 w-full px-6 pt-safe flex justify-between items-center z-20" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 24px)" }}>
-        <Logo size="sm" />
-        <div className="flex items-center gap-1.5">
-          {QUIZ_SECTIONS.map((_, i) => (
-            <div
-              key={i}
-              className={`rounded-full transition-all duration-300 ${
-                i === step
-                  ? "w-5 h-2 bg-primary"
-                  : i < step
-                  ? "w-2 h-2 bg-primary/60"
-                  : "w-2 h-2 bg-white/20"
-              }`}
-            />
-          ))}
+      <div className="absolute top-0 w-full px-6 pt-safe flex flex-col gap-2 z-20" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 24px)" }}>
+        <div className="flex justify-between items-center">
+          <Logo size="sm" />
+          <span className="text-xs text-white/40 font-medium tabular-nums">
+            {step + 1} / {QUIZ_SECTIONS.length}
+          </span>
+        </div>
+        {/* Animated progress bar */}
+        <div className="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400 transition-all duration-500 ease-out"
+            style={{ width: `${((step + 1) / QUIZ_SECTIONS.length) * 100}%` }}
+          />
         </div>
       </div>
 

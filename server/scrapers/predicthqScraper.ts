@@ -1,14 +1,22 @@
 import { ScrapedEvent } from '../types/scraperTypes.js';
 
-export class LocalEventsScraper {
-  async scrapeLocalEvents(
-    location: { lat: number; lon: number },
-    keywords: string[],
-    radius: number = 50
-  ): Promise<ScrapedEvent[]> {
+export class PredictHQScraper {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
     try {
       const todayISO = new Date().toISOString().split('T')[0];
-      const url = `https://api.predicthq.com/v1/events/?within=${radius}mi@${location.lat},${location.lon}&active.gte=${todayISO}&limit=20&sort=start&category=community,festivals,sports,concerts,expos,conferences`;
+      const qParams = new URLSearchParams({
+        'place.name': location,
+        'active.gte': todayISO,
+        'limit': '15',
+        'sort': 'start',
+        'category': 'community,festivals,expos,conferences,concerts,performing-arts,sports'
+      });
+      
+      if (keywords && keywords.length > 0) {
+        qParams.append('q', keywords.join(' OR '));
+      }
+
+      const url = `https://api.predicthq.com/v1/events/?${qParams.toString()}`;
       
       const headers: Record<string, string> = {
         'Accept': 'application/json'
@@ -20,7 +28,7 @@ export class LocalEventsScraper {
 
       const response = await fetch(url, { headers });
       if (!response.ok) {
-        console.warn(`PredictHQ local events API returned ${response.status}: ${response.statusText}`);
+        console.warn(`PredictHQ API returned ${response.status}: ${response.statusText}`);
         return [];
       }
 
@@ -36,9 +44,9 @@ export class LocalEventsScraper {
         
         return {
           title: event.title,
-          description: event.description ?? `${phqLabel} event near you.`,
+          description: event.description ?? `${phqLabel} event in ${location}.`,
           date: new Date(event.start.local || event.start),
-          location: event.entities?.[0]?.formatted_address ?? (lat && lon ? `${lat}, ${lon}` : 'Local'),
+          location: event.entities?.[0]?.formatted_address ?? (lat && lon ? `${lat}, ${lon}` : location),
           latitude: lat,
           longitude: lon,
           category: this.mapPHQCategory(phqLabel),
@@ -49,7 +57,7 @@ export class LocalEventsScraper {
         };
       });
     } catch (error) {
-      console.error('LocalEventsScraper: Error fetching from PredictHQ:', error);
+      console.error('PredictHQScraper: Error fetching from PredictHQ:', error);
       return [];
     }
   }
@@ -60,6 +68,7 @@ export class LocalEventsScraper {
       festivals: 'Entertainment',
       sports: 'Sports',
       concerts: 'Music',
+      'performing-arts': 'Entertainment',
       expos: 'Business',
       conferences: 'Business'
     };

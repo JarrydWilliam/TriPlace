@@ -1,14 +1,14 @@
 import { ScrapedEvent } from '../types/scraperTypes.js';
 
-export class InstagramScraper {
+export class LumaScraper {
   async scrapeEvents(
-    query: string,
-    location: { lat: number; lon: number },
+    userLocation: { lat: number; lon: number },
+    keywords: string[],
     radius: number = 50
   ): Promise<ScrapedEvent[]> {
     try {
       const radiusKm = radius * 1.60934;
-      const url = `https://api.lu.ma/public/v1/event/get-by-location?lat=${location.lat}&lng=${location.lon}&radius_in_km=${radiusKm}`;
+      const url = `https://api.lu.ma/public/v1/event/get-by-location?lat=${userLocation.lat}&lng=${userLocation.lon}&radius_in_km=${radiusKm}`;
       
       const response = await fetch(url, {
         headers: {
@@ -17,7 +17,7 @@ export class InstagramScraper {
       });
 
       if (!response.ok) {
-        console.warn(`Luma API returned ${response.status}: ${response.statusText}`);
+        console.warn(`LumaScraper: API returned ${response.status}: ${response.statusText}`);
         return [];
       }
 
@@ -26,7 +26,7 @@ export class InstagramScraper {
         return [];
       }
 
-      return data.events.map((event: any): ScrapedEvent => {
+      const allEvents: ScrapedEvent[] = data.events.map((event: any): ScrapedEvent => {
         return {
           title: event.name,
           description: event.description ?? 'Community event on Luma.',
@@ -43,8 +43,18 @@ export class InstagramScraper {
           source: 'local'
         };
       });
+
+      // Simple keyword relevance pass
+      const lowerKeywords = keywords.map(k => k.toLowerCase());
+      const filteredEvents = allEvents.filter(ev => {
+        if (lowerKeywords.length === 0) return true;
+        const searchStr = `${ev.title} ${ev.description}`.toLowerCase();
+        return lowerKeywords.some(kw => searchStr.includes(kw));
+      });
+
+      return filteredEvents.slice(0, 20);
     } catch (error) {
-      console.error('InstagramScraper: Error fetching from Luma:', error);
+      console.error('LumaScraper: Error fetching from Luma:', error);
       return [];
     }
   }

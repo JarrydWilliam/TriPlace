@@ -38,6 +38,7 @@ import Events from "@/pages/events";
 import DeleteAccount from "@/pages/delete-account";
 import AdminMetrics from "@/pages/admin/metrics";
 import ModerationDashboard from "@/pages/admin/moderation-dashboard";
+import SubmitEvent from "@/pages/submit-event";
 
 import { AppUpdater } from "@/components/ui/app-updater";
 import { GlobalScrollWrapper } from "@/components/ui/global-scroll-wrapper";
@@ -241,6 +242,7 @@ function Router() {
         <Route path="/delete-account" component={DeleteAccount} />
         <Route path="/admin/metrics" component={AdminRoute} />
         <Route path="/admin/moderation" component={ModerationDashboard} />
+        <Route path="/submit-event" component={SubmitEvent} />
 
         {/* Fallback to 404 */}
         <Route component={NotFound} />

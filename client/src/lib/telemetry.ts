@@ -23,7 +23,8 @@ export type TelemetryEventType =
   | 'rotation_confirmed'
   | 'rotation_cancelled'
   | 'upgrade_slot_tapped'
-  | 'empty_state_shown';
+  | 'empty_state_shown'
+  | 'event_submitted';
 
 export async function trackEvent(
   eventType: TelemetryEventType, 
