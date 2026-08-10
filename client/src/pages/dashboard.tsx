@@ -343,6 +343,8 @@ export default function Dashboard() {
   const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
     queryKey: ["/api/events/trending", user?.id, latitude, longitude],
     enabled: true,
+    staleTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
       let trendingUrl = `/api/events/trending?radius=50`;
       if (user?.id) trendingUrl += `&userId=${user.id}`;

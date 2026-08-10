@@ -30,7 +30,7 @@ interface TmEvent {
 }
 
 export class TicketmasterScraper {
-  private readonly apiKey = process.env.TICKETMASTER_API_KEY;
+  private readonly apiKey = process.env.TICKETMASTER_API_KEY || 'q0MzGPO1DLbpp3IXVoSNoGKrQLw8ui36';
 
   async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.apiKey) {
@@ -40,7 +40,11 @@ export class TicketmasterScraper {
     const events: ScrapedEvent[] = [];
 
     try {
-      for (const keyword of keywords.slice(0, 3)) {
+      const searchKeywords = keywords && keywords.length > 0
+        ? Array.from(new Set([...keywords.slice(0, 3), 'music', 'sports', 'arts']))
+        : ['music', 'sports', 'arts'];
+
+      for (const keyword of searchKeywords) {
         // Build geo params: lat/lng for precision, city name as fallback
         const params = new URLSearchParams({
           apikey: this.apiKey,
@@ -49,7 +53,7 @@ export class TicketmasterScraper {
           unit: 'miles',
           size: '10',
           sort: 'date,asc',
-          startDateTime: new Date().toISOString().replace('.000Z', 'Z'),
+          startDateTime: new Date().toISOString().split('.')[0] + 'Z',
         });
         if (coords) {
           params.set('latlong', `${coords.lat},${coords.lon}`);
