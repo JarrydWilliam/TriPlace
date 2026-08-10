@@ -46,11 +46,13 @@ import {
   X,
   Sparkles,
   Flame,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
 import { PaywallModal } from "@/components/paywall-modal";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -148,6 +150,134 @@ function SuggestedCommunitiesEmpty({
       <button onClick={onExplore} className="text-cyan-400 font-semibold hover:underline ml-2">
         Explore scenes →
       </button>
+    </div>
+  );
+}
+
+/** Touch & drag swipeable horizontal container with page indicators for events */
+function SwipeableEventsCarousel({
+  events,
+  onEventClick,
+}: {
+  events: any[];
+  onEventClick: (event: any) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollLeft } = containerRef.current;
+    const cardWidth = 296; // 280px min-width + 16px gap
+    const newIndex = Math.round(scrollLeft / cardWidth);
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < events.length) {
+      setActiveIndex(newIndex);
+    }
+  };
+
+  const scrollToCard = (index: number) => {
+    if (!containerRef.current) return;
+    const cardWidth = 296;
+    containerRef.current.scrollTo({
+      left: index * cardWidth,
+      behavior: "smooth",
+    });
+    setActiveIndex(index);
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Scroll Controls for Desktop */}
+      <div className="flex justify-end gap-1 mb-1 hidden sm:flex">
+        <button
+          onClick={() => scrollToCard(Math.max(0, activeIndex - 1))}
+          disabled={activeIndex === 0}
+          className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 disabled:opacity-20 text-white transition-all border border-white/10"
+          aria-label="Previous event"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => scrollToCard(Math.min(events.length - 1, activeIndex + 1))}
+          disabled={activeIndex >= events.length - 1}
+          className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 disabled:opacity-20 text-white transition-all border border-white/10"
+          aria-label="Next event"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Swipeable Container */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 touch-pan-x transition-all scroll-smooth"
+      >
+        {events.map((event: any, idx: number) => (
+          <motion.div
+            key={event.id}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25, delay: idx * 0.04 }}
+            className="flex-shrink-0 snap-start"
+          >
+            <VibeEventCard
+              id={event.id}
+              title={event.title}
+              category={event.category}
+              date={
+                event.date
+                  ? new Date(event.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "Upcoming"
+              }
+              time={
+                event.date
+                  ? new Date(event.date).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : "6 PM"
+              }
+              location={event.location || "Local Event"}
+              imageUrl={
+                event.imageUrl ||
+                "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"
+              }
+              attendeeCount={event.attendeeCount || 0}
+              attendees={event.attendees || []}
+              actionLabel={
+                event.category === "creative" ? "Collab" : "Explore"
+              }
+              eventType={
+                event.eventType || (event.communityId ? "group" : "local")
+              }
+              communityName={event.communityName}
+              onClick={() => onEventClick(event)}
+            />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Swipe Indicator Dots */}
+      {events.length > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          {events.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => scrollToCard(idx)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                idx === activeIndex
+                  ? "w-5 bg-cyan-400"
+                  : "w-1.5 bg-white/20 hover:bg-white/40"
+              }`}
+              aria-label={`Go to event ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -616,25 +746,12 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              <div className="flex gap-4 overflow-x-auto snap-x no-scrollbar pb-2">
-                {Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
-                  trendingEvents.map((evt: any) => (
-                    <VibeEventCard
-                      key={evt.id}
-                      id={evt.id}
-                      title={evt.title}
-                      category={evt.category}
-                      date={evt.date ? new Date(evt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming"}
-                      time={evt.date ? new Date(evt.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "6 PM"}
-                      location={evt.location || "Local Event"}
-                      imageUrl={evt.imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
-                      attendeeCount={evt.attendeeCount || 0}
-                      attendees={evt.attendees || []}
-                      actionLabel={evt.category === "creative" ? "Collab" : "Explore"}
-                      onClick={() => setRouterLocation(`/events`)}
-                    />
-                  ))
-                ) : (
+              {Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
+                <SwipeableEventsCarousel
+                  events={trendingEvents}
+                  onEventClick={() => setRouterLocation('/events')}
+                />
+              ) : (
                   <div className="w-full rounded-2xl bg-card/40 backdrop-blur-xl border border-white/10 p-6 text-center space-y-3 my-2">
                     <CalendarDays className="w-8 h-8 text-cyan-400/50 mx-auto" />
                     <h3 className="font-display font-bold text-white text-sm">No group events near you yet</h3>
@@ -650,7 +767,6 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 )}
-              </div>
             </section>
 
             {/* ── SECTION 2: My Events (EventCalendar Widget) ── */}
@@ -858,28 +974,13 @@ export default function Dashboard() {
                   Finding popular events...
                 </div>
               ) : Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
-                <div className="space-y-3">
-                  {trendingEvents.slice(0, 3).map((event: any) => (
-                    <VibeEventCard
-                      key={event.id}
-                      id={event.id}
-                      title={event.title}
-                      category={event.category}
-                      date={event.date ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "June 15"}
-                      time={event.date ? new Date(event.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "6 PM"}
-                      location={event.location || "Central Park"}
-                      imageUrl={event.imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
-                      attendeeCount={event.attendeeCount || 28}
-                      attendees={event.attendees || []}
-                      actionLabel={event.category === "creative" ? "Collab" : "Explore"}
-                      eventType={event.eventType || (event.communityId ? "group" : "local")}
-                      onClick={() => {
-                        setSelectedEvent(event);
-                        setIsEventModalOpen(true);
-                      }}
-                    />
-                  ))}
-                </div>
+                <SwipeableEventsCarousel
+                  events={trendingEvents}
+                  onEventClick={(evt: any) => {
+                    setSelectedEvent(evt);
+                    setIsEventModalOpen(true);
+                  }}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   No trending events in your area yet
