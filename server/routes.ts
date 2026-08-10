@@ -2299,14 +2299,24 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         }
       }
 
-      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
-        const userLocation = { lat, lon: lng };
-        const trendingEvents = await storage.getTrendingEventsByLocation(userLocation, radius);
-        return res.json(trendingEvents);
+      if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng)) {
+        lat = 40.7608;
+        lng = -111.8910;
       }
+
+      const userLocation = { lat, lon: lng };
+      let trendingEvents = await storage.getTrendingEventsByLocation(userLocation, radius);
       
-      // No resolvable location — return empty rather than leaking global events
-      res.json([]);
+      if (trendingEvents.length === 0) {
+        try {
+          await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
+          trendingEvents = await storage.getTrendingEventsByLocation(userLocation, radius);
+        } catch (err: any) {
+          console.error('[TrendingEventsAPI] Auto-scrape failed:', err.message);
+        }
+      }
+
+      return res.json(trendingEvents);
     } catch (error) {
       console.error("Error fetching trending events:", error);
       res.status(500).json({ message: "Failed to fetch trending events" });

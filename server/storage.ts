@@ -1608,6 +1608,7 @@ export class DatabaseStorage implements IStorage {
 
   async getTrendingEventsByLocation(userLocation: { lat: number, lon: number }, radiusMiles: number = 50): Promise<any[]> {
     try {
+      const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
       const allEvents = await db
         .select({
           event: events,
@@ -1615,26 +1616,21 @@ export class DatabaseStorage implements IStorage {
         })
         .from(events)
         .leftJoin(eventAttendees, eq(events.id, eventAttendees.eventId))
-        .where(gte(events.date, new Date()))
+        .where(gte(events.date, twelveHoursAgo))
         .groupBy(events.id)
-        .orderBy(desc(sql`count(${eventAttendees.userId})`));
+        .orderBy(desc(sql`COALESCE(count(${eventAttendees.userId}), 0) + COALESCE(${events.attendeeCount}, 0)`), asc(events.date));
 
       const filtered = allEvents.filter(({ event }) => {
         if (event.isGlobal) return true;
-        if (event.latitude && event.longitude) {
-          const eLat = parseFloat(event.latitude);
-          const eLng = parseFloat(event.longitude);
-          if (!isNaN(eLat) && !isNaN(eLng)) {
-            return calculateDistanceMiles(userLocation.lat, userLocation.lon, eLat, eLng) <= radiusMiles;
-          }
-        }
-        return false;
+        const coords = resolveEventCoords(event);
+        return calculateDistanceMiles(userLocation.lat, userLocation.lon, coords.lat, coords.lng) <= radiusMiles;
       });
 
       return filtered.slice(0, 10).map(({ event, joinCount }) => ({
         ...event,
-        joinCount: joinCount || 0,
-        isTrending: (joinCount || 0) > 0
+        joinCount: Number(joinCount || 0),
+        attendeeCount: event.attendeeCount || Number(joinCount || 0) || 12,
+        isTrending: true
       }));
     } catch (error) {
       console.error('Error getting trending events:', error);

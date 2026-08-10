@@ -342,19 +342,22 @@ export default function Dashboard() {
   // Fetch trending/upcoming group events with strict location confinement
   const { data: trendingEvents, isLoading: trendingLoading } = useQuery({
     queryKey: ["/api/events/trending", user?.id, latitude, longitude],
-    enabled: !!user?.id,
+    enabled: true,
     queryFn: async () => {
+      let trendingUrl = `/api/events/trending?radius=50`;
+      if (user?.id) trendingUrl += `&userId=${user.id}`;
       if (latitude && longitude) {
-        const response = await fetch(
-          getApiUrl(
-            `/api/events/trending?userId=${user?.id}&latitude=${latitude}&longitude=${longitude}&radius=50`
-          )
-        );
-        if (response.ok) return response.json();
+        trendingUrl += `&latitude=${latitude}&longitude=${longitude}`;
+      }
+      const response = await fetch(getApiUrl(trendingUrl));
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) return data;
       }
 
-      // Location-restricted upcoming events query (falls back to user DB coordinates on backend)
-      let upcomingUrl = `/api/events/upcoming?userId=${user?.id}&radius=50`;
+      // Location-restricted upcoming events query fallback
+      let upcomingUrl = `/api/events/upcoming?radius=50`;
+      if (user?.id) upcomingUrl += `&userId=${user.id}`;
       if (latitude && longitude) {
         upcomingUrl += `&latitude=${latitude}&longitude=${longitude}`;
       }
