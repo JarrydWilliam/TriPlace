@@ -60,7 +60,7 @@ const KNOWN_CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'austin': { lat: 30.2672, lng: -97.7431 },
 };
 
-export function resolveEventCoords(event: { latitude?: string | null; longitude?: string | null; location?: string | null; address?: string | null }): { lat: number; lng: number } | null {
+export function resolveEventCoords(event: { latitude?: string | null; longitude?: string | null; location?: string | null; address?: string | null }): { lat: number; lng: number } {
   if (event.latitude && event.longitude) {
     const lat = parseFloat(event.latitude);
     const lng = parseFloat(event.longitude);
@@ -74,7 +74,8 @@ export function resolveEventCoords(event: { latitude?: string | null; longitude?
     }
   }
 
-  return null;
+  // Fallback to default area coordinates so local events without city strings are not discarded
+  return { lat: 40.7608, lng: -111.8910 };
 }
 
 export interface IStorage {
@@ -1138,32 +1139,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUpcomingEvents(userId?: number, latitude?: number, longitude?: number, radiusMiles: number = 50): Promise<Event[]> {
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
     let allEvents = await db.select().from(events)
-      .where(sql`${events.date} >= NOW()`)
+      .where(gte(events.date, twelveHoursAgo))
       .orderBy(asc(events.date));
       
     if (userId) {
       const blocks = await db.select().from(userBlocks).where(eq(userBlocks.blockerId, userId));
-      const blockedIds = new Set(blocks.map(b => b.blockedId));
-      if (blockedIds.size > 0) {
-        allEvents = allEvents.filter(e => !e.creatorId || !blockedIds.has(e.creatorId));
+      const blockedSet = new Set(blocks.map(b => b.blockedId));
+      if (blockedSet.size > 0) {
+        allEvents = allEvents.filter(e => !e.creatorId || !blockedSet.has(e.creatorId));
       }
     }
 
-    // Always enforce distance filtering when coordinates are available.
-    // Never fall back to returning ALL events globally.
     if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
       return allEvents.filter(event => {
         if (event.isGlobal) return true;
         const coords = resolveEventCoords(event);
-        if (coords) {
-          return calculateDistanceMiles(latitude, longitude, coords.lat, coords.lng) <= radiusMiles;
-        }
-        return false;
+        return calculateDistanceMiles(latitude, longitude, coords.lat, coords.lng) <= radiusMiles;
       });
     }
 
-    // If no user coordinates are provided in query, return all upcoming events
     return allEvents;
   }
 

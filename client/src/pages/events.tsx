@@ -189,9 +189,12 @@ export default function Events() {
 
   const { data: upcomingEvents = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/events/upcoming", user?.id, latitude, longitude],
-    enabled: !!user?.id,
+    enabled: true,
     queryFn: async () => {
-      let url = `/api/events/upcoming?userId=${user?.id}&radius=50`;
+      let url = `/api/events/upcoming?radius=50`;
+      if (user?.id) {
+        url += `&userId=${user.id}`;
+      }
       if (latitude && longitude) {
         url += `&latitude=${latitude}&longitude=${longitude}`;
       }
