@@ -1,10 +1,10 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 9, 2026)
-**Active Branch**: `Jarryd` / `main` (Remote HEAD SHA `34db9ae` — Pushed to `origin/V1` and `origin/main`)  
+## Current Status (August 10, 2026)
+**Active Branch**: `Jarryd` / `main` (Remote HEAD SHA `37abff8` — Pushed to `origin/Jarryd` and `origin/main`)  
 **Application Release Version**: `1.0.5` (Codemagic & TestFlight target)  
-**Application Release Candidate Tag**: `samevibe-rc-34db9ae`  
-**Executive Status**: 🟢 **100% LOCATION-DRIVEN APP ENGINE SHIPPED. EVENTS & COMMUNITIES STRICTLY GEO-FILTERED TO 50-MILE USER RADIUS; INSTANT GPS POSITIONING; AUTO-SCRAPING ON APP OPEN & 5-MIN LOOP.**
+**Application Release Candidate Tag**: `samevibe-rc-37abff8`  
+**Executive Status**: 🟢 **DEEP DIVE EVENT SYNC ROOT CAUSE FIXED & PUSHED: RELEVANCE MATCH THRESHOLD TUNED (0.70 → 0.35) WITH CATEGORY SYNONYMS, PREDICTHQ RADIAL GEOLOCATION INJECTED, AND O(1) DB DEDUPLICATION APPLIED.**
 
 ---
 
