@@ -55,7 +55,7 @@ const EB_CATEGORY_MAP: Record<string, string> = {
 };
 
 export class EventbriteScraper {
-  private readonly apiKey = process.env.EVENTBRITE_API_KEY || 'FZOOSIMIM6MZJGQWRN';
+  private readonly apiKey = process.env.EVENTBRITE_API_KEY;
 
   async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.apiKey) {

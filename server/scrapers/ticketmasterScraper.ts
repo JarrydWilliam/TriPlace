@@ -30,7 +30,7 @@ interface TmEvent {
 }
 
 export class TicketmasterScraper {
-  private readonly apiKey = process.env.TICKETMASTER_API_KEY || 'q0MzGPO1DLbpp3IXVoSNoGKrQLw8ui36';
+  private readonly apiKey = process.env.TICKETMASTER_API_KEY;
 
   async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number, lon: number }): Promise<ScrapedEvent[]> {
     if (!this.apiKey) {
