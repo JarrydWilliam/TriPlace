@@ -26,6 +26,19 @@ export function useGeolocation(userId?: number, enabled = true) {
 
   const refresh = () => setTrigger(prev => prev + 1);
 
+  // Helper to fire backend web scrapers for current location on demand
+  const triggerAutoScrape = async (lat: number, lon: number) => {
+    try {
+      await fetch(getApiUrl('/api/events/auto-scrape'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lon }),
+      });
+    } catch (err) {
+      console.error('[Geolocation] Auto-scrape trigger error:', err);
+    }
+  };
+
   useEffect(() => {
     if (!enabled && trigger === 0) {
       setLocation(prev => ({ ...prev, loading: false }));
@@ -35,12 +48,11 @@ export function useGeolocation(userId?: number, enabled = true) {
     setLocation(prev => ({ ...prev, loading: true }));
     let hasGPSAttempted = false;
 
-    // Step 1: Try high-accuracy GPS first (mobile-optimized)
+    // Step 1: Try high-accuracy GPS first (instant, maximumAge: 0)
     const tryGPSLocation = async () => {
       hasGPSAttempted = true;
       
       const handleSuccess = async (lat: number, lon: number) => {
-        // Try to get human-readable address
         let locationName = 'GPS Location';
         try {
           const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
@@ -66,7 +78,7 @@ export function useGeolocation(userId?: number, enabled = true) {
         // Update user location in backend for dynamic community matching
         if (userId) {
           try {
-            const response = await fetch(getApiUrl('/api/users/current/location'), {
+            await fetch(getApiUrl('/api/users/current/location'), {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -76,22 +88,21 @@ export function useGeolocation(userId?: number, enabled = true) {
                 location: locationName
               })
             });
-            if (!response.ok) {
-              console.error('Failed to update user location:', response.status);
-            }
           } catch (error) {
             console.error('Error updating user location:', error);
           }
         }
+
+        // Instantly trigger web scrapers for user's location on app open/location detect
+        void triggerAutoScrape(lat, lon);
       };
 
-      const handleError = (error?: any) => {
+      const handleError = () => {
         tryIPLocation();
       };
 
       try {
         if (Capacitor.isNativePlatform()) {
-          // Explicitly request permissions on iOS/Android Native
           const perm = await Geolocation.requestPermissions();
           if (perm.location !== 'granted') {
             handleError();
@@ -100,11 +111,10 @@ export function useGeolocation(userId?: number, enabled = true) {
           const position = await Geolocation.getCurrentPosition({
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 300000,
+            maximumAge: 0, // Instant real-time GPS position (no stale cache)
           });
           await handleSuccess(position.coords.latitude, position.coords.longitude);
         } else {
-          // Web fallback
           if (!navigator.geolocation) {
             tryIPLocation();
             return;
@@ -115,19 +125,18 @@ export function useGeolocation(userId?: number, enabled = true) {
             {
               enableHighAccuracy: true,
               timeout: 10000,
-              maximumAge: 300000,
+              maximumAge: 0, // Instant real-time GPS position (no stale cache)
             }
           );
         }
       } catch (err) {
-        handleError(err);
+        handleError();
       }
     };
 
     // Step 2: IP-based fallback for reliability
     const tryIPLocation = async () => {
       try {
-        // Use ipapi.co for IP-based geolocation
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         
@@ -142,10 +151,9 @@ export function useGeolocation(userId?: number, enabled = true) {
             locationName,
           });
 
-          // Update user location in backend for IP-based location
           if (userId) {
             try {
-              const response = await fetch(getApiUrl('/api/users/current/location'), {
+              await fetch(getApiUrl('/api/users/current/location'), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -155,15 +163,13 @@ export function useGeolocation(userId?: number, enabled = true) {
                   location: locationName
                 })
               });
-              if (!response.ok) {
-                console.error('Failed to update IP location:', response.status);
-              } else {
-
-              }
             } catch (error) {
               console.error('Error updating IP location:', error);
             }
           }
+
+          // Trigger scrapers for IP location
+          void triggerAutoScrape(data.latitude, data.longitude);
         } else {
           throw new Error('IP location service unavailable');
         }
@@ -177,9 +183,17 @@ export function useGeolocation(userId?: number, enabled = true) {
       }
     };
 
-    // Start with GPS, fallback to IP if needed
+    // Initial instant location fetch + scraper trigger on app load
     tryGPSLocation();
-  }, [userId]); // Re-run when userId resolves — ensures coordinates get saved to DB after auth loads
+
+    // 5-minute recurring interval timer to update location & trigger web scrapers continuously while app is open
+    const INTERVAL_5_MINS = 5 * 60 * 1000;
+    const intervalId = setInterval(() => {
+      tryGPSLocation();
+    }, INTERVAL_5_MINS);
+
+    return () => clearInterval(intervalId);
+  }, [userId, trigger]);
 
   return { ...location, refresh };
 }
