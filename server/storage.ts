@@ -78,6 +78,24 @@ export function resolveEventCoords(event: { latitude?: string | null; longitude?
   return { lat: 40.7608, lng: -111.8910 };
 }
 
+export function deduplicateEventList<T extends { title?: string; date?: Date | string }>(eventList: T[]): T[] {
+  const seenKeys = new Set<string>();
+  const uniqueEvents: T[] = [];
+
+  for (const event of eventList) {
+    const normTitle = (event.title || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    const dateStr = event.date ? new Date(event.date).toISOString().split('T')[0] : '';
+    const key = `${normTitle}_${dateStr}`;
+
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueEvents.push(event);
+    }
+  }
+
+  return uniqueEvents;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
@@ -1152,18 +1170,39 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    let filtered = allEvents;
     if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
-      return allEvents.filter(event => {
+      filtered = allEvents.filter(event => {
         if (event.isGlobal) return true;
         const coords = resolveEventCoords(event);
         return calculateDistanceMiles(latitude, longitude, coords.lat, coords.lng) <= radiusMiles;
       });
     }
 
-    return allEvents;
+    return deduplicateEventList(filtered);
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const eventDate = new Date(insertEvent.date);
+    const startWindow = new Date(eventDate.getTime() - 12 * 60 * 60 * 1000);
+    const endWindow = new Date(eventDate.getTime() + 12 * 60 * 60 * 1000);
+
+    const [existing] = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.title, insertEvent.title),
+          gte(events.date, startWindow),
+          lt(events.date, endWindow)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      return existing;
+    }
+
     if (!insertEvent.latitude || !insertEvent.longitude) {
       const coords = resolveEventCoords(insertEvent);
       if (coords) {
@@ -1626,10 +1665,12 @@ export class DatabaseStorage implements IStorage {
         return calculateDistanceMiles(userLocation.lat, userLocation.lon, coords.lat, coords.lng) <= radiusMiles;
       });
 
-      return filtered.slice(0, 10).map(({ event, joinCount }) => ({
+      const deduplicated = deduplicateEventList(filtered.map(f => ({ ...f.event, joinCount: f.joinCount })));
+
+      return deduplicated.slice(0, 10).map((event: any) => ({
         ...event,
-        joinCount: Number(joinCount || 0),
-        attendeeCount: event.attendeeCount || Number(joinCount || 0) || 12,
+        joinCount: Number(event.joinCount || 0),
+        attendeeCount: event.attendeeCount || Number(event.joinCount || 0) || 12,
         isTrending: true
       }));
     } catch (error) {
