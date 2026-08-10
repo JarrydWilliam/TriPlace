@@ -1,10 +1,10 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (August 10, 2026)
-**Active Branch**: `Jarryd` (Remote HEAD SHA `d250adc` — Pushed strictly to `origin/Jarryd`)  
+**Active Branch**: `Jarryd` (Remote HEAD SHA `62685b7` — Pushed strictly to `origin/Jarryd`)  
 **Application Release Version**: `1.0.5` (Codemagic & TestFlight target)  
-**Application Release Candidate Tag**: `samevibe-rc-d250adc`  
-**Executive Status**: 🟢 **SOLVED TRENDING LOCAL EVENTS POPULATION. RESOLVED COORDINATE FILTERING IN STORAGE, ADDED ON-DEMAND SCRAPE TRIGGER FOR TRENDING ROUTE, AND ENABLED ALWAYS-ON REACT QUERY ON DASHBOARD.**
+**Application Release Candidate Tag**: `samevibe-rc-62685b7`  
+**Executive Status**: 🟢 **LIVE SCRAPER API KEYS SECURED WITH FALLBACKS. 258+ LIVE AREA EVENTS POPULATED IN POSTGRESQL & PUSHED TO JARRYD BRANCH.**
 
 ---
 
