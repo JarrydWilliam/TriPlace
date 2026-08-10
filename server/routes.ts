@@ -1115,11 +1115,20 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       if (isNaN(lat) || isNaN(lon)) {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
-      const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon });
-      res.json({ message: "Scraped successfully", result });
+
+      // Return immediately — background scraping ensures UI never hangs or shows sync error toasts
+      res.json({ message: "Background area scrape initiated", success: true });
+
+      setImmediate(async () => {
+        try {
+          await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon });
+        } catch (err: any) {
+          console.error("[AutoScrape Background] Error:", err.message);
+        }
+      });
     } catch (error: any) {
-      console.error("[AutoScrape] Failed:", error.message);
-      res.status(500).json({ message: "Auto scrape failed", error: error.message });
+      console.error("[AutoScrape] Failed to initiate:", error.message);
+      res.status(500).json({ message: "Failed to start background scrape", error: error.message });
     }
   });
 
@@ -1264,6 +1273,26 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       }
       
       const registration = await storage.registerForEvent(actingUser.id, eventId, status);
+
+      // Auto-update user's vibe algorithm interests when they RSVP to an event
+      try {
+        const targetEvent = await storage.getEvent(eventId);
+        if (targetEvent && targetEvent.category) {
+          const userObj = await storage.getUser(actingUser.id);
+          const currentInterests = userObj?.interests || [];
+          const eventCategoryLower = targetEvent.category.toLowerCase();
+          const hasInterest = currentInterests.some((i: string) => i.toLowerCase() === eventCategoryLower);
+          
+          if (!hasInterest) {
+            const updatedInterests = [...currentInterests, targetEvent.category];
+            await storage.updateUser(actingUser.id, { interests: updatedInterests });
+            console.log(`[AlgorithmUpdate] User ${actingUser.id} updated interests with "${targetEvent.category}" from RSVP`);
+          }
+        }
+      } catch (algErr: any) {
+        console.error('[AlgorithmUpdate] Failed to update interests:', algErr.message);
+      }
+
       res.status(201).json(registration);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

@@ -67,6 +67,10 @@ export class EventScraperOrchestrator {
       // Filter and process events
       const processedEvents = await this.processScrapedEvents(allScrapedEvents, userLocation);
       
+      // Save all 50-mile area events to database so users see ALL local events in their area
+      const areaSavedCount = await this.saveAreaEvents(processedEvents);
+      totalEvents += areaSavedCount;
+
       // Match events to communities
       const communityMatches = this.communityMatcher.matchEventsTocommunities(processedEvents, communities);
       
@@ -282,6 +286,54 @@ export class EventScraperOrchestrator {
       console.error(`Error fetching existing events for community ${communityId}:`, error);
     }
     
+    return savedCount;
+  }
+
+  /**
+   * Save all processed events within 50 miles as local area events available to all nearby users
+   */
+  private async saveAreaEvents(events: ScrapedEvent[]): Promise<number> {
+    let savedCount = 0;
+    try {
+      const allExisting = await storage.getAllEvents();
+      
+      for (const scrapedEvent of events) {
+        try {
+          const isDuplicate = allExisting.some((existing: any) =>
+            existing.title.toLowerCase() === scrapedEvent.title.toLowerCase() &&
+            new Date(existing.date).toDateString() === new Date(scrapedEvent.date).toDateString()
+          );
+
+          if (!isDuplicate) {
+            const insertEvent: InsertEvent = {
+              title: scrapedEvent.title,
+              description: scrapedEvent.description,
+              organizer: scrapedEvent.organizerName || scrapedEvent.sourceName || 'External Event',
+              date: scrapedEvent.date,
+              location: scrapedEvent.location,
+              address: scrapedEvent.location,
+              latitude: scrapedEvent.latitude != null ? String(scrapedEvent.latitude) : undefined,
+              longitude: scrapedEvent.longitude != null ? String(scrapedEvent.longitude) : undefined,
+              category: scrapedEvent.category,
+              price: (scrapedEvent.price || 0).toString(),
+              communityId: undefined, // Area event available to all users in 50mi radius
+              isGlobal: false,
+              sourceName: scrapedEvent.sourceName || 'External Event',
+              isExternal: scrapedEvent.isExternal ?? true,
+              sourceUrl: scrapedEvent.sourceUrl || undefined,
+            };
+
+            const createdEvent = await storage.createEvent(insertEvent);
+            allExisting.push(createdEvent);
+            savedCount++;
+          }
+        } catch (err) {
+          console.error(`Error saving area event "${scrapedEvent.title}":`, err);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching existing events for area save:', error);
+    }
     return savedCount;
   }
 
