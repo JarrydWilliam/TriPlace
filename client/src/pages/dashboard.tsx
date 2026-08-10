@@ -335,12 +335,7 @@ export default function Dashboard() {
       }
     },
     onError: (error) => {
-      console.error("Failed to auto-populate events:", error);
-      toast({
-        title: "Sync Failed",
-        description: "Could not update your events at this time.",
-        variant: "destructive",
-      });
+      console.warn("Background event sync notice:", error);
     },
   });
 

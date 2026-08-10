@@ -1633,18 +1633,24 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
 
       const userLocation = { lat: parseFloat(latitude), lon: parseFloat(longitude) };
       
-      // Use new web scraper system for comprehensive event discovery
-      const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
-      
+      // Respond HTTP 200 immediately — run scraper in background to avoid client timeouts
       res.json({ 
-        message: `Auto-populated ${result.totalEvents} events across ${result.communitiesUpdated} communities using web scraping`,
-        eventsAdded: result.totalEvents,
-        communitiesProcessed: result.communitiesUpdated,
-        errors: result.errors
+        message: "Background event discovery initiated",
+        eventsAdded: 0,
+        communitiesProcessed: 0,
+        success: true
       });
-    } catch (error) {
-      console.error('Error auto-populating events:', error);
-      res.status(500).json({ message: "Failed to auto-populate events" });
+
+      setImmediate(async () => {
+        try {
+          await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
+        } catch (bgErr: any) {
+          console.error('[AutoPopulate Background] Error:', bgErr.message);
+        }
+      });
+    } catch (error: any) {
+      console.error('Error auto-populating events:', error.message);
+      res.status(500).json({ message: "Failed to initiate event discovery" });
     }
   });
 
