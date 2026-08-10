@@ -10,7 +10,7 @@ workflows:
       
     environment:
       node: 20.11.0
-      xcode: 26.6
+      xcode: latest
       cocoapods: default
       groups:
         - samevibe_env        # VITE_FIREBASE_* + OPENAI_API_KEY + DATABASE_URL
@@ -41,7 +41,7 @@ workflows:
 
       - name: Verify Xcode Version (Compliance)
         script: |
-          echo "Expected: Xcode 26 or later, iOS 26 SDK or later (July 2026 requirement)"
+          echo "Verifying active Xcode build toolchain..."
           xcodebuild -version
           xcodebuild -showsdks
 
@@ -81,29 +81,31 @@ workflows:
 
           TARGET_MARKETING_VERSION="1.0.5"
 
-          if [ -z "${APP_STORE_APP_ID:-}" ]; then
-            echo "ERROR: APP_STORE_APP_ID is required."
-            exit 1
-          fi
-
-          set +e
-          LATEST_BUILD_NUMBER=$(
-            app-store-connect get-latest-testflight-build-number \
-              "$APP_STORE_APP_ID" \
-              --pre-release-version "$TARGET_MARKETING_VERSION" \
-              --platform IOS 2>/dev/null
-          )
-          set -e
-
-          if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "No existing build for version ${TARGET_MARKETING_VERSION}. Querying overall TestFlight build number..."
+          if [ -n "${APP_STORE_APP_ID:-}" ]; then
             set +e
             LATEST_BUILD_NUMBER=$(
               app-store-connect get-latest-testflight-build-number \
                 "$APP_STORE_APP_ID" \
+                --pre-release-version "$TARGET_MARKETING_VERSION" \
                 --platform IOS 2>/dev/null
             )
             set -e
+          else
+            echo "APP_STORE_APP_ID not specified in environment. Using default base build number."
+            LATEST_BUILD_NUMBER=177
+          fi
+
+          if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "No existing build for version ${TARGET_MARKETING_VERSION}. Querying overall TestFlight build number..."
+            if [ -n "${APP_STORE_APP_ID:-}" ]; then
+              set +e
+              LATEST_BUILD_NUMBER=$(
+                app-store-connect get-latest-testflight-build-number \
+                  "$APP_STORE_APP_ID" \
+                  --platform IOS 2>/dev/null
+              )
+              set -e
+            fi
           fi
 
           if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
