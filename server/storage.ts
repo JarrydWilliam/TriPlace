@@ -1119,7 +1119,7 @@ export class DatabaseStorage implements IStorage {
 
     const uLat = parseFloat(latitude);
     const uLng = parseFloat(longitude);
-    if (isNaN(uLat) || isNaN(uLng)) return []; // No valid user coordinates — return empty rather than all events
+    if (isNaN(uLat) || isNaN(uLng)) return allEvents;
 
     const filtered = allEvents.filter(event => {
       if (event.isGlobal) return true;
@@ -1163,8 +1163,8 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // No user coordinates available — return empty to avoid showing globally random events.
-    return [];
+    // If no user coordinates are provided in query, return all upcoming events
+    return allEvents;
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {

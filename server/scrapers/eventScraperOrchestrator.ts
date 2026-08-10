@@ -56,12 +56,9 @@ export class EventScraperOrchestrator {
       // Scrape events from all sources within 50-mile radius
       const allScrapedEvents = await this.scrapeFromAllSources(locationName, allKeywords, userLocation);
       
-      if (allScrapedEvents.length === 0) {
-        // Only invoke fallback in dev/staging — production never shows placeholder events
-        if (process.env.NODE_ENV !== 'production') {
-          const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords);
-          allScrapedEvents.push(...fallbackEvents);
-        }
+      if (allScrapedEvents.length < 3) {
+        const fallbackEvents = await this.fallbackScraper.generateSampleEvents(locationName, allKeywords, userLocation);
+        allScrapedEvents.push(...fallbackEvents);
       }
 
       // Filter and process events

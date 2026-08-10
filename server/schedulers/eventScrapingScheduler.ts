@@ -44,17 +44,10 @@ export class EventScrapingScheduler {
         user.latitude && user.longitude && user.onboardingCompleted
       );
 
-      if (usersWithLocation.length === 0) {
-        return;
-      }
-
-      // Use the first user's location as a representative location
-      // In production, you might want to group by geographic regions
       const representativeUser = usersWithLocation[0];
-      const userLocation = {
-        lat: parseFloat(representativeUser.latitude!),
-        lon: parseFloat(representativeUser.longitude!)
-      };
+      const userLocation = representativeUser && representativeUser.latitude && representativeUser.longitude
+        ? { lat: parseFloat(representativeUser.latitude), lon: parseFloat(representativeUser.longitude) }
+        : { lat: 40.7608, lon: -111.8910 };
 
       const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities(userLocation);
       
