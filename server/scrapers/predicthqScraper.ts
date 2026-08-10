@@ -1,16 +1,21 @@
 import { ScrapedEvent } from '../types/scraperTypes.js';
 
 export class PredictHQScraper {
-  async scrapeEvents(location: string, keywords: string[], radius: number = 50): Promise<ScrapedEvent[]> {
+  async scrapeEvents(location: string, keywords: string[], radius: number = 50, coords?: { lat: number; lon: number }): Promise<ScrapedEvent[]> {
     try {
       const todayISO = new Date().toISOString().split('T')[0];
       const qParams = new URLSearchParams({
-        'place.name': location,
         'active.gte': todayISO,
         'limit': '15',
         'sort': 'start',
         'category': 'community,festivals,expos,conferences,concerts,performing-arts,sports'
       });
+
+      if (coords) {
+        qParams.set('within', `${radius}mi@${coords.lat},${coords.lon}`);
+      } else {
+        qParams.set('place.name', location);
+      }
       
       if (keywords && keywords.length > 0) {
         qParams.append('q', keywords.join(' OR '));

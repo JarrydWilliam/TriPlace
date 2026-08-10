@@ -148,7 +148,7 @@ export class EventScraperOrchestrator {
         console.error('Google Things to Do scraper error:', error);
         return [];
       }),
-      this.predicthqScraper.scrapeEvents(location, keywords, RADIUS_MILES).catch(err => {
+      this.predicthqScraper.scrapeEvents(location, keywords, RADIUS_MILES, userLocation).catch(err => {
         console.error('PredictHQ scraper error:', err);
         return [];
       }),
@@ -239,43 +239,47 @@ export class EventScraperOrchestrator {
   private async saveEventsForCommunity(communityId: number, events: ScrapedEvent[]): Promise<number> {
     let savedCount = 0;
     
-    
-    for (const scrapedEvent of events) {
-      try {
-        // Check if event already exists
-        const existingEvents = await storage.getCommunityEvents(communityId);
-        const isDuplicate = existingEvents.some((existing: any) => 
-          existing.title.toLowerCase() === scrapedEvent.title.toLowerCase() &&
-          existing.date.toDateString() === scrapedEvent.date.toDateString()
-        );
-        
-        if (!isDuplicate) {
-          const insertEvent: InsertEvent = {
-            title: scrapedEvent.title,
-            description: scrapedEvent.description,
-            organizer: scrapedEvent.organizerName || scrapedEvent.sourceName || 'External Event',
-            date: scrapedEvent.date,
-            location: scrapedEvent.location,
-            address: scrapedEvent.location,
-            // Propagate venue coordinates so getEventsByLocation Haversine filter works
-            latitude: scrapedEvent.latitude != null ? String(scrapedEvent.latitude) : undefined,
-            longitude: scrapedEvent.longitude != null ? String(scrapedEvent.longitude) : undefined,
-            category: scrapedEvent.category,
-            price: (scrapedEvent.price || 0).toString(),
-            communityId: communityId,
-            isGlobal: false,
-            sourceName: scrapedEvent.sourceName || 'External Event',
-            isExternal: scrapedEvent.isExternal ?? true,
-            sourceUrl: scrapedEvent.sourceUrl || undefined,
-          };
+    try {
+      // Fetch existing events once per community outside the loop for O(1) performance
+      const existingEvents = await storage.getCommunityEvents(communityId);
+      
+      for (const scrapedEvent of events) {
+        try {
+          const isDuplicate = existingEvents.some((existing: any) => 
+            existing.title.toLowerCase() === scrapedEvent.title.toLowerCase() &&
+            new Date(existing.date).toDateString() === new Date(scrapedEvent.date).toDateString()
+          );
           
-          const createdEvent = await storage.createEvent(insertEvent);
-          savedCount++;
-        } else {
+          if (!isDuplicate) {
+            const insertEvent: InsertEvent = {
+              title: scrapedEvent.title,
+              description: scrapedEvent.description,
+              organizer: scrapedEvent.organizerName || scrapedEvent.sourceName || 'External Event',
+              date: scrapedEvent.date,
+              location: scrapedEvent.location,
+              address: scrapedEvent.location,
+              // Propagate venue coordinates so getEventsByLocation Haversine filter works
+              latitude: scrapedEvent.latitude != null ? String(scrapedEvent.latitude) : undefined,
+              longitude: scrapedEvent.longitude != null ? String(scrapedEvent.longitude) : undefined,
+              category: scrapedEvent.category,
+              price: (scrapedEvent.price || 0).toString(),
+              communityId: communityId,
+              isGlobal: false,
+              sourceName: scrapedEvent.sourceName || 'External Event',
+              isExternal: scrapedEvent.isExternal ?? true,
+              sourceUrl: scrapedEvent.sourceUrl || undefined,
+            };
+            
+            const createdEvent = await storage.createEvent(insertEvent);
+            existingEvents.push(createdEvent);
+            savedCount++;
+          }
+        } catch (error) {
+          console.error(`Error saving event "${scrapedEvent.title}" for community ${communityId}:`, error);
         }
-      } catch (error) {
-        console.error(`Error saving event "${scrapedEvent.title}" for community ${communityId}:`, error);
       }
+    } catch (error) {
+      console.error(`Error fetching existing events for community ${communityId}:`, error);
     }
     
     return savedCount;

@@ -24,8 +24,8 @@ export class CommunityMatcher {
       for (const event of events) {
         const score = this.calculateRelevanceScore(event, community);
         
-        // Only include events with relevance score >= 0.7 (70%) - STRICTER MATCHING
-        if (score >= 0.7) {
+        // Include events with relevance score >= 0.35 (35%)
+        if (score >= 0.35) {
           matchedEvents.push(event);
           matchScores.push(score);
         }
@@ -48,27 +48,22 @@ export class CommunityMatcher {
    */
   private calculateRelevanceScore(event: ScrapedEvent, community: Community): number {
     let score = 0;
-    let factors = 0;
 
     // 1. Category/Topic matching (40% weight)
     const categoryScore = this.calculateCategoryMatch(event, community);
     score += categoryScore * 0.4;
-    factors++;
 
     // 2. Keyword matching in title/description (30% weight)
     const keywordScore = this.calculateKeywordMatch(event, community);
     score += keywordScore * 0.3;
-    factors++;
 
     // 3. Community name relevance (20% weight)
     const nameScore = this.calculateNameMatch(event, community);
     score += nameScore * 0.2;
-    factors++;
 
     // 4. Event source credibility (10% weight)
     const sourceScore = this.calculateSourceScore(event);
     score += sourceScore * 0.1;
-    factors++;
 
     return Math.min(score, 1.0); // Cap at 1.0
   }
@@ -83,6 +78,25 @@ export class CommunityMatcher {
       return 1.0;
     }
 
+    // Category synonyms / overlap mapping
+    const categorySynonyms: Record<string, string[]> = {
+      'technology': ['tech', 'coding', 'software', 'ai', 'business', 'community'],
+      'fitness': ['fitness', 'workout', 'sports', 'health', 'wellness', 'outdoor', 'community'],
+      'art': ['art', 'creative', 'music', 'entertainment', 'culture', 'community'],
+      'food': ['food', 'dining', 'culinary', 'social', 'community'],
+      'business': ['business', 'networking', 'professional', 'startup', 'technology', 'community'],
+      'education': ['education', 'learning', 'workshop', 'seminar', 'technology', 'business', 'community'],
+      'social': ['social', 'community', 'networking', 'meetup', 'gathering'],
+      'outdoors': ['outdoors', 'outdoor', 'hiking', 'nature', 'fitness', 'sports', 'community'],
+      'entertainment': ['entertainment', 'music', 'art', 'comedy', 'festival', 'community'],
+      'lifestyle': ['lifestyle', 'wellness', 'social', 'community']
+    };
+
+    const synonyms = categorySynonyms[communityCategory] || [];
+    if (synonyms.includes(eventCategory) || eventCategory === 'community' || eventCategory === 'social') {
+      return 0.8;
+    }
+
     // Category keywords matching
     const categoryKeywords = this.getCategoryKeywords(communityCategory);
     const eventKeywords = this.getCategoryKeywords(eventCategory);
@@ -93,7 +107,11 @@ export class CommunityMatcher {
       event.title.toLowerCase().includes(keyword)
     );
 
-    return intersection.length / Math.max(categoryKeywords.length, 1);
+    if (intersection.length > 0) {
+      return Math.min(0.8, intersection.length / Math.max(categoryKeywords.length, 1) + 0.4);
+    }
+
+    return 0.1;
   }
 
   private calculateKeywordMatch(event: ScrapedEvent, community: Community): number {
