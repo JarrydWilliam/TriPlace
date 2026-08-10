@@ -1051,6 +1051,25 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
   });
 
   // Event routes — location-confined to user radius
+  app.post("/api/events/auto-scrape", async (req, res) => {
+    try {
+      const { latitude, longitude } = req.body;
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude required" });
+      }
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ message: "Invalid coordinates" });
+      }
+      const result = await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon });
+      res.json({ message: "Scraped successfully", result });
+    } catch (error: any) {
+      console.error("[AutoScrape] Failed:", error.message);
+      res.status(500).json({ message: "Auto scrape failed", error: error.message });
+    }
+  });
+
   app.get("/api/events", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
@@ -1066,7 +1085,20 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         }
       }
 
-      const eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+      let eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+
+      // On Vercel serverless, background schedulers don't run continuously.
+      // If DB has 0 events for valid user coordinates, trigger an on-demand scrape!
+      if (eventsList.length === 0 && lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        try {
+          console.log(`[EventsAPI] 0 events in DB for (${lat}, ${lng}). Triggering on-demand scrape...`);
+          await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon: lng });
+          eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+        } catch (scrapeErr: any) {
+          console.error('[EventsAPI] On-demand scrape error:', scrapeErr.message);
+        }
+      }
+
       res.json(eventsList);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -1088,7 +1120,19 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         }
       }
 
-      const eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+      let eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+
+      // On Vercel serverless, background schedulers don't run continuously.
+      // If DB has 0 events for valid user coordinates, trigger an on-demand scrape!
+      if (eventsList.length === 0 && lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        try {
+          console.log(`[UpcomingEventsAPI] 0 events in DB for (${lat}, ${lng}). Triggering on-demand scrape...`);
+          await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon: lng });
+          eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+        } catch (scrapeErr: any) {
+          console.error('[UpcomingEventsAPI] On-demand scrape error:', scrapeErr.message);
+        }
+      }
 
       // F16: Single batch query for all attendees — eliminates N+1 pattern.
       const eventIds = eventsList.map(e => e.id);
