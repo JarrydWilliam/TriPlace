@@ -497,34 +497,63 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
   // Community routes
   app.get("/api/communities", async (req, res) => {
     try {
-      const communities = await storage.getAllCommunities();
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      let communities = await storage.getAllCommunities();
+
+      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        const userLoc = { lat, lon: lng };
+        const local = communities.filter(c => {
+          if (!c.location) return true;
+          const coords = resolveEventCoords(c);
+          if (coords) {
+            return calculateDistanceMiles(userLoc.lat, userLoc.lon, coords.lat, coords.lng) <= radius;
+          }
+          return true;
+        });
+        if (local.length > 0) communities = local;
+      }
+
       res.json(communities);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Temporary route to seed production database — admin only
-  
-  // [REMOVED TEST ROUTE IN PROD]
-
-
   app.get("/api/communities/recommended", async (req, res) => {
     try {
       const interests = req.query.interests as string;
       const userId = req.query.userId as string;
-      const latitude = req.query.latitude as string;
-      const longitude = req.query.longitude as string;
+      let latitude = req.query.latitude as string;
+      let longitude = req.query.longitude as string;
+      
+      const authUserId = (req as any).user ? (req as any).user.id : undefined;
+      const userIdNum = userId ? parseInt(userId) : authUserId;
+
+      if ((!latitude || !longitude) && userIdNum) {
+        const currentUser = await storage.getUser(userIdNum);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          latitude = currentUser.latitude;
+          longitude = currentUser.longitude;
+        }
+      }
       
       const interestsArray = interests ? interests.split(',').filter(i => i.trim()) : [];
       const userLocation = latitude && longitude ? { lat: parseFloat(latitude), lon: parseFloat(longitude) } : undefined;
-      const authUserId = (req as any).user ? (req as any).user.id : undefined;
-      const userIdNum = userId ? parseInt(userId) : authUserId;
-      
       
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
       
-      // Add cache headers to ensure fresh data for PWA users
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -540,12 +569,36 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
 
   app.get("/api/communities/trending", async (req, res) => {
     try {
-      const latitude = req.query.latitude as string;
-      const longitude = req.query.longitude as string;
-      const allCommunities = await storage.getAllCommunities();
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : (req as any).user?.id;
+      let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+      let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+      const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
 
-      const trending = allCommunities
-        .filter((c) => c.isActive)
+      if ((lat === undefined || isNaN(lat)) && userId) {
+        const currentUser = await storage.getUser(userId);
+        if (currentUser?.latitude && currentUser?.longitude) {
+          lat = parseFloat(currentUser.latitude);
+          lng = parseFloat(currentUser.longitude);
+        }
+      }
+
+      let allCommunities = await storage.getAllCommunities();
+      let active = allCommunities.filter((c) => c.isActive);
+
+      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        const userLoc = { lat, lon: lng };
+        const local = active.filter(c => {
+          if (!c.location) return true;
+          const coords = resolveEventCoords(c);
+          if (coords) {
+            return calculateDistanceMiles(userLoc.lat, userLoc.lon, coords.lat, coords.lng) <= radius;
+          }
+          return true;
+        });
+        if (local.length > 0) active = local;
+      }
+
+      const trending = active
         .sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0))
         .slice(0, 10);
 

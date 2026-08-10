@@ -425,7 +425,7 @@ export default function Dashboard() {
     isLoading: recommendationsLoading,
     error: recommendationsError,
   } = useQuery({
-    queryKey: ["/api/communities/recommended", user?.id],
+    queryKey: ["/api/communities/recommended", user?.id, latitude, longitude],
     enabled: !!user,
     queryFn: async () => {
       const params = new URLSearchParams({

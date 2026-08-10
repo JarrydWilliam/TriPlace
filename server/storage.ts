@@ -238,14 +238,30 @@ export class DatabaseStorage implements IStorage {
 
   async getRecommendedCommunities(interests: string[], userLocation?: { lat: number, lon: number }, userId?: number): Promise<Community[]> {
     try {
-      const allCommunities = await this.getAllCommunities();
+      let allCommunities = await this.getAllCommunities();
+
+      // Location-restricted filtering: restrict communities to user's 50-mile radius when location is provided
+      if (userLocation && !isNaN(userLocation.lat) && !isNaN(userLocation.lon)) {
+        const localCommunities = allCommunities.filter(c => {
+          if (!c.location) return true; // Keep global/online communities
+          const coords = resolveEventCoords(c);
+          if (coords) {
+            return calculateDistanceMiles(userLocation.lat, userLocation.lon, coords.lat, coords.lng) <= 50;
+          }
+          return true;
+        });
+
+        if (localCommunities.length > 0) {
+          allCommunities = localCommunities;
+        }
+      }
+
       if (!userId) {
-        // No user context — return all, sorted by member count desc
+        // No user context — return all local communities, sorted by member count desc
         return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
       }
 
-      // Use active communities (same set shown in "Vibe with My Communities") for exclusion
-      // This matches what the client filters against, preventing the suggestion list from appearing empty
+      // Use active communities for exclusion
       const activeResult = await db.select({ communityId: communityMembers.communityId })
         .from(communityMembers)
         .where(and(eq(communityMembers.userId, userId), eq(communityMembers.isActive, true)));
@@ -253,23 +269,24 @@ export class DatabaseStorage implements IStorage {
 
       // Unjoined = not in the user's active set
       const unjoined = allCommunities.filter(c => !activeCommunityIds.has(c.id));
+      const pool = unjoined.length > 0 ? unjoined : allCommunities;
 
-      if (unjoined.length === 0) {
-        // User is in every community — still return all so the section never reads empty
-        return allCommunities.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
-      }
-
-      // Score by interest overlap so most relevant communities surface first
+      // Score by interest overlap + proximity bonus
       const userInterests = interests || [];
-      if (userInterests.length === 0) {
-        // No interests on file — sort by member count (popularity)
-        return unjoined.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
-      }
-
-      const scored = unjoined.map(c => ({
-        community: c,
-        score: this.calculateInterestScore(c, userInterests) + this.calculateEngagementScore(c)
-      }));
+      const scored = pool.map(c => {
+        let locationBonus = 0;
+        if (userLocation && c.location) {
+          const coords = resolveEventCoords(c);
+          if (coords) {
+            const dist = calculateDistanceMiles(userLocation.lat, userLocation.lon, coords.lat, coords.lng);
+            locationBonus = Math.max(0, 50 - dist) / 10; // Up to 5 points bonus for closer proximity
+          }
+        }
+        return {
+          community: c,
+          score: this.calculateInterestScore(c, userInterests) + this.calculateEngagementScore(c) + locationBonus
+        };
+      });
 
       return scored
         .sort((a, b) => b.score - a.score)
@@ -1007,7 +1024,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDynamicCommunityMembers(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[], radiusMiles: number = 50): Promise<User[]> {
-    return await this.getCommunityMembers(communityId);
+    const allMembers = await this.getCommunityMembers(communityId);
+    if (!userLocation || isNaN(userLocation.lat) || isNaN(userLocation.lon)) {
+      return allMembers;
+    }
+
+    const localMembers = allMembers.filter(member => {
+      if (member.latitude && member.longitude) {
+        const mLat = parseFloat(member.latitude);
+        const mLon = parseFloat(member.longitude);
+        if (!isNaN(mLat) && !isNaN(mLon)) {
+          return calculateDistanceMiles(userLocation.lat, userLocation.lon, mLat, mLon) <= radiusMiles;
+        }
+      }
+      return true;
+    });
+
+    return localMembers.length > 0 ? localMembers : allMembers;
   }
 
   async getDynamicCommunityMembersWithExpansion(communityId: number, userLocation: { lat: number, lon: number }, userInterests: string[]): Promise<{ members: User[], radiusUsed: number }> {
