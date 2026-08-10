@@ -1,10 +1,10 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (August 10, 2026)
-**Active Branch**: `Jarryd` / `main` (Remote HEAD SHA `37abff8` — Pushed to `origin/Jarryd` and `origin/main`)  
+**Active Branch**: `Jarryd` / `main` (Remote HEAD SHA `52b9085` — Pushed to `origin/Jarryd` and `origin/main`)  
 **Application Release Version**: `1.0.5` (Codemagic & TestFlight target)  
-**Application Release Candidate Tag**: `samevibe-rc-37abff8`  
-**Executive Status**: 🟢 **DEEP DIVE EVENT SYNC ROOT CAUSE FIXED & PUSHED: RELEVANCE MATCH THRESHOLD TUNED (0.70 → 0.35) WITH CATEGORY SYNONYMS, PREDICTHQ RADIAL GEOLOCATION INJECTED, AND O(1) DB DEDUPLICATION APPLIED.**
+**Application Release Candidate Tag**: `samevibe-rc-52b9085`  
+**Executive Status**: 🟢 **ALL 50-MILE AREA EVENTS NOW SAVED & DISPLAYED IN FEED. AUTO-SCRAPE MADE NON-BLOCKING ASYNC (ELIMINATING SYNC ERRORS). RSVP/ATTENDANCE AUTO-UPDATES VIBE INTEREST ALGORITHM FOR SUGGESTED COMMUNITIES.**
 
 ---
 
