@@ -36,6 +36,7 @@ import {
   Users,
   Utensils,
   Globe,
+  MapPin,
 } from "lucide-react";
 
 // ─── Category definitions ─────────────────────────────────────────────────────
@@ -186,6 +187,7 @@ export default function Events() {
   const [, setLocation] = useLocation();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRange, setSelectedRange] = useState("all");
+  const [selectedTab, setSelectedTab] = useState<"all" | "group" | "local">("all");
 
   const { data: upcomingEvents = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/events/upcoming", user?.id, latitude, longitude],
@@ -217,15 +219,15 @@ export default function Events() {
   // Filtered list (excludes featured to avoid duplication)
   const filteredEvents = useMemo(() => {
     const featuredIds = new Set(featured.map((e) => e.id));
-    return upcomingEvents.filter(
-      (e) =>
-        !featuredIds.has(e.id) &&
-        matchesCategory(e, selectedCategory) &&
-        matchesDateRange(e, selectedRange)
-    );
-  }, [upcomingEvents, featured, selectedCategory, selectedRange]);
+    return upcomingEvents.filter((e) => {
+      if (featuredIds.has(e.id)) return false;
+      if (selectedTab === "group" && e.eventType !== "group" && !e.communityId) return false;
+      if (selectedTab === "local" && (e.eventType === "group" || e.communityId)) return false;
+      return matchesCategory(e, selectedCategory) && matchesDateRange(e, selectedRange);
+    });
+  }, [upcomingEvents, featured, selectedCategory, selectedRange, selectedTab]);
 
-  const hasActiveFilter = selectedCategory !== "all" || selectedRange !== "all";
+  const hasActiveFilter = selectedCategory !== "all" || selectedRange !== "all" || selectedTab !== "all";
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
@@ -257,6 +259,45 @@ export default function Events() {
           >
             <Plus className="w-3.5 h-3.5" />
             Add Event
+          </button>
+        </div>
+
+        {/* ── Event Type Tabs (Group vs Local) ────────────────────── */}
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-black/40 border border-white/10 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSelectedTab("all")}
+            className={`py-2 rounded-lg text-xs font-bold transition-all ${
+              selectedTab === "all"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_-2px_rgba(0,212,255,0.4)]"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            All Events
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTab("group")}
+            className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+              selectedTab === "group"
+                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_12px_-2px_rgba(168,85,247,0.4)]"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            <Users className="w-3 h-3" />
+            Group Events
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedTab("local")}
+            className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+              selectedTab === "local"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_-2px_rgba(0,212,255,0.4)]"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            <MapPin className="w-3 h-3" />
+            Local Events
           </button>
         </div>
 
@@ -373,6 +414,7 @@ export default function Events() {
                           attendeeCount={evt.attendeeCount ?? 0}
                           attendees={evt.attendees ?? []}
                           actionLabel="Explore"
+                          eventType={evt.eventType || (evt.communityId ? "group" : "local")}
                         />
                       </motion.div>
                     ))}

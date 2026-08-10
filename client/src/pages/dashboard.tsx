@@ -392,9 +392,10 @@ export default function Dashboard() {
           "Thank you for confirming your attendance! This helps us recommend better events.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/communities/recommended"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/trending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/recommended"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/suggested"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/trending"] });
     },
     onError: (error) => {
       toast({
@@ -871,6 +872,7 @@ export default function Dashboard() {
                       attendeeCount={event.attendeeCount || 28}
                       attendees={event.attendees || []}
                       actionLabel={event.category === "creative" ? "Collab" : "Explore"}
+                      eventType={event.eventType || (event.communityId ? "group" : "local")}
                       onClick={() => {
                         setSelectedEvent(event);
                         setIsEventModalOpen(true);

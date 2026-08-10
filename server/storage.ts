@@ -1156,7 +1156,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).where(eq(events.category, category));
   }
 
-  async getUpcomingEvents(userId?: number, latitude?: number, longitude?: number, radiusMiles: number = 50): Promise<Event[]> {
+  async getUpcomingEvents(userId?: number, latitude?: number, longitude?: number, radiusMiles: number = 50, eventType?: 'group' | 'local'): Promise<Event[]> {
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
     let allEvents = await db.select().from(events)
       .where(gte(events.date, twelveHoursAgo))
@@ -1170,6 +1170,10 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    if (eventType) {
+      allEvents = allEvents.filter(e => (e.eventType || (e.communityId ? 'group' : 'local')) === eventType);
+    }
+
     let filtered = allEvents;
     if (latitude !== undefined && longitude !== undefined && !isNaN(latitude) && !isNaN(longitude)) {
       filtered = allEvents.filter(event => {
@@ -1180,6 +1184,30 @@ export class DatabaseStorage implements IStorage {
     }
 
     return deduplicateEventList(filtered);
+  }
+
+  async updateUserInterestsOnAttendance(userId: number, category: string, tags: string[] = []): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const currentInterests = user.interests || [];
+    const normalizedCategory = (category || '').toLowerCase().trim();
+    const normalizedTags = (tags || []).map(t => (t || '').toLowerCase().trim()).filter(Boolean);
+
+    const newInterestsToBoost = [normalizedCategory, ...normalizedTags].filter(Boolean);
+    
+    // Boost newly attended topics to the front of user interests array
+    const updatedInterests = Array.from(
+      new Set([...newInterestsToBoost, ...currentInterests])
+    ).slice(0, 15);
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({ interests: updatedInterests })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return updatedUser || user;
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
@@ -1203,17 +1231,23 @@ export class DatabaseStorage implements IStorage {
       return existing;
     }
 
-    if (!insertEvent.latitude || !insertEvent.longitude) {
-      const coords = resolveEventCoords(insertEvent);
+    const derivedEventType = insertEvent.eventType || (insertEvent.communityId ? 'group' : 'local');
+    let eventToInsert: InsertEvent = {
+      ...insertEvent,
+      eventType: derivedEventType,
+    };
+
+    if (!eventToInsert.latitude || !eventToInsert.longitude) {
+      const coords = resolveEventCoords(eventToInsert);
       if (coords) {
-        insertEvent = {
-          ...insertEvent,
+        eventToInsert = {
+          ...eventToInsert,
           latitude: String(coords.lat),
           longitude: String(coords.lng),
         };
       }
     }
-    const [event] = await db.insert(events).values(insertEvent).returning();
+    const [event] = await db.insert(events).values(eventToInsert).returning();
     return event;
   }
 

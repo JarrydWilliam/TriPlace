@@ -124,7 +124,7 @@ export const events = pgTable("events", {
   creatorId: integer("creator_id"),
   communityId: integer("community_id").references(() => communities.id),
   isGlobal: boolean("is_global").default(false),
-  eventType: text("event_type"),
+  eventType: text("event_type").default("local").notNull(),
   brandPartnerName: text("brand_partner_name"),
   revenueSharePercentage: integer("revenue_share_percentage").default(7),
   // Monetization & Feature Flags

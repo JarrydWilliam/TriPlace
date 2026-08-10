@@ -1173,6 +1173,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
       let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
       const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+      const eventType = req.query.eventType as 'group' | 'local' | undefined;
 
       if ((lat === undefined || isNaN(lat)) && userId) {
         const currentUser = await storage.getUser(userId);
@@ -1182,7 +1183,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         }
       }
 
-      let eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+      let eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius, eventType);
 
       // On Vercel serverless, background schedulers don't run continuously.
       // If DB has 0 events for valid user coordinates, trigger an on-demand scrape!
@@ -1190,7 +1191,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         try {
           console.log(`[UpcomingEventsAPI] 0 events in DB for (${lat}, ${lng}). Triggering on-demand scrape...`);
           await eventScraperOrchestrator.scrapeEventsForAllCommunities({ lat, lon: lng });
-          eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius);
+          eventsList = await storage.getUpcomingEvents(userId, lat, lng, radius, eventType);
         } catch (scrapeErr: any) {
           console.error('[UpcomingEventsAPI] On-demand scrape error:', scrapeErr.message);
         }
@@ -1200,16 +1201,43 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       const eventIds = eventsList.map(e => e.id);
       const attendeesByEvent = await storage.getEventAttendeesForEvents(eventIds, userId);
 
+      const userCommunities = userId ? await storage.getUserCommunities(userId) : [];
+      const joinedCommunityIds = new Set(userCommunities.map(c => c.id));
+
       const eventsWithAttendees = eventsList.map((event) => {
         const attendeesList = attendeesByEvent.get(event.id) || [];
+        const isJoined = Boolean(event.communityId && joinedCommunityIds.has(event.communityId));
         return {
           ...event,
+          eventType: event.eventType || (event.communityId ? "group" : "local"),
+          isJoinedCommunityEvent: isJoined,
           attendees: attendeesList,
           attendeeCount: event.attendeeCount || attendeesList.length || 0,
         };
       });
 
       res.json(eventsWithAttendees);
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/events/:id/attend", requireAuth, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const actingUser = (req as any).user;
+      if (!actingUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const registration = await storage.registerForEvent(actingUser.id, eventId, "attended");
+      const targetEvent = await storage.getEvent(eventId);
+
+      if (targetEvent) {
+        await storage.updateUserInterestsOnAttendance(actingUser.id, targetEvent.category, targetEvent.tags || []);
+      }
+
+      res.status(200).json({ success: true, registration });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -1277,17 +1305,8 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       // Auto-update user's vibe algorithm interests when they RSVP to an event
       try {
         const targetEvent = await storage.getEvent(eventId);
-        if (targetEvent && targetEvent.category) {
-          const userObj = await storage.getUser(actingUser.id);
-          const currentInterests = userObj?.interests || [];
-          const eventCategoryLower = targetEvent.category.toLowerCase();
-          const hasInterest = currentInterests.some((i: string) => i.toLowerCase() === eventCategoryLower);
-          
-          if (!hasInterest) {
-            const updatedInterests = [...currentInterests, targetEvent.category];
-            await storage.updateUser(actingUser.id, { interests: updatedInterests });
-            console.log(`[AlgorithmUpdate] User ${actingUser.id} updated interests with "${targetEvent.category}" from RSVP`);
-          }
+        if (targetEvent) {
+          await storage.updateUserInterestsOnAttendance(actingUser.id, targetEvent.category, targetEvent.tags || []);
         }
       } catch (algErr: any) {
         console.error('[AlgorithmUpdate] Failed to update interests:', algErr.message);

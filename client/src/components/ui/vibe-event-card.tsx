@@ -30,6 +30,10 @@ export interface VibeEventCardProps {
   isExternal?: boolean;
   /** True when registration must be completed on an external site */
   externalRegistration?: boolean;
+  /** Type of event: group (community-associated) or local (area-wide) */
+  eventType?: "group" | "local" | string;
+  /** Name of community associated with group event */
+  communityName?: string;
 }
 
 export function VibeEventCard({
@@ -49,6 +53,8 @@ export function VibeEventCard({
   sourceUrl,
   isExternal,
   externalRegistration,
+  eventType = "local",
+  communityName,
 }: VibeEventCardProps) {
   const imgSrc = image || imageUrl || "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80";
 
@@ -103,6 +109,21 @@ export function VibeEventCard({
       {/* Content details */}
       <div className="space-y-2 px-1 flex-1 flex flex-col justify-between">
         <div>
+          {/* Event Type Badge */}
+          <div className="mb-1.5">
+            {eventType === 'group' ? (
+              <div className="inline-flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full text-[11px] font-bold">
+                <Users className="w-3 h-3 text-purple-400" />
+                <span>Group Event{communityName ? ` • ${communityName}` : ''}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full text-[11px] font-bold">
+                <MapPin className="w-3 h-3 text-cyan-400" />
+                <span>Local Event • 50mi</span>
+              </div>
+            )}
+          </div>
+
           <h3 className="font-display font-bold text-base text-white line-clamp-1 leading-snug">
             {title}
           </h3>
