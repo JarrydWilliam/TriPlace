@@ -1,10 +1,10 @@
 # SameVibe - Agent Handoff
 
 ## Current Status (August 11, 2026)
-**Active Branch**: `Jarryd` (Remote HEAD SHA `d6d3143` — Pushed strictly to `origin/Jarryd`)  
+**Active Branch**: `Jarryd` (Remote HEAD SHA `fc2848d` — Pushed strictly to `origin/Jarryd`)  
 **Application Release Version**: `1.1.1` (Codemagic & TestFlight target)  
-**Application Release Candidate Tag**: `samevibe-rc-d6d3143`  
-**Executive Status**: 🟢 **TIMEZONE CONVERSION RESOLVES STRICTLY TO USER LOCATION TIMEZONE (INTL.DATETIMEFORMAT). TIMEZONE DB MIGRATION LIVE. 231+ EVENTS SCRAPED, 52 LOCAL EVENTS LIVE.**
+**Application Release Candidate Tag**: `samevibe-rc-fc2848d`  
+**Executive Status**: 🟢 **MOBILE NATIVE TOUCH CURSOR & SELECTION ISOLATION OPTIMIZED. TIMEZONE CONVERSION ACCURATE TO USER LOCATION. 231+ EVENTS SCRAPED, 52 LOCAL EVENTS LIVE.**
 
 ---
 
