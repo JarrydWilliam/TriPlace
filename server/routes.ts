@@ -51,6 +51,13 @@ export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Ensure database schema columns match shared/schema.ts
+  try {
+    await db.execute(drizzleSql`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone text;`);
+  } catch (schemaErr: any) {
+    console.error('[SchemaInit] Warning setting up schema columns:', schemaErr.message);
+  }
+
   // --- Admin Security Middleware ---
   // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
   // Any non-empty header is NOT sufficient — the value must match the secret exactly.
