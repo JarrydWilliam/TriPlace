@@ -15,6 +15,7 @@ export interface ScrapedEvent {
   source: 'eventbrite' | 'meetup' | 'ticketmaster' | 'seatgeek' | 'facebook' | 'instagram' | 'local' | 'bandsintown' | 'reddit' | 'google';
   imageUrl?: string;
   tags?: string[];
+  timezone?: string;
 }
 
 export interface ScraperConfig {

@@ -115,6 +115,7 @@ export class TicketmasterScraper {
               attendeeCount: null,
               source: 'ticketmaster',
               imageUrl,
+              timezone: (tmEvent.dates as any)?.timezone ?? undefined,
             });
           } catch (err) {
             console.error('Ticketmaster: Failed to parse event:', err);

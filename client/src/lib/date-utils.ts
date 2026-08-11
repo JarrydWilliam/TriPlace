@@ -1,9 +1,13 @@
 /**
- * Safely format event date and time strings without timezone roll-back errors.
+ * Safely format event date and time strings with full timezone conversion support.
  */
-export function formatEventDateTime(rawDate: Date | string | number | null | undefined, rawTime?: string): {
+export function formatEventDateTime(
+  rawDate: Date | string | number | null | undefined,
+  rawTime?: string,
+  eventTimezone?: string
+): {
   dateStr: string;     // e.g. "Aug 15"
-  timeStr: string;     // e.g. "7:00 PM"
+  timeStr: string;     // e.g. "7:00 PM MDT"
   fullDateStr: string; // e.g. "Saturday, August 15, 2026"
 } {
   if (!rawDate) {
@@ -40,10 +44,38 @@ export function formatEventDateTime(rawDate: Date | string | number | null | und
       };
     }
 
-    // Explicit datetime with real local/UTC time
-    const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const fullDateStr = dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-    const timeStr = rawTime || dateObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    // Determine target timezone (use eventTimezone if valid, otherwise browser timezone)
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+    };
+
+    const fullOptions: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    };
+
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    };
+
+    if (eventTimezone) {
+      try {
+        options.timeZone = eventTimezone;
+        fullOptions.timeZone = eventTimezone;
+        timeOptions.timeZone = eventTimezone;
+      } catch {
+        // Fallback to user browser timezone if eventTimezone is invalid
+      }
+    }
+
+    const dateStr = new Intl.DateTimeFormat("en-US", options).format(dateObj);
+    const fullDateStr = new Intl.DateTimeFormat("en-US", fullOptions).format(dateObj);
+    const timeStr = rawTime || new Intl.DateTimeFormat("en-US", timeOptions).format(dateObj);
 
     return { dateStr, timeStr, fullDateStr };
   } catch (err) {

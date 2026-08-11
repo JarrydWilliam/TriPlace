@@ -215,7 +215,7 @@ function SwipeableEventsCarousel({
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 touch-pan-x transition-all scroll-smooth"
       >
         {events.map((event: any, idx: number) => {
-          const { dateStr, timeStr } = formatEventDateTime(event.date, event.time);
+          const { dateStr, timeStr } = formatEventDateTime(event.date, event.time, event.timezone);
           return (
             <motion.div
               key={event.id}

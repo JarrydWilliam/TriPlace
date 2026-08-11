@@ -60,7 +60,7 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
   if (!event) return null;
 
   const eventDate = new Date(event.date);
-  const { fullDateStr, timeStr } = formatEventDateTime(event.date, (event as any).time);
+  const { fullDateStr, timeStr } = formatEventDateTime(event.date, (event as any).time, (event as any).timezone);
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
   const isToday = eventDate.toDateString() === new Date().toDateString();

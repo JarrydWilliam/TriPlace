@@ -269,6 +269,7 @@ export class EventScraperOrchestrator {
               sourceName: scrapedEvent.sourceName || 'External Event',
               isExternal: scrapedEvent.isExternal ?? true,
               sourceUrl: scrapedEvent.sourceUrl || undefined,
+              timezone: scrapedEvent.timezone || undefined,
             };
             
             const createdEvent = await storage.createEvent(insertEvent);
@@ -318,6 +319,7 @@ export class EventScraperOrchestrator {
               sourceName: scrapedEvent.sourceName || 'External Event',
               isExternal: scrapedEvent.isExternal ?? true,
               sourceUrl: scrapedEvent.sourceUrl || undefined,
+              timezone: scrapedEvent.timezone || undefined,
             };
 
             const createdEvent = await storage.createEvent(insertEvent);

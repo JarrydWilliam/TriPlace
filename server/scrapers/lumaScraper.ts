@@ -40,7 +40,8 @@ export class LumaScraper {
           isExternal: true,
           price: event.ticket_info?.is_free ? 0 : (event.ticket_info?.price ?? null),
           imageUrl: event.cover_url,
-          source: 'local'
+          source: 'local',
+          timezone: event.timezone || event.geo_address_json?.timezone || undefined,
         };
       });
 

@@ -58,7 +58,8 @@ export class PredictHQScraper {
           sourceUrl: `https://predicthq.com/events/${event.id}`,
           sourceName: 'PredictHQ',
           isExternal: true,
-          source: 'local'
+          source: 'local',
+          timezone: event.timezone ?? undefined,
         };
       });
     } catch (error) {

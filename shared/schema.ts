@@ -138,6 +138,7 @@ export const events = pgTable("events", {
   sourceName: text("source_name"), // e.g. "Eventbrite", "Meetup"
   isExternal: boolean("is_external").default(false),
   externalId: text("external_id"), // Their unique ID to prevent duplicates
+  timezone: text("timezone").default("UTC"), // Event's local timezone identifier, e.g. "America/Denver"
   lastScrapedAt: timestamp("last_scraped_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // Auto-hide from feed when expired
   status: text("status").default("active"),

@@ -390,7 +390,7 @@ export default function Events() {
                 <AnimatePresence>
                   <div className="grid grid-cols-1 gap-4">
                     {filteredEvents.map((evt) => {
-                      const { dateStr, timeStr } = formatEventDateTime(evt.date, evt.time);
+                      const { dateStr, timeStr } = formatEventDateTime(evt.date, evt.time, evt.timezone);
                       return (
                         <motion.div
                           key={evt.id}
