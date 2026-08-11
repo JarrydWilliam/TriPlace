@@ -65,7 +65,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed z-50 md:hidden rounded-full bg-[#050d1a]/90 backdrop-blur-xl border border-white/[0.08]"
+      className="fixed z-50 md:hidden rounded-full bg-[#050d1a]/90 backdrop-blur-xl border border-white/[0.08] cursor-default select-none"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 12px) + 16px)",
         left: "1rem",
@@ -73,13 +73,13 @@ export function MobileNav() {
         boxShadow: "0 8px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.06)",
       }}
     >
-      <div className="flex justify-around items-center py-1.5 px-2">
+      <div className="flex justify-around items-center py-1.5 px-2 cursor-default select-none">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href}>
               <a
-                className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px]"
+                className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px] cursor-default select-none"
               >
                 {/* Animated active pill indicator */}
                 {item.active && (

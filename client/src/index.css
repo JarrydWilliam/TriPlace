@@ -69,6 +69,12 @@
     }
 
     /* ─── Native App & Touch Cursor Optimization ───────────── */
+    nav, nav *, header, header * {
+        cursor: default !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+    }
+
     @media (hover: none) and (pointer: coarse) {
         html, body, button, a, div, span, label, img {
             cursor: default !important;
