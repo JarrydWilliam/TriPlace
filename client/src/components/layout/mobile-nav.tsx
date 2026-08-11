@@ -79,18 +79,8 @@ export function MobileNav() {
           return (
             <Link key={item.href} href={item.href}>
               <a
-                className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px] cursor-default select-none"
+                className="flex flex-col items-center py-2 px-3 relative transition-colors min-w-[52px] cursor-default select-none outline-none focus:outline-none focus:ring-0 focus-visible:ring-0 active:outline-none"
               >
-                {/* Animated active pill indicator */}
-                {item.active && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/25"
-                    transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                    style={{ boxShadow: "0 0 12px -4px rgba(0,212,255,0.4)" }}
-                  />
-                )}
-
                 <div className="relative z-10 flex flex-col items-center">
                   <Icon
                     className={`h-5 w-5 mb-1 transition-all duration-300 ${

@@ -73,6 +73,8 @@
         cursor: default !important;
         -webkit-user-select: none !important;
         user-select: none !important;
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
 
     @media (hover: none) and (pointer: coarse) {
