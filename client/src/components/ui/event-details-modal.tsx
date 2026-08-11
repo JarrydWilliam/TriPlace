@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/queryClient";
 
+import { formatEventDateTime } from "@/lib/date-utils";
+
 interface EventDetailsModalProps {
   event: Event | null;
   isOpen: boolean;
@@ -58,15 +60,16 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
   if (!event) return null;
 
   const eventDate = new Date(event.date);
+  const { fullDateStr, timeStr } = formatEventDateTime(event.date, (event as any).time);
   const isUpcoming = eventDate > new Date();
   const isPast = eventDate < new Date();
   const isToday = eventDate.toDateString() === new Date().toDateString();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl bg-[#0b172a] border-cyan-500/30 text-white">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-foreground">
+          <DialogTitle className="text-xl font-bold text-white">
             {event.title}
           </DialogTitle>
         </DialogHeader>
@@ -77,16 +80,16 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
             <Badge 
               variant={isToday ? "default" : isUpcoming ? "secondary" : "outline"}
               className={`${
-                isToday ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                isUpcoming ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                isToday ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' :
+                isUpcoming ? 'bg-green-500/20 text-green-300 border border-green-500/40' :
+                'bg-gray-800 text-gray-300 border border-gray-700'
               }`}
             >
               {isToday ? 'Today' : isUpcoming ? 'Upcoming' : 'Past Event'}
             </Badge>
             
             {event.price && event.price !== "0" && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+              <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 <DollarSign className="w-3 h-3 mr-1" />
                 {event.price}
               </Badge>
@@ -96,23 +99,23 @@ export function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalP
           {/* Event Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 text-muted-foreground">
-                <CalendarDays className="w-4 h-4" />
-                <span>{format(eventDate, 'EEEE, MMMM d, yyyy')}</span>
+              <div className="flex items-center space-x-3 text-cyan-200/80">
+                <CalendarDays className="w-4 h-4 text-cyan-400" />
+                <span>{fullDateStr}</span>
               </div>
               
-              <div className="flex items-center space-x-3 text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span>{format(eventDate, 'h:mm a')}</span>
+              <div className="flex items-center space-x-3 text-cyan-200/80">
+                <Clock className="w-4 h-4 text-cyan-400" />
+                <span>{timeStr}</span>
               </div>
               
-              <div className="flex items-center space-x-3 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
+              <div className="flex items-center space-x-3 text-cyan-200/80">
+                <MapPin className="w-4 h-4 text-cyan-400" />
                 <span>{event.location}</span>
               </div>
               
-              <div className="flex items-center space-x-3 text-muted-foreground">
-                <Users className="w-4 h-4" />
+              <div className="flex items-center space-x-3 text-cyan-200/80">
+                <Users className="w-4 h-4 text-cyan-400" />
                 <span>Organized by {event.organizer}</span>
               </div>
             </div>

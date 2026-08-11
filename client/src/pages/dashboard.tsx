@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { Community, Event, User } from "@shared/schema";
 import { apiRequest, getApiUrl } from "@/lib/queryClient";
+import { formatEventDateTime } from "@/lib/date-utils";
 import { PaywallModal } from "@/components/paywall-modal";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -213,52 +214,41 @@ function SwipeableEventsCarousel({
         onScroll={handleScroll}
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 touch-pan-x transition-all scroll-smooth"
       >
-        {events.map((event: any, idx: number) => (
-          <motion.div
-            key={event.id}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.25, delay: idx * 0.04 }}
-            className="flex-shrink-0 snap-start"
-          >
-            <VibeEventCard
-              id={event.id}
-              title={event.title}
-              category={event.category}
-              date={
-                event.date
-                  ? new Date(event.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  : "Upcoming"
-              }
-              time={
-                event.date
-                  ? new Date(event.date).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })
-                  : "6 PM"
-              }
-              location={event.location || "Local Event"}
-              imageUrl={
-                event.imageUrl ||
-                "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"
-              }
-              attendeeCount={event.attendeeCount || 0}
-              attendees={event.attendees || []}
-              actionLabel={
-                event.category === "creative" ? "Collab" : "Explore"
-              }
-              eventType={
-                event.eventType || (event.communityId ? "group" : "local")
-              }
-              communityName={event.communityName}
-              onClick={() => onEventClick(event)}
-            />
-          </motion.div>
-        ))}
+        {events.map((event: any, idx: number) => {
+          const { dateStr, timeStr } = formatEventDateTime(event.date, event.time);
+          return (
+            <motion.div
+              key={event.id}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25, delay: idx * 0.04 }}
+              className="flex-shrink-0 snap-start"
+            >
+              <VibeEventCard
+                id={event.id}
+                title={event.title}
+                category={event.category}
+                date={dateStr}
+                time={timeStr}
+                location={event.location || "Local Event"}
+                imageUrl={
+                  event.imageUrl ||
+                  "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"
+                }
+                attendeeCount={event.attendeeCount || 0}
+                attendees={event.attendees || []}
+                actionLabel={
+                  event.category === "creative" ? "Collab" : "Explore"
+                }
+                eventType={
+                  event.eventType || (event.communityId ? "group" : "local")
+                }
+                communityName={event.communityName}
+                onClick={() => onEventClick(event)}
+              />
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Swipe Indicator Dots */}
@@ -749,7 +739,10 @@ export default function Dashboard() {
               {Array.isArray(trendingEvents) && trendingEvents.length > 0 ? (
                 <SwipeableEventsCarousel
                   events={trendingEvents}
-                  onEventClick={() => setRouterLocation('/events')}
+                  onEventClick={(evt) => {
+                    setSelectedEvent(evt);
+                    setIsEventModalOpen(true);
+                  }}
                 />
               ) : (
                   <div className="w-full rounded-2xl bg-card/40 backdrop-blur-xl border border-white/10 p-6 text-center space-y-3 my-2">

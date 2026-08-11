@@ -15,6 +15,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
 import { VibeEventCard } from "@/components/ui/vibe-event-card";
+import { EventDetailsModal } from "@/components/ui/event-details-modal";
+import { formatEventDateTime } from "@/lib/date-utils";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { ComponentLoadingSpinner } from "@/components/loading-spinner";
 import { getApiUrl } from "@/lib/queryClient";
@@ -113,16 +115,14 @@ async function shareEvent(event: any, toast: ReturnType<typeof useToast>["toast"
 }
 
 // ─── Featured event card ──────────────────────────────────────────────────────
-function FeaturedEventCard({ event, onShare }: { event: any; onShare: () => void }) {
-  const dateStr = event.date
-    ? new Date(event.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-    : "Upcoming";
-  const timeStr = event.date
-    ? new Date(event.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : "";
+function FeaturedEventCard({ event, onShare, onClick }: { event: any; onShare: (e: React.MouseEvent) => void; onClick: () => void }) {
+  const { dateStr, timeStr } = formatEventDateTime(event.date, event.time);
 
   return (
-    <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-primary/20 via-card/60 to-cyan-900/20 backdrop-blur-xl">
+    <div
+      onClick={onClick}
+      className="cursor-pointer relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-primary/20 via-card/60 to-cyan-900/20 backdrop-blur-xl group hover:border-cyan-400/40 transition-all"
+    >
       {/* Badge */}
       <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider">
         <Star className="w-3 h-3 fill-white" />
@@ -141,7 +141,7 @@ function FeaturedEventCard({ event, onShare }: { event: any; onShare: () => void
         <img
           src={event.image}
           alt={event.title}
-          className="w-full h-36 object-cover opacity-60"
+          className="w-full h-36 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
       )}
@@ -155,7 +155,7 @@ function FeaturedEventCard({ event, onShare }: { event: any; onShare: () => void
         <h3 className="font-bold text-white text-lg leading-tight line-clamp-2">{event.title}</h3>
         <div className="flex items-center gap-3 text-xs text-white/60">
           <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> {dateStr}{timeStr && ` · ${timeStr}`}
+            <Calendar className="w-3 h-3 text-cyan-400" /> {dateStr}{timeStr && ` · ${timeStr}`}
           </span>
         </div>
         <p className="text-xs text-white/50 line-clamp-2 pt-0.5">{event.location}</p>
@@ -163,16 +163,9 @@ function FeaturedEventCard({ event, onShare }: { event: any; onShare: () => void
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/70">
             {event.category ?? "Event"}
           </span>
-          {event.sourceUrl && (
-            <a
-              href={event.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-cyan-400 font-semibold hover:underline"
-            >
-              Get Tickets →
-            </a>
-          )}
+          <span className="text-xs text-cyan-400 font-semibold group-hover:underline">
+            View Details →
+          </span>
         </div>
       </div>
     </div>
@@ -188,6 +181,8 @@ export default function Events() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRange, setSelectedRange] = useState("all");
   const [selectedTab, setSelectedTab] = useState<"all" | "group" | "local">("all");
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   const { data: upcomingEvents = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/events/upcoming", user?.id, latitude, longitude],
@@ -369,7 +364,14 @@ export default function Events() {
                     <FeaturedEventCard
                       key={event.id}
                       event={event}
-                      onShare={() => shareEvent(event, toast)}
+                      onShare={(e) => {
+                        e.stopPropagation();
+                        shareEvent(event, toast);
+                      }}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setIsEventModalOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -387,37 +389,47 @@ export default function Events() {
                 )}
                 <AnimatePresence>
                   <div className="grid grid-cols-1 gap-4">
-                    {filteredEvents.map((evt) => (
-                      <motion.div
-                        key={evt.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="relative"
-                      >
-                        {/* Share button overlay */}
-                        <button
-                          onClick={() => shareEvent(evt, toast)}
-                          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-colors"
-                          aria-label="Share event"
+                    {filteredEvents.map((evt) => {
+                      const { dateStr, timeStr } = formatEventDateTime(evt.date, evt.time);
+                      return (
+                        <motion.div
+                          key={evt.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          className="relative"
                         >
-                          <Share2 className="w-3 h-3 text-white/70" />
-                        </button>
-                        <VibeEventCard
-                          id={evt.id}
-                          title={evt.title}
-                          category={evt.category}
-                          date={evt.date ? new Date(evt.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming"}
-                          time={evt.date ? new Date(evt.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
-                          location={evt.location || "Local"}
-                          imageUrl={evt.image ?? evt.imageUrl ?? "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
-                          attendeeCount={evt.attendeeCount ?? 0}
-                          attendees={evt.attendees ?? []}
-                          actionLabel="Explore"
-                          eventType={evt.eventType || (evt.communityId ? "group" : "local")}
-                        />
-                      </motion.div>
-                    ))}
+                          {/* Share button overlay */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              shareEvent(evt, toast);
+                            }}
+                            className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-colors"
+                            aria-label="Share event"
+                          >
+                            <Share2 className="w-3 h-3 text-white/70" />
+                          </button>
+                          <VibeEventCard
+                            id={evt.id}
+                            title={evt.title}
+                            category={evt.category}
+                            date={dateStr}
+                            time={timeStr}
+                            location={evt.location || "Local"}
+                            imageUrl={evt.image ?? evt.imageUrl ?? "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80"}
+                            attendeeCount={evt.attendeeCount ?? 0}
+                            attendees={evt.attendees ?? []}
+                            actionLabel="Explore"
+                            eventType={evt.eventType || (evt.communityId ? "group" : "local")}
+                            onClick={() => {
+                              setSelectedEvent(evt);
+                              setIsEventModalOpen(true);
+                            }}
+                          />
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </AnimatePresence>
               </section>
@@ -426,7 +438,7 @@ export default function Events() {
                 <Sparkles className="w-8 h-8 text-white/20 mx-auto" />
                 <p className="text-sm font-semibold text-white">No events match your filters</p>
                 <button
-                  onClick={() => { setSelectedCategory("all"); setSelectedRange("all"); }}
+                  onClick={() => { setSelectedCategory("all"); setSelectedRange("all"); setSelectedTab("all"); }}
                   className="text-xs text-primary hover:underline"
                 >
                   Clear filters
@@ -453,6 +465,16 @@ export default function Events() {
           </div>
         )}
       </main>
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        event={selectedEvent}
+        isOpen={isEventModalOpen}
+        onClose={() => {
+          setIsEventModalOpen(false);
+          setSelectedEvent(null);
+        }}
+      />
 
       <MobileNav />
     </div>

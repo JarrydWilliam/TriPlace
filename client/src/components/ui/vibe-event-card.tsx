@@ -68,7 +68,16 @@ export function VibeEventCard({
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
-      className="min-w-[280px] max-w-[300px] sm:min-w-[300px] snap-start rounded-2xl bg-card/40 backdrop-blur-xl border border-cyan-500/30 p-3 flex flex-col justify-between shadow-[0_0_20px_-4px_rgba(0,212,255,0.2)] hover:shadow-[0_0_28px_-2px_rgba(0,212,255,0.35)] transition-all duration-300 relative group overflow-hidden"
+      onClick={onClick}
+      className="min-w-[280px] max-w-[300px] sm:min-w-[300px] snap-start rounded-2xl bg-card/40 backdrop-blur-xl border border-cyan-500/30 p-3 flex flex-col justify-between shadow-[0_0_20px_-4px_rgba(0,212,255,0.2)] hover:shadow-[0_0_28px_-2px_rgba(0,212,255,0.35)] transition-all duration-300 relative group overflow-hidden cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
     >
       {/* Top Banner Image with Overlay Chips */}
       <div className="relative w-full h-36 rounded-xl overflow-hidden mb-3">
@@ -143,15 +152,16 @@ export function VibeEventCard({
         {/* Bottom Row: CTA + external badge + avatar cluster */}
         <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] mt-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Link href={`/events`}>
-              <button
-                type="button"
-                onClick={onClick}
-                className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-[0_0_10px_-2px_rgba(0,212,255,0.3)]"
-              >
-                {actionLabel}
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick?.();
+              }}
+              className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-[0_0_10px_-2px_rgba(0,212,255,0.3)]"
+            >
+              {actionLabel}
+            </button>
 
             {/* "Register externally" pill — shown when event requires off-platform registration */}
             {showExternalBadge && (
@@ -198,6 +208,7 @@ export function VibeEventCard({
                 href={sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="text-[11px] text-white/40 hover:text-white/70 transition-colors truncate"
               >
                 via {sourceName}
