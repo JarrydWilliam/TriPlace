@@ -15,6 +15,7 @@ import { ContentSafetyAgent } from "./agents/content-safety-agent.js";
 import { HobbyTrendAgent } from "./agents/hobby-trend-agent.js";
 import { AutoFixAgent } from "./agents/auto-fix-agent.js";
 import { SupportFeedbackAgent } from "./agents/support-feedback-agent.js";
+import { secureAgentDispatcher } from "./agents/secure-agent-dispatcher.js";
 import { z } from "zod";
 
 import express from "express";
@@ -57,6 +58,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } catch (schemaErr: any) {
     console.error('[SchemaInit] Warning setting up schema columns:', schemaErr.message);
   }
+
+  // ── Secure Agent Pulse Endpoint (Vercel Serverless Compatible) ──────────────
+  app.all("/api/agent/pulse", async (req, res) => {
+    try {
+      const secret = process.env.AGENT_DISPATCH_SECRET || process.env.ADMIN_SECRET_KEY || process.env.CRON_SECRET;
+      const authHeader = req.headers.authorization || (req.headers['x-agent-key'] as string);
+
+      const isVercelCron = req.headers['user-agent']?.includes('vercel-cron');
+      if (secret && !isVercelCron && authHeader !== secret && authHeader !== `Bearer ${secret}`) {
+        return res.status(401).json({ message: "Unauthorized agent pulse request." });
+      }
+
+      const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+      const lon = req.query.lon ? parseFloat(req.query.lon as string) : undefined;
+      const coords = lat && lon ? { lat, lon } : undefined;
+
+      const result = await secureAgentDispatcher.runPulse(coords);
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error('[SecureAgentPulse] Error executing pulse:', error);
+      res.status(500).json({ message: "Secure agent pulse failed", error: error.message });
+    }
+  });
 
   // --- Admin Security Middleware ---
   // All admin routes require a real secret key set via ADMIN_SECRET_KEY env var.
