@@ -1,10 +1,11 @@
 /**
  * Safely format event date and time strings with full timezone conversion support.
+ * Accurately converts stored event timestamps into the user's local location timezone.
  */
 export function formatEventDateTime(
   rawDate: Date | string | number | null | undefined,
   rawTime?: string,
-  eventTimezone?: string
+  targetTimezone?: string
 ): {
   dateStr: string;     // e.g. "Aug 15"
   timeStr: string;     // e.g. "7:00 PM MDT"
@@ -44,7 +45,16 @@ export function formatEventDateTime(
       };
     }
 
-    // Determine target timezone (use eventTimezone if valid, otherwise browser timezone)
+    // Determine target timezone (user's local browser timezone by default)
+    let userTz: string | undefined = targetTimezone;
+    if (!userTz) {
+      try {
+        userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch {
+        userTz = undefined;
+      }
+    }
+
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
       day: "numeric",
@@ -63,19 +73,19 @@ export function formatEventDateTime(
       timeZoneName: "short",
     };
 
-    if (eventTimezone) {
+    if (userTz) {
       try {
-        options.timeZone = eventTimezone;
-        fullOptions.timeZone = eventTimezone;
-        timeOptions.timeZone = eventTimezone;
+        options.timeZone = userTz;
+        fullOptions.timeZone = userTz;
+        timeOptions.timeZone = userTz;
       } catch {
-        // Fallback to user browser timezone if eventTimezone is invalid
+        // Fallback to default browser formatting if timezone string is invalid
       }
     }
 
     const dateStr = new Intl.DateTimeFormat("en-US", options).format(dateObj);
     const fullDateStr = new Intl.DateTimeFormat("en-US", fullOptions).format(dateObj);
-    const timeStr = rawTime || new Intl.DateTimeFormat("en-US", timeOptions).format(dateObj);
+    const timeStr = new Intl.DateTimeFormat("en-US", timeOptions).format(dateObj);
 
     return { dateStr, timeStr, fullDateStr };
   } catch (err) {
