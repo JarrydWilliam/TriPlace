@@ -128,16 +128,19 @@ export const signInWithApple = async () => {
     const result = await signInWithPopup(auth, provider);
     return result;
   } catch (error: any) {
+    console.error("[SameVibe Auth] Apple Sign-In Error:", error);
     switch (error.code) {
       case 'auth/popup-closed-by-user':
       case 'auth/cancelled-popup-request':
         throw new Error('Sign-in was cancelled. Please try again.');
       case 'auth/popup-blocked':
         throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
+      case 'auth/operation-not-allowed':
+        throw new Error('Apple Sign-In is not enabled in Firebase Console (Authentication -> Sign-in method -> Apple).');
       case 'auth/network-request-failed':
         throw new Error(ERROR_MESSAGES.NETWORK);
       default:
-        throw new Error('Apple Sign-In failed. Please try again.');
+        throw new Error(error?.message ? error.message.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, "") : 'Apple Sign-In failed. Please try again.');
     }
   }
 };
