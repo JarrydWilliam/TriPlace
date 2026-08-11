@@ -68,6 +68,19 @@
         touch-action: manipulation;
     }
 
+    /* ─── Native App & Touch Cursor Optimization ───────────── */
+    @media (hover: none) and (pointer: coarse) {
+        html, body, button, a, div, span, label, img {
+            cursor: default !important;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        input, textarea, [contenteditable="true"] {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+    }
+
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
         letter-spacing: -0.02em;
