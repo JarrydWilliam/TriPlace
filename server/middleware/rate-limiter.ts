@@ -38,3 +38,9 @@ export function createRateLimiter(options: RateLimitOptions) {
     next();
   };
 }
+
+export const strictWriteRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 35,
+  message: "Too many write requests. Please wait a moment before trying again.",
+});

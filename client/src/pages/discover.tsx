@@ -121,10 +121,18 @@ export default function Discover() {
   const [rotationConfirm, setRotationConfirm] = useState<{newComm: any, oldComm: any} | null>(null);
 
   const joinMutation = useMutation({
-    mutationFn: async (communityId: number) => {
-      return apiRequest("POST", `/api/communities/${communityId}/join`, { userId: user?.id });
+    mutationFn: async (payload: number | { communityId: number; isReplacement?: boolean; replaceCommunityId?: number }) => {
+      const communityId = typeof payload === "number" ? payload : payload.communityId;
+      const isReplacement = typeof payload === "number" ? false : Boolean(payload.isReplacement);
+      const replaceCommunityId = typeof payload === "number" ? undefined : payload.replaceCommunityId;
+
+      return apiRequest("POST", `/api/communities/${communityId}/join`, {
+        userId: user?.id,
+        isReplacement,
+        replaceCommunityId,
+      });
     },
-    onSuccess: async (res, communityId) => {
+    onSuccess: async (res) => {
       const data = await res.json();
       qc.invalidateQueries({ queryKey: ["/api/users", user?.id, "active-communities"] });
       qc.invalidateQueries({ queryKey: ["/api/communities/recommended", user?.id, selectedCategory] });
@@ -136,7 +144,7 @@ export default function Discover() {
       }
     },
     onError: (error: Error) => {
-      if (error.message.includes("requiresUpgrade")) {
+      if (error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
         setShowPaywall(true);
       } else {
         toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
@@ -145,7 +153,8 @@ export default function Discover() {
   });
 
   const handleJoinClick = (community: any) => {
-    if (myCommunities && myCommunities.length >= 5) {
+    const slotLimit = Math.min(3 + ((user as any)?.paymentTier ?? 0), 5);
+    if (myCommunities && myCommunities.length >= slotLimit) {
       const leastActive = myCommunities.reduce((least: any, current: any) => {
         const currScore = current.activityScore || 0;
         const leastScore = least.activityScore || 0;
@@ -161,7 +170,7 @@ export default function Discover() {
       });
       setRotationConfirm({ newComm: community, oldComm: leastActive });
     } else {
-      // Handled in onJoin directly for now, but we can mutate here if not handled there
+      joinMutation.mutate(community.id);
     }
   };
 

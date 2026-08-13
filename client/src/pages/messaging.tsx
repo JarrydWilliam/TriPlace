@@ -110,7 +110,7 @@ function DMThread({
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentUserId, otherUser.id],
     queryFn: async () => {
-      const res = await fetch(getApiUrl(`/api/conversations/${currentUserId}/${otherUser.id}`));
+      const res = await apiRequest("GET", `/api/conversations/${currentUserId}/${otherUser.id}`);
       return res.ok ? res.json() : [];
     },
     refetchInterval: 3000, // Poll every 3s for new messages
@@ -258,7 +258,7 @@ export default function Messaging() {
     queryKey: ["/api/users", user?.id, "conversations"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(getApiUrl(`/api/users/${user?.id}/conversations`));
+      const res = await apiRequest("GET", `/api/users/${user?.id}/conversations`);
       if (!res.ok) return [];
       const raw = await res.json();
       if (Array.isArray(raw) && raw.length > 0 && raw[0].otherUser) return raw;

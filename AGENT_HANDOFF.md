@@ -2,7 +2,7 @@
 
 ## Current Status (August 11, 2026)
 **Active Branch**: `Jarryd` / `main` (Remote HEAD SHA `4cbdc9d` — Both `origin/Jarryd` and `origin/main` synchronized)  
-**Application Release Version**: `1.1.1` (Codemagic & TestFlight target)  
+**Application Release Version**: `1.1.2` (Codemagic & TestFlight target)  
 **Application Release Candidate Tag**: `samevibe-rc-4cbdc9d`  
 **Executive Status**: 🟢 **PROMOTED TO MAIN. SECURE AGENT DISPATCHER & VERCEL NATIVE CRONS LIVE. USER LOCATION TIMEZONE CONVERSION ACCURATE. CLEAN BOTTOM NAV BAR. 231+ EVENTS SCRAPED, 52 LOCAL EVENTS LIVE.**
 

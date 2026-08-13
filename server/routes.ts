@@ -39,6 +39,10 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
   });
 }
 
+import { cacheManager } from "./utils/cache-manager.js";
+import { jobQueue } from "./utils/job-queue.js";
+import { verifyApiSignature } from "./middleware/api-security.js";
+
 export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   const dob = new Date(dateOfBirthStr);
   if (isNaN(dob.getTime())) return false;
@@ -52,11 +56,17 @@ export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Ensure database schema columns match shared/schema.ts
+  // Ensure database schema columns and performance indexes match shared/schema.ts
   try {
     await db.execute(drizzleSql`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone text;`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS events_cat_date_idx ON events (category, date);`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS events_community_idx ON events (community_id);`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS events_global_date_idx ON events (is_global, date);`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS msg_sender_receiver_idx ON messages (sender_id, receiver_id);`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS cm_msg_comm_created_idx ON community_messages (community_id, created_at);`);
+    await db.execute(drizzleSql`CREATE INDEX IF NOT EXISTS posts_comm_created_idx ON posts (community_id, created_at);`);
   } catch (schemaErr: any) {
-    console.error('[SchemaInit] Warning setting up schema columns:', schemaErr.message);
+    console.error('[SchemaInit] Warning setting up schema columns and indexes:', schemaErr.message);
   }
 
   // ── Secure Agent Pulse Endpoint (Vercel Serverless Compatible) ──────────────
@@ -572,6 +582,12 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       const authUserId = (req as any).user ? (req as any).user.id : undefined;
       const userIdNum = userId ? parseInt(userId) : authUserId;
 
+      const cacheKey = `recommended_${userIdNum}_${interests}_${latitude}_${longitude}`;
+      const cached = cacheManager.get(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
       if ((!latitude || !longitude) && userIdNum) {
         const currentUser = await storage.getUser(userIdNum);
         if (currentUser?.latitude && currentUser?.longitude) {
@@ -585,6 +601,8 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       
       const communities = await storage.getRecommendedCommunities(interestsArray, userLocation, userIdNum);
       
+      cacheManager.set(cacheKey, communities, 45, ["communities"]);
+
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -604,6 +622,12 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       let lat = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
       let lng = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
       const radius = req.query.radius ? parseInt(req.query.radius as string) : 50;
+
+      const cacheKey = `trending_${userId}_${lat}_${lng}_${radius}`;
+      const cached = cacheManager.get(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
 
       if ((lat === undefined || isNaN(lat)) && userId) {
         const currentUser = await storage.getUser(userId);
@@ -632,6 +656,8 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
       const trending = active
         .sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0))
         .slice(0, 10);
+
+      cacheManager.set(cacheKey, trending, 60, ["communities"]);
 
       res.set({
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -957,7 +983,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
-  app.post("/api/communities/:id/join", requireAuth, async (req, res) => {
+  app.post("/api/communities/:id/join", verifyApiSignature, requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
       const authUserId = (req as any).user?.id;
@@ -978,11 +1004,13 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
         replaceCommunityId: replaceCommunityId ? parseInt(replaceCommunityId) : undefined,
       });
 
+      cacheManager.invalidateTag("communities");
       res.status(201).json(result);
 
-      // Trigger AI User Agent learning asynchronously on community join
-      import("./agent/agent-runner.js").then(({ runAgentForUser }) => {
-        runAgentForUser(authUserId).catch(err => console.error("[Agent] Trigger failed on join:", err));
+      // Offload AI User Agent learning to background job queue
+      jobQueue.enqueue("agent_user_update", async () => {
+        const { runAgentForUser } = await import("./agent/agent-runner.js");
+        await runAgentForUser(authUserId);
       });
     } catch (error: any) {
       if (error.code === 'ENTITLEMENT_REQUIRED') {
@@ -1607,7 +1635,7 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
   });
 
 
-  app.post("/api/messages", requireAuth, async (req, res) => {
+  app.post("/api/messages", verifyApiSignature, requireAuth, async (req, res) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
       const message = await storage.sendMessage(messageData);

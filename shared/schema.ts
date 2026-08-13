@@ -143,7 +143,11 @@ export const events = pgTable("events", {
   expiresAt: timestamp("expires_at"), // Auto-hide from feed when expired
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => ({
+  catDateIdx: index("events_cat_date_idx").on(t.category, t.date),
+  commIdx: index("events_community_idx").on(t.communityId),
+  globalDateIdx: index("events_global_date_idx").on(t.isGlobal, t.date),
+}));
 
 export const eventAttendees = pgTable(
   "event_attendees",
@@ -178,7 +182,9 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => ({
+  senderReceiverIdx: index("msg_sender_receiver_idx").on(t.senderId, t.receiverId),
+}));
 
 export const communityMessages = pgTable("community_messages", {
   id: serial("id").primaryKey(),
@@ -190,7 +196,9 @@ export const communityMessages = pgTable("community_messages", {
     .notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => ({
+  commCreatedIdx: index("cm_msg_comm_created_idx").on(t.communityId, t.createdAt),
+}));
 
 export const kudos = pgTable("kudos", {
   id: serial("id").primaryKey(),
@@ -230,7 +238,9 @@ export const posts = pgTable("posts", {
   replyCount: integer("reply_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => ({
+  commCreatedIdx: index("posts_comm_created_idx").on(t.communityId, t.createdAt),
+}));
 
 export const postKudos = pgTable("post_kudos", {
   id: serial("id").primaryKey(),

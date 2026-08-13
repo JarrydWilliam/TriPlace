@@ -52,7 +52,7 @@ export function useWebSocket() {
 
       socket.onclose = () => {
         setIsConnected(false);
-        if (!isUnmounting.current) {
+        if (!isUnmounting.current && reconnectAttempts.current < 5) {
           // Exponential backoff reconnect: 1s, 2s, 4s, 8s... capped at 30s
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
           reconnectAttempts.current++;
@@ -61,6 +61,7 @@ export function useWebSocket() {
       };
 
       socket.onerror = () => {
+        // Quietly failover to polling on serverless / native environments without throwing UI errors
         socket.close();
       };
     };

@@ -18,16 +18,47 @@ export const getApiUrl = (url: string) => {
   return url;
 };
 
+async function getAuthToken(): Promise<string | null> {
+  try {
+    if (!auth.currentUser) return null;
+    return await auth.currentUser.getIdToken();
+  } catch (err) {
+    console.warn("[AuthToken] Error getting idToken:", err);
+    return null;
+  }
+}
+
+const APP_HASH_SECRET = "samevibe_secure_app_signature_secret_2026";
+
+export async function generateClientSignature(path: string, timestamp: number): Promise<string> {
+  try {
+    const normalizedPath = path.split('?')[0];
+    const payload = `${timestamp}:${normalizedPath}:${APP_HASH_SECRET}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(payload);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return "";
+  }
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+  const token = await getAuthToken();
+  const timestamp = Date.now();
+  const signature = await generateClientSignature(url, timestamp);
+
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
+  headers["x-app-timestamp"] = String(timestamp);
+  headers["x-app-hash"] = signature;
 
   const res = await fetch(getApiUrl(url), {
     method,
@@ -45,13 +76,20 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-    const headers: Record<string, string> = {};
+    const token = await getAuthToken();
+    const url = queryKey[0] as string;
+    const timestamp = Date.now();
+    const signature = await generateClientSignature(url, timestamp);
+
+    const headers: Record<string, string> = {
+      "x-app-timestamp": String(timestamp),
+      "x-app-hash": signature,
+    };
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(getApiUrl(queryKey[0] as string), { headers });
+    const res = await fetch(getApiUrl(url), { headers });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

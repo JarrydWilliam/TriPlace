@@ -567,12 +567,18 @@ export default function Dashboard() {
 
   // Join community with rotation mutation
   const joinCommunityMutation = useMutation({
-    mutationFn: async (communityId: number) => {
+    mutationFn: async (payload: number | { communityId: number; isReplacement?: boolean; replaceCommunityId?: number }) => {
+      const communityId = typeof payload === "number" ? payload : payload.communityId;
+      const isReplacement = typeof payload === "number" ? false : Boolean(payload.isReplacement);
+      const replaceCommunityId = typeof payload === "number" ? undefined : payload.replaceCommunityId;
+
       const response = await apiRequest(
         "POST",
         `/api/communities/${communityId}/join`,
         {
           userId: user?.id,
+          isReplacement,
+          replaceCommunityId,
         }
       );
       return response.json();
@@ -602,7 +608,7 @@ export default function Dashboard() {
       }
     },
     onError: (error: Error) => {
-      if (error.message.includes("requiresUpgrade")) {
+      if (error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
         setShowPaywall(true);
       } else {
         toast({
@@ -1048,7 +1054,11 @@ export default function Dashboard() {
                           replacedCommunityName: rotationConfirm.oldComm.name,
                         },
                       });
-                      joinCommunityMutation.mutate(rotationConfirm.newComm.id);
+                      joinCommunityMutation.mutate({
+                        communityId: rotationConfirm.newComm.id,
+                        isReplacement: true,
+                        replaceCommunityId: rotationConfirm.oldComm.id,
+                      });
                       setRotationConfirm(null);
                     }
                   }}
