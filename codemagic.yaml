@@ -196,7 +196,6 @@ workflows:
       java: 17
       groups:
         - samevibe_env
-        - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.samevibe.app
     triggering:
@@ -217,7 +216,6 @@ workflows:
       - name: Inject google-services.json for Firebase / FCM
         script: |
           # GOOGLE_SERVICES_JSON must be stored as a base64-encoded secret
-          # in the Codemagic 'samevibe_android_keystore' or 'samevibe_env' group.
           if [ -n "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
             echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
             echo "✅ google-services.json injected from env secret."
