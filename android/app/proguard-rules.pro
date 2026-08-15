@@ -21,6 +21,13 @@
 -keep class com.revenuecat.purchases.** { *; }
 -dontwarn com.revenuecat.purchases.**
 
+# ── CapAwesome Firebase Auth Optional Providers ──────────────────────────────
+-dontwarn com.facebook.**
+-dontwarn com.twitter.**
+-dontwarn com.amazon.**
+-dontwarn com.amazon.device.**
+-dontwarn io.capawesome.capacitorjs.plugins.firebase.authentication.**
+
 # ── Keep source line numbers in crash reports (Crashlytics-friendly) ─────────
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
