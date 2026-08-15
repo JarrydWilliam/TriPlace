@@ -1,21 +1,31 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# SameVibe ProGuard / R8 rules
+# Required because minifyEnabled=true is set for the release build.
+# Without these rules R8 would strip classes needed at runtime.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── Capacitor WebView JavaScript Bridge ──────────────────────────────────────
+# Capacitor plugins communicate via WebView JS Bridge — keep all public members
+-keepclassmembers class * extends com.getcapacitor.Plugin {
+    @com.getcapacitor.annotation.CapacitorPlugin <methods>;
+    @com.getcapacitor.PluginMethod public <methods>;
+}
+-keep class com.getcapacitor.** { *; }
+-keep interface com.getcapacitor.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Firebase / Google Play Services ──────────────────────────────────────────
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── RevenueCat Purchases SDK ─────────────────────────────────────────────────
+-keep class com.revenuecat.purchases.** { *; }
+-dontwarn com.revenuecat.purchases.**
+
+# ── Keep source line numbers in crash reports (Crashlytics-friendly) ─────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# ── General safety for serialized model classes ───────────────────────────────
+-keepattributes *Annotation*
+-keepattributes Signature
+
