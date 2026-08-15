@@ -31,7 +31,7 @@ export default function AdminMetrics() {
   const { data, isLoading } = useQuery<MetricsData>({
     queryKey: ["/api/admin/metrics"],
     queryFn: async () => {
-      const adminKey = import.meta.env.VITE_ADMIN_SECRET_KEY ?? "";
+      const adminKey = sessionStorage.getItem("admin_key") || "";
       const { getApiUrl } = await import("@/lib/queryClient");
       const res = await fetch(getApiUrl("/api/admin/metrics"), {
         headers: { "x-admin-key": adminKey },
