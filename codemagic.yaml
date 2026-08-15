@@ -244,13 +244,18 @@ workflows:
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
-      - name: Upload to Google Play
-        script: |
-          google-play publish \
-            --package-name "$PACKAGE_NAME" \
-            --track internal \
-            --artifact-type aab \
-            android/app/build/outputs/bundle/release/app-release.aab
+      # NOTE: Auto-upload to Google Play requires a Google Play API JSON key
+      # configured in Codemagic (Teams → Integrations → Google Play).
+      # For the FIRST release, upload app-release.aab manually via Play Console.
+      # Uncomment the block below once the Google Play API integration is set up.
+      #
+      # - name: Upload to Google Play
+      #   script: |
+      #     google-play publish \
+      #       --package-name "$PACKAGE_NAME" \
+      #       --track internal \
+      #       --artifact-type aab \
+      #       android/app/build/outputs/bundle/release/app-release.aab
 
     artifacts:
       - android/app/build/outputs/bundle/release/app-release.aab
