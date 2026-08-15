@@ -196,7 +196,6 @@ workflows:
       java: 17
       groups:
         - samevibe_env
-        - samevibe_android_keystore
       vars:
         PACKAGE_NAME: com.samevibe.app
     triggering:
