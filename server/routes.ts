@@ -1,3 +1,4 @@
+import os from "os";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
@@ -16,6 +17,7 @@ import { HobbyTrendAgent } from "./agents/hobby-trend-agent.js";
 import { AutoFixAgent } from "./agents/auto-fix-agent.js";
 import { SupportFeedbackAgent } from "./agents/support-feedback-agent.js";
 import { secureAgentDispatcher } from "./agents/secure-agent-dispatcher.js";
+import { cacheManager } from "./utils/cache-manager.js";
 import { z } from "zod";
 
 import express from "express";
@@ -39,7 +41,6 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
   });
 }
 
-import { cacheManager } from "./utils/cache-manager.js";
 import { jobQueue } from "./utils/job-queue.js";
 import { verifyApiSignature } from "./middleware/api-security.js";
 
@@ -1634,6 +1635,34 @@ function checkIs18OrOlderInternal(dateOfBirthStr: string): boolean {
     }
   });
 
+
+  // ── Component 4: System Health & Telemetry Metrics ──────────────────────
+  app.get("/api/health/metrics", async (_req, res) => {
+    try {
+      const memoryUsage = process.memoryUsage();
+      const systemLoad = os.loadavg();
+      const dbStart = Date.now();
+      await db.execute(drizzleSql`SELECT 1;`);
+      const dbLatencyMs = Date.now() - dbStart;
+
+      res.status(200).json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        memoryUsage: {
+          heapUsed: memoryUsage.heapUsed,
+          heapTotal: memoryUsage.heapTotal,
+          rss: memoryUsage.rss,
+          heapUsedMB: (memoryUsage.heapUsed / 1024 / 1024).toFixed(2),
+        },
+        systemLoad,
+        dbLatencyMs,
+        activeConnections: 1,
+        cacheStats: cacheManager.getStats(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ status: "unhealthy", error: err.message });
+    }
+  });
 
   app.post("/api/messages", verifyApiSignature, requireAuth, async (req, res) => {
     try {

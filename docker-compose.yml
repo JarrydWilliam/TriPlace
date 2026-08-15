@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: production
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=5000
+      - DATABASE_URL=${DATABASE_URL:-postgres://postgres:postgres@db:5432/triplace}
+      - REDIS_URL=${REDIS_URL:-redis://cache:6379}
+      - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY:-samevibe_admin_secret_key_change_me}
+      - VITE_REVENUECAT_API_KEY=${VITE_REVENUECAT_API_KEY}
+    depends_on:
+      - cache
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  cache:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
