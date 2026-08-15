@@ -36,6 +36,7 @@ import Reveal from "@/pages/reveal";
 import Discover from "@/pages/discover";
 import Events from "@/pages/events";
 import DeleteAccount from "@/pages/delete-account";
+import Safety from "@/pages/safety";
 import AdminMetrics from "@/pages/admin/metrics";
 import ModerationDashboard from "@/pages/admin/moderation-dashboard";
 import SubmitEvent from "@/pages/submit-event";
@@ -120,7 +121,7 @@ function Router() {
       const requiresProfile = !isGoogleUser && needsProfileSetup;
       const needsCompliance = false;
 
-      const publicRoutes = ["/terms", "/privacy", "/delete-account"];
+      const publicRoutes = ["/terms", "/privacy", "/delete-account", "/safety"];
       const isPublicRoute = publicRoutes.includes(location);
 
       if (!isPublicRoute) {
@@ -240,6 +241,7 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/delete-account" component={DeleteAccount} />
+        <Route path="/safety" component={Safety} />
         <Route path="/admin/metrics" component={AdminRoute} />
         <Route path="/admin/moderation" component={ModerationDashboard} />
         <Route path="/submit-event" component={SubmitEvent} />
