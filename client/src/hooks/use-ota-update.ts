@@ -14,9 +14,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
-import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/lib/queryClient";
 
-const VERSION_URL = "https://samevibe-sandy.vercel.app/api/app/version";
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes on web
 const STORAGE_KEY = "samevibe_bundle_hash";
 const FORCE_UPDATE_KEY = "samevibe_force_update_seen";
@@ -28,6 +27,8 @@ interface VersionInfo {
   forceUpdateMessage: string;
 }
 
+import { useToast } from "@/hooks/use-toast";
+
 export function useOtaUpdate() {
   const { toast } = useToast();
   const isNative = Capacitor.isNativePlatform();
@@ -38,7 +39,7 @@ export function useOtaUpdate() {
     checkInProgress.current = true;
 
     try {
-      const res = await fetch(VERSION_URL, {
+      const res = await fetch(getApiUrl("/api/app/version"), {
         cache: "no-store",
         signal: AbortSignal.timeout(6000),
       });
