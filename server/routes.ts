@@ -45,6 +45,7 @@ import { jobQueue } from "./utils/job-queue.js";
 import { verifyApiSignature } from "./middleware/api-security.js";
 import { handleGetAppVersion, handleForceUpdate, handleInvalidateCache } from "./utils/ota-update.js";
 import { handleGetFeatures, handleDisableFeature, handleEnableFeature, handleGetAllFeatures } from "./utils/feature-flags.js";
+import { vercelBuildAgent } from "./agent/deployment/vercel-build-agent.js";
 
 export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   const dob = new Date(dateOfBirthStr);
@@ -177,6 +178,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/features", requireAdmin, handleGetAllFeatures);
   app.post("/api/admin/features/:name/disable", requireAdmin, handleDisableFeature);
   app.post("/api/admin/features/:name/enable", requireAdmin, handleEnableFeature);
+
+  // ── Admin: Vercel Deployment Agent ─────────────────────────────────────────
+  app.get("/api/admin/vercel/status", requireAdmin, async (_req, res) => {
+    try {
+      const status = await vercelBuildAgent.auditDeployment();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ message: "Vercel status audit failed", error: error.message });
+    }
+  });
+
+  app.post("/api/admin/vercel/deploy", requireAdmin, async (_req, res) => {
+    try {
+      const result = await vercelBuildAgent.triggerVercelDeployHook();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: "Vercel deploy hook failed", error: error.message });
+    }
+  });
 
   // Telemetry routes
   app.post("/api/telemetry", async (req, res) => {
