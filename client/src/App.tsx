@@ -47,6 +47,14 @@ import { PwaUpdateChecker } from "@/components/ui/pwa-update-checker";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { PostEventFlow } from "@/components/safety/post-event-flow";
 import { ThemeProvider } from "@/lib/theme-context";
+import { useOtaUpdate } from "@/hooks/use-ota-update";
+import { FeatureFlagsProvider } from "@/hooks/use-feature-flags";
+
+/** Activates OTA update checks — must be inside AuthProvider/Toaster context */
+function OtaUpdateActivator() {
+  useOtaUpdate();
+  return null;
+}
 
 function AdminRoute() {
   const { user } = useAuth();
@@ -261,14 +269,17 @@ function App() {
           <AuthProvider>
             <ThemeProvider>
               <TooltipProvider>
-                <GlobalScrollWrapper>
-                  <Toaster />
-                  <AppUpdater />
-                  <PwaUpdateChecker />
-                  <BackToTop />
-                  <PostEventFlow />
-                  <Router />
-                </GlobalScrollWrapper>
+                <FeatureFlagsProvider>
+                  <GlobalScrollWrapper>
+                    <Toaster />
+                    <AppUpdater />
+                    <PwaUpdateChecker />
+                    <BackToTop />
+                    <PostEventFlow />
+                    <OtaUpdateActivator />
+                    <Router />
+                  </GlobalScrollWrapper>
+                </FeatureFlagsProvider>
               </TooltipProvider>
             </ThemeProvider>
           </AuthProvider>

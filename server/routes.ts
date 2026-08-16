@@ -43,6 +43,8 @@ function broadcastMemberUpdate(userId: number, isOnline: boolean) {
 
 import { jobQueue } from "./utils/job-queue.js";
 import { verifyApiSignature } from "./middleware/api-security.js";
+import { handleGetAppVersion, handleForceUpdate, handleInvalidateCache } from "./utils/ota-update.js";
+import { handleGetFeatures, handleDisableFeature, handleEnableFeature, handleGetAllFeatures } from "./utils/feature-flags.js";
 
 export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   const dob = new Date(dateOfBirthStr);
@@ -154,6 +156,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Invalid or expired authentication token." });
     }
   };
+
+  // ── System Health & OTA Layer ────────────────────────────────────────────
+
+  // Health check — used by watchdog and load balancers
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", ts: Date.now(), version: process.env.npm_package_version || "1.1.2" });
+  });
+
+  // OTA version endpoint — native app polls this every foreground resume
+  // If buildHash differs from cached value, app downloads new bundle from Vercel
+  app.get("/api/app/version", handleGetAppVersion);
+
+  // Feature kill switches — app reads these and disables broken features at runtime
+  app.get("/api/features", handleGetFeatures);
+
+  // ── Admin: OTA & Feature Flags ────────────────────────────────────────────
+  app.post("/api/admin/app/force-update", requireAdmin, handleForceUpdate);
+  app.post("/api/admin/app/invalidate-cache", requireAdmin, handleInvalidateCache);
+  app.get("/api/admin/features", requireAdmin, handleGetAllFeatures);
+  app.post("/api/admin/features/:name/disable", requireAdmin, handleDisableFeature);
+  app.post("/api/admin/features/:name/enable", requireAdmin, handleEnableFeature);
 
   // Telemetry routes
   app.post("/api/telemetry", async (req, res) => {
