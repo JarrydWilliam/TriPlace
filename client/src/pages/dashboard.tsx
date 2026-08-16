@@ -607,8 +607,36 @@ export default function Dashboard() {
         });
       }
     },
-    onError: (error: Error) => {
-      if (error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
+    onError: (error: Error, payload) => {
+      // apiRequest throws as "STATUS: {json}" — parse the JSON portion
+      const jsonStart = error.message.indexOf("{");
+      let parsed: any = null;
+      if (jsonStart !== -1) {
+        try { parsed = JSON.parse(error.message.slice(jsonStart)); } catch {}
+      }
+
+      const code = parsed?.code || parsed?.error || "";
+
+      if (code === "COMMUNITY_LIMIT_REACHED" || error.message.includes("COMMUNITY_LIMIT_REACHED")) {
+        // Server told us which community is least active — use that for the swap dialog
+        const serverCommunities: any[] = parsed?.activeCommunities || userActiveCommunities || [];
+        const communityId = typeof payload === "number" ? payload : (payload as any)?.communityId;
+        const newComm = recommendations?.find((c: any) => c.id === communityId) || { id: communityId, name: "Selected Community" };
+        const leastActive = serverCommunities.reduce(
+          (least: any, current: any) => {
+            if (!least) return current;
+            const currScore = current.activityScore || 0;
+            const leastScore = least.activityScore || 0;
+            return currScore < leastScore ? current : least;
+          },
+          null
+        );
+        if (leastActive && newComm) {
+          setRotationConfirm({ newComm, oldComm: leastActive });
+        }
+      } else if (code === "ENTITLEMENT_REQUIRED" || error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
+        setShowPaywall(true);
+      } else if (code === "COMMUNITY_DOWNGRADE_REQUIRED" || error.message.includes("COMMUNITY_DOWNGRADE_REQUIRED")) {
         setShowPaywall(true);
       } else {
         toast({

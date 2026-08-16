@@ -143,8 +143,28 @@ export default function Discover() {
         toast({ title: "You're in! 🎉", description: "Community joined." });
       }
     },
-    onError: (error: Error) => {
-      if (error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
+    onError: (error: Error, payload) => {
+      // apiRequest throws as "STATUS: {json}" — parse the JSON portion
+      const jsonStart = error.message.indexOf("{");
+      let parsed: any = null;
+      if (jsonStart !== -1) {
+        try { parsed = JSON.parse(error.message.slice(jsonStart)); } catch {}
+      }
+
+      const code = parsed?.code || parsed?.error || "";
+
+      if (code === "COMMUNITY_LIMIT_REACHED" || error.message.includes("COMMUNITY_LIMIT_REACHED")) {
+        const serverCommunities: any[] = parsed?.activeCommunities || myCommunities || [];
+        const communityId = typeof payload === "number" ? payload : (payload as any)?.communityId;
+        const newComm = recommended?.find((c: any) => c.id === communityId) || { id: communityId, name: "Selected Community" };
+        const leastActive = serverCommunities.reduce((least: any, current: any) => {
+          if (!least) return current;
+          return (current.activityScore || 0) < (least.activityScore || 0) ? current : least;
+        }, null);
+        if (leastActive && newComm) {
+          setRotationConfirm({ newComm, oldComm: leastActive });
+        }
+      } else if (code === "ENTITLEMENT_REQUIRED" || error.message.includes("ENTITLEMENT_REQUIRED") || error.message.includes("requiresUpgrade")) {
         setShowPaywall(true);
       } else {
         toast({ title: "Couldn't join", description: "Please try again.", variant: "destructive" });
