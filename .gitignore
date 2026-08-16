@@ -64,3 +64,4 @@ temp/
 *.pem
 *.key
 cert_key.pem
+android/app/google-services.json
