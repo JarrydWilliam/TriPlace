@@ -7,6 +7,8 @@ PODS:
     - AppAuth/Core
   - Capacitor (6.2.1):
     - CapacitorCordova
+  - CapacitorApp (6.0.3):
+    - Capacitor
   - CapacitorCordova (6.2.1)
   - CapacitorFirebaseAuthentication (6.3.1):
     - Capacitor
@@ -87,6 +89,7 @@ PODS:
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorFirebaseAuthentication (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseAuthentication/Google (from `../../node_modules/@capacitor-firebase/authentication`)"
@@ -117,6 +120,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   Capacitor:
     :path: "../../node_modules/@capacitor/ios"
+  CapacitorApp:
+    :path: "../../node_modules/@capacitor/app"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorFirebaseAuthentication:
@@ -137,6 +142,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   Capacitor: c95400d761e376be9da6be5a05f226c0e865cebf
+  CapacitorApp: a19ccb4f5f32d2534be5c6f524d5a9b614a1e8a7
   CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
   CapacitorFirebaseAuthentication: 2c43a65f88e30842dbf83f38dfb25d8076dce529
   CapacitorGeolocation: ef657a46a125be74010f4ce57caae173c23204d2
@@ -159,6 +165,6 @@ SPEC CHECKSUMS:
   RevenueCat: e47ff90dfd271fde155a4befe48e8fc02e8281e4
   RevenuecatPurchasesCapacitor: 6727a4dc1455bdf2374259420719ce5dfbe957fa
 
-PODFILE CHECKSUM: b3c729c98a5d4a59d4f8c09ad6ca553e5b0c8a9d
+PODFILE CHECKSUM: b03ff9d55c5742901a6ee1c149c4d40a35d02e8c
 
 COCOAPODS: 1.16.2
