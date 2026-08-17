@@ -13,8 +13,8 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
-import { App } from "@capacitor/app";
 import { getApiUrl } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes on web
 const STORAGE_KEY = "samevibe_bundle_hash";
@@ -27,27 +27,22 @@ interface VersionInfo {
   forceUpdateMessage: string;
 }
 
-import { useToast } from "@/hooks/use-toast";
-
 export function useOtaUpdate() {
   const { toast } = useToast();
-  const isNative = Capacitor.isNativePlatform();
+  const currentHashRef = useRef<string | null>(null);
   const checkInProgress = useRef(false);
+  const isNative = Capacitor.isNativePlatform();
 
   const checkForUpdate = useCallback(async (silent = true) => {
     if (checkInProgress.current) return;
     checkInProgress.current = true;
 
     try {
-      const res = await fetch(getApiUrl("/api/app/version"), {
-        cache: "no-store",
-        signal: AbortSignal.timeout(6000),
-      });
+      const res = await fetch(getApiUrl("/api/app/version"));
       if (!res.ok) return;
 
       const info: VersionInfo = await res.json();
 
-      // ── Force update (critical fix) ───────────────────────────────────────
       if (info.forceUpdate) {
         const lastSeen = sessionStorage.getItem(FORCE_UPDATE_KEY);
         if (lastSeen !== info.buildHash) {
@@ -55,9 +50,7 @@ export function useOtaUpdate() {
           toast({
             title: "Critical Update Required",
             description: info.forceUpdateMessage || "Please restart the app to continue.",
-            duration: 0, // Don't auto-dismiss
           });
-          // On native, reload the WebView immediately
           if (isNative) {
             setTimeout(() => window.location.reload(), 3000);
           }
@@ -65,12 +58,11 @@ export function useOtaUpdate() {
         return;
       }
 
-      // ── Regular OTA update ────────────────────────────────────────────────
       const lastHash = localStorage.getItem(STORAGE_KEY);
 
       if (!lastHash) {
-        // First run — just store the hash, no update needed
         localStorage.setItem(STORAGE_KEY, info.buildHash);
+        currentHashRef.current = info.buildHash;
         return;
       }
 
@@ -79,19 +71,14 @@ export function useOtaUpdate() {
         localStorage.setItem(STORAGE_KEY, info.buildHash);
 
         if (isNative) {
-          // On native Capacitor: silently reload the WebView
-          // The new bundle is already on Vercel — the WebView fetches fresh JS on reload
           if (!silent) {
             toast({
               title: "App Updated ✨",
               description: "SameVibe has been updated with the latest improvements.",
-              duration: 3000,
             });
           }
-          // Brief delay so the toast can show
           setTimeout(() => window.location.reload(), silent ? 100 : 2500);
         } else {
-          // On web: trigger service worker update
           if ("serviceWorker" in navigator) {
             const reg = await navigator.serviceWorker.getRegistration();
             if (reg) {
@@ -101,32 +88,33 @@ export function useOtaUpdate() {
         }
       }
     } catch {
-      // Silent fail — network errors shouldn't disrupt the user
+      // Fail silently for network blips
     } finally {
       checkInProgress.current = false;
     }
   }, [isNative, toast]);
 
   useEffect(() => {
-    // Check immediately on mount (app launch)
     checkForUpdate(true);
 
     if (isNative) {
-      // On native: check every time the app comes to the foreground
       let appStateListener: any;
-      App.addListener("appStateChange", ({ isActive }) => {
-        if (isActive) {
-          checkForUpdate(true);
-        }
-      }).then(listener => {
-        appStateListener = listener;
-      });
+      import("@capacitor/app" as string)
+        .then(({ App }) => {
+          App.addListener("appStateChange", ({ isActive }: { isActive: boolean }) => {
+            if (isActive) {
+              checkForUpdate(true);
+            }
+          }).then((listener: any) => {
+            appStateListener = listener;
+          });
+        })
+        .catch(() => {});
 
       return () => {
         appStateListener?.remove();
       };
     } else {
-      // On web: poll every 5 minutes
       const interval = setInterval(() => checkForUpdate(true), CHECK_INTERVAL_MS);
       return () => clearInterval(interval);
     }

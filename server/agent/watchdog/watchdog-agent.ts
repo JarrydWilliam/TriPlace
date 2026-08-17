@@ -10,11 +10,11 @@
  */
 
 import cron from "node-cron";
-import { db } from "../../db.js";
-import { storage } from "../../storage.js";
-import { generateServerSignature } from "../../middleware/api-security.js";
-import { autoHealer } from "./auto-healer.js";
-import { issueTracker } from "./issue-tracker.js";
+import { db } from "../../db";
+import { storage } from "../../storage";
+import { generateServerSignature } from "../../middleware/api-security";
+import { autoHealer } from "./auto-healer";
+import { issueTracker } from "./issue-tracker";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
