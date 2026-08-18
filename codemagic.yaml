@@ -19,7 +19,11 @@ workflows:
         XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     triggering:
-      events: []
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
     scripts:
       - name: Install Node dependencies
         script: |
