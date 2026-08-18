@@ -103,23 +103,25 @@ export const signInWithGoogle = async () => {
 export const signInWithApple = async () => {
   try {
     if (isNativePlatform()) {
-      const nativeResult = await FirebaseAuthentication.signInWithApple();
-      
-      if (!nativeResult.credential?.idToken) {
-        throw new Error("Failed to get Apple authentication credential.");
+      try {
+        const nativeResult = await FirebaseAuthentication.signInWithApple();
+        
+        if (nativeResult.credential?.idToken) {
+          const provider = new OAuthProvider('apple.com');
+          const credential = provider.credential({
+            idToken: nativeResult.credential.idToken,
+            rawNonce: nativeResult.credential.nonce
+          });
+          
+          const result = await signInWithCredential(auth, credential);
+          return result;
+        }
+      } catch (nativeErr: any) {
+        console.warn("[SameVibe Auth] Native Apple Auth failed, attempting web OAuth fallback:", nativeErr);
       }
-      
-      const provider = new OAuthProvider('apple.com');
-      const credential = provider.credential({
-        idToken: nativeResult.credential.idToken,
-        rawNonce: nativeResult.credential.nonce
-      });
-      
-      const result = await signInWithCredential(auth, credential);
-      return result;
     }
     
-    // Standard browser: use popup
+    // Standard browser & fallback: use popup
     const provider = new OAuthProvider('apple.com');
     // Request full name and email
     provider.addScope('email');
