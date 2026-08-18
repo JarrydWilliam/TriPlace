@@ -1,38 +1,47 @@
-export interface IssueLog {
+export interface SystemIssue {
   id: string;
-  timestamp: string;
-  type: string;
-  message: string;
-  resolved: boolean;
+  title: string;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "open" | "investigating" | "resolved";
+  details?: any;
+  createdAt: string;
 }
 
 export class IssueTracker {
-  private issues: IssueLog[] = [];
+  private issues: Map<string, SystemIssue> = new Map();
+  private fixes: any[] = [];
 
-  log(type: string, message: string): void {
-    const issue: IssueLog = {
-      id: `issue_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      timestamp: new Date().toISOString(),
-      type,
-      message,
-      resolved: false,
+  public async record(data: any, details?: any): Promise<SystemIssue> {
+    const id = `issue_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const issueData = typeof data === "string" ? { name: data, path: details?.path || "/", severity: "medium" } : data;
+    const issue: SystemIssue = {
+      id,
+      title: `[${(issueData.severity || "medium").toUpperCase()}] ${issueData.name || "Issue"}`,
+      severity: issueData.severity || "medium",
+      status: "open",
+      details: data,
+      createdAt: new Date().toISOString(),
     };
-    this.issues.push(issue);
-    console.log(`[IssueTracker] [${type}] ${message}`);
+    this.issues.set(id, issue);
+    console.log(`[IssueTracker] Recorded issue: ${issue.title}`);
+    return issue;
   }
 
-  record(typeOrItem: any, details?: any): void {
-    const message = typeof typeOrItem === "string" ? `${typeOrItem}: ${JSON.stringify(details || {})}` : JSON.stringify(typeOrItem);
-    this.log("REGRESSION", message);
+  public async recordFix(fixData: any, result?: string): Promise<void> {
+    this.fixes.push({
+      details: fixData,
+      result,
+      timestamp: new Date().toISOString(),
+    });
+    console.log(`[IssueTracker] Recorded fix:`, fixData);
   }
 
-  recordFix(fixNameOrObj: any, result?: string): void {
-    const message = typeof fixNameOrObj === "string" ? `Applied fix '${fixNameOrObj}': ${result || ''}` : JSON.stringify(fixNameOrObj);
-    this.log("AUTO_HEAL", message);
+  public getIssues(): SystemIssue[] {
+    return Array.from(this.issues.values());
   }
 
-  getIssues(): IssueLog[] {
-    return this.issues;
+  public getFixes(): any[] {
+    return this.fixes;
   }
 }
 

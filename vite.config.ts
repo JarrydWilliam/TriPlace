@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
   },
   server: {
+    host: true, // Bind to 0.0.0.0 so phones on the same WiFi can connect
     fs: {
       strict: true,
       deny: ["**/.*"],

@@ -46,6 +46,7 @@ import { verifyApiSignature } from "./middleware/api-security.js";
 import { handleGetAppVersion, handleForceUpdate, handleInvalidateCache } from "./utils/ota-update.js";
 import { handleGetFeatures, handleDisableFeature, handleEnableFeature, handleGetAllFeatures } from "./utils/feature-flags.js";
 import { vercelBuildAgent } from "./agent/deployment/vercel-build-agent.js";
+import { registerGrowthRoutes } from "./routes/growth-routes.js";
 
 export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
   const dob = new Date(dateOfBirthStr);
@@ -60,6 +61,9 @@ export function checkIs18OrOlder(dateOfBirthStr: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register Growth Agent V1 Routes
+  registerGrowthRoutes(app);
+
   // Ensure database schema columns and performance indexes match shared/schema.ts
   try {
     await db.execute(drizzleSql`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone text;`);

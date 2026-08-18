@@ -657,5 +657,92 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets);
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 
+// ── Growth Agent V1 Systems ──────────────────────────────────────────────────
+
+export const growthRecommendations = pgTable("growth_recommendations", {
+  id: serial("id").primaryKey(),
+  market: text("market").notNull(), // e.g. "Ogden, UT"
+  interest: text("interest").notNull(), // e.g. "Hiking"
+  gapSize: integer("gap_size").default(0).notNull(),
+  userDemandCount: integer("user_demand_count").default(0).notNull(),
+  supplyCount: integer("supply_count").default(0).notNull(),
+  reasoning: text("reasoning").notNull(),
+  marketStatus: text("market_status").default("New").notNull(), // 'New', 'Developing', 'Active'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGrowthRecommendationSchema = createInsertSchema(growthRecommendations).omit({
+  id: true,
+  createdAt: true,
+});
+export type GrowthRecommendation = typeof growthRecommendations.$inferSelect;
+export type InsertGrowthRecommendation = z.infer<typeof insertGrowthRecommendationSchema>;
+
+export const growthContentDrafts = pgTable("growth_content_drafts", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // 'short_video_script', 'social_post'
+  content: text("content").notNull(),
+  market: text("market"),
+  sourceActivityRef: integer("source_activity_ref").references(() => events.id, { onDelete: "set null" }),
+  sourceCommunityRef: integer("source_community_ref").references(() => communities.id, { onDelete: "set null" }),
+  status: text("status").default("draft").notNull(), // 'draft', 'approved', 'rejected', 'published', 'publish_failed'
+  targetPlatform: text("target_platform").default("instagram").notNull(), // 'instagram', 'tiktok', 'facebook'
+  approvedBy: integer("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: timestamp("approved_at"),
+  publishedAt: timestamp("published_at"),
+  publishedUrl: text("published_url"),
+  publishError: text("publish_error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertGrowthContentDraftSchema = createInsertSchema(growthContentDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type GrowthContentDraft = typeof growthContentDrafts.$inferSelect;
+export type InsertGrowthContentDraft = z.infer<typeof insertGrowthContentDraftSchema>;
+
+export const growthOutreachDrafts = pgTable("growth_outreach_drafts", {
+  id: serial("id").primaryKey(),
+  targetName: text("target_name").notNull(),
+  targetType: text("target_type").default("organizer").notNull(), // 'organizer', 'community_group'
+  market: text("market"),
+  draftMessage: text("draft_message").notNull(),
+  reasoning: text("reasoning"),
+  status: text("status").default("draft").notNull(), // 'draft', 'approved', 'rejected'
+  approvedBy: integer("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertGrowthOutreachDraftSchema = createInsertSchema(growthOutreachDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type GrowthOutreachDraft = typeof growthOutreachDrafts.$inferSelect;
+export type InsertGrowthOutreachDraft = z.infer<typeof insertGrowthOutreachDraftSchema>;
+
+export const growthPlatformConnections = pgTable("growth_platform_connections", {
+  id: serial("id").primaryKey(),
+  platformName: text("platform_name").notNull().unique(), // 'instagram', 'tiktok', 'facebook'
+  connectedAccount: text("connected_account").notNull(), // e.g. "@samevibe_official"
+  tokenReference: text("token_reference").notNull(), // Secret manager / reference ID
+  connectedBy: integer("connected_by").references(() => users.id, { onDelete: "set null" }),
+  connectedAt: timestamp("connected_at").defaultNow().notNull(),
+  status: text("status").default("connected").notNull(), // 'connected', 'disconnected', 'token_expired'
+});
+
+export const insertGrowthPlatformConnectionSchema = createInsertSchema(growthPlatformConnections).omit({
+  id: true,
+  connectedAt: true,
+});
+export type GrowthPlatformConnection = typeof growthPlatformConnections.$inferSelect;
+export type InsertGrowthPlatformConnection = z.infer<typeof insertGrowthPlatformConnectionSchema>;
+
+
 
 

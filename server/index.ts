@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes.js";
@@ -122,11 +123,21 @@ const serverPromise = (async () => {
       HobbyTrendScheduler.start();
     }).catch(err => console.error("[Scheduler] Failed to start HobbyTrendScheduler:", err));
 
-    const port = parseInt(process.env.PORT || "5000", 10);
-    server.listen(
-      { port, host: "0.0.0.0" },
-      () => { log(`serving on port ${port}`); }
-    );
+    let port = parseInt(process.env.PORT || "5001", 10);
+    const startListen = (targetPort: number) => {
+      server.listen(
+        { port: targetPort, host: "0.0.0.0" },
+        () => { log(`serving on port ${targetPort}`); }
+      ).on("error", (err: any) => {
+        if (err.code === "EADDRINUSE" && targetPort === 5000) {
+          console.warn(`[Port Conflict] Port 5000 in use (macOS ControlCenter). Falling back to port 5001...`);
+          startListen(5001);
+        } else {
+          console.error("[Server Error]", err);
+        }
+      });
+    };
+    startListen(port);
   }
 
   console.log("[Vercel Startup] serverPromise execution complete!");

@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { isAdmin } from "@/lib/is-admin";
 
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useTheme } from "@/lib/theme-context";
@@ -7,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/ui/logo";
-import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation, LogOut } from "lucide-react";
+import { Home, Compass, Users, MessageCircle, Heart, MapPin, Moon, Sun, Navigation, LogOut, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function Sidebar() {
@@ -15,6 +16,8 @@ export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const { latitude, longitude, source, loading: locationLoading, locationName } = useGeolocation(user?.id);
+
+  const isAdminUser = isAdmin(user?.email);
 
   const navigationItems = [
     { 
@@ -49,6 +52,13 @@ export function Sidebar() {
       label: "Kudos Received", 
       active: location === "/kudos" 
     },
+    ...(isAdminUser ? [{
+      href: "/admin/growth",
+      icon: Zap,
+      label: "Growth Agent",
+      active: location === "/admin/growth",
+      badge: "Admin"
+    }] : []),
   ];
 
   if (!user) return null;

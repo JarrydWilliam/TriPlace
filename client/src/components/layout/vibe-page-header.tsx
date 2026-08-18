@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
-import { ChevronLeft, MapPin, Bell, User as UserIcon, Edit3 } from "lucide-react";
+import { isAdmin } from "@/lib/is-admin";
+import { ChevronLeft, MapPin, Bell, User as UserIcon, Edit3, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -30,6 +31,7 @@ export function VibePageHeader({
 
   const locationName = propLocationName ?? (user as any)?.location ?? "Local";
   const unreadCount = propUnreadCount ?? 0;
+  const isAdminUser = isAdmin(user?.email);
 
   const handleBack = () => {
     if (backHref) {
@@ -91,8 +93,20 @@ export function VibePageHeader({
               </motion.div>
             </div>
 
-            {/* Right controls: NYC Location Pill + Bell */}
+            {/* Right controls: NYC Location Pill + Bell + Admin Growth Badge */}
             <div className="flex items-center gap-2.5">
+              {isAdminUser && (
+                <button
+                  type="button"
+                  onClick={() => setLocation("/admin/growth")}
+                  className="bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 rounded-full px-2.5 py-1 text-xs font-bold flex items-center gap-1 hover:bg-cyan-500/30 active:scale-95 transition-all shadow-[0_0_12px_-3px_rgba(0,212,255,0.4)]"
+                  title="Growth Agent Command Center"
+                >
+                  <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline">Growth Agent</span>
+                </button>
+              )}
+
               {/* Location Pill */}
               <div className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1.5 shadow-[0_0_12px_-3px_rgba(0,212,255,0.3)]">
                 <MapPin className="w-3.5 h-3.5 text-cyan-400" />

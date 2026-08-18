@@ -101,9 +101,10 @@ All 7 identified event leakage vectors have been systematically resolved:
 
 ---
 
-## Reviewer Accounts
+## Reviewer & Admin Accounts
 | Account | Email | Password | Purpose |
 |---|---|---|---|
+| Founder Admin | `support@samevibeapp.com` | `SameVibe2024!` | Founder & Growth Agent Admin Account |
 | Populated | `samevibe.review@gmail.com` | `SameVibe2024!` | Primary Apple review account |
 | New user | `samevibe.newreview@gmail.com` | `SameVibe2024!` | New user onboarding flow |
 
