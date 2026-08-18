@@ -1,12 +1,21 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 15, 2026)
-**Active Branch**: `Jarryd` / `Scalability-Infrastructure` (Combined Release Candidate `1.1.3`)  
-**Application Release Version**: `1.1.3` (Codemagic & TestFlight target)  
-**Application Release Candidate Tag**: `samevibe-rc-59862a7`  
-**Executive Status**: 🟢 **COMBINED JARRYD & SCALABILITY-INFRASTRUCTURE BRANCHES. 10K CONCURRENT USER STACK, LRU/REDIS CACHE MANAGER, CIRCUIT BREAKER FALLBACKS, HEALTH METRICS, API REQUEST HASHING, & COMMUNITY JOIN / DM AUTH FIXES LIVE.**
+## Current Status (August 18, 2026)
+**Active Branch**: `Jarryd` (Authoritative SHA: `8a66062`)  
+**Application Release Version**: `1.1.4`  
+**Growth Agent Status**: 🟢 **GROWTH AGENT V1 DEPLOYED. FOUNDER DASHBOARD LIVE.**  
+**Executive Status**: 🟢 **GROWTH AGENT V1 COMMITTED & PUSHED TO PRODUCTION (`8a66062`). ADMIN ACCESS GATED STRICTLY TO `support@samevibeapp.com`.**
 
 ---
+
+## Authentication & Apple Sign-In Stabilization (August 18, 2026)
+1. **Apple Services ID Configuration**:
+   - Registered Domains: `samevibe.app,samevibe-sandy.vercel.app,triplace-v2.firebaseapp.com`
+   - Return URL: `https://triplace-v2.firebaseapp.com/__/auth/handler` under Apple Developer Services ID `com.samevibe.app.service`.
+2. **Login Page UI/State Resilience**:
+   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading` in `client/src/pages/login.tsx`.
+   - Prevented cross-button animation/shake glitches when tapping Apple Sign-In.
+   - Preserved fallback web OAuth popup flow when native Capacitor auth is unavailable.
 
 ## Monetization & Entitlement Webhook Authority (2026-07-31)
 1. **Free Account**: 3 active community slots.
@@ -92,9 +101,10 @@ All 7 identified event leakage vectors have been systematically resolved:
 
 ---
 
-## Reviewer Accounts
+## Reviewer & Admin Accounts
 | Account | Email | Password | Purpose |
 |---|---|---|---|
+| Founder Admin | `support@samevibeapp.com` | `SameVibe2024!` | Founder & Growth Agent Admin Account |
 | Populated | `samevibe.review@gmail.com` | `SameVibe2024!` | Primary Apple review account |
 | New user | `samevibe.newreview@gmail.com` | `SameVibe2024!` | New user onboarding flow |
 

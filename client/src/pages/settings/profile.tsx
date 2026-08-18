@@ -9,13 +9,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon, Save } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, MapPin, Calendar, Link as LinkIcon, Save, Sparkles, Zap, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useRef } from "react";
 import { uploadAvatarToStorage } from "@/lib/firebase";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { VibePageHeader } from "@/components/layout/vibe-page-header";
+import { isAdmin } from "@/lib/is-admin";
 
 export default function ProfileSettings() {
   const { user } = useAuth();
@@ -104,7 +105,44 @@ export default function ProfileSettings() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground safe-area-bottom pb-nav relative overflow-hidden">
       <VibePageHeader mode="detail" title="Edit Profile" />
-      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10">
+      <div className="container mx-auto px-4 py-6 max-w-4xl relative z-10 space-y-6">
+
+        {/* Admin Command Center Quick Access Card */}
+        {isAdmin(user?.email) && (
+          <Card className="bg-slate-900/90 border-cyan-500/40 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden p-6 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Administrator Command Center</h3>
+                  <p className="text-xs text-slate-400">Founder & Growth Agent Controls</p>
+                </div>
+              </div>
+              <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                🔒 Founder Role Active
+              </Badge>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Log into market intelligence, demand gap analytics, social content approval queues, and system telemetry metrics.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <Link href="/admin/growth">
+                <Button className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold flex items-center justify-center gap-2">
+                  <Zap className="w-4 h-4" /> Growth Agent Command Center
+                </Button>
+              </Link>
+              <Link href="/admin/metrics">
+                <Button variant="outline" className="w-full bg-slate-950 border-slate-800 text-slate-200 hover:bg-slate-800 flex items-center justify-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-400" /> Product Health Metrics
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Photo Section */}

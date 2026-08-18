@@ -4,10 +4,10 @@ const config: CapacitorConfig = {
   appId: "com.samevibe.app",
   appName: "SameVibe",
   webDir: "dist/public",
-  // bundledWebRuntime removed — deprecated in Capacitor 6+
-  // server block intentionally omitted for production.
-  // For local dev with Capacitor: uncomment below and run `npx cap sync`
-  // server: { url: "http://localhost:5000", cleartext: true },
+  server: {
+    url: "https://samevibe-sandy.vercel.app",
+    cleartext: true,
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

@@ -2,6 +2,7 @@ import {
   users, communities, events, messages, kudos, communityMessages, communityMembers, eventAttendees, activityFeed,
   telemetryEvents, userBlocks, userReports, eventReports, eventReviews, passportStatus, passportWeeklyCompletions,
   hobbyTrendAnalytics, flaggedContent, supportTickets,
+  growthRecommendations, growthContentDrafts, growthOutreachDrafts, growthPlatformConnections,
   type User, type InsertUser, type Community, type InsertCommunity, 
   type Event, type InsertEvent, type Message, type InsertMessage,
   type CommunityMessage, type InsertCommunityMessage,
@@ -13,7 +14,11 @@ import {
   type PassportStatus, type PassportWeeklyCompletion,
   type HobbyTrendAnalytics, type InsertHobbyTrendAnalytics,
   type FlaggedContent, type InsertFlaggedContent,
-  type SupportTicket, type InsertSupportTicket
+  type SupportTicket, type InsertSupportTicket,
+  type GrowthRecommendation, type InsertGrowthRecommendation,
+  type GrowthContentDraft, type InsertGrowthContentDraft,
+  type GrowthOutreachDraft, type InsertGrowthOutreachDraft,
+  type GrowthPlatformConnection, type InsertGrowthPlatformConnection
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, desc, sql, or, asc, ne, gte, lt, inArray, like } from "drizzle-orm";
@@ -207,6 +212,36 @@ export interface IStorage {
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
   getSupportTickets(userId?: number): Promise<SupportTicket[]>;
   updateSupportTicket(id: number, updates: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
+
+  // Growth Agent Systems
+  createGrowthRecommendation(rec: InsertGrowthRecommendation): Promise<GrowthRecommendation>;
+  getGrowthRecommendations(market?: string): Promise<GrowthRecommendation[]>;
+  clearGrowthRecommendations(market?: string): Promise<void>;
+
+  createGrowthContentDraft(draft: InsertGrowthContentDraft): Promise<GrowthContentDraft>;
+  getGrowthContentDrafts(status?: string): Promise<GrowthContentDraft[]>;
+  getGrowthContentDraft(id: number): Promise<GrowthContentDraft | undefined>;
+  updateGrowthContentDraft(id: number, updates: Partial<GrowthContentDraft>): Promise<GrowthContentDraft | undefined>;
+
+  createGrowthOutreachDraft(draft: InsertGrowthOutreachDraft): Promise<GrowthOutreachDraft>;
+  getGrowthOutreachDrafts(status?: string): Promise<GrowthOutreachDraft[]>;
+  getGrowthOutreachDraft(id: number): Promise<GrowthOutreachDraft | undefined>;
+  updateGrowthOutreachDraft(id: number, updates: Partial<GrowthOutreachDraft>): Promise<GrowthOutreachDraft | undefined>;
+
+  getGrowthPlatformConnections(): Promise<GrowthPlatformConnection[]>;
+  getGrowthPlatformConnection(platformName: string): Promise<GrowthPlatformConnection | undefined>;
+  upsertGrowthPlatformConnection(conn: InsertGrowthPlatformConnection): Promise<GrowthPlatformConnection>;
+  updateGrowthPlatformConnectionStatus(platformName: string, status: string): Promise<GrowthPlatformConnection | undefined>;
+
+  getMarketAggregationData(): Promise<Array<{
+    market: string;
+    userCount: number;
+    communityCount: number;
+    eventCount: number;
+    rsvpCount: number;
+    returningUserCount: number;
+    interestCounts: Record<string, number>;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2185,10 +2220,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getHobbyTrendAnalytics(): Promise<HobbyTrendAnalytics[]> {
-    return await db
-      .select()
-      .from(hobbyTrendAnalytics)
-      .orderBy(desc(hobbyTrendAnalytics.createdAt));
+    try {
+      return await db
+        .select()
+        .from(hobbyTrendAnalytics)
+        .orderBy(desc(hobbyTrendAnalytics.createdAt));
+    } catch (err: any) {
+      // Table may not exist yet in this environment — return empty gracefully
+      if (err?.code === '42P01') return [];
+      throw err;
+    }
   }
 
   async createFlaggedContentLog(entry: InsertFlaggedContent): Promise<FlaggedContent> {
@@ -2250,6 +2291,238 @@ export class DatabaseStorage implements IStorage {
       .where(eq(supportTickets.id, id))
       .returning();
     return updated;
+  }
+
+  // ── Growth Agent V1 Implementation ──────────────────────────────────────────
+  async createGrowthRecommendation(rec: InsertGrowthRecommendation): Promise<GrowthRecommendation> {
+    const [row] = await db.insert(growthRecommendations).values(rec).returning();
+    return row;
+  }
+
+  async getGrowthRecommendations(market?: string): Promise<GrowthRecommendation[]> {
+    if (market) {
+      return await db.select().from(growthRecommendations).where(eq(growthRecommendations.market, market)).orderBy(desc(growthRecommendations.createdAt));
+    }
+    return await db.select().from(growthRecommendations).orderBy(desc(growthRecommendations.createdAt));
+  }
+
+  async clearGrowthRecommendations(market?: string): Promise<void> {
+    if (market) {
+      await db.delete(growthRecommendations).where(eq(growthRecommendations.market, market));
+    } else {
+      await db.delete(growthRecommendations);
+    }
+  }
+
+  async createGrowthContentDraft(draft: InsertGrowthContentDraft): Promise<GrowthContentDraft> {
+    const [row] = await db.insert(growthContentDrafts).values(draft).returning();
+    return row;
+  }
+
+  async getGrowthContentDrafts(status?: string): Promise<GrowthContentDraft[]> {
+    if (status) {
+      return await db.select().from(growthContentDrafts).where(eq(growthContentDrafts.status, status)).orderBy(desc(growthContentDrafts.createdAt));
+    }
+    return await db.select().from(growthContentDrafts).orderBy(desc(growthContentDrafts.createdAt));
+  }
+
+  async getGrowthContentDraft(id: number): Promise<GrowthContentDraft | undefined> {
+    const [row] = await db.select().from(growthContentDrafts).where(eq(growthContentDrafts.id, id));
+    return row;
+  }
+
+  async updateGrowthContentDraft(id: number, updates: Partial<GrowthContentDraft>): Promise<GrowthContentDraft | undefined> {
+    const [row] = await db
+      .update(growthContentDrafts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(growthContentDrafts.id, id))
+      .returning();
+    return row;
+  }
+
+  async createGrowthOutreachDraft(draft: InsertGrowthOutreachDraft): Promise<GrowthOutreachDraft> {
+    const [row] = await db.insert(growthOutreachDrafts).values(draft).returning();
+    return row;
+  }
+
+  async getGrowthOutreachDrafts(status?: string): Promise<GrowthOutreachDraft[]> {
+    if (status) {
+      return await db.select().from(growthOutreachDrafts).where(eq(growthOutreachDrafts.status, status)).orderBy(desc(growthOutreachDrafts.createdAt));
+    }
+    return await db.select().from(growthOutreachDrafts).orderBy(desc(growthOutreachDrafts.createdAt));
+  }
+
+  async getGrowthOutreachDraft(id: number): Promise<GrowthOutreachDraft | undefined> {
+    const [row] = await db.select().from(growthOutreachDrafts).where(eq(growthOutreachDrafts.id, id));
+    return row;
+  }
+
+  async updateGrowthOutreachDraft(id: number, updates: Partial<GrowthOutreachDraft>): Promise<GrowthOutreachDraft | undefined> {
+    const [row] = await db
+      .update(growthOutreachDrafts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(growthOutreachDrafts.id, id))
+      .returning();
+    return row;
+  }
+
+  async getGrowthPlatformConnections(): Promise<GrowthPlatformConnection[]> {
+    return await db.select().from(growthPlatformConnections);
+  }
+
+  async getGrowthPlatformConnection(platformName: string): Promise<GrowthPlatformConnection | undefined> {
+    const [row] = await db.select().from(growthPlatformConnections).where(eq(growthPlatformConnections.platformName, platformName));
+    return row;
+  }
+
+  async upsertGrowthPlatformConnection(conn: InsertGrowthPlatformConnection): Promise<GrowthPlatformConnection> {
+    const existing = await this.getGrowthPlatformConnection(conn.platformName);
+    if (existing) {
+      const [updated] = await db
+        .update(growthPlatformConnections)
+        .set({
+          connectedAccount: conn.connectedAccount,
+          tokenReference: conn.tokenReference,
+          connectedBy: conn.connectedBy,
+          status: conn.status || "connected",
+        })
+        .where(eq(growthPlatformConnections.platformName, conn.platformName))
+        .returning();
+      return updated;
+    }
+    const [inserted] = await db.insert(growthPlatformConnections).values(conn).returning();
+    return inserted;
+  }
+
+  async updateGrowthPlatformConnectionStatus(platformName: string, status: string): Promise<GrowthPlatformConnection | undefined> {
+    const [updated] = await db
+      .update(growthPlatformConnections)
+      .set({ status })
+      .where(eq(growthPlatformConnections.platformName, platformName))
+      .returning();
+    return updated;
+  }
+
+  async getMarketAggregationData(): Promise<Array<{
+    market: string;
+    userCount: number;
+    communityCount: number;
+    eventCount: number;
+    rsvpCount: number;
+    returningUserCount: number;
+    interestCounts: Record<string, number>;
+  }>> {
+    const allUsers = await db.select({
+      id: users.id,
+      location: users.location,
+      interests: users.interests,
+      lastActiveAt: users.lastActiveAt,
+    }).from(users);
+    const allCommunities = await db.select({
+      id: communities.id,
+      location: communities.location,
+    }).from(communities);
+    const allEvents = await db.select({
+      id: events.id,
+      location: events.location,
+    }).from(events);
+    const allRSVPs = await db.select({
+      id: eventAttendees.id,
+      eventId: eventAttendees.eventId,
+    }).from(eventAttendees);
+
+    const marketMap = new Map<string, {
+      userCount: number;
+      communityCount: number;
+      eventCount: number;
+      rsvpCount: number;
+      returningUserCount: number;
+      interestCounts: Record<string, number>;
+    }>();
+
+    const normalizeMarket = (loc?: string | null): string => {
+      if (!loc) return "General / Remote";
+      const cleaned = loc.trim();
+      if (!cleaned) return "General / Remote";
+      const lower = cleaned.toLowerCase();
+      if (lower.includes("ogden")) return "Ogden, UT";
+      if (lower.includes("salt lake") || lower.includes("slc")) return "Salt Lake City, UT";
+      if (lower.includes("sunset") || lower.includes("layton") || lower.includes("roy") || lower.includes("clearfield")) return "Weber/Davis, UT";
+      if (lower.includes("provo") || lower.includes("orem")) return "Utah County, UT";
+      return cleaned;
+    };
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    for (const u of allUsers) {
+      const m = normalizeMarket(u.location);
+      if (!marketMap.has(m)) {
+        marketMap.set(m, {
+          userCount: 0,
+          communityCount: 0,
+          eventCount: 0,
+          rsvpCount: 0,
+          returningUserCount: 0,
+          interestCounts: {},
+        });
+      }
+      const entry = marketMap.get(m)!;
+      entry.userCount++;
+      if (u.lastActiveAt && new Date(u.lastActiveAt) > sevenDaysAgo) {
+        entry.returningUserCount++;
+      }
+      if (u.interests && Array.isArray(u.interests)) {
+        for (const interest of u.interests) {
+          const key = interest.trim();
+          if (key) {
+            entry.interestCounts[key] = (entry.interestCounts[key] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    for (const c of allCommunities) {
+      const m = normalizeMarket(c.location);
+      if (!marketMap.has(m)) {
+        marketMap.set(m, {
+          userCount: 0,
+          communityCount: 0,
+          eventCount: 0,
+          rsvpCount: 0,
+          returningUserCount: 0,
+          interestCounts: {},
+        });
+      }
+      marketMap.get(m)!.communityCount++;
+    }
+
+    for (const e of allEvents) {
+      const m = normalizeMarket(e.location);
+      if (!marketMap.has(m)) {
+        marketMap.set(m, {
+          userCount: 0,
+          communityCount: 0,
+          eventCount: 0,
+          rsvpCount: 0,
+          returningUserCount: 0,
+          interestCounts: {},
+        });
+      }
+      marketMap.get(m)!.eventCount++;
+    }
+
+    for (const r of allRSVPs) {
+      const ev = allEvents.find(e => e.id === r.eventId);
+      const m = normalizeMarket(ev?.location);
+      if (marketMap.has(m)) {
+        marketMap.get(m)!.rsvpCount++;
+      }
+    }
+
+    return Array.from(marketMap.entries()).map(([market, data]) => ({
+      market,
+      ...data,
+    }));
   }
 }
 

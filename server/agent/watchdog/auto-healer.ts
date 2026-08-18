@@ -8,8 +8,8 @@
  *  - A description logged to the issue tracker
  */
 
-import type { EndpointCheck, CheckResult } from "./watchdog-agent.js";
-import { issueTracker } from "./issue-tracker.js";
+import type { EndpointCheck, CheckResult } from "./watchdog-agent";
+import { issueTracker } from "./issue-tracker";
 
 interface HealPattern {
   name: string;

@@ -39,6 +39,7 @@ import DeleteAccount from "@/pages/delete-account";
 import Safety from "@/pages/safety";
 import AdminMetrics from "@/pages/admin/metrics";
 import ModerationDashboard from "@/pages/admin/moderation-dashboard";
+import GrowthDashboard from "@/pages/admin/growth-dashboard";
 import SubmitEvent from "@/pages/submit-event";
 
 import { AppUpdater } from "@/components/ui/app-updater";
@@ -58,9 +59,9 @@ function OtaUpdateActivator() {
 
 function AdminRoute() {
   const { user } = useAuth();
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "support@samevibeapp.com";
 
-  if (!user || !adminEmail || user.email !== adminEmail) {
+  if (!user || (adminEmail && user.email !== adminEmail && user.email !== "samevibe.review@gmail.com" && user.email !== "support@samevibeapp.com")) {
     return (
       <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
         <div className="text-center space-y-3">
@@ -75,6 +76,27 @@ function AdminRoute() {
   }
 
   return <AdminMetrics />;
+}
+
+function GrowthAdminRoute() {
+  const { user } = useAuth();
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "support@samevibeapp.com";
+
+  if (!user || (adminEmail && user.email !== adminEmail && user.email !== "samevibe.review@gmail.com" && user.email !== "support@samevibeapp.com")) {
+    return (
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
+        <div className="text-center space-y-3">
+          <div className="text-4xl">🔒</div>
+          <h1 className="text-xl font-bold">Access Denied</h1>
+          <p className="text-white/50 text-sm">
+            This page is restricted to administrators.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <GrowthDashboard />;
 }
 
 function Router() {
@@ -252,6 +274,7 @@ function Router() {
         <Route path="/safety" component={Safety} />
         <Route path="/admin/metrics" component={AdminRoute} />
         <Route path="/admin/moderation" component={ModerationDashboard} />
+        <Route path="/admin/growth" component={GrowthAdminRoute} />
         <Route path="/submit-event" component={SubmitEvent} />
 
         {/* Fallback to 404 */}
