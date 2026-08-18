@@ -95,6 +95,15 @@ export function useOtaUpdate() {
   }, [isNative, toast]);
 
   useEffect(() => {
+    // If running inside native Capacitor app loading an old local bundle,
+    // transition native container to live production server for instant updates.
+    if (isNative && typeof window !== "undefined" && window.location.hostname !== "samevibe-sandy.vercel.app" && !window.location.hostname.includes("localhost")) {
+      const targetUrl = `https://samevibe-sandy.vercel.app${window.location.pathname}${window.location.search}`;
+      console.log(`[OTA] Transitioning native app to live production: ${targetUrl}`);
+      window.location.href = targetUrl;
+      return;
+    }
+
     checkForUpdate(true);
 
     if (isNative) {
