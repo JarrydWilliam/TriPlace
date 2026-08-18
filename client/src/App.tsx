@@ -57,11 +57,12 @@ function OtaUpdateActivator() {
   return null;
 }
 
+import { isAdmin } from "@/lib/is-admin";
+
 function AdminRoute() {
   const { user } = useAuth();
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "support@samevibeapp.com";
 
-  if (!user || (adminEmail && user.email !== adminEmail && user.email !== "samevibe.review@gmail.com" && user.email !== "support@samevibeapp.com")) {
+  if (!user || !isAdmin(user.email)) {
     return (
       <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
         <div className="text-center space-y-3">
@@ -80,9 +81,8 @@ function AdminRoute() {
 
 function GrowthAdminRoute() {
   const { user } = useAuth();
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "support@samevibeapp.com";
 
-  if (!user || (adminEmail && user.email !== adminEmail && user.email !== "samevibe.review@gmail.com" && user.email !== "support@samevibeapp.com")) {
+  if (!user || !isAdmin(user.email)) {
     return (
       <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center text-white">
         <div className="text-center space-y-3">

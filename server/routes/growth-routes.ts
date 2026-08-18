@@ -19,7 +19,8 @@ export async function requireGrowthAdmin(req: Request, res: Response, next: Next
 
   // Check auth user if available
   const user = (req as any).user;
-  if (user && (user.email === adminEmail || user.email === "samevibe.review@gmail.com" || user.email === "support@samevibeapp.com")) {
+  const adminEmails = [adminEmail, "samevibe.review@gmail.com", "support@samevibeapp.com", "nickbowser4@gmail.com"].map(e => e.toLowerCase());
+  if (user && adminEmails.includes(user.email?.toLowerCase())) {
     return next();
   }
 

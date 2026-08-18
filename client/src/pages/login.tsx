@@ -16,21 +16,22 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const loading = appleLoading || googleLoading;
+  const loading = emailLoading || appleLoading || googleLoading;
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setEmailLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       setLocation("/dashboard");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Login failed");
     } finally {
-      setLoading(false);
+      setEmailLoading(false);
     }
   };
 
