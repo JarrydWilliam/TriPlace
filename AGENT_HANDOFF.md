@@ -1,12 +1,21 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 17, 2026)
+## Current Status (August 18, 2026)
 **Active Branch**: `Jarryd` / `main` (Combined Release Candidate `1.1.4`)  
 **Application Release Version**: `1.1.4` (Codemagic & TestFlight target)  
 **Application Release Candidate Tag**: `samevibe-rc-1.1.4`  
-**Executive Status**: 🟢 **BUMPED TO VERSION 1.1.4 TRAIN. TESTFLIGHT PRE-RELEASE TRAIN OPEN. GOOGLE PLAY IN REVIEW.**
+**Executive Status**: 🟢 **GOOGLE PLAY IN REVIEW (v1.1.2). APPLE SIGN-IN FIXED & LIVE. BRANCHES SYNCHRONIZED.**
 
 ---
+
+## Authentication & Apple Sign-In Stabilization (August 18, 2026)
+1. **Apple Services ID Configuration**:
+   - Registered Domains: `samevibe.app,samevibe-sandy.vercel.app,triplace-v2.firebaseapp.com`
+   - Return URL: `https://triplace-v2.firebaseapp.com/__/auth/handler` under Apple Developer Services ID `com.samevibe.app.service`.
+2. **Login Page UI/State Resilience**:
+   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading` in `client/src/pages/login.tsx`.
+   - Prevented cross-button animation/shake glitches when tapping Apple Sign-In.
+   - Preserved fallback web OAuth popup flow when native Capacitor auth is unavailable.
 
 ## Monetization & Entitlement Webhook Authority (2026-07-31)
 1. **Free Account**: 3 active community slots.
