@@ -16,7 +16,9 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const loading = appleLoading || googleLoading;
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,20 +36,20 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setError("");
-    setLoading(true);
+    setGoogleLoading(true);
     try {
       await signInWithGoogle();
       setLocation("/dashboard");
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google login failed");
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
     setError("");
-    setLoading(true);
+    setAppleLoading(true);
     try {
       // Race against a 30-second timeout so the UI is never permanently frozen
       // if the native Apple Sign-In sheet hangs without rejecting
@@ -61,7 +63,7 @@ export default function Login() {
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple login failed");
     } finally {
-      setLoading(false);
+      setAppleLoading(false);
     }
   };
 
@@ -106,16 +108,16 @@ export default function Login() {
             <Button
               className="w-full bg-white text-black hover:bg-white/90 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
               onClick={handleAppleLogin}
-              disabled={loading}
+              disabled={appleLoading || googleLoading}
             >
-              {loading ? (
+              {appleLoading ? (
                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               ) : (
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.62-1.48 3.608-2.922 1.156-1.674 1.631-3.328 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.502 1.09zM15.515 3.833c.843-1.012 1.4-2.427 1.245-3.833-1.207.052-2.662.805-3.532 1.818-.68.827-1.33 2.273-1.144 3.662 1.358.111 2.662-.623 3.431-1.647z"/>
                 </svg>
               )}
-              {loading ? "Signing in..." : "Continue with Apple"}
+              {appleLoading ? "Signing in..." : "Continue with Apple"}
             </Button>
 
             {/* Google Sign-In (Secondary) */}
@@ -123,9 +125,9 @@ export default function Login() {
               variant="outline"
               className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px]"
               onClick={handleGoogleLogin}
-              disabled={loading}
+              disabled={appleLoading || googleLoading}
             >
-              {loading ? (
+              {googleLoading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <svg className="w-4 h-4 filter drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]" viewBox="0 0 24 24">
@@ -135,7 +137,7 @@ export default function Login() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
               )}
-              {loading ? "Signing in..." : "Continue with Google"}
+              {googleLoading ? "Signing in..." : "Continue with Google"}
             </Button>
 
             <div className="flex items-center gap-3 py-1">
