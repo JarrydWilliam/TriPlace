@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "SameVibe",
   webDir: "dist/public",
   server: {
-    url: "https://samevibe.app",
+    url: "https://samevibe-sandy.vercel.app",
     cleartext: true,
   },
   plugins: {
