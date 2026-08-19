@@ -213,7 +213,6 @@ export class AuthWatchdogAgent {
   private async probeFirebaseConfig(): Promise<AuthProbeResult> {
     const start = Date.now();
     const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "samevibe-app";
-    const apiKey = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
 
     if (!projectId) {
       return {
@@ -226,22 +225,32 @@ export class AuthWatchdogAgent {
     }
 
     try {
-      // Fetch Firebase Auth discovery configuration
-      const discoveryUrl = `https://identitytoolkit.googleapis.com/v1/projects/${projectId}?key=${apiKey || "test"}`;
-      const res = await fetch(discoveryUrl, { signal: AbortSignal.timeout(6000) });
+      // Fetch Firebase official public x509 securetoken certificate endpoint
+      const certsUrl = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+      const res = await fetch(certsUrl, { signal: AbortSignal.timeout(6000) });
       const latencyMs = Date.now() - start;
 
-      // HTTP 200 or HTTP 400 (invalid API key format for internal call) indicates project endpoint is active
-      const isHealthy = res.status === 200 || res.status === 400;
+      if (!res.ok) {
+        return {
+          provider: "firebase",
+          status: "fail",
+          latencyMs,
+          httpStatus: res.status,
+          message: `Firebase token certs returned HTTP ${res.status}`,
+          timestamp: new Date(),
+        };
+      }
+
+      const certs: any = await res.json();
+      const keysCount = Object.keys(certs || {}).length;
 
       return {
         provider: "firebase",
-        status: isHealthy ? (latencyMs > 2500 ? "degraded" : "pass") : "fail",
+        status: latencyMs > 2500 ? "degraded" : "pass",
         latencyMs,
-        httpStatus: res.status,
-        message: isHealthy
-          ? `Firebase Auth service active for project '${projectId}' (${latencyMs}ms)`
-          : `Firebase Auth endpoint returned unexpected status ${res.status}`,
+        httpStatus: 200,
+        keysAvailable: keysCount,
+        message: `Firebase Auth Token Service active (${keysCount} signing certs, ${latencyMs}ms)`,
         timestamp: new Date(),
       };
     } catch (err: any) {
