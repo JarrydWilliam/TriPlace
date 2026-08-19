@@ -8,16 +8,24 @@
 
 ---
 
-## Authentication & Auth Watchdog Agent (August 19, 2026)
-1. **Backend Auth Watchdog Agent (`server/agent/watchdog/auth-watchdog.ts`)**:
-   - Runs continuous automated background probes every 5 minutes testing:
-     - Google OAuth Provider & JWKS key availability (`https://www.googleapis.com/oauth2/v3/certs`)
-     - Apple OAuth Provider & JWKS key availability (`https://appleid.apple.com/auth/keys`)
-     - Firebase Auth project configuration & API endpoint status
-     - Database User Profile lookup/creation sync pipeline
-   - Automatically logs detected auth degradation/failures to `watchdog_issues` table.
+## Authentication & Master Connector Sentinel (August 19, 2026)
+1. **Master Connector & App Sentinel Agent (`server/agent/watchdog/connector-sentinel.ts`)**:
+   - Continuous 5-minute automated audit monitoring all 10 core connectors & app flows:
+     - Google OAuth JWKS Connector (`https://www.googleapis.com/oauth2/v3/certs`)
+     - Apple OAuth JWKS Connector (`https://appleid.apple.com/auth/keys`)
+     - Firebase Auth Project & Identity Toolkit Connector
+     - PostgreSQL Database Pool & Query Latency
+     - Ticketmaster Event Scraper API Connector
+     - Eventbrite Event Scraper API Connector
+     - SeatGeek Event Scraper API Connector
+     - RevenueCat Entitlement Webhook Authority (`POST /api/revenuecat/webhook`)
+     - OTA Mobile App Version Pipeline (`/api/app/version`)
+     - Core App Feature Pipeline (Communities, Events, Messaging, Telemetry)
+   - Exposes real-time connector telemetry at `GET /api/connectors/status`.
+2. **Backend Auth Watchdog Agent (`server/agent/watchdog/auth-watchdog.ts`)**:
+   - Automated probes monitoring Google & Apple OAuth key rotation and user DB lookup latency.
    - Exposes live health status at `GET /api/health/auth-status`.
-2. **Apple Services ID Configuration**:
+3. **Apple Services ID Configuration**:
    - Registered Domains: `samevibe.app,samevibe-sandy.vercel.app,triplace-v2.firebaseapp.com`
    - Return URL: `https://triplace-v2.firebaseapp.com/__/auth/handler` under Apple Developer Services ID `com.samevibe.app.service`.
 3. **Login & Signup Page UI/State Resilience**:
