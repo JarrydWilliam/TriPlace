@@ -166,7 +166,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Health check — used by watchdog and load balancers
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", ts: Date.now(), version: process.env.npm_package_version || "1.1.2" });
+    res.json({ status: "ok", ts: Date.now(), version: process.env.npm_package_version || "1.1.4" });
+  });
+
+  // Auth Health & Watchdog status — probes Google, Apple, Firebase, and DB User sync
+  app.get("/api/health/auth-status", async (_req, res) => {
+    try {
+      const { authWatchdog } = await import("./agent/watchdog/auth-watchdog.js");
+      const summary = await authWatchdog.runAllProbes();
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ status: "unhealthy", error: error?.message || "Auth probe failed" });
+    }
   });
 
   // OTA version endpoint — native app polls this every foreground resume

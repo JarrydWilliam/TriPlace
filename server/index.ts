@@ -123,6 +123,10 @@ const serverPromise = (async () => {
       HobbyTrendScheduler.start();
     }).catch(err => console.error("[Scheduler] Failed to start HobbyTrendScheduler:", err));
 
+    import("./agent/watchdog/auth-watchdog.js").then(({ authWatchdog }) => {
+      authWatchdog.start();
+    }).catch(err => console.error("[AuthWatchdog] Failed to start AuthWatchdogAgent:", err));
+
     let port = parseInt(process.env.PORT || "5001", 10);
     const startListen = (targetPort: number) => {
       server.listen(
