@@ -14,7 +14,7 @@ import { CURRENT_TERMS_VERSION } from "@shared/schema";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, authError } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -176,6 +176,14 @@ export default function Signup() {
           
           <div className="relative bg-card/40 backdrop-blur-3xl border border-white/5 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-5">
             
+            {/* Auth Error Banner */}
+            {(error || authError) && (
+              <div className="flex items-start gap-2 text-sm text-[#ef4444] bg-[#ef4444]/10 rounded-xl p-3 border border-[#ef4444]/20 animate-shake">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{error || authError}</span>
+              </div>
+            )}
+
             {/* Apple Sign-Up (Primary) */}
             <Button
               className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
