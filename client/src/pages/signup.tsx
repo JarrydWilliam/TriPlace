@@ -172,7 +172,7 @@ export default function Signup() {
 
         {/* Dynamic Card Container */}
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition duration-700"></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition duration-700 pointer-events-none"></div>
           
           <div className="relative bg-card/40 backdrop-blur-3xl border border-white/5 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-5">
             
@@ -186,7 +186,8 @@ export default function Signup() {
 
             {/* Apple Sign-Up (Primary) */}
             <Button
-              className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
+              type="button"
+              className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px] cursor-pointer"
               onClick={handleAppleSignup}
               disabled={appleLoading || googleLoading || loading}
             >
@@ -202,8 +203,9 @@ export default function Signup() {
 
             {/* Google Sign-Up (Secondary) */}
             <Button
+              type="button"
               variant="outline"
-              className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px]"
+              className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px] cursor-pointer"
               onClick={handleGoogleSignup}
               disabled={appleLoading || googleLoading || loading}
             >

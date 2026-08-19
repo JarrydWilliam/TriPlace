@@ -35,22 +35,27 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     setError("");
     setGoogleLoading(true);
+    console.log("[SameVibe Auth] Continue with Google button clicked");
     try {
       await signInWithGoogle();
       setLocation("/dashboard");
     } catch (err: any) {
+      console.error("[SameVibe Auth] Google login error:", err);
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google login failed");
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  const handleAppleLogin = async () => {
+  const handleAppleLogin = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     setError("");
     setAppleLoading(true);
+    console.log("[SameVibe Auth] Continue with Apple button clicked");
     try {
       // Race against a 30-second timeout so the UI is never permanently frozen
       // if the native Apple Sign-In sheet hangs without rejecting
@@ -62,6 +67,7 @@ export default function Login() {
       ]);
       setLocation("/dashboard");
     } catch (err: any) {
+      console.error("[SameVibe Auth] Apple login error:", err);
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple login failed");
     } finally {
       setAppleLoading(false);
@@ -71,8 +77,8 @@ export default function Login() {
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background flex items-center justify-center px-4">
       {/* Background gradients */}
-      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-primary/30" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-accent/30" />
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-primary/30 pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[100px] bg-accent/30 pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -93,7 +99,7 @@ export default function Login() {
 
         {/* Dynamic Card Container */}
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition duration-700"></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/30 to-secondary/30 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition duration-700 pointer-events-none"></div>
           
           <div className="relative bg-card/40 backdrop-blur-3xl border border-white/5 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-5">
             
@@ -107,7 +113,8 @@ export default function Login() {
 
             {/* Apple Sign-In (Primary) */}
             <Button
-              className="w-full bg-white text-black hover:bg-white/90 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px]"
+              type="button"
+              className="w-full bg-white text-black hover:bg-white/90 py-3 rounded-xl font-semibold text-sm active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-lg min-h-[48px] cursor-pointer"
               onClick={handleAppleLogin}
               disabled={appleLoading || googleLoading}
             >
@@ -123,8 +130,9 @@ export default function Login() {
 
             {/* Google Sign-In (Secondary) */}
             <Button
+              type="button"
               variant="outline"
-              className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px]"
+              className="w-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-white py-3 rounded-xl font-medium text-sm hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] min-h-[48px] cursor-pointer"
               onClick={handleGoogleLogin}
               disabled={appleLoading || googleLoading}
             >
