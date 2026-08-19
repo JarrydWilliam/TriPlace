@@ -13,7 +13,7 @@ import { auth } from "./firebase";
 export const getApiUrl = (url: string) => {
   const isNative = Capacitor.isNativePlatform();
   if (isNative && url.startsWith('/')) {
-    const baseUrl = import.meta.env.VITE_API_URL || "https://samevibe.app";
+    const baseUrl = import.meta.env.VITE_API_URL || "https://samevibe-sandy.vercel.app";
     return `${baseUrl}${url}`;
   }
   return url;
