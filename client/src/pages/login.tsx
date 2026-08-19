@@ -97,11 +97,11 @@ export default function Login() {
           
           <div className="relative bg-card/40 backdrop-blur-3xl border border-white/5 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-5">
             
-            {/* Backend Auth Error Banner */}
-            {authError && (
+            {/* Auth Error Banner */}
+            {(error || authError) && (
               <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 rounded-xl p-3 border border-destructive/25 animate-shake">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{authError}</span>
+                <span>{error || authError}</span>
               </div>
             )}
 

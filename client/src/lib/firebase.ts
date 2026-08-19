@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, signInWithPopup, signInWithRedirect, signInWithCredential, GoogleAuthProvider, OAuthProvider, signOut, deleteUser, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { ERROR_MESSAGES } from "./production-config";
@@ -59,6 +59,10 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
+export const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
+
 export const signInWithGoogle = async () => {
   try {
     // Capacitor native (iOS/Android) uses the Native Google Sign-In SDK via Capacitor plugin
@@ -109,8 +113,7 @@ export const signInWithApple = async () => {
         const nativeResult = await FirebaseAuthentication.signInWithApple();
         
         if (nativeResult.credential?.idToken) {
-          const provider = new OAuthProvider('apple.com');
-          const credential = provider.credential({
+          const credential = appleProvider.credential({
             idToken: nativeResult.credential.idToken,
             rawNonce: nativeResult.credential.nonce
           });
@@ -123,20 +126,24 @@ export const signInWithApple = async () => {
       }
     }
     
-    // Standard browser & fallback: use popup
-    const provider = new OAuthProvider('apple.com');
-    // Request full name and email
-    provider.addScope('email');
-    provider.addScope('name');
-    
-    const result = await signInWithPopup(auth, provider);
-    return result;
+    // Standard browser & fallback: try popup first, fall back to redirect if blocked
+    try {
+      const result = await signInWithPopup(auth, appleProvider);
+      return result;
+    } catch (popupError: any) {
+      if (popupError.code === 'auth/popup-blocked') {
+        console.warn("[SameVibe Auth] Apple popup blocked by browser, attempting redirect fallback:", popupError);
+        await signInWithRedirect(auth, appleProvider);
+        return;
+      }
+      throw popupError;
+    }
   } catch (error: any) {
     console.error("[SameVibe Auth] Apple Sign-In Error:", error);
     switch (error.code) {
       case 'auth/popup-closed-by-user':
       case 'auth/cancelled-popup-request':
-        throw new Error('Sign-in was cancelled. Please try again.');
+        throw new Error('Apple Sign-In was cancelled. Please try again.');
       case 'auth/popup-blocked':
         throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
       case 'auth/operation-not-allowed':
