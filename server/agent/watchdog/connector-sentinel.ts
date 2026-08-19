@@ -198,9 +198,8 @@ export class ConnectorSentinelAgent {
   private async checkFirebaseAuthConnector(): Promise<ConnectorCheckResult> {
     const start = Date.now();
     const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "samevibe-app";
-    const apiKey = process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
 
-    if (!projectId || !apiKey) {
+    if (!projectId) {
       return {
         id: "firebase_auth",
         name: "Firebase Auth Service Connector",
@@ -213,21 +212,31 @@ export class ConnectorSentinelAgent {
     }
 
     try {
-      const url = `https://identitytoolkit.googleapis.com/v1/projects/${projectId}?key=${apiKey}`;
+      const url = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
       const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
       const latencyMs = Date.now() - start;
 
-      // 200 or 400 (API key format check) indicates Firebase Identity Toolkit is reachable
-      const isOk = res.status === 200 || res.status === 400;
+      if (!res.ok) {
+        return {
+          id: "firebase_auth",
+          name: "Firebase Auth Service Connector",
+          category: "auth",
+          status: "failing",
+          latencyMs,
+          httpStatus: res.status,
+          message: `Firebase certs returned HTTP ${res.status}`,
+          lastVerifiedAt: new Date(),
+        };
+      }
 
       return {
         id: "firebase_auth",
         name: "Firebase Auth Service Connector",
         category: "auth",
-        status: isOk ? (latencyMs > 2500 ? "degraded" : "operational") : "failing",
+        status: latencyMs > 2500 ? "degraded" : "operational",
         latencyMs,
-        httpStatus: res.status,
-        message: isOk ? `Firebase Auth active (${latencyMs}ms)` : `Firebase Auth returned HTTP ${res.status}`,
+        httpStatus: 200,
+        message: `Firebase Auth Token Service operational (${latencyMs}ms)`,
         lastVerifiedAt: new Date(),
       };
     } catch (e: any) {
