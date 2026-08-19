@@ -180,6 +180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Master Connectors & App Sentinel status — monitors OAuth, DB, Ticketmaster, Eventbrite, SeatGeek, RevenueCat, OTA
+  app.get("/api/connectors/status", async (_req, res) => {
+    try {
+      const { connectorSentinel } = await import("./agent/watchdog/connector-sentinel.js");
+      const summary = await connectorSentinel.auditAllConnectors();
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ overallStatus: "critical_failure", error: error?.message || "Connector audit failed" });
+    }
+  });
+
   // OTA version endpoint — native app polls this every foreground resume
   // If buildHash differs from cached value, app downloads new bundle from Vercel
   app.get("/api/app/version", handleGetAppVersion);

@@ -127,6 +127,10 @@ const serverPromise = (async () => {
       authWatchdog.start();
     }).catch(err => console.error("[AuthWatchdog] Failed to start AuthWatchdogAgent:", err));
 
+    import("./agent/watchdog/connector-sentinel.js").then(({ connectorSentinel }) => {
+      connectorSentinel.start();
+    }).catch(err => console.error("[ConnectorSentinel] Failed to start ConnectorSentinelAgent:", err));
+
     let port = parseInt(process.env.PORT || "5001", 10);
     const startListen = (targetPort: number) => {
       server.listen(
