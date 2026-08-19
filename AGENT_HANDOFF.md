@@ -1,14 +1,37 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 18, 2026)
-**Active Branch**: `Jarryd` (Authoritative SHA: `8a66062`)  
+## Current Status (August 19, 2026)
+**Active Branch**: `Jarryd` (Authoritative SHA: `732e3f3` synced with `main`)  
 **Application Release Version**: `1.1.4`  
 **Growth Agent Status**: 🟢 **GROWTH AGENT V1 DEPLOYED. FOUNDER DASHBOARD LIVE.**  
-**Executive Status**: 🟢 **GROWTH AGENT V1 COMMITTED & PUSHED TO PRODUCTION (`8a66062`). ADMIN ACCESS GATED STRICTLY TO `support@samevibeapp.com`.**
+**Executive Status**: 🟢 **PRODUCTION VERSION 1.1.4 LIVE ON VERCEL & PUSHED TO GITHUB (`732e3f3`). ADMIN ACCESS GATED STRICTLY TO `support@samevibeapp.com`.**
+
+---
+
+## Authentication & Apple Sign-In Deep Dive (August 19, 2026)
+
+1. **Native iOS Apple Sign-In Entitlement (`App.entitlements`)**:
+   - Created [`ios/App/App/App.entitlements`](file:///C:/Users/Greenline/MYSTUFF/TriPlace/ios/App/App/App.entitlements) with native `com.apple.developer.applesignin` capability.
+   - Updated Xcode project [`ios/App/App.xcodeproj/project.pbxproj`](file:///C:/Users/Greenline/MYSTUFF/TriPlace/ios/App/App.xcodeproj/project.pbxproj) to link `CODE_SIGN_ENTITLEMENTS = App/App.entitlements;` across both Debug and Release build configurations. This enables native iOS `AuthenticationServices` when compiled into the `.ipa` binary for TestFlight / App Store.
+2. **Double-Layer Native-to-Web OAuth Fallback (`client/src/lib/firebase.ts`)**:
+   - Native Capacitor SDK detection (`isNativePlatform()`).
+   - If native authentication throws or is unconfigured, automatically falls back to `signInWithPopup(auth, appleProvider)`.
+   - If browser popup is blocked on mobile browsers, falls back to `signInWithRedirect(auth, appleProvider)`.
+   - Exported `appleProvider` at module scope with explicit `email` and `name` scopes.
+3. **Login & Signup Page UI/State Resilience (`client/src/pages/login.tsx` & `signup.tsx`)**:
+   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading`.
+   - Rendered error alert banner `(error || authError)` at the **very top of card containers** above social buttons.
+   - Added `pointer-events-none` to absolute backdrop glow wrapper to prevent click event hijacking.
+   - Added explicit `type="button"`, `cursor-pointer`, and click event logging.
+   - Added 30-second `Promise.race` safety timeout to prevent permanent UI freezes if native sheets hang.
+4. **Vercel Serverless Function Routing (`vercel.json` & `api/index.ts`)**:
+   - Fixed Vercel routing rules in `vercel.json` (`/((?!api/).*)` rewrite to `/index.html`) so Vercel Serverless Functions natively route all `/api/*` requests directly to `api/index.ts` without stripping endpoint sub-paths.
+   - Live verified at `https://samevibe-sandy.vercel.app/api/health` returning `{"status":"ok","ts":...,"version":"1.1.4"}`.
 
 ---
 
 ## Authentication & Master Connector Sentinel (August 19, 2026)
+
 1. **Master Connector & App Sentinel Agent (`server/agent/watchdog/connector-sentinel.ts`)**:
    - Continuous 5-minute automated audit monitoring all 10 core connectors & app flows:
      - Google OAuth JWKS Connector (`https://www.googleapis.com/oauth2/v3/certs`)
@@ -28,10 +51,8 @@
 3. **Apple Services ID Configuration**:
    - Registered Domains: `samevibe.app,samevibe-sandy.vercel.app,triplace-v2.firebaseapp.com`
    - Return URL: `https://triplace-v2.firebaseapp.com/__/auth/handler` under Apple Developer Services ID `com.samevibe.app.service`.
-3. **Login & Signup Page UI/State Resilience**:
-   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading` in `client/src/pages/login.tsx` & `client/src/pages/signup.tsx`.
-   - Prevented cross-button animation/shake glitches when tapping Apple or Google Sign-In.
-   - Preserved fallback web OAuth popup flow when native Capacitor auth is unavailable.
+
+---
 
 ## Monetization & Entitlement Webhook Authority (2026-07-31)
 1. **Free Account**: 3 active community slots.
@@ -39,13 +60,8 @@
 3. **Absolute Ceiling**: 5 active communities.
 4. **Free Replacement**: Free user at 3 slots can swap/replace one of their 3 communities for free without paying (`isReplacement: true`).
 5. **Entitlement Protection**: Free user attempting to add a 4th slot without payment or swap is rejected by server with `HTTP 402 Payment Required` (`code: 'ENTITLEMENT_REQUIRED'`).
-6. **Deliberate 6th Community Replacement**: Joining a 6th community returns `HTTP 409 Conflict` (`code: 'COMMUNITY_LIMIT_REACHED'`) with the candidate active community list, requiring explicit user confirmation (`replaceCommunityId`) rather than silently dropping a community.
-7. **Expired Subscription Downgrade Policy**: When a user's subscription expires while holding >3 communities, attempting a new join returns `HTTP 403 Forbidden` (`code: 'COMMUNITY_DOWNGRADE_REQUIRED'`) with their active community list. Existing communities remain readable; joining requires deactivating back to 3 or renewing.
-8. **RevenueCat Webhook Authority (`POST /api/revenuecat/webhook`)**:
-   - Signature/Auth header verification (`REVENUECAT_WEBHOOK_SECRET`)
-   - Replay protection via DB-level unique constraint on `slot_grants.txn_key`
-   - Lifecycle handlers (`INITIAL_PURCHASE` / `RENEWAL` -> active/5 slots; `CANCELLATION` / `EXPIRATION` -> expired/3 slots)
-   - Client signup/profile routes strictly strip entitlement fields. Client-supplied flags have zero authority.
+6. **Deliberate 6th Community Replacement**: Joining a 6th community returns `HTTP 409 Conflict` (`code: 'COMMUNITY_LIMIT_REACHED'`) with candidate active community list.
+7. **RevenueCat Webhook Authority (`POST /api/revenuecat/webhook`)**: Verified via signature headers & unique DB transaction constraint on `slot_grants.txn_key`.
 
 ---
 
@@ -71,21 +87,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS communities_canonical_key_unique
   WHERE canonical_key IS NOT NULL;
 ```
 
-Files are at: `migrations/001_unique_constraints.sql`, `migrations/002_canonical_community_key.sql`, and `migrations/003_post_test_invariants.sql`
-
 ---
 
 ## Event Geolocation Pipeline & Radius Confinement (2026-08-07 Overhaul)
 
 All 7 identified event leakage vectors have been systematically resolved:
 
-1. **Scraper Precision**: `TicketmasterScraper`, `EventbriteScraper`, and `SeatGeekScraper` now query using exact `latitude` and `longitude` parameters rather than city-name string lookups.
-2. **Orchestrator Coordination**: `EventScraperOrchestrator` passes live user GPS coordinates directly down to all scraper modules.
-3. **Distance Filter Integrity**: `CommunityMatcher.filterByLocation` and `calculateEventDistance` check venue coordinates as primary distance sources and removed city-name string bypasses.
-4. **City Coordinate Resolution**: `storage.ts` includes `resolveEventCoords` with Utah and national city coordinate lookups so events with location text (e.g. *"Salt Lake City, UT"*, *"Ogden, UT"*) but missing DB lat/lng columns are properly mapped to coordinates.
-5. **Storage Fallback Protection**: `storage.getEventsByLocation` and `storage.getUpcomingEvents` return empty array `[]` on missing/invalid user coordinates, preventing global event leakage.
-6. **Route-Level Geo Enforcement**: `GET /api/events`, `GET /api/communities/:id/events`, and `GET /api/communities/:id/scraped-events` extract user location/radius and filter results strictly to within 50 miles.
-7. **UI Cleanliness**: Removed hardcoded Central Park (New York) and SOHO (New York) fallback cards from `dashboard.tsx` when `trendingEvents` is empty, replacing them with a local empty state. Fixed `use-geolocation.ts` hook dependency array to include `[userId]`.
+1. **Scraper Precision**: `TicketmasterScraper`, `EventbriteScraper`, and `SeatGeekScraper` query using exact GPS `latitude` and `longitude`.
+2. **Orchestrator Coordination**: `EventScraperOrchestrator` passes live user GPS coordinates directly to scraper modules.
+3. **Distance Filter Integrity**: `CommunityMatcher.filterByLocation` and `calculateEventDistance` evaluate venue coordinates.
+4. **City Coordinate Resolution**: `storage.ts` includes `resolveEventCoords` for missing venue lat/lng mappings.
+5. **Storage Fallback Protection**: `storage.getEventsByLocation` returns `[]` on missing coordinates to prevent global leakage.
+6. **Route-Level Geo Enforcement**: All event endpoints filter strictly within 50 miles.
 
 ---
 
@@ -96,24 +109,22 @@ All 7 identified event leakage vectors have been systematically resolved:
 - No automatic community joins on any read or login event
 - No protected memberships, fixed slots, or fallback content
 - No bypasses around onboarding, auth, age eligibility, or community limits
-- The account may have 0–5 communities based on real manual actions
-- Developer QA reset is only possible via explicit admin scripts (`scripts/join-reviewer-communities.ts`, guarded by `NODE_ENV !== 'production'` check)
-- Production cannot invoke the reset scripts through any live user flow
 
 ---
 
 ## Founder Decision Lock: Monetization Model
-1. **Core Social Experience**: 100% Free (Community/event discovery, joining base 3 communities per month, creating activities, group chat, RSVP, reporting/blocking/safety).
-2. **3 Free Monthly Active Communities**: Regular users get 3 free active community slots per month to focus their feed on their true top communities without noise.
-3. **$0.99 / Month Community Slot Expansion**: Users can purchase +1 extra active community slot per month ($0.99/mo) up to a maximum total of 5 active communities.
-4. **$4.99 / Month Organizer Promotion Subscription**: Recurring subscription for event organizers/hosts to promote eligible local events, receive a verified organizer profile badge, enhanced placement, and analytics. Promoted events are clearly labeled and quality-controlled.
+1. **Core Social Experience**: 100% Free.
+2. **3 Free Monthly Active Communities**: Free users get 3 active community slots per month.
+3. **$0.99 / Month Community Slot Expansion**: +1 extra active community slot ($0.99/mo) up to 5 max.
+4. **$4.99 / Month Organizer Promotion Subscription**: Recurring subscription for event organizers/hosts.
 
 ---
 
-## Branch Details
-- **Active Branch**: `Jarryd` (pushed to `origin/Jarryd` and `origin/main`, commit `3a78ae2`)
-- **Version**: `1.0.5`
-- **Primary Focus**: Strict 50-mile geolocation confinement, security hardening, database unique constraints, RevenueCat entitlement authority.
+## Branch & Release Details
+- **Active Branch**: `Jarryd` (pushed to `origin/Jarryd` and `origin/main`, commit `732e3f3`)
+- **Version**: `1.1.4`
+- **Target Domain**: `https://samevibe-sandy.vercel.app`
+- **Desktop Archive**: `C:\Users\Greenline\Desktop\SameVibe_v1.1.4_Updated.zip`
 
 ---
 
@@ -127,10 +138,8 @@ All 7 identified event leakage vectors have been systematically resolved:
 ---
 
 ## Next Steps
-1. **Trigger Codemagic Build**:
-   - Build version `1.0.5` targeting TestFlight.
-2. **TestFlight Verification**:
-   - Verify on device in Sunset/Utah area that upcoming events show local Utah events (*Salt Lake AI & Tech Gathering*) and do not display out-of-state/New York/San Francisco cards.
-3. **Post-Release Hardening Roadmap**:
-   - **Key Rotation**: Periodically rotate third-party API keys in developer dashboards.
-   - **Avatar File Upload**: Transition avatar storage from raw Base64 strings to Firebase Storage URLs.
+1. **App Store Connect / TestFlight Submission**:
+   - Codemagic builds candidate `.ipa` `1.1.4` (Build #178+) with native `App.entitlements`.
+   - Submit candidate build `1.1.4` for App Store review on [appstoreconnect.apple.com](https://appstoreconnect.apple.com).
+2. **Google Play Console Status**:
+   - Monitor approval status for Android release train `1.1.4`.
