@@ -8,13 +8,21 @@
 
 ---
 
-## Authentication & Apple Sign-In Stabilization (August 18, 2026)
-1. **Apple Services ID Configuration**:
+## Authentication & Auth Watchdog Agent (August 19, 2026)
+1. **Backend Auth Watchdog Agent (`server/agent/watchdog/auth-watchdog.ts`)**:
+   - Runs continuous automated background probes every 5 minutes testing:
+     - Google OAuth Provider & JWKS key availability (`https://www.googleapis.com/oauth2/v3/certs`)
+     - Apple OAuth Provider & JWKS key availability (`https://appleid.apple.com/auth/keys`)
+     - Firebase Auth project configuration & API endpoint status
+     - Database User Profile lookup/creation sync pipeline
+   - Automatically logs detected auth degradation/failures to `watchdog_issues` table.
+   - Exposes live health status at `GET /api/health/auth-status`.
+2. **Apple Services ID Configuration**:
    - Registered Domains: `samevibe.app,samevibe-sandy.vercel.app,triplace-v2.firebaseapp.com`
    - Return URL: `https://triplace-v2.firebaseapp.com/__/auth/handler` under Apple Developer Services ID `com.samevibe.app.service`.
-2. **Login Page UI/State Resilience**:
-   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading` in `client/src/pages/login.tsx`.
-   - Prevented cross-button animation/shake glitches when tapping Apple Sign-In.
+3. **Login & Signup Page UI/State Resilience**:
+   - Disentangled shared `loading` state into isolated `appleLoading` and `googleLoading` in `client/src/pages/login.tsx` & `client/src/pages/signup.tsx`.
+   - Prevented cross-button animation/shake glitches when tapping Apple or Google Sign-In.
    - Preserved fallback web OAuth popup flow when native Capacitor auth is unavailable.
 
 ## Monetization & Entitlement Webhook Authority (2026-07-31)
