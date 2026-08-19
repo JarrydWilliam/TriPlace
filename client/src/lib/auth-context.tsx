@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User as FirebaseUser, onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
-import { User } from "@shared/schema";
+import { User, CURRENT_TERMS_VERSION } from "@shared/schema";
 import { apiRequest, getApiUrl } from "./queryClient";
 
 interface AuthContextType {
