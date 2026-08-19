@@ -65,15 +65,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
               const userData = await response.json();
               setUser(userData);
             } else if (response.status === 404) {
-              // Create new user
+              // Create new user with bulletproof fallbacks for Apple "Hide My Email" and OAuth providers
+              const userEmail = firebaseUser.email || `${firebaseUser.uid.substring(0, 12)}@privaterelay.appleid.com`;
+              const userName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : "SameVibe Member");
+
               const newUserData = {
                 firebaseUid: firebaseUser.uid,
-                email: firebaseUser.email!,
-                name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
-                avatar: firebaseUser.photoURL,
+                email: userEmail,
+                name: userName,
+                avatar: firebaseUser.photoURL || null,
                 interests: [],
                 dateOfBirth: sessionStorage.getItem('pendingDOB') || null,
-                termsVersion: sessionStorage.getItem('pendingTermsVersion') || null,
+                termsVersion: sessionStorage.getItem('pendingTermsVersion') || CURRENT_TERMS_VERSION,
               };
               
               const createResponse = await apiRequest('POST', '/api/users', newUserData);

@@ -64,21 +64,23 @@ export const signInWithGoogle = async () => {
     // Capacitor native (iOS/Android) uses the Native Google Sign-In SDK via Capacitor plugin
     // This perfectly handles the native iOS popup sheet without webview redirect/cookie issues.
     if (isNativePlatform()) {
-      const nativeResult = await FirebaseAuthentication.signInWithGoogle();
-      
-      if (!nativeResult.credential?.idToken) {
-        throw new Error("Failed to get Google authentication credential.");
+      try {
+        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+        
+        if (nativeResult.credential?.idToken) {
+          const credential = GoogleAuthProvider.credential(
+            nativeResult.credential.idToken,
+            nativeResult.credential.accessToken
+          );
+          
+          const result = await signInWithCredential(auth, credential);
+          return result;
+        }
+      } catch (nativeErr: any) {
+        console.warn("[SameVibe Auth] Native Google Auth failed, attempting web OAuth fallback:", nativeErr);
       }
-      
-      const credential = GoogleAuthProvider.credential(
-        nativeResult.credential.idToken,
-        nativeResult.credential.accessToken
-      );
-      
-      const result = await signInWithCredential(auth, credential);
-      return result;
     }
-    // Standard browser: use popup for better UX
+    // Standard browser & fallback: use popup for better UX
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
