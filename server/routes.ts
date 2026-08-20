@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Health check — used by watchdog and load balancers
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", ts: Date.now(), version: process.env.npm_package_version || "1.1.4" });
+    res.json({ status: "ok", ts: Date.now(), version: process.env.npm_package_version || "1.1.5" });
   });
 
   // Auth Health & Watchdog status — probes Google, Apple, Firebase, and DB User sync
