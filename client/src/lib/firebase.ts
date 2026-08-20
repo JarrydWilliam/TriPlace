@@ -67,29 +67,24 @@ export const signInWithGoogle = async () => {
   try {
     if (isNativePlatform()) {
       console.log("[SameVibe Auth] Native Google Sign-In initiating...");
-      const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+      const nativeResult = await FirebaseAuthentication.signInWithGoogle({
+        skipNativeAuth: true,
+      });
+      console.log("[SameVibe Auth] Native Google Sign-In result:", nativeResult);
       
       if (nativeResult.credential?.idToken) {
-        try {
-          const credential = GoogleAuthProvider.credential(
-            nativeResult.credential.idToken,
-            nativeResult.credential.accessToken
-          );
-          const result = await signInWithCredential(auth, credential);
-          return result;
-        } catch (credErr: any) {
-          console.warn("[SameVibe Auth] Native Google credential linking warning:", credErr);
-          if (auth.currentUser) {
-            return { user: auth.currentUser };
-          }
-          throw credErr;
-        }
+        const credential = GoogleAuthProvider.credential(
+          nativeResult.credential.idToken,
+          nativeResult.credential.accessToken
+        );
+        const result = await signInWithCredential(auth, credential);
+        return result;
       }
 
       if (auth.currentUser) {
         return { user: auth.currentUser };
       }
-      return nativeResult;
+      throw new Error("Google Sign-In did not return valid credentials. Please try again.");
     }
 
     // Standard browser fallback: use popup for web UX
@@ -97,10 +92,11 @@ export const signInWithGoogle = async () => {
     return result;
   } catch (error: any) {
     console.error("[SameVibe Auth] Google Sign-In Error:", error);
+    const msg = error?.message || String(error);
+    if (msg.includes("canceled") || msg.includes("cancelled") || error.code === 'auth/popup-closed-by-user') {
+      throw new Error('Sign-in was cancelled.');
+    }
     switch (error.code) {
-      case 'auth/popup-closed-by-user':
-      case 'auth/cancelled-popup-request':
-        throw new Error('Sign-in was cancelled. Please try again.');
       case 'auth/popup-blocked':
         throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
       case 'auth/network-request-failed':
@@ -110,7 +106,7 @@ export const signInWithGoogle = async () => {
       case 'auth/unauthorized-domain':
         throw new Error('This domain is not authorized for authentication. Please contact support.');
       default:
-        throw new Error(error?.message ? error.message.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, "") : 'Google Sign-In failed. Please try again.');
+        throw new Error(msg.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, ""));
     }
   }
 };
@@ -119,35 +115,30 @@ export const signInWithApple = async () => {
   try {
     if (isNativePlatform()) {
       console.log("[SameVibe Auth] Native Apple Sign-In initiating...");
-      const nativeResult = await FirebaseAuthentication.signInWithApple();
+      const nativeResult = await FirebaseAuthentication.signInWithApple({
+        skipNativeAuth: true,
+      });
       console.log("[SameVibe Auth] Native Apple Sign-In completed:", nativeResult);
       
       if (nativeResult.credential?.idToken) {
         const idToken = nativeResult.credential.idToken;
         const rawNonce = (nativeResult.credential as any).rawNonce || (nativeResult.credential as any).nonce;
         
-        try {
-          const credentialOptions: Record<string, any> = { idToken };
-          if (rawNonce) {
-            credentialOptions.rawNonce = rawNonce;
-          }
-          
-          const credential = appleProvider.credential(credentialOptions);
-          const result = await signInWithCredential(auth, credential);
-          return result;
-        } catch (credErr: any) {
-          console.warn("[SameVibe Auth] Native Apple credential linking warning:", credErr);
-          if (auth.currentUser) {
-            return { user: auth.currentUser };
-          }
-          throw credErr;
+        const credentialOptions: Record<string, any> = { idToken };
+        if (rawNonce) {
+          credentialOptions.rawNonce = rawNonce;
         }
+        
+        const credential = appleProvider.credential(credentialOptions);
+        const result = await signInWithCredential(auth, credential);
+        console.log("[SameVibe Auth] Firebase signInWithCredential successful:", result.user.uid);
+        return result;
       }
 
       if (auth.currentUser) {
         return { user: auth.currentUser };
       }
-      return nativeResult;
+      throw new Error("Apple Sign-In did not return valid credentials. Please try again.");
     }
     
     // Standard browser fallback: try popup first, fall back to redirect if blocked
@@ -164,10 +155,11 @@ export const signInWithApple = async () => {
     }
   } catch (error: any) {
     console.error("[SameVibe Auth] Apple Sign-In Error:", error);
+    const msg = error?.message || String(error);
+    if (msg.includes("canceled") || msg.includes("cancelled") || error.code === 'auth/popup-closed-by-user' || error.code === '1001') {
+      throw new Error('Apple Sign-In was cancelled.');
+    }
     switch (error.code) {
-      case 'auth/popup-closed-by-user':
-      case 'auth/cancelled-popup-request':
-        throw new Error('Apple Sign-In was cancelled. Please try again.');
       case 'auth/popup-blocked':
         throw new Error('Popup was blocked by your browser. Please allow popups and try again.');
       case 'auth/operation-not-allowed':
@@ -175,7 +167,7 @@ export const signInWithApple = async () => {
       case 'auth/network-request-failed':
         throw new Error(ERROR_MESSAGES.NETWORK);
       default:
-        throw new Error(error?.message ? error.message.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, "") : 'Apple Sign-In failed. Please try again.');
+        throw new Error(msg.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, ""));
     }
   }
 };
