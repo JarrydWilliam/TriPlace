@@ -65,29 +65,38 @@ appleProvider.addScope('name');
 
 export const signInWithGoogle = async () => {
   try {
-    // Capacitor native (iOS/Android) uses the Native Google Sign-In SDK via Capacitor plugin
-    // This perfectly handles the native iOS popup sheet without webview redirect/cookie issues.
     if (isNativePlatform()) {
-      try {
-        const nativeResult = await FirebaseAuthentication.signInWithGoogle();
-        
-        if (nativeResult.credential?.idToken) {
+      console.log("[SameVibe Auth] Native Google Sign-In initiating...");
+      const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+      
+      if (nativeResult.credential?.idToken) {
+        try {
           const credential = GoogleAuthProvider.credential(
             nativeResult.credential.idToken,
             nativeResult.credential.accessToken
           );
-          
           const result = await signInWithCredential(auth, credential);
           return result;
+        } catch (credErr: any) {
+          console.warn("[SameVibe Auth] Native Google credential linking warning:", credErr);
+          if (auth.currentUser) {
+            return { user: auth.currentUser };
+          }
+          throw credErr;
         }
-      } catch (nativeErr: any) {
-        console.warn("[SameVibe Auth] Native Google Auth failed, attempting web OAuth fallback:", nativeErr);
       }
+
+      if (auth.currentUser) {
+        return { user: auth.currentUser };
+      }
+      return nativeResult;
     }
-    // Standard browser & fallback: use popup for better UX
+
+    // Standard browser fallback: use popup for web UX
     const result = await signInWithPopup(auth, googleProvider);
     return result;
   } catch (error: any) {
+    console.error("[SameVibe Auth] Google Sign-In Error:", error);
     switch (error.code) {
       case 'auth/popup-closed-by-user':
       case 'auth/cancelled-popup-request':
@@ -101,7 +110,7 @@ export const signInWithGoogle = async () => {
       case 'auth/unauthorized-domain':
         throw new Error('This domain is not authorized for authentication. Please contact support.');
       default:
-        throw new Error('Authentication failed. Please try again or contact support.');
+        throw new Error(error?.message ? error.message.replace("Firebase: ", "").replace(/\s*\(auth\/.*\)/, "") : 'Google Sign-In failed. Please try again.');
     }
   }
 };
@@ -109,24 +118,39 @@ export const signInWithGoogle = async () => {
 export const signInWithApple = async () => {
   try {
     if (isNativePlatform()) {
-      try {
-        const nativeResult = await FirebaseAuthentication.signInWithApple();
+      console.log("[SameVibe Auth] Native Apple Sign-In initiating...");
+      const nativeResult = await FirebaseAuthentication.signInWithApple();
+      console.log("[SameVibe Auth] Native Apple Sign-In completed:", nativeResult);
+      
+      if (nativeResult.credential?.idToken) {
+        const idToken = nativeResult.credential.idToken;
+        const rawNonce = (nativeResult.credential as any).rawNonce || (nativeResult.credential as any).nonce;
         
-        if (nativeResult.credential?.idToken) {
-          const credential = appleProvider.credential({
-            idToken: nativeResult.credential.idToken,
-            rawNonce: nativeResult.credential.nonce
-          });
+        try {
+          const credentialOptions: Record<string, any> = { idToken };
+          if (rawNonce) {
+            credentialOptions.rawNonce = rawNonce;
+          }
           
+          const credential = appleProvider.credential(credentialOptions);
           const result = await signInWithCredential(auth, credential);
           return result;
+        } catch (credErr: any) {
+          console.warn("[SameVibe Auth] Native Apple credential linking warning:", credErr);
+          if (auth.currentUser) {
+            return { user: auth.currentUser };
+          }
+          throw credErr;
         }
-      } catch (nativeErr: any) {
-        console.warn("[SameVibe Auth] Native Apple Auth failed, attempting web OAuth fallback:", nativeErr);
       }
+
+      if (auth.currentUser) {
+        return { user: auth.currentUser };
+      }
+      return nativeResult;
     }
     
-    // Standard browser & fallback: try popup first, fall back to redirect if blocked
+    // Standard browser fallback: try popup first, fall back to redirect if blocked
     try {
       const result = await signInWithPopup(auth, appleProvider);
       return result;
