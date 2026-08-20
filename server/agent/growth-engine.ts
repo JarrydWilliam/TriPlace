@@ -97,7 +97,19 @@ export class GrowthEngine {
     for (const rec of recs.slice(0, 3)) { // Top 3 recommendation gaps
       const content = `🔥 Unmet Demand in ${rec.market}: ${rec.userDemandCount} local adults are looking for ${rec.interest} plans on SameVibe, but only ${rec.supplyCount} activity is currently scheduled.\n\nDon't wait for someone else to organize it—create your ${rec.interest} activity on SameVibe today and find your scene!`;
 
-      const videoScript = `[HOOK - 0-3s]\n"Stop waiting for your friends to be free for ${rec.interest} in ${rec.market}..."\n\n[BODY - 3-15s]\n"There are literally ${rec.userDemandCount} people in ${rec.market} right now on SameVibe looking for a ${rec.interest} group. We're building real-world social circles with zero pressure."\n\n[CTA - 15-20s]\n"Download SameVibe, start the ${rec.interest} plan you actually want to do, and find your people today."`;
+      const eightSceneScript = `[SAMEVIBE 8-SCENE REEL SCRIPT - DREAMINA + CAPCUT WORKFLOW]
+Title: Find Your ${rec.interest} Crew in ${rec.market} #Shorts #SameVibe
+
+Scene 1 (Desire): Adult character in ${rec.market} holding ${rec.interest} gear, wanting to do a real-world plan.
+Scene 2 (Discovery): Sees a local ${rec.interest} activity listing on their phone.
+Scene 3 (Social Friction): Mild hesitation—new to city / doesn't currently have a group to go with.
+Scene 4 (SameVibe Social Layer): Discovers SameVibe ${rec.interest} group in ${rec.market} (${rec.userDemandCount} local members). Relief & excitement.
+Scene 5 (Commitment): Character gets ready and heads out.
+Scene 6 (Arrival / First Contact): Friendly, realistic greeting with a small group of adults at the location.
+Scene 7 (Real Participation PAYOFF): Emotional payoff—character genuinely participating in ${rec.interest} with the group.
+Scene 8 (Brand Ending): Over-the-shoulder phone shot with the active group in the background. Camera pushes into phone screen -> exact SameVibe loading screen + logo -> "this is my vibe".
+
+CapCut Composite: Overlay exact SameVibe app screenshot onto phone display with 1-tap bio link CTA.`;
 
       const draft1 = await storage.createGrowthContentDraft({
         type: "social_post",
@@ -109,17 +121,15 @@ export class GrowthEngine {
 
       const draft2 = await storage.createGrowthContentDraft({
         type: "short_video_script",
-        content: videoScript,
+        content: eightSceneScript,
         market: rec.market,
         status: "draft",
         targetPlatform: "tiktok",
       });
 
-      const youtubeShortScript = `[YOUTUBE SHORTS SCRIPT]\nTitle: Find Your ${rec.interest} Crew in ${rec.market} #Shorts #SameVibe\n\n[HOOK - 0-5s]\n"Looking for a ${rec.interest} group in ${rec.market}?"\n\n[BODY - 5-30s]\n"There are ${rec.userDemandCount} local adults on SameVibe searching for ${rec.interest} plans right now in ${rec.market}. Connect with real people, join verified local activities, and skip the awkwardness."\n\n[CTA - 30-45s]\n"Tap the link in our channel bio to download SameVibe and start your ${rec.interest} crew today!"`;
-
       const draft3 = await storage.createGrowthContentDraft({
         type: "short_video_script",
-        content: youtubeShortScript,
+        content: eightSceneScript,
         market: rec.market,
         status: "draft",
         targetPlatform: "youtube_shorts",
