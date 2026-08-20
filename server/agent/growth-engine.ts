@@ -115,7 +115,17 @@ export class GrowthEngine {
         targetPlatform: "tiktok",
       });
 
-      drafts.push(draft1, draft2);
+      const youtubeShortScript = `[YOUTUBE SHORTS SCRIPT]\nTitle: Find Your ${rec.interest} Crew in ${rec.market} #Shorts #SameVibe\n\n[HOOK - 0-5s]\n"Looking for a ${rec.interest} group in ${rec.market}?"\n\n[BODY - 5-30s]\n"There are ${rec.userDemandCount} local adults on SameVibe searching for ${rec.interest} plans right now in ${rec.market}. Connect with real people, join verified local activities, and skip the awkwardness."\n\n[CTA - 30-45s]\n"Tap the link in our channel bio to download SameVibe and start your ${rec.interest} crew today!"`;
+
+      const draft3 = await storage.createGrowthContentDraft({
+        type: "short_video_script",
+        content: youtubeShortScript,
+        market: rec.market,
+        status: "draft",
+        targetPlatform: "youtube_shorts",
+      });
+
+      drafts.push(draft1, draft2, draft3);
     }
 
     return drafts;
@@ -237,10 +247,37 @@ export class GrowthEngine {
         } else {
           throw new Error(fbData.error?.message || "Facebook Graph API post failed.");
         }
+      } else if (accessToken && (platform === "youtube" || platform === "youtube_shorts")) {
+        // Live YouTube Data API v3 Dispatch
+        const ytRes = await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,status", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            snippet: {
+              title: `SameVibe - Find Your Scene (${draft.market}) #Shorts`,
+              description: draft.content,
+              tags: ["SameVibe", "Shorts", draft.market, "Community"],
+            },
+            status: {
+              privacyStatus: "public",
+              selfDeclaredMadeForKids: false,
+            },
+          }),
+        });
+        const ytData = await ytRes.json();
+        if (ytData.id) {
+          liveUrl = `https://youtube.com/shorts/${ytData.id}`;
+        } else {
+          throw new Error(ytData.error?.message || "YouTube API Shorts creation failed.");
+        }
       } else {
         // Simulation mode fallback with realistic URL
         const simulatedPostId = Math.random().toString(36).substring(2, 10);
-        liveUrl = `https://${draft.targetPlatform}.com/p/samevibe_${simulatedPostId}`;
+        const domain = platform.includes("youtube") ? "youtube.com/shorts" : `${draft.targetPlatform}.com/p`;
+        liveUrl = `https://${domain}/samevibe_${simulatedPostId}`;
       }
 
       const publishedDraft = await storage.updateGrowthContentDraft(draftId, {
