@@ -142,13 +142,16 @@ function Router() {
       const needsProfileSetup =
         !user.name || user.name === user.email?.split("@")[0];
 
-      const isGoogleUser =
+      const isSocialUser =
         firebaseUser.providerId === "google.com" ||
+        firebaseUser.providerId === "apple.com" ||
         firebaseUser.providerData.some(
-          (provider) => provider.providerId === "google.com",
+          (provider) =>
+            provider.providerId === "google.com" ||
+            provider.providerId === "apple.com",
         );
 
-      const requiresProfile = !isGoogleUser && needsProfileSetup;
+      const requiresProfile = !isSocialUser && needsProfileSetup;
       const needsCompliance = false;
 
       const publicRoutes = ["/terms", "/privacy", "/delete-account", "/safety"];
