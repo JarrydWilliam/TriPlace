@@ -6,6 +6,7 @@
 
 const ADMIN_EMAILS = [
   "support@samevibeapp.com",
+  "jarryd@samevibeapp.com",
 ];
 
 /**

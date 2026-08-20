@@ -48,6 +48,7 @@ import {
 
 import { SharedCommunityCard } from "@/components/ui/community-card";
 import { CATEGORIES } from "@/lib/constants";
+import { VibeShortsFeed } from "@/components/ui/vibe-shorts-feed";
 
 // ─── Main Discover page ───────────────────────────────────────────────────────
 
@@ -229,6 +230,9 @@ export default function Discover() {
               </button>
             ))}
           </div>
+
+        {/* ─ Trending YouTube Shorts Showcase ─ */}
+        <VibeShortsFeed />
 
         {/* ─ AI Communities ─ */}
         <section>

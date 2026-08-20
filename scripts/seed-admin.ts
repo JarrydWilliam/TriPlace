@@ -7,91 +7,86 @@ dotenv.config();
 
 const API_KEY = process.env.VITE_FIREBASE_API_KEY;
 
+const ADMIN_ACCOUNTS = [
+  { email: "support@samevibeapp.com", password: "SameVibe2024!", name: "SameVibe Support Admin" },
+  { email: "jarryd@samevibeapp.com", password: "SameVibe!", name: "Jarryd Burke (Founder)" },
+];
+
 async function seedAdminAccount() {
-  const email = "support@samevibeapp.com";
-  const password = "SameVibe2024!";
-  let firebaseUid: string | null = null;
+  for (const acc of ADMIN_ACCOUNTS) {
+    const { email, password, name } = acc;
+    let firebaseUid: string | null = null;
 
-  console.log(`Setting up Admin Account (${email}) with password '${password}'...`);
+    console.log(`Setting up Admin Account (${email})...`);
 
-  if (!API_KEY || API_KEY === 'mock_key') {
-    console.log("Firebase API key is mock or missing. Updating DB record directly...");
-  } else {
-    try {
-      console.log(`Creating/Ensuring Firebase account for ${email}...`);
-      let signUpRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true })
-      });
-      let authData = await signUpRes.json();
-
-      if (authData.error && authData.error.message === 'EMAIL_EXISTS') {
-        console.log(`Firebase account ${email} already exists. Authenticating...`);
-        let signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
+    if (API_KEY && API_KEY !== 'mock_key') {
+      try {
+        console.log(`Creating/Ensuring Firebase account for ${email}...`);
+        let signUpRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, returnSecureToken: true })
         });
-        authData = await signInRes.json();
-      }
+        let authData = await signUpRes.json();
 
-      if (authData.localId) {
-        firebaseUid = authData.localId;
-        console.log(`✅ Firebase Account Active! UID: ${authData.localId}`);
-      } else {
-        console.warn("Firebase Account Setup Notice:", authData);
+        if (authData.error && authData.error.message === 'EMAIL_EXISTS') {
+          console.log(`Firebase account ${email} already exists. Authenticating...`);
+          let signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, returnSecureToken: true })
+          });
+          authData = await signInRes.json();
+        }
+
+        if (authData.localId) {
+          firebaseUid = authData.localId;
+          console.log(`✅ Firebase Account Active for ${email}! UID: ${authData.localId}`);
+        }
+      } catch (err: any) {
+        console.warn(`Firebase notice for ${email}:`, err.message);
       }
-    } catch (err: any) {
-      console.warn("Firebase authentication attempt notice:", err.message);
+    }
+
+    if (process.env.DATABASE_URL) {
+      try {
+        const sql = neon(process.env.DATABASE_URL);
+        const db = drizzle(sql, { schema });
+
+        const [existingUser] = await db.select().from(schema.users).where(eq(schema.users.email, email));
+
+        if (existingUser) {
+          console.log(`User ${email} exists in DB. Updating profile & UID...`);
+          await db.update(schema.users).set({
+            name,
+            avatar: "/logo.png",
+            onboardingCompleted: true,
+            firebaseUid: firebaseUid || existingUser.firebaseUid || `admin_${Date.now()}`,
+          }).where(eq(schema.users.id, existingUser.id));
+        } else {
+          console.log(`Inserting DB record for ${email}...`);
+          await db.insert(schema.users).values({
+            firebaseUid: firebaseUid || `admin_uid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            email,
+            name,
+            avatar: "/logo.png",
+            location: "Salt Lake City, UT",
+            interests: ["Technology", "Outdoors", "Networking", "Community Growth"],
+            onboardingCompleted: true,
+          });
+        }
+        console.log(`✅ Database User for ${email} fully synchronized!`);
+      } catch (dbErr: any) {
+        console.error(`DB Error for ${email}:`, dbErr);
+      }
     }
   }
-
-  // Ensure DB User record exists for support@samevibeapp.com
-  if (process.env.DATABASE_URL) {
-    try {
-      console.log('Connecting to PostgreSQL database...');
-      const sql = neon(process.env.DATABASE_URL);
-      const db = drizzle(sql, { schema });
-
-      const [existingUser] = await db.select().from(schema.users).where(eq(schema.users.email, email));
-
-      if (existingUser) {
-        console.log(`User ${email} already exists in DB. Updating admin profile and Firebase UID (${firebaseUid || existingUser.firebaseUid})...`);
-        await db.update(schema.users).set({
-          firebaseUid: firebaseUid || existingUser.firebaseUid,
-          onboardingCompleted: true,
-          name: "SameVibe Founder / Support",
-          avatar: "/logo.png",
-          bio: "Founder & Growth Administrator Account",
-          interests: ["tech", "community", "hiking", "music"],
-          location: "Salt Lake City, UT",
-        }).where(eq(schema.users.email, email));
-        console.log('✅ Admin profile updated successfully with logo avatar.');
-      } else {
-        console.log(`Creating DB profile for ${email}...`);
-        await db.insert(schema.users).values({
-          firebaseUid: `admin_${Date.now()}`,
-          email,
-          name: "SameVibe Founder / Support",
-          avatar: "/logo.png",
-          bio: "Founder & Growth Administrator Account",
-          interests: ["tech", "community", "hiking", "music"],
-          location: "Salt Lake City, UT",
-          onboardingCompleted: true,
-        });
-        console.log('✅ Admin profile created successfully with logo avatar.');
-      }
-    } catch (dbErr: any) {
-      console.warn("Database sync notice:", dbErr.message);
-    }
-  }
-
-  console.log("=========================================");
-  console.log(`Admin Account Configured:`);
-  console.log(`Email:    ${email}`);
-  console.log(`Password: ${password}`);
-  console.log("=========================================");
 }
 
-seedAdminAccount().catch(console.error);
+seedAdminAccount().then(() => {
+  console.log("🎉 All Admin accounts successfully provisioned!");
+  process.exit(0);
+}).catch(err => {
+  console.error("Fatal seed error:", err);
+  process.exit(1);
+});
