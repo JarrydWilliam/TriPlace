@@ -1,10 +1,11 @@
 # SameVibe - Agent Handoff
 
-## Current Status (August 19, 2026)
-**Active Branch**: `Jarryd` (Authoritative SHA: `732e3f3` synced with `main`)  
+## Current Status (September 10, 2026)
+**Active Branch**: `Jarryd` (Authoritative SHA: `5eb0e5e`)  
 **Application Release Version**: `1.1.5`  
 **Growth Agent Status**: 🟢 **GROWTH AGENT V1 DEPLOYED. FOUNDER DASHBOARD LIVE.**  
-**Executive Status**: 🟢 **PRODUCTION VERSION 1.1.5 LIVE ON VERCEL & PUSHED TO GITHUB. ADMIN ACCESS GATED STRICTLY TO FOUNDER & SUPPORT ACCOUNTS.**
+**Executive Status**: 🟢 **PRODUCTION VERSION 1.1.5 LIVE ON VERCEL & PUSHED TO GITHUB.**
+**Apple Sign-In Loop**: ✅ **ROOT CAUSE FIXED & PUSHED (commit `5eb0e5e`)**
 
 ---
 
@@ -30,7 +31,24 @@
 
 ---
 
-## Authentication & Master Connector Sentinel (August 19, 2026)
+## Apple Sign-In Loop — Root Cause Fixed (September 10, 2026)
+
+**Bug**: After tapping "Continue with Apple" on the live app, the user would complete the Apple authentication sheet, briefly see the login page again, and be looped back to `/login`.
+
+**Root Cause**: `handleAppleLogin` (login.tsx) and `handleAppleSignup` (signup.tsx) both called `setLocation("/dashboard")` or `setLocation("/onboarding")` **immediately** after `signInWithApple()` resolved. At that instant, `onAuthStateChanged` in `auth-context.tsx` had not yet fired — it needed ~200–2000ms to fetch/create the DB user profile from the API. The app would render the target page with `user === null`, and App.tsx's routing `useEffect` would immediately bounce back to `/login`.
+
+**Files Changed**:
+- [`client/src/pages/login.tsx`](file:///C:/Users/Greenline/MYSTUFF/TriPlace/client/src/pages/login.tsx): Removed `setLocation("/dashboard")` from `handleAppleLogin` and `handleGoogleLogin`. Added `signingIn` state that shows a "Completing sign-in…" loading overlay while `auth-context` resolves.
+- [`client/src/pages/signup.tsx`](file:///C:/Users/Greenline/MYSTUFF/TriPlace/client/src/pages/signup.tsx): Same — removed `setLocation` from `handleAppleSignup` and `handleGoogleSignup`. Added `signingIn` overlay.
+
+**Why App.tsx is correct**: The routing `useEffect` in `App.tsx` runs only when `!loading && firebaseUser && user` are all truthy — i.e. after `onAuthStateChanged` settles and the DB profile is loaded. It routes:
+- `needsOnboarding && !onboardingCompleted` → `/onboarding`
+- Existing user at `/login` or `/signup` → `/dashboard`
+
+No changes needed to `App.tsx` or `auth-context.tsx`.
+
+---
+
 
 1. **Master Connector & App Sentinel Agent (`server/agent/watchdog/connector-sentinel.ts`)**:
    - Continuous 5-minute automated audit monitoring all 10 core connectors & app flows:
