@@ -19,6 +19,7 @@ export default function Login() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false); // true after OAuth succeeds, waiting for auth-context
   const loading = emailLoading || appleLoading || googleLoading;
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -42,7 +43,9 @@ export default function Login() {
     console.log("[SameVibe Auth] Continue with Google button clicked");
     try {
       await signInWithGoogle();
-      setLocation("/dashboard");
+      // Navigation is handled by App.tsx's routing effect once user state settles.
+      // Do NOT call setLocation here — it races with onAuthStateChanged.
+      setSigningIn(true); // Show full-screen loading while auth-context fetches the profile
     } catch (err: any) {
       console.error("[SameVibe Auth] Google login error:", err);
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google login failed");
@@ -65,7 +68,12 @@ export default function Login() {
           setTimeout(() => reject(new Error("Sign in timed out. Please try again.")), 30000)
         ),
       ]);
-      setLocation("/dashboard");
+      // Navigation is handled by App.tsx's routing effect once user state settles.
+      // Do NOT call setLocation here — it races with onAuthStateChanged and causes
+      // the app to navigate to /dashboard before the DB user profile is created,
+      // then immediately bounce back to /login because user is still null.
+      console.log("[SameVibe Auth] Apple Sign-In Firebase call succeeded. Awaiting auth state...");
+      setSigningIn(true); // Show full-screen loading while auth-context fetches/creates the profile
     } catch (err: any) {
       console.error("[SameVibe Auth] Apple login error:", err);
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple login failed");
@@ -73,6 +81,24 @@ export default function Login() {
       setAppleLoading(false);
     }
   };
+
+  // If a sign-in attempt just completed, show a full-screen loading overlay
+  // so the user doesn't see the login form flash while auth-context resolves.
+  if (signingIn) {
+    return (
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
+        <div className="flex flex-col items-center gap-4 relative z-10 text-center px-4">
+          <div className="flex items-center gap-1 mt-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+          <p className="text-sm text-white/60">Completing sign-in…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background flex items-center justify-center px-4">

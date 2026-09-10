@@ -24,6 +24,7 @@ export default function Signup() {
   const [appleLoading, setAppleLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false); // true after OAuth succeeds, waiting for auth-context
 
   const calculateAge = (dob: string) => {
     if (!dob) return 0;
@@ -97,17 +98,10 @@ export default function Signup() {
     try {
       sessionStorage.setItem("pendingTermsVersion", CURRENT_TERMS_VERSION);
       await signInWithGoogle();
-      // auth-context resolves user; check if they already have an account
-      const cred = auth.currentUser;
-      if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
-        if (res.ok) {
-          const existingUser = await res.json();
-          setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
-          return;
-        }
-      }
-      setLocation("/onboarding");
+      // Navigation is handled by App.tsx's routing effect once user state settles.
+      // New users → /onboarding, returning users → /dashboard.
+      // Do NOT call setLocation here — it races with onAuthStateChanged.
+      setSigningIn(true);
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Google signup failed");
     } finally {
@@ -129,23 +123,35 @@ export default function Signup() {
           setTimeout(() => reject(new Error("Sign in timed out. Please try again.")), 30000)
         ),
       ]);
-      // auth-context resolves user; check if they already have an account
-      const cred = auth.currentUser;
-      if (cred) {
-        const res = await fetch(getApiUrl(`/api/users/firebase/${cred.uid}`));
-        if (res.ok) {
-          const existingUser = await res.json();
-          setLocation(existingUser.onboardingCompleted ? "/dashboard" : "/onboarding");
-          return;
-        }
-      }
-      setLocation("/onboarding");
+      // Navigation is handled by App.tsx's routing effect once user state settles.
+      // New users → /onboarding, returning users → /dashboard.
+      // Do NOT call setLocation here — it races with onAuthStateChanged.
+      console.log("[SameVibe Auth] Apple Sign-Up Firebase call succeeded. Awaiting auth state...");
+      setSigningIn(true);
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Apple signup failed");
     } finally {
       setAppleLoading(false);
     }
   };
+
+  // If a sign-up attempt just completed, show a full-screen loading overlay
+  // so the user doesn't see the signup form flash while auth-context resolves.
+  if (signingIn) {
+    return (
+      <div className="min-h-[100dvh] bg-[#080612] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full opacity-20 blur-[100px] bg-primary/40 pointer-events-none" />
+        <div className="flex flex-col items-center gap-4 relative z-10 text-center px-4">
+          <div className="flex items-center gap-1 mt-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+          <p className="text-sm text-white/60">Completing sign-in…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] relative overflow-hidden bg-background flex items-center justify-center px-4 py-8">
