@@ -28,7 +28,8 @@ export default function Login() {
     setEmailLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      setLocation("/dashboard");
+      // Navigation handled by App.tsx routing effect once auth-context fetches the DB profile.
+      setSigningIn(true);
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Login failed");
     } finally {

@@ -83,7 +83,9 @@ export default function Signup() {
         termsVersion: CURRENT_TERMS_VERSION,
       });
 
-      setLocation("/onboarding");
+      // Profile is now in DB. Let onAuthStateChanged in auth-context pick it up,
+      // then App.tsx routing effect will navigate to /onboarding.
+      setSigningIn(true);
     } catch (err: any) {
       setError(err.message?.replace("Firebase: ", "").replace(/\s*\(.*\)/, "") ?? "Signup failed");
     } finally {
