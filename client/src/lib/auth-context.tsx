@@ -66,7 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               setUser(userData);
             } else if (response.status === 404) {
               // Create new user with bulletproof fallbacks for Apple "Hide My Email" and OAuth providers
-              const userEmail = firebaseUser.email || `${firebaseUser.uid.substring(0, 12)}@privaterelay.appleid.com`;
+              const userEmail = firebaseUser.email || `${firebaseUser.uid}@privaterelay.appleid.com`;
               const userName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : "SameVibe Member");
 
               const newUserData = {
