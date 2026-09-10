@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -21,6 +21,16 @@ export default function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [signingIn, setSigningIn] = useState(false); // true after OAuth succeeds, waiting for auth-context
   const loading = emailLoading || appleLoading || googleLoading;
+
+  // P0 safety: if auth-context hits an error during profile fetch/creation
+  // while the signingIn overlay is visible, surface the error and drop the overlay.
+  // Without this, the user would be stuck on animated dots forever.
+  useEffect(() => {
+    if (authError && signingIn) {
+      setSigningIn(false);
+      setError(authError);
+    }
+  }, [authError, signingIn]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

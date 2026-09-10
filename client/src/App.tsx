@@ -143,8 +143,6 @@ function Router() {
         !user.name || user.name === user.email?.split("@")[0];
 
       const isSocialUser =
-        firebaseUser.providerId === "google.com" ||
-        firebaseUser.providerId === "apple.com" ||
         firebaseUser.providerData.some(
           (provider) =>
             provider.providerId === "google.com" ||

@@ -53,6 +53,16 @@ export default function Signup() {
     }
   }, [user, authLoading, setLocation]);
 
+  // P0 safety: if auth-context hits an error during profile fetch/creation
+  // while the signingIn overlay is visible, surface the error and drop the overlay.
+  // Without this, the user would be stuck on animated dots forever.
+  useEffect(() => {
+    if (authError && signingIn) {
+      setSigningIn(false);
+      setError(authError);
+    }
+  }, [authError, signingIn]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
